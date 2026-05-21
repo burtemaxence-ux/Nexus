@@ -1,11 +1,14 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { type Profile, type Shift } from '@/types'
 import { getWeekLabel, toISODate, addDays, formatDateFR } from '@/lib/utils/dates'
+import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
 
 interface PlanningGridProps {
   weekDates: Date[]
@@ -49,6 +52,7 @@ function formatTime(time: string): string {
 }
 
 export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: PlanningGridProps) {
+  const router = useRouter()
   const prevMonday = addDays(weekDates[0], -7)
   const nextMonday = addDays(weekDates[0], 7)
 
@@ -56,6 +60,53 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
   const nextWeekParam = toISODate(nextMonday)
 
   const weekLabel = getWeekLabel(weekDates)
+
+  // Modal state
+  const [modalState, setModalState] = useState<ModalState>({ type: 'closed' })
+  const [copyLoading, setCopyLoading] = useState(false)
+  const [copyError, setCopyError] = useState<string | null>(null)
+  const [copySuccess, setCopySuccess] = useState(false)
+
+  function openCreateModal(employee: Profile, date: Date) {
+    setModalState({ type: 'create', employee, date })
+  }
+
+  function openViewModal(shift: Shift, employee: Profile, date: Date) {
+    setModalState({ type: 'view', shift, employee, date })
+  }
+
+  function closeModal() {
+    setModalState({ type: 'closed' })
+  }
+
+  async function handleCopyWeek() {
+    setCopyLoading(true)
+    setCopyError(null)
+    setCopySuccess(false)
+
+    try {
+      const fromMonday = toISODate(weekDates[0])
+      const response = await fetch('/api/shifts/copy-week', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from_monday: fromMonday }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error ?? 'Erreur lors de la copie')
+      }
+
+      const data = await response.json()
+      setCopySuccess(true)
+      // Navigate to next week to see the result
+      router.push(`?week=${nextWeekParam}`)
+    } catch (err) {
+      setCopyError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } finally {
+      setCopyLoading(false)
+    }
+  }
 
   // Index shifts by employee_id + date for fast lookup
   const shiftMap = new Map<string, Shift[]>()
@@ -77,7 +128,7 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
           </Button>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap justify-center">
           <h2 className="text-lg font-semibold text-gray-900">{weekLabel}</h2>
           {weekStatus === 'published' ? (
             <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
@@ -87,6 +138,20 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
             <Badge variant="secondary" className="bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-100">
               Brouillon
             </Badge>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={handleCopyWeek}
+            disabled={copyLoading || employees.length === 0}
+            title="Copier tous les créneaux de cette semaine vers la semaine suivante"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {copyLoading ? 'Copie...' : 'Copier vers semaine suivante'}
+          </Button>
+          {copyError && (
+            <span className="text-xs text-red-600">{copyError}</span>
           )}
         </div>
 
@@ -178,27 +243,42 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
                       <td
                         key={dateStr}
                         className={`border-b border-r border-gray-200 px-2 py-2 last:border-r-0 align-top ${
-                          today ? 'bg-blue-50/30' : 'bg-gray-50'
+                          today ? 'bg-blue-50/30' : ''
                         }`}
                         style={{ minHeight: '80px' }}
                       >
-                        <div className="min-h-[80px] space-y-1">
-                          {dayShifts.length === 0 ? null : (
-                            dayShifts.map((shift) => (
+                        {dayShifts.length === 0 ? (
+                          /* Clickable empty cell */
+                          <div
+                            onClick={() => openCreateModal(employee, date)}
+                            className="min-h-[80px] bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors rounded-sm border border-dashed border-gray-200 hover:border-blue-300"
+                          />
+                        ) : (
+                          /* Shifts with add zone below */
+                          <div className="min-h-[80px] space-y-1">
+                            {dayShifts.map((shift) => (
                               <div
                                 key={shift.id}
-                                className="rounded-md bg-blue-100 border border-blue-200 p-1.5 text-xs text-blue-800"
+                                onClick={() => openViewModal(shift, employee, date)}
+                                className="rounded-md bg-blue-100 border border-blue-200 p-1.5 text-xs text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors"
                               >
                                 <p className="font-semibold">
                                   {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
                                 </p>
-                                {shift.position && (
-                                  <p className="text-blue-600 truncate">{shift.position}</p>
-                                )}
+                                <p className="text-blue-600 truncate">
+                                  {shift.position ?? employee.position}
+                                </p>
                               </div>
-                            ))
-                          )}
-                        </div>
+                            ))}
+                            {/* Small add button below existing shifts */}
+                            <div
+                              onClick={() => openCreateModal(employee, date)}
+                              className="h-6 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors rounded-sm border border-dashed border-gray-200 hover:border-blue-300 flex items-center justify-center"
+                            >
+                              <span className="text-[10px] text-gray-400 hover:text-blue-400">+ ajouter</span>
+                            </div>
+                          </div>
+                        )}
                       </td>
                     )
                   })}
@@ -208,6 +288,9 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
           </table>
         </div>
       )}
+
+      {/* Shift modal */}
+      <ShiftModal modalState={modalState} onClose={closeModal} />
     </div>
   )
 }
