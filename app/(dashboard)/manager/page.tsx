@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import {
   Card,
@@ -45,7 +46,7 @@ export default async function ManagerDashboard() {
       title: 'Employés',
       description: 'Gérer les profils et disponibilités de vos employés',
       icon: Users,
-      href: '/manager/employes',
+      href: '/manager/employees',
       color: 'text-green-600',
       bgColor: 'bg-green-50',
     },
@@ -88,7 +89,26 @@ export default async function ManagerDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {navigationCards.map((card) => {
           const Icon = card.icon
-          return (
+          const isEmployees = card.href === '/manager/employees'
+          return isEmployees ? (
+            <Link key={card.title} href={card.href} className="block">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                  <div className={`p-3 rounded-lg ${card.bgColor}`}>
+                    <Icon className={`h-6 w-6 ${card.color}`} />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">{card.title}</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-sm">
+                    {card.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </Link>
+          ) : (
             <Card
               key={card.title}
               className="hover:shadow-md transition-shadow cursor-pointer"
