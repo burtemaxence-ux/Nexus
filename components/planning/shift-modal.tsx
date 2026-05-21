@@ -13,38 +13,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { type Profile, type Shift } from '@/types'
 import { toISODate } from '@/lib/utils/dates'
 
-// Generate time options every 30 min
-function generateTimeOptions(startHour: number, startMin: number, endHour: number, endMin: number): string[] {
-  const options: string[] = []
-  let h = startHour
-  let m = startMin
-  while (h < endHour || (h === endHour && m <= endMin)) {
-    const hStr = String(h).padStart(2, '0')
-    const mStr = String(m).padStart(2, '0')
-    options.push(`${hStr}:${mStr}`)
-    m += 30
-    if (m >= 60) {
-      m = 0
-      h += 1
-    }
-  }
-  return options
-}
-
-// 06:00 to 23:30 for start time
-const START_TIME_OPTIONS = generateTimeOptions(6, 0, 23, 30)
-// 06:30 to 00:00 for end time (midnight handled specially)
-const END_TIME_OPTIONS = [...generateTimeOptions(6, 30, 23, 30), '00:00']
 
 function formatDayFR(date: Date): string {
   const weekday = date.toLocaleDateString('fr-FR', { weekday: 'long' })
@@ -176,35 +147,23 @@ export function ShiftModal({ modalState, onClose }: ShiftModalProps) {
             {/* Start time */}
             <div className="grid gap-1.5">
               <Label htmlFor="start-time">Heure de début</Label>
-              <Select value={startTime} onValueChange={setStartTime}>
-                <SelectTrigger id="start-time">
-                  <SelectValue placeholder="Choisir..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {START_TIME_OPTIONS.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="start-time"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
             </div>
 
             {/* End time */}
             <div className="grid gap-1.5">
               <Label htmlFor="end-time">Heure de fin</Label>
-              <Select value={endTime} onValueChange={setEndTime}>
-                <SelectTrigger id="end-time">
-                  <SelectValue placeholder="Choisir..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {END_TIME_OPTIONS.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="end-time"
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
             </div>
 
             {/* Position */}

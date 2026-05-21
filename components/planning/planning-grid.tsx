@@ -47,8 +47,21 @@ function isToday(date: Date): boolean {
 }
 
 function formatTime(time: string): string {
-  // time is "HH:MM:SS" or "HH:MM", return "HH:MM"
   return time.slice(0, 5)
+}
+
+function calcShiftHours(start: string, end: string): number {
+  const [sh, sm] = start.split(':').map(Number)
+  const [eh, em] = end.split(':').map(Number)
+  let minutes = (eh * 60 + em) - (sh * 60 + sm)
+  if (minutes < 0) minutes += 24 * 60
+  return minutes / 60
+}
+
+function formatHours(hours: number): string {
+  const h = Math.floor(hours)
+  const m = Math.round((hours - h) * 60)
+  return m > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
 }
 
 export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: PlanningGridProps) {
@@ -192,7 +205,7 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
                   return (
                     <th
                       key={toISODate(date)}
-                      className={`border-b border-r border-gray-200 px-3 py-3 text-center text-sm font-medium last:border-r-0 ${
+                      className={`border-b border-r border-gray-200 px-3 py-3 text-center text-sm font-medium ${
                         today ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-600'
                       }`}
                     >
@@ -203,6 +216,10 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
                     </th>
                   )
                 })}
+                {/* Total column header */}
+                <th className="border-b border-gray-200 bg-gray-50 px-3 py-3 text-center text-sm font-medium text-gray-600 w-20">
+                  Total
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -242,19 +259,17 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
                     return (
                       <td
                         key={dateStr}
-                        className={`border-b border-r border-gray-200 px-2 py-2 last:border-r-0 align-top ${
+                        className={`border-b border-r border-gray-200 px-2 py-2 align-top ${
                           today ? 'bg-blue-50/30' : ''
                         }`}
                         style={{ minHeight: '80px' }}
                       >
                         {dayShifts.length === 0 ? (
-                          /* Clickable empty cell */
                           <div
                             onClick={() => openCreateModal(employee, date)}
                             className="min-h-[80px] bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors rounded-sm border border-dashed border-gray-200 hover:border-blue-300"
                           />
                         ) : (
-                          /* Shifts with add zone below */
                           <div className="min-h-[80px] space-y-1">
                             {dayShifts.map((shift) => (
                               <div
@@ -270,7 +285,6 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
                                 </p>
                               </div>
                             ))}
-                            {/* Small add button below existing shifts */}
                             <div
                               onClick={() => openCreateModal(employee, date)}
                               className="h-6 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors rounded-sm border border-dashed border-gray-200 hover:border-blue-300 flex items-center justify-center"
@@ -282,6 +296,21 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
                       </td>
                     )
                   })}
+                  {/* Weekly total cell */}
+                  {(() => {
+                    const employeeShifts = shifts.filter(s => s.employee_id === employee.id)
+                    const totalHours = employeeShifts.reduce(
+                      (sum, s) => sum + calcShiftHours(s.start_time, s.end_time),
+                      0
+                    )
+                    return (
+                      <td className="border-b border-gray-200 px-3 py-3 text-center align-middle">
+                        <span className={`text-sm font-semibold ${totalHours > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                          {totalHours > 0 ? formatHours(totalHours) : '—'}
+                        </span>
+                      </td>
+                    )
+                  })()}
                 </tr>
               ))}
             </tbody>
