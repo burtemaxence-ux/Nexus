@@ -1,0 +1,213 @@
+'use client'
+
+import Link from 'next/link'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { type Profile, type Shift } from '@/types'
+import { getWeekLabel, toISODate, addDays, formatDateFR } from '@/lib/utils/dates'
+
+interface PlanningGridProps {
+  weekDates: Date[]
+  employees: Profile[]
+  shifts: Shift[]
+  weekStatus: 'draft' | 'published'
+}
+
+function getInitials(name: string | null): string {
+  if (!name) return '?'
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
+
+function getDayLabel(date: Date): { weekday: string; dayMonth: string } {
+  const weekday = date.toLocaleDateString('fr-FR', { weekday: 'short' })
+  const dayMonth = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  // Capitalize first letter
+  return {
+    weekday: weekday.charAt(0).toUpperCase() + weekday.slice(1).replace('.', ''),
+    dayMonth,
+  }
+}
+
+function isToday(date: Date): boolean {
+  const today = new Date()
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  )
+}
+
+function formatTime(time: string): string {
+  // time is "HH:MM:SS" or "HH:MM", return "HH:MM"
+  return time.slice(0, 5)
+}
+
+export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: PlanningGridProps) {
+  const prevMonday = addDays(weekDates[0], -7)
+  const nextMonday = addDays(weekDates[0], 7)
+
+  const prevWeekParam = toISODate(prevMonday)
+  const nextWeekParam = toISODate(nextMonday)
+
+  const weekLabel = getWeekLabel(weekDates)
+
+  // Index shifts by employee_id + date for fast lookup
+  const shiftMap = new Map<string, Shift[]>()
+  for (const shift of shifts) {
+    const key = `${shift.employee_id}__${shift.date}`
+    const existing = shiftMap.get(key) ?? []
+    existing.push(shift)
+    shiftMap.set(key, existing)
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header navigation */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <Link href={`?week=${prevWeekParam}`}>
+          <Button variant="outline" size="sm" className="gap-1">
+            <ChevronLeft className="h-4 w-4" />
+            Semaine précédente
+          </Button>
+        </Link>
+
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-gray-900">{weekLabel}</h2>
+          {weekStatus === 'published' ? (
+            <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
+              Publié
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-100">
+              Brouillon
+            </Badge>
+          )}
+        </div>
+
+        <Link href={`?week=${nextWeekParam}`}>
+          <Button variant="outline" size="sm" className="gap-1">
+            Semaine suivante
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
+
+      {/* Empty state */}
+      {employees.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-gray-200 bg-white p-12 text-center">
+          <p className="text-gray-500 mb-3">
+            Ajoutez des employés pour commencer à planifier
+          </p>
+          <Link href="/manager/employees">
+            <Button variant="outline" size="sm">
+              Gérer les employés
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        /* Planning grid */
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+          <table className="w-full min-w-[700px] border-collapse">
+            <thead>
+              <tr>
+                {/* Employee column header */}
+                <th className="border-b border-r border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-600 w-48 min-w-[180px]">
+                  Employés
+                </th>
+                {/* Day headers */}
+                {weekDates.map((date) => {
+                  const { weekday, dayMonth } = getDayLabel(date)
+                  const today = isToday(date)
+                  return (
+                    <th
+                      key={toISODate(date)}
+                      className={`border-b border-r border-gray-200 px-3 py-3 text-center text-sm font-medium last:border-r-0 ${
+                        today ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-600'
+                      }`}
+                    >
+                      <div className="font-semibold">{weekday}</div>
+                      <div className={`text-xs font-normal mt-0.5 ${today ? 'text-blue-500' : 'text-gray-400'}`}>
+                        {dayMonth}
+                      </div>
+                    </th>
+                  )
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {employees.map((employee, rowIndex) => (
+                <tr
+                  key={employee.id}
+                  className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
+                >
+                  {/* Employee cell */}
+                  <td className="border-b border-r border-gray-200 px-4 py-3 last:border-b-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600">
+                        {getInitials(employee.full_name)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-gray-900">
+                          {employee.full_name ?? employee.email}
+                        </p>
+                        {employee.position && (
+                          <Badge
+                            variant="outline"
+                            className="mt-0.5 px-1.5 py-0 text-[10px] leading-4 font-normal text-gray-500 border-gray-200"
+                          >
+                            {employee.position}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Day cells */}
+                  {weekDates.map((date) => {
+                    const dateStr = toISODate(date)
+                    const dayShifts = shiftMap.get(`${employee.id}__${dateStr}`) ?? []
+                    const today = isToday(date)
+
+                    return (
+                      <td
+                        key={dateStr}
+                        className={`border-b border-r border-gray-200 px-2 py-2 last:border-r-0 align-top ${
+                          today ? 'bg-blue-50/30' : 'bg-gray-50'
+                        }`}
+                        style={{ minHeight: '80px' }}
+                      >
+                        <div className="min-h-[80px] space-y-1">
+                          {dayShifts.length === 0 ? null : (
+                            dayShifts.map((shift) => (
+                              <div
+                                key={shift.id}
+                                className="rounded-md bg-blue-100 border border-blue-200 p-1.5 text-xs text-blue-800"
+                              >
+                                <p className="font-semibold">
+                                  {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
+                                </p>
+                                {shift.position && (
+                                  <p className="text-blue-600 truncate">{shift.position}</p>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}

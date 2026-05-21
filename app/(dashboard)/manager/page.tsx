@@ -89,8 +89,8 @@ export default async function ManagerDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {navigationCards.map((card) => {
           const Icon = card.icon
-          const isEmployees = card.href === '/manager/employees'
-          return isEmployees ? (
+          const isActive = card.href === '/manager/employees' || card.href === '/manager/planning'
+          return isActive ? (
             <Link key={card.title} href={card.href} className="block">
               <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
                 <CardHeader className="flex flex-row items-center gap-4 pb-2">
