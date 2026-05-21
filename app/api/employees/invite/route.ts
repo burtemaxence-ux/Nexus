@@ -47,9 +47,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true })
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erreur inconnue'
+    console.error('[invite] exception:', message)
     return NextResponse.json(
-      { error: 'Une erreur inattendue est survenue' },
+      { error: message },
       { status: 500 }
     )
   }
