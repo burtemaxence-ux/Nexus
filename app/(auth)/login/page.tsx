@@ -34,7 +34,19 @@ export default function LoginPage() {
     })
 
     if (error) {
-      setError('Identifiants incorrects. Veuillez réessayer.')
+      if (
+        error.message.includes('Email not confirmed') ||
+        error.message.includes('email_not_confirmed')
+      ) {
+        setError('Compte non activé. Demandez à votre manager de vous renvoyer le lien d\'accès.')
+      } else if (
+        error.message.includes('Invalid login credentials') ||
+        error.message.includes('invalid_credentials')
+      ) {
+        setError('Email ou mot de passe incorrect. Si vous n\'avez pas encore défini votre mot de passe, utilisez le lien envoyé par votre manager.')
+      } else {
+        setError(error.message)
+      }
       setLoading(false)
       return
     }
