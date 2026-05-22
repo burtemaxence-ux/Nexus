@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { UserPlus, Users, Pencil } from 'lucide-react'
+import DeleteEmployeeButton from './delete-employee-button'
 
 function getInitials(name: string): string {
   return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
@@ -109,11 +110,14 @@ export default async function EmployeesPage({ searchParams }: { searchParams: { 
                   </TableCell>
                   <TableCell className="text-gray-500 text-sm">{formatDate(employee.created_at)}</TableCell>
                   <TableCell className="pr-6">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/manager/employees/${employee.id}/edit`}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" />Modifier
-                      </Link>
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/manager/employees/${employee.id}/edit`}>
+                          <Pencil className="h-3.5 w-3.5 mr-1" />Modifier
+                        </Link>
+                      </Button>
+                      <DeleteEmployeeButton employee={employee} />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
