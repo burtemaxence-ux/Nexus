@@ -49,6 +49,12 @@ export async function POST(request: NextRequest) {
           { status: 409 }
         )
       }
+      if (error.message.includes('rate limit')) {
+        return NextResponse.json(
+          { error: 'Trop d\'invitations envoyées. Patientez quelques minutes avant de réessayer.' },
+          { status: 429 }
+        )
+      }
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 

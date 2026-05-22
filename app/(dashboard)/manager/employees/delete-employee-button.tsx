@@ -37,6 +37,7 @@ export default function DeleteEmployeeButton({ employee }: Props) {
       setLoading(false)
       return
     }
+    setLoading(false)
     setOpen(false)
     router.refresh()
   }
