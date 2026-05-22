@@ -81,12 +81,10 @@ export default async function EmployeeDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {navigationCards.map((card) => {
           const Icon = card.icon
-          const isPlanning = card.href === '/employee/planning'
+          const isActive = card.href === '/employee/planning' || card.href === '/employee/conges'
 
           const cardContent = (
-            <Card
-              className={`transition-shadow ${isPlanning ? 'hover:shadow-md cursor-pointer' : 'opacity-70'}`}
-            >
+            <Card className={`transition-shadow ${isActive ? 'hover:shadow-md cursor-pointer' : 'opacity-70'}`}>
               <CardHeader className="flex flex-row items-center gap-4 pb-2">
                 <div className={`p-3 rounded-lg ${card.bgColor}`}>
                   <Icon className={`h-6 w-6 ${card.color}`} />
@@ -96,22 +94,14 @@ export default async function EmployeeDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-sm">
-                  {card.description}
-                </CardDescription>
-                {!isPlanning && (
-                  <p className="text-xs text-muted-foreground mt-2 italic">
-                    Disponible prochainement
-                  </p>
-                )}
+                <CardDescription className="text-sm">{card.description}</CardDescription>
+                {!isActive && <p className="text-xs text-muted-foreground mt-2 italic">Disponible prochainement</p>}
               </CardContent>
             </Card>
           )
 
-          return isPlanning ? (
-            <Link key={card.title} href={card.href}>
-              {cardContent}
-            </Link>
+          return isActive ? (
+            <Link key={card.title} href={card.href}>{cardContent}</Link>
           ) : (
             <div key={card.title}>{cardContent}</div>
           )
