@@ -322,12 +322,27 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
       <div className="space-y-4">
         {/* Header navigation */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <Link href={`?week=${prevWeekParam}`}>
-            <Button variant="outline" size="sm" className="gap-1">
-              <ChevronLeft className="h-4 w-4" />
-              Semaine précédente
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* View toggle */}
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium">
+              <div className="px-4 py-2 bg-gray-900 text-white select-none">
+                Semaine
+              </div>
+              <Link
+                href={`/manager/planning?view=month`}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Mois
+              </Link>
+            </div>
+
+            <Link href={`?week=${prevWeekParam}`}>
+              <Button variant="outline" size="sm" className="gap-1">
+                <ChevronLeft className="h-4 w-4" />
+                Précédente
+              </Button>
+            </Link>
+          </div>
 
           <div className="flex items-center gap-3 flex-wrap justify-center">
             <h2 className="text-lg font-semibold text-gray-900">{weekLabel}</h2>
@@ -410,7 +425,7 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
 
           <Link href={`?week=${nextWeekParam}`}>
             <Button variant="outline" size="sm" className="gap-1">
-              Semaine suivante
+              Suivante
               <ChevronRight className="h-4 w-4" />
             </Button>
           </Link>

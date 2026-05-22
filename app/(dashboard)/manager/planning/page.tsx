@@ -3,11 +3,12 @@ import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { PlanningGrid } from '@/components/planning/planning-grid'
+import { PlanningMonth } from '@/components/planning/planning-month'
 import { getWeekDates, toISODate } from '@/lib/utils/dates'
 import type { Profile, Shift, Poste, WeekStatus } from '@/types'
 
 interface PlanningPageProps {
-  searchParams: Promise<{ week?: string }>
+  searchParams: Promise<{ week?: string; view?: string; month?: string }>
 }
 
 export default async function PlanningPage({ searchParams }: PlanningPageProps) {
@@ -21,11 +22,75 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
     redirect('/login')
   }
 
-  // Resolve searchParams (Next.js 14 async searchParams)
+  // Resolve searchParams
   const params = await searchParams
-  const weekParam = params.week
+  const view = params.view === 'month' ? 'month' : 'week'
 
-  // Determine the Monday of the target week
+  // ── Shared: fetch employees & postes ─────────────────────────────────────
+  const { data: employeesData } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, role, position, created_at')
+    .eq('role', 'employee')
+    .order('full_name', { ascending: true })
+
+  const employees: Profile[] = (employeesData ?? []) as Profile[]
+
+  const { data: postesData } = await supabase
+    .from('postes')
+    .select('*')
+    .order('name')
+
+  const postes: Poste[] = (postesData ?? []) as Poste[]
+
+  // ── MONTH VIEW ────────────────────────────────────────────────────────────
+  if (view === 'month') {
+    const monthParam = params.month
+    let monthDate: Date
+    if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
+      monthDate = new Date(monthParam + '-01T00:00:00')
+    } else {
+      const now = new Date()
+      monthDate = new Date(now.getFullYear(), now.getMonth(), 1)
+    }
+
+    const firstDay = toISODate(monthDate)
+    const lastDay = toISODate(new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0))
+
+    const { data: shiftsData } = await supabase
+      .from('shifts')
+      .select('*')
+      .gte('date', firstDay)
+      .lte('date', lastDay)
+
+    const shifts: Shift[] = (shiftsData ?? []) as Shift[]
+
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="mb-6">
+          <Link
+            href="/manager"
+            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Tableau de bord
+          </Link>
+        </div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Planning</h1>
+          <p className="text-gray-500 mt-1 text-sm">Vue mensuelle de votre équipe</p>
+        </div>
+        <PlanningMonth
+          month={monthDate}
+          employees={employees}
+          shifts={shifts}
+          postes={postes}
+        />
+      </div>
+    )
+  }
+
+  // ── WEEK VIEW (default) ───────────────────────────────────────────────────
+  const weekParam = params.week
   let referenceDate: Date
   if (weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam)) {
     referenceDate = new Date(weekParam + 'T00:00:00')
@@ -36,45 +101,18 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
   const weekDates = getWeekDates(referenceDate)
   const monday = weekDates[0]
   const sunday = weekDates[6]
-
   const mondayStr = toISODate(monday)
   const sundayStr = toISODate(sunday)
 
-  // Fetch employees (role = 'employee')
-  const { data: employeesData, error: employeesError } = await supabase
-    .from('profiles')
-    .select('id, email, full_name, role, position, created_at')
-    .eq('role', 'employee')
-    .order('full_name', { ascending: true })
-
-  if (employeesError) {
-    console.error('Error fetching employees:', employeesError)
-  }
-
-  const employees: Profile[] = (employeesData ?? []) as Profile[]
-
-  // Fetch shifts for the week
   const { data: shiftsData, error: shiftsError } = await supabase
     .from('shifts')
     .select('*')
     .gte('date', mondayStr)
     .lte('date', sundayStr)
 
-  if (shiftsError) {
-    console.error('Error fetching shifts:', shiftsError)
-  }
-
+  if (shiftsError) console.error('Error fetching shifts:', shiftsError)
   const shifts: Shift[] = (shiftsData ?? []) as Shift[]
 
-  // Fetch postes
-  const { data: postesData } = await supabase
-    .from('postes')
-    .select('*')
-    .order('name')
-
-  const postes: Poste[] = (postesData ?? []) as Poste[]
-
-  // Fetch week_status for the current week
   const { data: weekStatusData } = await supabase
     .from('week_status')
     .select('*')
@@ -91,7 +129,6 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Breadcrumb */}
       <div className="mb-6">
         <Link
           href="/manager"
@@ -101,16 +138,12 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
           Tableau de bord
         </Link>
       </div>
-
-      {/* Page title */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Planning</h1>
         <p className="text-gray-500 mt-1 text-sm">
           Visualisez et gérez le planning hebdomadaire de votre équipe
         </p>
       </div>
-
-      {/* Planning grid component */}
       <PlanningGrid
         weekDates={weekDates}
         employees={employees}
