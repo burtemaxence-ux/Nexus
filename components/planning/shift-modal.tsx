@@ -51,6 +51,13 @@ export function ShiftModal({ modalState, onClose }: ShiftModalProps) {
   const [position, setPosition] = useState('')
   const [notes, setNotes] = useState('')
 
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false)
+  const [editStartTime, setEditStartTime] = useState('09:00')
+  const [editEndTime, setEditEndTime] = useState('17:00')
+  const [editPosition, setEditPosition] = useState('')
+  const [editNotes, setEditNotes] = useState('')
+
   const isOpen = modalState.type !== 'closed'
 
   // Reset form state when modal opens for creation
@@ -59,6 +66,7 @@ export function ShiftModal({ modalState, onClose }: ShiftModalProps) {
       onClose()
       setError(null)
       setLoading(false)
+      setIsEditing(false)
     } else if (modalState.type === 'create') {
       setStartTime('09:00')
       setEndTime('17:00')
@@ -66,6 +74,22 @@ export function ShiftModal({ modalState, onClose }: ShiftModalProps) {
       setNotes('')
       setError(null)
     }
+  }
+
+  function handleStartEdit() {
+    if (modalState.type !== 'view') return
+    const { shift, employee } = modalState
+    setEditStartTime(shift.start_time.slice(0, 5))
+    setEditEndTime(shift.end_time.slice(0, 5))
+    setEditPosition(shift.position ?? employee.position ?? '')
+    setEditNotes(shift.notes ?? '')
+    setError(null)
+    setIsEditing(true)
+  }
+
+  function handleCancelEdit() {
+    setIsEditing(false)
+    setError(null)
   }
 
   async function handleCreate() {
@@ -92,6 +116,38 @@ export function ShiftModal({ modalState, onClose }: ShiftModalProps) {
         throw new Error(data.error ?? 'Erreur lors de la création')
       }
 
+      onClose()
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleSaveEdit() {
+    if (modalState.type !== 'view') return
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/shifts/${modalState.shift.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          start_time: editStartTime,
+          end_time: editEndTime,
+          position: editPosition,
+          notes: editNotes,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error ?? 'Erreur lors de la modification')
+      }
+
+      setIsEditing(false)
       onClose()
       router.refresh()
     } catch (err) {
@@ -211,8 +267,88 @@ export function ShiftModal({ modalState, onClose }: ShiftModalProps) {
     )
   }
 
-  // View mode
+  // View / Edit mode
   const { shift } = modalState
+
+  if (isEditing) {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Modifier le créneau — {firstName} — {dayLabel}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+            {/* Start time */}
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-start-time">Heure de début</Label>
+              <Input
+                id="edit-start-time"
+                type="time"
+                value={editStartTime}
+                onChange={(e) => setEditStartTime(e.target.value)}
+              />
+            </div>
+
+            {/* End time */}
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-end-time">Heure de fin</Label>
+              <Input
+                id="edit-end-time"
+                type="time"
+                value={editEndTime}
+                onChange={(e) => setEditEndTime(e.target.value)}
+              />
+            </div>
+
+            {/* Position */}
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-position">Poste</Label>
+              <Input
+                id="edit-position"
+                value={editPosition}
+                onChange={(e) => setEditPosition(e.target.value)}
+                placeholder={employee.position ?? 'Ex : Serveur'}
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-notes">Notes (optionnel)</Label>
+              <Textarea
+                id="edit-notes"
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                placeholder="Informations supplémentaires..."
+                rows={3}
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-600">{error}</p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCancelEdit}
+              disabled={loading}
+            >
+              Annuler
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={loading}>
+              {loading ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  // View mode
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -256,6 +392,13 @@ export function ShiftModal({ modalState, onClose }: ShiftModalProps) {
             disabled={loading}
           >
             {loading ? 'Suppression...' : 'Supprimer'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleStartEdit}
+            disabled={loading}
+          >
+            Modifier
           </Button>
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Fermer
