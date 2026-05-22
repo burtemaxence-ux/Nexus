@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Globe } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Globe, Printer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { type Profile, type Shift, type Poste } from '@/types'
@@ -414,6 +414,14 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
               <Copy className="h-3.5 w-3.5" />
               {copyLoading ? 'Copie...' : 'Copier →'}
             </Button>
+
+            {/* PDF / Print button */}
+            <Link href={`/manager/planning/print?week=${toISODate(weekDates[0])}`} target="_blank">
+              <Button variant="outline" size="sm" className="gap-1.5" title="Télécharger le planning en PDF">
+                <Printer className="h-3.5 w-3.5" />
+                PDF
+              </Button>
+            </Link>
 
             {copyError && (
               <span className="text-xs text-red-600">{copyError}</span>

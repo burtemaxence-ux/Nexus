@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendPlanningPublishedEmails } from '@/lib/email/planning-email'
+import { getWeekDates, getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 
 async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -137,6 +139,23 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('[week-status POST] error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Envoi des emails uniquement lors de la première publication
+    if (published === true && !existing?.published) {
+      const sunday = toISODate(addDays(new Date(week_monday + 'T00:00:00'), 6))
+      const weekLabel = getWeekLabel(getWeekDates(new Date(week_monday + 'T00:00:00')))
+
+      const [{ data: shifts }, { data: employees }] = await Promise.all([
+        supabase.from('shifts').select('*').gte('date', week_monday).lte('date', sunday),
+        supabase.from('profiles').select('id, email, full_name, role, position, contract_type, weekly_hours, created_at').eq('role', 'employee'),
+      ])
+
+      sendPlanningPublishedEmails({
+        employees: employees ?? [],
+        shifts: shifts ?? [],
+        weekLabel,
+      }).catch(err => console.error('[email] Exception:', err))
     }
 
     return NextResponse.json(data)
