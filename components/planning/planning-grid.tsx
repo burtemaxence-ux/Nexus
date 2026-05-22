@@ -481,7 +481,7 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
           </div>
         ) : (
           /* Planning grid */
-          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+          <div className={`relative overflow-x-auto rounded-lg border bg-white transition-all duration-300 ${weekLocked ? 'border-gray-300 opacity-60 saturate-50' : 'border-gray-200'}`}>
             <table className="w-full min-w-[700px] border-collapse">
               <thead>
                 <tr>

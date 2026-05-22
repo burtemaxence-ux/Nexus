@@ -58,31 +58,30 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
 
   const firstName = employee.full_name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'Employé'
 
-  // Fetch shifts for this employee for the week
-  const { data: shiftsData, error: shiftsError } = await supabase
-    .from('shifts')
-    .select('*')
-    .eq('employee_id', user.id)
-    .gte('date', mondayStr)
-    .lte('date', sundayStr)
+  // Vérifier si la semaine est publiée
+  const { data: weekStatusData } = await supabase
+    .from('week_status')
+    .select('published')
+    .eq('week_monday', mondayStr)
+    .single()
 
-  if (shiftsError) {
-    console.error('Error fetching shifts:', shiftsError)
+  const isPublished = weekStatusData?.published ?? false
+
+  // Fetch shifts uniquement si la semaine est publiée
+  const shifts: Shift[] = []
+  const postes: Poste[] = []
+
+  if (isPublished) {
+    const [{ data: shiftsData }, { data: postesData }] = await Promise.all([
+      supabase.from('shifts').select('*').eq('employee_id', user.id).gte('date', mondayStr).lte('date', sundayStr),
+      supabase.from('postes').select('*').order('name'),
+    ])
+    shifts.push(...((shiftsData ?? []) as Shift[]))
+    postes.push(...((postesData ?? []) as Poste[]))
   }
-
-  const shifts: Shift[] = (shiftsData ?? []) as Shift[]
-
-  // Fetch postes
-  const { data: postesData } = await supabase
-    .from('postes')
-    .select('*')
-    .order('name')
-
-  const postes: Poste[] = (postesData ?? []) as Poste[]
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Breadcrumb */}
       <div className="mb-6">
         <Link
           href="/employee"
@@ -93,7 +92,6 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
         </Link>
       </div>
 
-      {/* Page title */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
           Bonjour {firstName} — Planning de la semaine
@@ -103,13 +101,26 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
         </p>
       </div>
 
-      {/* Employee planning grid (read-only) */}
-      <EmployeePlanningGrid
-        weekDates={weekDates}
-        employee={employee}
-        shifts={shifts}
-        postes={postes}
-      />
+      {!isPublished ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            <svg className="h-7 w-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Planning en cours de préparation</h2>
+          <p className="text-gray-500 text-sm max-w-sm">
+            Votre responsable n&apos;a pas encore publié le planning pour cette semaine. Revenez bientôt.
+          </p>
+        </div>
+      ) : (
+        <EmployeePlanningGrid
+          weekDates={weekDates}
+          employee={employee}
+          shifts={shifts}
+          postes={postes}
+        />
+      )}
     </div>
   )
 }
