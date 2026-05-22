@@ -437,20 +437,18 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
               {copyLoading ? 'Copie...' : 'Copier →'}
             </Button>
 
-            {/* Resend emails button — visible only when week is published */}
-            {weekPublished && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={handleResendEmails}
-                disabled={emailLoading}
-                title="Renvoyer les emails du planning à tous les employés"
-              >
-                <Mail className="h-3.5 w-3.5" />
-                {emailLoading ? 'Envoi...' : 'Envoyer emails'}
-              </Button>
-            )}
+            {/* Envoyer le planning — toujours visible, indépendant du statut */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleResendEmails}
+              disabled={emailLoading || employees.length === 0}
+              title="Envoyer le planning par email à tous les employés"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              {emailLoading ? 'Envoi...' : 'Envoyer le planning'}
+            </Button>
 
             {emailFeedback && (
               <span className={`text-xs ${emailFeedback.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>
