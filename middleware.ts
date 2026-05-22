@@ -17,6 +17,11 @@ export async function middleware(request: NextRequest) {
   if (user) {
     const role = user.user_metadata?.role as string | undefined
 
+    // Laisser passer la page de création de mot de passe sans redirect
+    if (pathname === '/auth/set-password') {
+      return supabaseResponse
+    }
+
     // Redirect depuis /login vers le dashboard approprié
     if (pathname === '/login' || pathname === '/') {
       const url = request.nextUrl.clone()

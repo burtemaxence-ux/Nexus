@@ -28,7 +28,10 @@ export async function POST(request: NextRequest) {
       }
     )
 
+    const origin = request.headers.get('origin') ?? 'http://localhost:3000'
+
     const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
       data: {
         role: 'employee',
         full_name,
