@@ -10,9 +10,25 @@ export async function POST(request: NextRequest) {
   const breakEnd = body.time ?? new Date().toISOString()
   const today = new Date().toISOString().slice(0, 10)
 
+  // Récupère la pause en cours pour calculer la durée
+  const { data: presence } = await supabase
+    .from('presences')
+    .select('break_start, break_minutes_used')
+    .eq('employee_id', user.id)
+    .eq('date', today)
+    .single()
+
+  const currentBreakMinutes = presence?.break_start
+    ? Math.max(0, Math.floor((new Date(breakEnd).getTime() - new Date(presence.break_start).getTime()) / 60000))
+    : 0
+
   const { data, error } = await supabase
     .from('presences')
-    .update({ break_end: breakEnd, updated_at: new Date().toISOString() })
+    .update({
+      break_end: breakEnd,
+      break_minutes_used: (presence?.break_minutes_used ?? 0) + currentBreakMinutes,
+      updated_at: new Date().toISOString(),
+    })
     .eq('employee_id', user.id)
     .eq('date', today)
     .select()

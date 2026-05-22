@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, LogIn, LogOut, Coffee, PlayCircle, CalendarX } from 'lucide-react'
+import { ChevronLeft, LogIn, LogOut, Coffee, PlayCircle, CalendarX, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TimeCarousel, timeValueToISO, nowTimeValue, type TimeValue } from '@/components/ui/time-carousel'
 
@@ -13,6 +13,7 @@ type Presence = {
   clock_out: string | null
   break_start: string | null
   break_end: string | null
+  break_minutes_used: number
 }
 
 type Shift = {
@@ -57,6 +58,7 @@ function getDayState(p: Presence | null): DayState {
 export default function BadgeusePage() {
   const [presence, setPresence] = useState<Presence | null | undefined>(undefined)
   const [todayShifts, setTodayShifts] = useState<Shift[] | undefined>(undefined)
+  const [breakLimit, setBreakLimit] = useState<number>(30)
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(new Date())
@@ -69,9 +71,10 @@ export default function BadgeusePage() {
   const fetchData = useCallback(async () => {
     const today = new Date().toISOString().slice(0, 10)
 
-    const [presRes, shiftsRes] = await Promise.all([
+    const [presRes, shiftsRes, settingsRes] = await Promise.all([
       fetch('/api/presences'),
       fetch(`/api/shifts?employee=me&date=${today}`),
+      fetch('/api/settings'),
     ])
 
     if (presRes.ok) setPresence(await presRes.json())
@@ -79,6 +82,11 @@ export default function BadgeusePage() {
 
     if (shiftsRes.ok) setTodayShifts(await shiftsRes.json())
     else setTodayShifts([])
+
+    if (settingsRes.ok) {
+      const s = await settingsRes.json()
+      setBreakLimit(parseInt(s.break_minutes_limit ?? '30', 10))
+    }
   }, [])
 
   useEffect(() => {
@@ -96,7 +104,10 @@ export default function BadgeusePage() {
       body: JSON.stringify({ time: timeValueToISO(time) }),
     })
     if (res.ok) setPresence(await res.json())
-    else setError('Erreur lors du pointage. Réessayez.')
+    else {
+      const body = await res.json().catch(() => ({}))
+      setError(body.error ?? 'Erreur lors du pointage. Réessayez.')
+    }
     setLoading(null)
   }
 
@@ -104,14 +115,16 @@ export default function BadgeusePage() {
   const state = getDayState(p)
   const hasShiftToday = todayShifts !== undefined && todayShifts.length > 0
 
-  // Durée totale travaillée (sans la pause)
+  // Temps de pause total : cumulé + pause en cours si on_break
+  const breakMinutesTotal = (p?.break_minutes_used ?? 0) +
+    (state === 'on_break' && p?.break_start ? minutesBetween(p.break_start, null) : 0)
+  const breakMinutesRemaining = Math.max(0, breakLimit - breakMinutesTotal)
+  const breakLimitReached = breakMinutesRemaining === 0
+
+  // Durée totale travaillée (sans les pauses)
   const minutesWorked = p?.clock_in
-    ? minutesBetween(p.clock_in, p.clock_out ?? null) -
-      (p.break_start && p.break_end
-        ? minutesBetween(p.break_start, p.break_end)
-        : p.break_start && !p.break_end
-        ? minutesBetween(p.break_start, null)
-        : 0)
+    ? minutesBetween(p.clock_in, p.clock_out ?? null) - (p.break_minutes_used ?? 0) -
+      (state === 'on_break' && p?.break_start ? minutesBetween(p.break_start, null) : 0)
     : 0
 
   const isLoading = presence === undefined || todayShifts === undefined
@@ -139,7 +152,6 @@ export default function BadgeusePage() {
       {isLoading ? (
         <p className="text-center text-gray-400 py-8">Chargement…</p>
       ) : !hasShiftToday && state === 'idle' ? (
-        /* Pas de service aujourd'hui */
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-8 text-center space-y-3">
           <CalendarX className="h-10 w-10 text-gray-300 mx-auto" />
           <p className="text-base font-semibold text-gray-500">Pas de service aujourd&apos;hui</p>
@@ -150,7 +162,7 @@ export default function BadgeusePage() {
       ) : (
         <div className="space-y-4">
 
-          {/* Shifts du jour */}
+          {/* Shift du jour */}
           {todayShifts && todayShifts.length > 0 && (
             <div className="rounded-lg bg-blue-50 border border-blue-100 px-4 py-2.5 flex items-center justify-between text-sm">
               <span className="text-blue-600 font-medium">Service prévu</span>
@@ -178,14 +190,28 @@ export default function BadgeusePage() {
               <SummaryRow label="Arrivée" time={formatTime(p!.clock_in)} color="green" />
 
               {state === 'after_break' && (
-                <SummaryRow
-                  label={`Pause  ${formatTime(p!.break_start)} → ${formatTime(p!.break_end)}`}
-                  time={formatDuration(minutesBetween(p!.break_start!, p!.break_end))}
-                  color="amber"
-                />
+                <>
+                  <BreakSummaryRow
+                    used={p!.break_minutes_used}
+                    limit={breakLimit}
+                    remaining={breakMinutesRemaining}
+                  />
+
+                  {/* Reprendre la pause si quota restant */}
+                  {!breakLimitReached && (
+                    <ActionCard
+                      title={`Reprendre la pause (${breakMinutesRemaining} min restantes)`}
+                      color="amber"
+                      icon={<RotateCcw className="h-5 w-5" />}
+                      carousel={<TimeCarousel value={breakStartTime} onChange={setBreakStartTime} label="Reprise pause" compact />}
+                      onConfirm={() => post('break-start', breakStartTime)}
+                      loading={loading === 'break-start'}
+                    />
+                  )}
+                </>
               )}
 
-              {/* Pause — toujours disponible si shift aujourd'hui */}
+              {/* Début de pause — seulement si quota non épuisé et premier break */}
               {state === 'working' && (
                 <ActionCard
                   title="Début de pause"
@@ -215,6 +241,11 @@ export default function BadgeusePage() {
                 <p className="text-sm font-semibold text-amber-700">En pause depuis {formatTime(p!.break_start)}</p>
                 <p className="text-xs text-amber-500 mt-1">
                   {formatDuration(minutesBetween(p!.break_start!, null))} de pause
+                  {breakLimit > 0 && (
+                    <> · <span className={breakLimitReached ? 'text-red-500 font-semibold' : ''}>
+                      {breakMinutesRemaining} min restantes
+                    </span></>
+                  )}
                 </p>
               </div>
               <ActionCard
@@ -233,11 +264,8 @@ export default function BadgeusePage() {
             <div className="rounded-xl bg-gray-50 border border-gray-200 p-5 space-y-3">
               <p className="text-sm font-semibold text-gray-700 text-center mb-2">Journée terminée</p>
               <DaySummaryRow label="Arrivée" value={formatTime(p!.clock_in)} />
-              {p!.break_start && (
-                <DaySummaryRow
-                  label="Pause"
-                  value={`${formatTime(p!.break_start)} → ${formatTime(p!.break_end)}`}
-                />
+              {p!.break_minutes_used > 0 && (
+                <DaySummaryRow label="Pause totale" value={formatDuration(p!.break_minutes_used)} />
               )}
               <DaySummaryRow label="Départ" value={formatTime(p!.clock_out)} />
               <div className="border-t pt-2">
@@ -283,6 +311,33 @@ function SummaryRow({ label, time, color }: { label: string; time: string; color
     <div className={`rounded-lg border px-4 py-2 flex items-center justify-between text-sm ${cls}`}>
       <span className="font-medium">{label}</span>
       <span className="font-bold tabular-nums">{time}</span>
+    </div>
+  )
+}
+
+function BreakSummaryRow({ used, limit, remaining }: { used: number; limit: number; remaining: number }) {
+  const pct = Math.min(100, Math.round((used / limit) * 100))
+  const full = remaining === 0
+  return (
+    <div className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 space-y-2">
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-medium text-amber-700">Pause utilisée</span>
+        <span className={`font-bold tabular-nums ${full ? 'text-red-500' : 'text-amber-700'}`}>
+          {used} / {limit} min
+        </span>
+      </div>
+      <div className="w-full bg-amber-100 rounded-full h-1.5">
+        <div
+          className={`h-1.5 rounded-full transition-all ${full ? 'bg-red-400' : 'bg-amber-400'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {!full && (
+        <p className="text-xs text-amber-500 text-right">{remaining} min restantes</p>
+      )}
+      {full && (
+        <p className="text-xs text-red-500 text-right font-medium">Quota de pause atteint</p>
+      )}
     </div>
   )
 }
