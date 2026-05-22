@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Printer, Mail } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { type Profile, type Shift, type Poste } from '@/types'
+import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
 import {
@@ -25,9 +25,28 @@ interface PlanningGridProps {
   weekDates: Date[]
   employees: Profile[]
   shifts: Shift[]
+  leaveRequests: LeaveRequest[]
   weekLocked: boolean
   weekPublished: boolean
   postes: Poste[]
+}
+
+const LEAVE_STYLES: Record<LeaveType, { bg: string; border: string; text: string; label: string }> = {
+  CP:         { bg: 'bg-blue-50',   border: 'border-blue-300',  text: 'text-blue-700',  label: 'CP' },
+  RTT:        { bg: 'bg-purple-50', border: 'border-purple-300', text: 'text-purple-700', label: 'RTT' },
+  maladie:    { bg: 'bg-red-50',    border: 'border-red-300',   text: 'text-red-700',   label: 'Maladie' },
+  sans_solde: { bg: 'bg-gray-100',  border: 'border-gray-300',  text: 'text-gray-600',  label: 'Sans solde' },
+  autre:      { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700', label: 'Autre' },
+}
+
+function AbsenceBadge({ type }: { type: LeaveType }) {
+  const s = LEAVE_STYLES[type]
+  return (
+    <div className={`rounded border px-1.5 py-1 text-[10px] font-semibold ${s.bg} ${s.border} ${s.text} flex items-center gap-1`}>
+      <span>🏖</span>
+      <span>{s.label}</span>
+    </div>
+  )
 }
 
 function getInitials(name: string | null): string {
@@ -160,7 +179,7 @@ function DroppableCell({ id, children, className, style, isLocked, onEmptyCellCl
   )
 }
 
-export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPublished, postes }: PlanningGridProps) {
+export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, weekLocked, weekPublished, postes }: PlanningGridProps) {
   const router = useRouter()
   const prevMonday = addDays(weekDates[0], -7)
   const nextMonday = addDays(weekDates[0], 7)
@@ -330,6 +349,17 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
     const existing = shiftMap.get(key) ?? []
     existing.push(shift)
     shiftMap.set(key, existing)
+  }
+
+  // Index approved absences by employee_id + date (expand multi-day ranges)
+  const absenceMap = new Map<string, LeaveType>()
+  for (const req of leaveRequests) {
+    const start = new Date(req.start_date + 'T00:00:00')
+    const end = new Date(req.end_date + 'T00:00:00')
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = toISODate(d)
+      absenceMap.set(`${req.employee_id}__${dateStr}`, req.type)
+    }
   }
 
   // Active drag shift for overlay
@@ -545,6 +575,8 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
                     {weekDates.map((date) => {
                       const dateStr = toISODate(date)
                       const dayShifts = shiftMap.get(`${employee.id}__${dateStr}`) ?? []
+                      const absenceType = absenceMap.get(`${employee.id}__${dateStr}`)
+                      const hasConflict = absenceType !== undefined && dayShifts.length > 0
                       const today = isToday(date)
                       const droppableId = `${employee.id}__${dateStr}`
 
@@ -554,10 +586,21 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
                           id={droppableId}
                           isLocked={weekLocked}
                           onEmptyCellClick={() => openCreateModal(employee, date)}
-                          hasShifts={dayShifts.length > 0}
+                          hasShifts={dayShifts.length > 0 || absenceType !== undefined}
                           className={today ? 'bg-blue-50/30' : ''}
                         >
                           <div className="min-h-[80px] space-y-1">
+                            {/* Absence badge */}
+                            {absenceType && <AbsenceBadge type={absenceType} />}
+
+                            {/* Conflict warning */}
+                            {hasConflict && (
+                              <div className="flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                                <span>⚠️</span>
+                                <span>Créneau sur absence</span>
+                              </div>
+                            )}
+
                             {dayShifts.map((shift) => {
                               const poste = shift.poste_id ? posteMap.get(shift.poste_id) : null
                               return (

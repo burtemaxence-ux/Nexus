@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { EmployeePlanningGrid } from '@/components/planning/employee-planning-grid'
 import { getWeekDates, toISODate } from '@/lib/utils/dates'
-import type { Profile, Shift, Poste } from '@/types'
+import type { Profile, Shift, Poste, LeaveRequest } from '@/types'
 
 interface EmployeePlanningPageProps {
   searchParams: Promise<{ week?: string }>
@@ -71,13 +71,17 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
   const shifts: Shift[] = []
   const postes: Poste[] = []
 
+  const leaveRequests: LeaveRequest[] = []
+
   if (isPublished) {
-    const [{ data: shiftsData }, { data: postesData }] = await Promise.all([
+    const [{ data: shiftsData }, { data: postesData }, { data: leaveData }] = await Promise.all([
       supabase.from('shifts').select('*').eq('employee_id', user.id).gte('date', mondayStr).lte('date', sundayStr),
       supabase.from('postes').select('*').order('name'),
+      supabase.from('leave_requests').select('*').eq('employee_id', user.id).eq('status', 'approved').lte('start_date', sundayStr).gte('end_date', mondayStr),
     ])
     shifts.push(...((shiftsData ?? []) as Shift[]))
     postes.push(...((postesData ?? []) as Poste[]))
+    leaveRequests.push(...((leaveData ?? []) as LeaveRequest[]))
   }
 
   return (
@@ -119,6 +123,7 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
           employee={employee}
           shifts={shifts}
           postes={postes}
+          leaveRequests={leaveRequests}
         />
       )}
     </div>

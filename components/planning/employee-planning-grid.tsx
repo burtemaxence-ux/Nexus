@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { type Profile, type Shift, type Poste } from '@/types'
+import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 
 interface EmployeePlanningGridProps {
@@ -11,6 +11,25 @@ interface EmployeePlanningGridProps {
   employee: Profile
   shifts: Shift[]
   postes: Poste[]
+  leaveRequests: LeaveRequest[]
+}
+
+const LEAVE_STYLES: Record<LeaveType, { bg: string; border: string; text: string; label: string }> = {
+  CP:         { bg: 'bg-blue-50',   border: 'border-blue-300',  text: 'text-blue-700',  label: 'Congés payés' },
+  RTT:        { bg: 'bg-purple-50', border: 'border-purple-300', text: 'text-purple-700', label: 'RTT' },
+  maladie:    { bg: 'bg-red-50',    border: 'border-red-300',   text: 'text-red-700',   label: 'Arrêt maladie' },
+  sans_solde: { bg: 'bg-gray-100',  border: 'border-gray-300',  text: 'text-gray-600',  label: 'Sans solde' },
+  autre:      { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700', label: 'Autre' },
+}
+
+function AbsenceBadge({ type }: { type: LeaveType }) {
+  const s = LEAVE_STYLES[type]
+  return (
+    <div className={`rounded border px-1.5 py-1 text-[10px] font-semibold ${s.bg} ${s.border} ${s.text} flex items-center gap-1`}>
+      <span>🏖</span>
+      <span>{s.label}</span>
+    </div>
+  )
 }
 
 function getDayLabel(date: Date): { weekday: string; dayMonth: string } {
@@ -50,7 +69,7 @@ function formatHours(hours: number): string {
   return m > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
 }
 
-export function EmployeePlanningGrid({ weekDates, employee, shifts, postes }: EmployeePlanningGridProps) {
+export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leaveRequests }: EmployeePlanningGridProps) {
   const prevMonday = addDays(weekDates[0], -7)
   const nextMonday = addDays(weekDates[0], 7)
 
@@ -71,6 +90,16 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes }: Em
     const existing = shiftMap.get(shift.date) ?? []
     existing.push(shift)
     shiftMap.set(shift.date, existing)
+  }
+
+  // Expand approved leave requests to individual dates
+  const absenceMap = new Map<string, LeaveType>()
+  for (const req of leaveRequests) {
+    const start = new Date(req.start_date + 'T00:00:00')
+    const end = new Date(req.end_date + 'T00:00:00')
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      absenceMap.set(toISODate(d), req.type)
+    }
   }
 
   // Total hours for the week (net, after break deduction)
@@ -151,6 +180,7 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes }: Em
               {weekDates.map((date) => {
                 const dateStr = toISODate(date)
                 const dayShifts = shiftMap.get(dateStr) ?? []
+                const absenceType = absenceMap.get(dateStr)
                 const today = isToday(date)
 
                 return (
@@ -161,10 +191,11 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes }: Em
                     }`}
                     style={{ minHeight: '80px' }}
                   >
-                    {dayShifts.length === 0 ? (
+                    {dayShifts.length === 0 && !absenceType ? (
                       <div className="min-h-[80px] bg-gray-100 rounded-sm border border-gray-200" />
                     ) : (
                       <div className="min-h-[80px] space-y-1">
+                        {absenceType && <AbsenceBadge type={absenceType} />}
                         {dayShifts.map((shift) => {
                           const poste = shift.poste_id ? posteMap.get(shift.poste_id) : null
                           const bgColor = poste ? `${poste.color}20` : '#EFF6FF'

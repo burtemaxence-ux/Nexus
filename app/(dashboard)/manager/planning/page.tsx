@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { PlanningGrid } from '@/components/planning/planning-grid'
 import { PlanningMonth } from '@/components/planning/planning-month'
 import { getWeekDates, toISODate } from '@/lib/utils/dates'
-import type { Profile, Shift, Poste, WeekStatus } from '@/types'
+import type { Profile, Shift, Poste, WeekStatus, LeaveRequest } from '@/types'
 
 interface PlanningPageProps {
   searchParams: Promise<{ week?: string; view?: string; month?: string }>
@@ -104,14 +104,17 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
   const mondayStr = toISODate(monday)
   const sundayStr = toISODate(sunday)
 
-  const { data: shiftsData, error: shiftsError } = await supabase
-    .from('shifts')
-    .select('*')
-    .gte('date', mondayStr)
-    .lte('date', sundayStr)
+  const [{ data: shiftsData, error: shiftsError }, { data: leaveData }] = await Promise.all([
+    supabase.from('shifts').select('*').gte('date', mondayStr).lte('date', sundayStr),
+    supabase.from('leave_requests').select('*')
+      .eq('status', 'approved')
+      .lte('start_date', sundayStr)
+      .gte('end_date', mondayStr),
+  ])
 
   if (shiftsError) console.error('Error fetching shifts:', shiftsError)
   const shifts: Shift[] = (shiftsData ?? []) as Shift[]
+  const leaveRequests: LeaveRequest[] = (leaveData ?? []) as LeaveRequest[]
 
   const { data: weekStatusData } = await supabase
     .from('week_status')
@@ -148,6 +151,7 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
         weekDates={weekDates}
         employees={employees}
         shifts={shifts}
+        leaveRequests={leaveRequests}
         weekLocked={weekStatus.locked}
         weekPublished={weekStatus.published}
         postes={postes}
