@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Copy } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { type Profile, type Shift } from '@/types'
+import { type Profile, type Shift, type Poste } from '@/types'
 import { getWeekLabel, toISODate, addDays, formatDateFR } from '@/lib/utils/dates'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
 
@@ -15,6 +15,7 @@ interface PlanningGridProps {
   employees: Profile[]
   shifts: Shift[]
   weekStatus: 'draft' | 'published'
+  postes: Poste[]
 }
 
 function getInitials(name: string | null): string {
@@ -64,7 +65,7 @@ function formatHours(hours: number): string {
   return m > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
 }
 
-export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: PlanningGridProps) {
+export function PlanningGrid({ weekDates, employees, shifts, weekStatus, postes }: PlanningGridProps) {
   const router = useRouter()
   const prevMonday = addDays(weekDates[0], -7)
   const nextMonday = addDays(weekDates[0], 7)
@@ -73,6 +74,12 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
   const nextWeekParam = toISODate(nextMonday)
 
   const weekLabel = getWeekLabel(weekDates)
+
+  // Build poste lookup map
+  const posteMap = new Map<string, Poste>()
+  for (const poste of postes) {
+    posteMap.set(poste.id, poste)
+  }
 
   // Modal state
   const [modalState, setModalState] = useState<ModalState>({ type: 'closed' })
@@ -271,20 +278,27 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
                           />
                         ) : (
                           <div className="min-h-[80px] space-y-1">
-                            {dayShifts.map((shift) => (
+                            {dayShifts.map((shift) => {
+                              const poste = shift.poste_id ? posteMap.get(shift.poste_id) : null
+                              const bgColor = poste ? `${poste.color}20` : '#EFF6FF'
+                              const borderColor = poste?.color ?? '#BFDBFE'
+                              const textColor = poste?.color ?? '#1D4ED8'
+                              return (
                               <div
                                 key={shift.id}
                                 onClick={() => openViewModal(shift, employee, date)}
-                                className="rounded-md bg-blue-100 border border-blue-200 p-1.5 text-xs text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors"
+                                style={{ backgroundColor: bgColor, borderColor: borderColor, color: textColor }}
+                                className="rounded-md border p-1.5 text-xs cursor-pointer hover:opacity-80 transition-opacity"
                               >
                                 <p className="font-semibold">
                                   {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
                                 </p>
-                                <p className="text-blue-600 truncate">
+                                <p className="truncate" style={{ color: textColor, opacity: 0.85 }}>
                                   {shift.position ?? employee.position}
                                 </p>
                               </div>
-                            ))}
+                              )
+                            })}
                             <div
                               onClick={() => openCreateModal(employee, date)}
                               className="h-6 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors rounded-sm border border-dashed border-gray-200 hover:border-blue-300 flex items-center justify-center"
@@ -319,7 +333,7 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus }: Plann
       )}
 
       {/* Shift modal */}
-      <ShiftModal modalState={modalState} onClose={closeModal} />
+      <ShiftModal modalState={modalState} onClose={closeModal} postes={postes} />
     </div>
   )
 }

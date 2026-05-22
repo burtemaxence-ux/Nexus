@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { EmployeePlanningGrid } from '@/components/planning/employee-planning-grid'
 import { getWeekDates, toISODate } from '@/lib/utils/dates'
-import type { Profile, Shift } from '@/types'
+import type { Profile, Shift, Poste } from '@/types'
 
 interface EmployeePlanningPageProps {
   searchParams: Promise<{ week?: string }>
@@ -72,6 +72,14 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
 
   const shifts: Shift[] = (shiftsData ?? []) as Shift[]
 
+  // Fetch postes
+  const { data: postesData } = await supabase
+    .from('postes')
+    .select('*')
+    .order('name')
+
+  const postes: Poste[] = (postesData ?? []) as Poste[]
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Breadcrumb */}
@@ -100,6 +108,7 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
         weekDates={weekDates}
         employee={employee}
         shifts={shifts}
+        postes={postes}
       />
     </div>
   )

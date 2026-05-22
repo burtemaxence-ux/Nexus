@@ -40,17 +40,21 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { start_time, end_time, position, notes } = body as {
+    const { start_time, end_time, position, poste_id, break_minutes, notes } = body as {
       start_time?: string
       end_time?: string
       position?: string
+      poste_id?: string | null
+      break_minutes?: number
       notes?: string
     }
 
-    const updateData: Record<string, string | null> = {}
+    const updateData: Record<string, string | number | null> = {}
     if (start_time !== undefined) updateData.start_time = start_time
     if (end_time !== undefined) updateData.end_time = end_time
     if (position !== undefined) updateData.position = position
+    if (poste_id !== undefined) updateData.poste_id = poste_id ?? null
+    if (break_minutes !== undefined) updateData.break_minutes = break_minutes
     if (notes !== undefined) updateData.notes = notes || null
 
     if (Object.keys(updateData).length === 0) {

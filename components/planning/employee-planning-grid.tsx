@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { type Profile, type Shift } from '@/types'
+import { type Profile, type Shift, type Poste } from '@/types'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 
 interface EmployeePlanningGridProps {
   weekDates: Date[]
   employee: Profile
   shifts: Shift[]
+  postes: Poste[]
 }
 
 function getDayLabel(date: Date): { weekday: string; dayMonth: string } {
@@ -48,9 +49,15 @@ function formatHours(hours: number): string {
   return m > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
 }
 
-export function EmployeePlanningGrid({ weekDates, employee, shifts }: EmployeePlanningGridProps) {
+export function EmployeePlanningGrid({ weekDates, employee, shifts, postes }: EmployeePlanningGridProps) {
   const prevMonday = addDays(weekDates[0], -7)
   const nextMonday = addDays(weekDates[0], 7)
+
+  // Build poste lookup map
+  const posteMap = new Map<string, Poste>()
+  for (const poste of postes) {
+    posteMap.set(poste.id, poste)
+  }
 
   const prevWeekParam = toISODate(prevMonday)
   const nextWeekParam = toISODate(nextMonday)
@@ -157,24 +164,31 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts }: EmployeePl
                       <div className="min-h-[80px] bg-gray-100 rounded-sm border border-gray-200" />
                     ) : (
                       <div className="min-h-[80px] space-y-1">
-                        {dayShifts.map((shift) => (
+                        {dayShifts.map((shift) => {
+                          const poste = shift.poste_id ? posteMap.get(shift.poste_id) : null
+                          const bgColor = poste ? `${poste.color}20` : '#EFF6FF'
+                          const borderColor = poste?.color ?? '#BFDBFE'
+                          const textColor = poste?.color ?? '#1D4ED8'
+                          return (
                           <div
                             key={shift.id}
-                            className="rounded-md bg-blue-100 border border-blue-200 p-1.5 text-xs text-blue-800"
+                            style={{ backgroundColor: bgColor, borderColor: borderColor, color: textColor }}
+                            className="rounded-md border p-1.5 text-xs"
                           >
                             <p className="font-semibold">
                               {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
                             </p>
-                            <p className="text-blue-600 truncate">
+                            <p className="truncate" style={{ color: textColor, opacity: 0.85 }}>
                               {shift.position ?? employee.position}
                             </p>
                             {shift.notes && (
-                              <p className="text-blue-500 truncate mt-0.5 italic">
+                              <p className="truncate mt-0.5 italic" style={{ color: textColor, opacity: 0.7 }}>
                                 {shift.notes}
                               </p>
                             )}
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
                   </td>

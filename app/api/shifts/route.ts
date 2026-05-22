@@ -25,12 +25,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { employee_id, date, start_time, end_time, position, notes } = body as {
+    const { employee_id, date, start_time, end_time, position, poste_id, break_minutes, notes } = body as {
       employee_id: string
       date: string
       start_time: string
       end_time: string
       position: string
+      poste_id?: string | null
+      break_minutes?: number
       notes?: string
     }
 
@@ -49,6 +51,8 @@ export async function POST(request: NextRequest) {
         start_time,
         end_time,
         position: position || null,
+        poste_id: poste_id ?? null,
+        break_minutes: break_minutes ?? 0,
         notes: notes || null,
         status: 'draft',
       })

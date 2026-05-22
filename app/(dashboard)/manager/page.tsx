@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, Users, FileText, Clock } from 'lucide-react'
+import { Calendar, Users, FileText, Clock, Settings } from 'lucide-react'
 
 async function signOut() {
   'use server'
@@ -66,6 +66,14 @@ export default async function ManagerDashboard() {
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
     },
+    {
+      title: 'Paramètres',
+      description: 'Gérer les postes, les couleurs et la configuration du planning',
+      icon: Settings,
+      href: '/manager/settings/postes',
+      color: 'text-gray-600',
+      bgColor: 'bg-gray-100',
+    },
   ]
 
   return (
@@ -89,7 +97,7 @@ export default async function ManagerDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {navigationCards.map((card) => {
           const Icon = card.icon
-          const isActive = card.href === '/manager/employees' || card.href === '/manager/planning'
+          const isActive = card.href === '/manager/employees' || card.href === '/manager/planning' || card.href === '/manager/settings/postes'
           return isActive ? (
             <Link key={card.title} href={card.href} className="block">
               <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
