@@ -28,10 +28,13 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    const origin = request.headers.get('origin') ?? 'http://localhost:3000'
+    // Construire l'URL de base depuis les headers Vercel/proxy
+    const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:3000'
+    const proto = host.includes('localhost') ? 'http' : 'https'
+    const siteUrl = `${proto}://${host}`
 
     const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${origin}/auth/callback?next=/auth/set-password`,
+      redirectTo: `${siteUrl}/auth/set-password`,
       data: {
         role: 'employee',
         full_name,
