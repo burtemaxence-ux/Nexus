@@ -81,7 +81,7 @@ export default async function EmployeeDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {navigationCards.map((card) => {
           const Icon = card.icon
-          const isActive = card.href === '/employee/planning' || card.href === '/employee/conges'
+          const isActive = card.href === '/employee/planning' || card.href === '/employee/conges' || card.href === '/employee/badgeuse'
 
           const cardContent = (
             <Card className={`transition-shadow ${isActive ? 'hover:shadow-md cursor-pointer' : 'opacity-70'}`}>
