@@ -40,13 +40,15 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { start_time, end_time, position, poste_id, break_minutes, notes } = body as {
+    const { start_time, end_time, position, poste_id, break_minutes, notes, employee_id, date } = body as {
       start_time?: string
       end_time?: string
       position?: string
       poste_id?: string | null
       break_minutes?: number
       notes?: string
+      employee_id?: string
+      date?: string
     }
 
     const updateData: Record<string, string | number | null> = {}
@@ -56,6 +58,8 @@ export async function PATCH(
     if (poste_id !== undefined) updateData.poste_id = poste_id ?? null
     if (break_minutes !== undefined) updateData.break_minutes = break_minutes
     if (notes !== undefined) updateData.notes = notes || null
+    if (employee_id !== undefined) updateData.employee_id = employee_id
+    if (date !== undefined) updateData.date = date
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'Aucune donnée à mettre à jour' }, { status: 400 })

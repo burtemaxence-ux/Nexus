@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { PlanningGrid } from '@/components/planning/planning-grid'
 import { getWeekDates, toISODate } from '@/lib/utils/dates'
-import type { Profile, Shift, Poste } from '@/types'
+import type { Profile, Shift, Poste, WeekStatus } from '@/types'
 
 interface PlanningPageProps {
   searchParams: Promise<{ week?: string }>
@@ -74,9 +74,20 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
 
   const postes: Poste[] = (postesData ?? []) as Poste[]
 
-  // Determine week status: if any shift is published, the week is "published"
-  const weekStatus: 'draft' | 'published' =
-    shifts.some((s) => s.status === 'published') ? 'published' : 'draft'
+  // Fetch week_status for the current week
+  const { data: weekStatusData } = await supabase
+    .from('week_status')
+    .select('*')
+    .eq('week_monday', mondayStr)
+    .single()
+
+  const weekStatus: WeekStatus = weekStatusData ?? {
+    week_monday: mondayStr,
+    published: false,
+    locked: false,
+    published_at: null,
+    locked_at: null,
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -104,7 +115,8 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
         weekDates={weekDates}
         employees={employees}
         shifts={shifts}
-        weekStatus={weekStatus}
+        weekLocked={weekStatus.locked}
+        weekPublished={weekStatus.published}
         postes={postes}
       />
     </div>

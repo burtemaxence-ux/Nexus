@@ -3,18 +3,30 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Copy } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Globe } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { type Profile, type Shift, type Poste } from '@/types'
-import { getWeekLabel, toISODate, addDays, formatDateFR } from '@/lib/utils/dates'
+import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { useDraggable, useDroppable } from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
 
 interface PlanningGridProps {
   weekDates: Date[]
   employees: Profile[]
   shifts: Shift[]
-  weekStatus: 'draft' | 'published'
+  weekLocked: boolean
+  weekPublished: boolean
   postes: Poste[]
 }
 
@@ -31,7 +43,6 @@ function getInitials(name: string | null): string {
 function getDayLabel(date: Date): { weekday: string; dayMonth: string } {
   const weekday = date.toLocaleDateString('fr-FR', { weekday: 'short' })
   const dayMonth = date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-  // Capitalize first letter
   return {
     weekday: weekday.charAt(0).toUpperCase() + weekday.slice(1).replace('.', ''),
     dayMonth,
@@ -51,12 +62,13 @@ function formatTime(time: string): string {
   return time.slice(0, 5)
 }
 
-function calcShiftHours(start: string, end: string): number {
+function calcShiftHours(start: string, end: string, breakMinutes: number = 0): number {
   const [sh, sm] = start.split(':').map(Number)
   const [eh, em] = end.split(':').map(Number)
   let minutes = (eh * 60 + em) - (sh * 60 + sm)
   if (minutes < 0) minutes += 24 * 60
-  return minutes / 60
+  minutes -= breakMinutes
+  return Math.max(0, minutes) / 60
 }
 
 function formatHours(hours: number): string {
@@ -65,7 +77,90 @@ function formatHours(hours: number): string {
   return m > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
 }
 
-export function PlanningGrid({ weekDates, employees, shifts, weekStatus, postes }: PlanningGridProps) {
+// --- Draggable shift block ---
+interface DraggableShiftProps {
+  shift: Shift
+  poste: Poste | null | undefined
+  employee: Profile
+  onClick: () => void
+  disabled: boolean
+}
+
+function DraggableShift({ shift, poste, employee, onClick, disabled }: DraggableShiftProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: shift.id,
+    disabled,
+  })
+
+  const bgColor = poste ? `${poste.color}20` : '#EFF6FF'
+  const borderColor = poste?.color ?? '#BFDBFE'
+  const textColor = poste?.color ?? '#1D4ED8'
+
+  const style = {
+    backgroundColor: bgColor,
+    borderColor: borderColor,
+    color: textColor,
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.4 : 1,
+    cursor: disabled ? 'pointer' : 'grab',
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="rounded-md border p-1.5 text-xs hover:opacity-80 transition-opacity"
+      onClick={onClick}
+      {...(disabled ? {} : { ...listeners, ...attributes })}
+    >
+      <p className="font-semibold">
+        {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
+      </p>
+      <p className="truncate" style={{ color: textColor, opacity: 0.85 }}>
+        {shift.position ?? employee.position}
+      </p>
+      {shift.break_minutes > 0 && (
+        <p className="opacity-60 text-[10px]">pause {shift.break_minutes}min</p>
+      )}
+    </div>
+  )
+}
+
+// --- Droppable cell ---
+interface DroppableCellProps {
+  id: string
+  children: React.ReactNode
+  className?: string
+  style?: React.CSSProperties
+  isLocked: boolean
+  onEmptyCellClick: () => void
+  hasShifts: boolean
+}
+
+function DroppableCell({ id, children, className, style, isLocked, onEmptyCellClick, hasShifts }: DroppableCellProps) {
+  const { setNodeRef, isOver } = useDroppable({ id })
+
+  return (
+    <td
+      ref={setNodeRef}
+      className={`border-b border-r border-gray-200 px-2 py-2 align-top transition-colors ${isOver && !isLocked ? 'bg-blue-100/50' : ''} ${className ?? ''}`}
+      style={{ minHeight: '80px', ...style }}
+    >
+      {!hasShifts ? (
+        <div
+          onClick={isLocked ? undefined : onEmptyCellClick}
+          className={`min-h-[80px] bg-gray-50 rounded-sm border border-dashed border-gray-200 transition-colors ${
+            isLocked ? 'cursor-default' : 'hover:bg-blue-50 cursor-pointer hover:border-blue-300'
+          }`}
+        />
+      ) : (
+        children
+      )}
+    </td>
+  )
+}
+
+export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPublished, postes }: PlanningGridProps) {
   const router = useRouter()
   const prevMonday = addDays(weekDates[0], -7)
   const nextMonday = addDays(weekDates[0], 7)
@@ -85,14 +180,27 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus, postes 
   const [modalState, setModalState] = useState<ModalState>({ type: 'closed' })
   const [copyLoading, setCopyLoading] = useState(false)
   const [copyError, setCopyError] = useState<string | null>(null)
-  const [copySuccess, setCopySuccess] = useState(false)
+  const [statusLoading, setStatusLoading] = useState(false)
+  const [statusError, setStatusError] = useState<string | null>(null)
+
+  // DnD state
+  const [activeDragShiftId, setActiveDragShiftId] = useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  )
 
   function openCreateModal(employee: Profile, date: Date) {
+    if (weekLocked) return
     setModalState({ type: 'create', employee, date })
   }
 
   function openViewModal(shift: Shift, employee: Profile, date: Date) {
-    setModalState({ type: 'view', shift, employee, date })
+    setModalState({ type: 'view', shift, employee, date, readOnly: weekLocked })
   }
 
   function closeModal() {
@@ -102,7 +210,6 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus, postes 
   async function handleCopyWeek() {
     setCopyLoading(true)
     setCopyError(null)
-    setCopySuccess(false)
 
     try {
       const fromMonday = toISODate(weekDates[0])
@@ -117,14 +224,80 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus, postes 
         throw new Error(data.error ?? 'Erreur lors de la copie')
       }
 
-      const data = await response.json()
-      setCopySuccess(true)
-      // Navigate to next week to see the result
       router.push(`?week=${nextWeekParam}`)
     } catch (err) {
       setCopyError(err instanceof Error ? err.message : 'Erreur inconnue')
     } finally {
       setCopyLoading(false)
+    }
+  }
+
+  async function handleWeekStatus(payload: { published?: boolean; locked?: boolean }) {
+    setStatusLoading(true)
+    setStatusError(null)
+
+    try {
+      const response = await fetch('/api/week-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ week_monday: toISODate(weekDates[0]), ...payload }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error ?? 'Erreur')
+      }
+
+      router.refresh()
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } finally {
+      setStatusLoading(false)
+    }
+  }
+
+  // DnD handlers
+  function handleDragStart(event: DragStartEvent) {
+    setActiveDragShiftId(String(event.active.id))
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    setActiveDragShiftId(null)
+    const { active, over } = event
+
+    if (!over) return
+
+    const shiftId = String(active.id)
+    const droppableId = String(over.id)
+
+    // droppableId format: "employeeId__dateStr"
+    const parts = droppableId.split('__')
+    if (parts.length !== 2) return
+
+    const [targetEmployeeId, targetDate] = parts
+
+    // Find the shift being dragged
+    const shift = shifts.find(s => s.id === shiftId)
+    if (!shift) return
+
+    // If dropped on the same cell, do nothing
+    if (shift.employee_id === targetEmployeeId && shift.date === targetDate) return
+
+    try {
+      const response = await fetch(`/api/shifts/${shiftId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id: targetEmployeeId, date: targetDate }),
+      })
+
+      if (!response.ok) {
+        console.error('Erreur lors du déplacement du créneau')
+        return
+      }
+
+      router.refresh()
+    } catch (err) {
+      console.error('Erreur lors du déplacement du créneau:', err)
     }
   }
 
@@ -137,203 +310,271 @@ export function PlanningGrid({ weekDates, employees, shifts, weekStatus, postes 
     shiftMap.set(key, existing)
   }
 
+  // Active drag shift for overlay
+  const activeDragShift = activeDragShiftId ? shifts.find(s => s.id === activeDragShiftId) : null
+
   return (
-    <div className="space-y-4">
-      {/* Header navigation */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <Link href={`?week=${prevWeekParam}`}>
-          <Button variant="outline" size="sm" className="gap-1">
-            <ChevronLeft className="h-4 w-4" />
-            Semaine précédente
-          </Button>
-        </Link>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="space-y-4">
+        {/* Header navigation */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <Link href={`?week=${prevWeekParam}`}>
+            <Button variant="outline" size="sm" className="gap-1">
+              <ChevronLeft className="h-4 w-4" />
+              Semaine précédente
+            </Button>
+          </Link>
 
-        <div className="flex items-center gap-3 flex-wrap justify-center">
-          <h2 className="text-lg font-semibold text-gray-900">{weekLabel}</h2>
-          {weekStatus === 'published' ? (
-            <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
-              Publié
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-100">
-              Brouillon
-            </Badge>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={handleCopyWeek}
-            disabled={copyLoading || employees.length === 0}
-            title="Copier tous les créneaux de cette semaine vers la semaine suivante"
-          >
-            <Copy className="h-3.5 w-3.5" />
-            {copyLoading ? 'Copie...' : 'Copier vers semaine suivante'}
-          </Button>
-          {copyError && (
-            <span className="text-xs text-red-600">{copyError}</span>
-          )}
-        </div>
+          <div className="flex items-center gap-3 flex-wrap justify-center">
+            <h2 className="text-lg font-semibold text-gray-900">{weekLabel}</h2>
 
-        <Link href={`?week=${nextWeekParam}`}>
-          <Button variant="outline" size="sm" className="gap-1">
-            Semaine suivante
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </Link>
-      </div>
+            {/* Status badge */}
+            {weekLocked ? (
+              <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-100 gap-1">
+                <Lock className="h-3 w-3" /> Verrouillé
+              </Badge>
+            ) : weekPublished ? (
+              <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
+                Publié
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-100">
+                Brouillon
+              </Badge>
+            )}
 
-      {/* Empty state */}
-      {employees.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-200 bg-white p-12 text-center">
-          <p className="text-gray-500 mb-3">
-            Ajoutez des employés pour commencer à planifier
-          </p>
-          <Link href="/manager/employees">
-            <Button variant="outline" size="sm">
-              Gérer les employés
+            {/* Status action buttons */}
+            {!weekPublished && !weekLocked && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50"
+                onClick={() => handleWeekStatus({ published: true })}
+                disabled={statusLoading || employees.length === 0}
+              >
+                <Globe className="h-3.5 w-3.5" />
+                Publier
+              </Button>
+            )}
+
+            {weekPublished && !weekLocked && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-red-300 text-red-700 hover:bg-red-50"
+                onClick={() => handleWeekStatus({ locked: true })}
+                disabled={statusLoading}
+              >
+                <Lock className="h-3.5 w-3.5" />
+                Verrouiller
+              </Button>
+            )}
+
+            {weekLocked && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50"
+                onClick={() => handleWeekStatus({ locked: false })}
+                disabled={statusLoading}
+              >
+                <Unlock className="h-3.5 w-3.5" />
+                Déverrouiller
+              </Button>
+            )}
+
+            {/* Copy week button — always visible */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleCopyWeek}
+              disabled={copyLoading || employees.length === 0}
+              title="Copier tous les créneaux de cette semaine vers la semaine suivante"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              {copyLoading ? 'Copie...' : 'Copier →'}
+            </Button>
+
+            {copyError && (
+              <span className="text-xs text-red-600">{copyError}</span>
+            )}
+            {statusError && (
+              <span className="text-xs text-red-600">{statusError}</span>
+            )}
+          </div>
+
+          <Link href={`?week=${nextWeekParam}`}>
+            <Button variant="outline" size="sm" className="gap-1">
+              Semaine suivante
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </Link>
         </div>
-      ) : (
-        /* Planning grid */
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-          <table className="w-full min-w-[700px] border-collapse">
-            <thead>
-              <tr>
-                {/* Employee column header */}
-                <th className="border-b border-r border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-600 w-48 min-w-[180px]">
-                  Employés
-                </th>
-                {/* Day headers */}
-                {weekDates.map((date) => {
-                  const { weekday, dayMonth } = getDayLabel(date)
-                  const today = isToday(date)
-                  return (
-                    <th
-                      key={toISODate(date)}
-                      className={`border-b border-r border-gray-200 px-3 py-3 text-center text-sm font-medium ${
-                        today ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-600'
-                      }`}
-                    >
-                      <div className="font-semibold">{weekday}</div>
-                      <div className={`text-xs font-normal mt-0.5 ${today ? 'text-blue-500' : 'text-gray-400'}`}>
-                        {dayMonth}
-                      </div>
-                    </th>
-                  )
-                })}
-                {/* Total column header */}
-                <th className="border-b border-gray-200 bg-gray-50 px-3 py-3 text-center text-sm font-medium text-gray-600 w-20">
-                  Total
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map((employee, rowIndex) => (
-                <tr
-                  key={employee.id}
-                  className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
-                >
-                  {/* Employee cell */}
-                  <td className="border-b border-r border-gray-200 px-4 py-3 last:border-b-0">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600">
-                        {getInitials(employee.full_name)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-gray-900">
-                          {employee.full_name ?? employee.email}
-                        </p>
-                        {employee.position && (
-                          <Badge
-                            variant="outline"
-                            className="mt-0.5 px-1.5 py-0 text-[10px] leading-4 font-normal text-gray-500 border-gray-200"
-                          >
-                            {employee.position}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </td>
 
-                  {/* Day cells */}
+        {/* Empty state */}
+        {employees.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-200 bg-white p-12 text-center">
+            <p className="text-gray-500 mb-3">
+              Ajoutez des employés pour commencer à planifier
+            </p>
+            <Link href="/manager/employees">
+              <Button variant="outline" size="sm">
+                Gérer les employés
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          /* Planning grid */
+          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+            <table className="w-full min-w-[700px] border-collapse">
+              <thead>
+                <tr>
+                  {/* Employee column header */}
+                  <th className="border-b border-r border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-600 w-48 min-w-[180px]">
+                    Employés
+                  </th>
+                  {/* Day headers */}
                   {weekDates.map((date) => {
-                    const dateStr = toISODate(date)
-                    const dayShifts = shiftMap.get(`${employee.id}__${dateStr}`) ?? []
+                    const { weekday, dayMonth } = getDayLabel(date)
                     const today = isToday(date)
-
                     return (
-                      <td
-                        key={dateStr}
-                        className={`border-b border-r border-gray-200 px-2 py-2 align-top ${
-                          today ? 'bg-blue-50/30' : ''
+                      <th
+                        key={toISODate(date)}
+                        className={`border-b border-r border-gray-200 px-3 py-3 text-center text-sm font-medium ${
+                          today ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-600'
                         }`}
-                        style={{ minHeight: '80px' }}
                       >
-                        {dayShifts.length === 0 ? (
-                          <div
-                            onClick={() => openCreateModal(employee, date)}
-                            className="min-h-[80px] bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors rounded-sm border border-dashed border-gray-200 hover:border-blue-300"
-                          />
-                        ) : (
+                        <div className="font-semibold">{weekday}</div>
+                        <div className={`text-xs font-normal mt-0.5 ${today ? 'text-blue-500' : 'text-gray-400'}`}>
+                          {dayMonth}
+                        </div>
+                      </th>
+                    )
+                  })}
+                  {/* Total column header */}
+                  <th className="border-b border-gray-200 bg-gray-50 px-3 py-3 text-center text-sm font-medium text-gray-600 w-20">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((employee, rowIndex) => (
+                  <tr
+                    key={employee.id}
+                    className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
+                  >
+                    {/* Employee cell */}
+                    <td className="border-b border-r border-gray-200 px-4 py-3 last:border-b-0">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600">
+                          {getInitials(employee.full_name)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-gray-900">
+                            {employee.full_name ?? employee.email}
+                          </p>
+                          {employee.position && (
+                            <Badge
+                              variant="outline"
+                              className="mt-0.5 px-1.5 py-0 text-[10px] leading-4 font-normal text-gray-500 border-gray-200"
+                            >
+                              {employee.position}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Day cells */}
+                    {weekDates.map((date) => {
+                      const dateStr = toISODate(date)
+                      const dayShifts = shiftMap.get(`${employee.id}__${dateStr}`) ?? []
+                      const today = isToday(date)
+                      const droppableId = `${employee.id}__${dateStr}`
+
+                      return (
+                        <DroppableCell
+                          key={dateStr}
+                          id={droppableId}
+                          isLocked={weekLocked}
+                          onEmptyCellClick={() => openCreateModal(employee, date)}
+                          hasShifts={dayShifts.length > 0}
+                          className={today ? 'bg-blue-50/30' : ''}
+                        >
                           <div className="min-h-[80px] space-y-1">
                             {dayShifts.map((shift) => {
                               const poste = shift.poste_id ? posteMap.get(shift.poste_id) : null
-                              const bgColor = poste ? `${poste.color}20` : '#EFF6FF'
-                              const borderColor = poste?.color ?? '#BFDBFE'
-                              const textColor = poste?.color ?? '#1D4ED8'
                               return (
-                              <div
-                                key={shift.id}
-                                onClick={() => openViewModal(shift, employee, date)}
-                                style={{ backgroundColor: bgColor, borderColor: borderColor, color: textColor }}
-                                className="rounded-md border p-1.5 text-xs cursor-pointer hover:opacity-80 transition-opacity"
-                              >
-                                <p className="font-semibold">
-                                  {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
-                                </p>
-                                <p className="truncate" style={{ color: textColor, opacity: 0.85 }}>
-                                  {shift.position ?? employee.position}
-                                </p>
-                              </div>
+                                <DraggableShift
+                                  key={shift.id}
+                                  shift={shift}
+                                  poste={poste}
+                                  employee={employee}
+                                  onClick={() => openViewModal(shift, employee, date)}
+                                  disabled={weekLocked}
+                                />
                               )
                             })}
-                            <div
-                              onClick={() => openCreateModal(employee, date)}
-                              className="h-6 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors rounded-sm border border-dashed border-gray-200 hover:border-blue-300 flex items-center justify-center"
-                            >
-                              <span className="text-[10px] text-gray-400 hover:text-blue-400">+ ajouter</span>
-                            </div>
+                            {!weekLocked && (
+                              <div
+                                onClick={() => openCreateModal(employee, date)}
+                                className="h-6 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors rounded-sm border border-dashed border-gray-200 hover:border-blue-300 flex items-center justify-center"
+                              >
+                                <span className="text-[10px] text-gray-400 hover:text-blue-400">+ ajouter</span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </td>
-                    )
-                  })}
-                  {/* Weekly total cell */}
-                  {(() => {
-                    const employeeShifts = shifts.filter(s => s.employee_id === employee.id)
-                    const totalHours = employeeShifts.reduce(
-                      (sum, s) => sum + calcShiftHours(s.start_time, s.end_time),
-                      0
-                    )
-                    return (
-                      <td className="border-b border-gray-200 px-3 py-3 text-center align-middle">
-                        <span className={`text-sm font-semibold ${totalHours > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
-                          {totalHours > 0 ? formatHours(totalHours) : '—'}
-                        </span>
-                      </td>
-                    )
-                  })()}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                        </DroppableCell>
+                      )
+                    })}
+                    {/* Weekly total cell */}
+                    {(() => {
+                      const employeeShifts = shifts.filter(s => s.employee_id === employee.id)
+                      const totalHours = employeeShifts.reduce(
+                        (sum, s) => sum + calcShiftHours(s.start_time, s.end_time, s.break_minutes),
+                        0
+                      )
+                      return (
+                        <td className="border-b border-gray-200 px-3 py-3 text-center align-middle">
+                          <span className={`text-sm font-semibold ${totalHours > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                            {totalHours > 0 ? formatHours(totalHours) : '—'}
+                          </span>
+                        </td>
+                      )
+                    })()}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      {/* Shift modal */}
-      <ShiftModal modalState={modalState} onClose={closeModal} postes={postes} />
-    </div>
+        {/* Shift modal */}
+        <ShiftModal
+          modalState={modalState}
+          onClose={closeModal}
+          postes={postes}
+          employees={employees}
+          weekDates={weekDates}
+        />
+      </div>
+
+      {/* Drag overlay */}
+      <DragOverlay>
+        {activeDragShift ? (
+          <div className="rounded-md border p-1.5 text-xs bg-white shadow-lg opacity-90 border-blue-300 text-blue-700 cursor-grabbing">
+            <p className="font-semibold">
+              {formatTime(activeDragShift.start_time)} – {formatTime(activeDragShift.end_time)}
+            </p>
+            <p className="truncate opacity-85">{activeDragShift.position}</p>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   )
 }

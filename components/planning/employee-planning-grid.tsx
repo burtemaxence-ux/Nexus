@@ -35,12 +35,13 @@ function formatTime(time: string): string {
   return time.slice(0, 5)
 }
 
-function calcShiftHours(start: string, end: string): number {
+function calcShiftHours(start: string, end: string, breakMinutes: number = 0): number {
   const [sh, sm] = start.split(':').map(Number)
   const [eh, em] = end.split(':').map(Number)
   let minutes = (eh * 60 + em) - (sh * 60 + sm)
   if (minutes < 0) minutes += 24 * 60
-  return minutes / 60
+  minutes -= breakMinutes
+  return Math.max(0, minutes) / 60
 }
 
 function formatHours(hours: number): string {
@@ -72,9 +73,9 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes }: Em
     shiftMap.set(shift.date, existing)
   }
 
-  // Total hours for the week
+  // Total hours for the week (net, after break deduction)
   const totalHours = shifts.reduce(
-    (sum, s) => sum + calcShiftHours(s.start_time, s.end_time),
+    (sum, s) => sum + calcShiftHours(s.start_time, s.end_time, s.break_minutes),
     0
   )
 
@@ -181,6 +182,9 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes }: Em
                             <p className="truncate" style={{ color: textColor, opacity: 0.85 }}>
                               {shift.position ?? employee.position}
                             </p>
+                            {shift.break_minutes > 0 && (
+                              <p className="opacity-60 text-[10px]">pause {shift.break_minutes}min</p>
+                            )}
                             {shift.notes && (
                               <p className="truncate mt-0.5 italic" style={{ color: textColor, opacity: 0.7 }}>
                                 {shift.notes}

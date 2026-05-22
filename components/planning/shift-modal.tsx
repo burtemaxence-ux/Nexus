@@ -57,15 +57,17 @@ function getFirstName(fullName: string | null, email: string): string {
 export type ModalState =
   | { type: 'closed' }
   | { type: 'create'; employee: Profile; date: Date }
-  | { type: 'view'; shift: Shift; employee: Profile; date: Date }
+  | { type: 'view'; shift: Shift; employee: Profile; date: Date; readOnly?: boolean }
 
 interface ShiftModalProps {
   modalState: ModalState
   onClose: () => void
   postes: Poste[]
+  employees: Profile[]
+  weekDates: Date[]
 }
 
-export function ShiftModal({ modalState, onClose, postes }: ShiftModalProps) {
+export function ShiftModal({ modalState, onClose, postes, employees, weekDates }: ShiftModalProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -86,6 +88,13 @@ export function ShiftModal({ modalState, onClose, postes }: ShiftModalProps) {
   const [editPosteId, setEditPosteId] = useState<string>('none')
   const [editBreakMinutes, setEditBreakMinutes] = useState('0')
   const [editNotes, setEditNotes] = useState('')
+
+  // Copy dialog state
+  const [showCopyDialog, setShowCopyDialog] = useState(false)
+  const [copyTargetEmployeeId, setCopyTargetEmployeeId] = useState<string>('')
+  const [copyTargetDate, setCopyTargetDate] = useState<string>('')
+  const [copyLoading, setCopyLoading] = useState(false)
+  const [copyError, setCopyError] = useState<string | null>(null)
 
   const isOpen = modalState.type !== 'closed'
 
@@ -120,6 +129,8 @@ export function ShiftModal({ modalState, onClose, postes }: ShiftModalProps) {
       setError(null)
       setLoading(false)
       setIsEditing(false)
+      setShowCopyDialog(false)
+      setCopyError(null)
     } else if (modalState.type === 'create') {
       setStartTime('09:00')
       setEndTime('17:00')
@@ -147,6 +158,57 @@ export function ShiftModal({ modalState, onClose, postes }: ShiftModalProps) {
   function handleCancelEdit() {
     setIsEditing(false)
     setError(null)
+  }
+
+  function handleOpenCopyDialog() {
+    if (modalState.type !== 'view') return
+    // Pre-select current employee and date
+    setCopyTargetEmployeeId(modalState.employee.id)
+    setCopyTargetDate(weekDates.length > 0 ? toISODate(weekDates[0]) : '')
+    setCopyError(null)
+    setShowCopyDialog(true)
+  }
+
+  async function handleCopyShift() {
+    if (modalState.type !== 'view') return
+    if (!copyTargetEmployeeId || !copyTargetDate) {
+      setCopyError('Veuillez choisir un employé et un jour cible')
+      return
+    }
+
+    setCopyLoading(true)
+    setCopyError(null)
+
+    try {
+      const { shift } = modalState
+      const response = await fetch('/api/shifts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: copyTargetEmployeeId,
+          date: copyTargetDate,
+          start_time: shift.start_time.slice(0, 5),
+          end_time: shift.end_time.slice(0, 5),
+          position: shift.position,
+          poste_id: shift.poste_id,
+          break_minutes: shift.break_minutes,
+          notes: shift.notes,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error ?? 'Erreur lors de la copie')
+      }
+
+      setShowCopyDialog(false)
+      onClose()
+      router.refresh()
+    } catch (err) {
+      setCopyError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } finally {
+      setCopyLoading(false)
+    }
   }
 
   async function handleCreate() {
@@ -370,6 +432,7 @@ export function ShiftModal({ modalState, onClose, postes }: ShiftModalProps) {
 
   // View / Edit mode
   const { shift } = modalState
+  const isReadOnly = modalState.readOnly === true
 
   if (isEditing) {
     return (
@@ -491,81 +554,172 @@ export function ShiftModal({ modalState, onClose, postes }: ShiftModalProps) {
 
   // View mode
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            Créneau — {firstName} — {dayLabel}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen && !showCopyDialog} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Créneau — {firstName} — {dayLabel}
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="grid gap-3 py-2 text-sm">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-            <span className="text-gray-500">Heure de début</span>
-            <span className="font-medium">{shift.start_time.slice(0, 5)}</span>
-          </div>
-          <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-            <span className="text-gray-500">Heure de fin</span>
-            <span className="font-medium">{shift.end_time.slice(0, 5)}</span>
-          </div>
-          {shift.poste_id && (() => {
-            const poste = postes.find(p => p.id === shift.poste_id)
-            return poste ? (
-              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                <span className="text-gray-500">Poste</span>
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full" style={{ backgroundColor: poste.color }} />
-                  <span className="font-medium">{poste.name}</span>
+          <div className="grid gap-3 py-2 text-sm">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+              <span className="text-gray-500">Heure de début</span>
+              <span className="font-medium">{shift.start_time.slice(0, 5)}</span>
+            </div>
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+              <span className="text-gray-500">Heure de fin</span>
+              <span className="font-medium">{shift.end_time.slice(0, 5)}</span>
+            </div>
+            {shift.poste_id && (() => {
+              const poste = postes.find(p => p.id === shift.poste_id)
+              return poste ? (
+                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                  <span className="text-gray-500">Poste</span>
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: poste.color }} />
+                    <span className="font-medium">{poste.name}</span>
+                  </div>
                 </div>
+              ) : null
+            })()}
+            {(shift.position || employee.position) && (
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <span className="text-gray-500">Intitulé</span>
+                <span className="font-medium">{shift.position ?? employee.position}</span>
               </div>
-            ) : null
-          })()}
-          {(shift.position || employee.position) && (
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-              <span className="text-gray-500">Intitulé</span>
-              <span className="font-medium">{shift.position ?? employee.position}</span>
-            </div>
-          )}
-          {shift.break_minutes > 0 && (
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-              <span className="text-gray-500">Pause</span>
-              <span className="font-medium">
-                {shift.break_minutes === 60 ? '1h' : `${shift.break_minutes} min`}
-              </span>
-            </div>
-          )}
-          {shift.notes && (
-            <div className="flex flex-col gap-1">
-              <span className="text-gray-500">Notes</span>
-              <p className="text-gray-800 bg-gray-50 rounded p-2">{shift.notes}</p>
-            </div>
-          )}
+            )}
+            {shift.break_minutes > 0 && (
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <span className="text-gray-500">Pause</span>
+                <span className="font-medium">
+                  {shift.break_minutes === 60 ? '1h' : `${shift.break_minutes} min`}
+                </span>
+              </div>
+            )}
+            {shift.notes && (
+              <div className="flex flex-col gap-1">
+                <span className="text-gray-500">Notes</span>
+                <p className="text-gray-800 bg-gray-50 rounded p-2">{shift.notes}</p>
+              </div>
+            )}
 
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
-        </div>
+            {error && (
+              <p className="text-sm text-red-600">{error}</p>
+            )}
+          </div>
 
-        <DialogFooter className="gap-2">
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={loading}
-          >
-            {loading ? 'Suppression...' : 'Supprimer'}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleStartEdit}
-            disabled={loading}
-          >
-            Modifier
-          </Button>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            Fermer
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="gap-2">
+            {!isReadOnly && (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={loading}
+                >
+                  {loading ? 'Suppression...' : 'Supprimer'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleStartEdit}
+                  disabled={loading}
+                >
+                  Modifier
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline"
+              onClick={handleOpenCopyDialog}
+              disabled={loading}
+            >
+              Copier vers...
+            </Button>
+            <Button variant="outline" onClick={onClose} disabled={loading}>
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Copy shift dialog */}
+      <Dialog open={showCopyDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowCopyDialog(false)
+          setCopyError(null)
+        }
+      }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Copier le créneau vers...</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+            {/* Target employee */}
+            <div className="grid gap-1.5">
+              <Label>Employé cible</Label>
+              <Select value={copyTargetEmployeeId} onValueChange={setCopyTargetEmployeeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un employé..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map(emp => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.full_name ?? emp.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Target day */}
+            <div className="grid gap-1.5">
+              <Label>Jour cible</Label>
+              <Select value={copyTargetDate} onValueChange={setCopyTargetDate}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir un jour..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {weekDates.map(d => {
+                    const dateStr = toISODate(d)
+                    const label = d.toLocaleDateString('fr-FR', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                    })
+                    return (
+                      <SelectItem key={dateStr} value={dateStr}>
+                        {label.charAt(0).toUpperCase() + label.slice(1)}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {copyError && (
+              <p className="text-sm text-red-600">{copyError}</p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCopyDialog(false)
+                setCopyError(null)
+              }}
+              disabled={copyLoading}
+            >
+              Annuler
+            </Button>
+            <Button onClick={handleCopyShift} disabled={copyLoading}>
+              {copyLoading ? 'Copie...' : 'Copier'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

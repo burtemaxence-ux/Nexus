@@ -30,3 +30,11 @@ export type Shift = {
   status: 'draft' | 'published'
   created_at: string
 }
+
+export type WeekStatus = {
+  week_monday: string
+  published: boolean
+  locked: boolean
+  published_at: string | null
+  locked_at: string | null
+}
