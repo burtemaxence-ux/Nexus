@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendLeaveDecisionEmail } from '@/lib/email/conges-email'
+import type { LeaveType } from '@/types'
 
 // PATCH — manager approuve / refuse  OU  employé annule
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
@@ -15,13 +17,34 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (!['approved', 'rejected'].includes(status)) {
       return NextResponse.json({ error: 'status doit être approved ou rejected' }, { status: 400 })
     }
+
     const { data, error } = await supabase
       .from('leave_requests')
       .update({ status, manager_comment: manager_comment || null, updated_at: new Date().toISOString() })
       .eq('id', params.id)
-      .select()
+      .select(`
+        *,
+        profiles:employee_id ( id, full_name, email )
+      `)
       .single()
+
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Notification email à l'employé (silencieuse si domaine non configuré)
+    const emp = data.profiles as { id: string; full_name: string | null; email: string } | null
+    if (emp?.email) {
+      const firstName = emp.full_name?.split(' ')[0] ?? emp.email.split('@')[0]
+      sendLeaveDecisionEmail({
+        toEmail: emp.email,
+        firstName,
+        status,
+        type: data.type as LeaveType,
+        startDate: data.start_date,
+        endDate: data.end_date,
+        managerComment: manager_comment || null,
+      }).catch(() => {}) // ne jamais bloquer la réponse pour un email raté
+    }
+
     return NextResponse.json(data)
   }
 
