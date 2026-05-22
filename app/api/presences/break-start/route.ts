@@ -7,15 +7,14 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
   const body = await request.json().catch(() => ({}))
-  const clockInTime = body.time ?? new Date().toISOString()
+  const breakStart = body.time ?? new Date().toISOString()
   const today = new Date().toISOString().slice(0, 10)
 
   const { data, error } = await supabase
     .from('presences')
-    .upsert(
-      { employee_id: user.id, date: today, clock_in: clockInTime, updated_at: new Date().toISOString() },
-      { onConflict: 'employee_id,date', ignoreDuplicates: false }
-    )
+    .update({ break_start: breakStart, updated_at: new Date().toISOString() })
+    .eq('employee_id', user.id)
+    .eq('date', today)
     .select()
     .single()
 

@@ -1,17 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
+  const body = await request.json().catch(() => ({}))
+  const clockOutTime = body.time ?? new Date().toISOString()
   const today = new Date().toISOString().slice(0, 10)
-  const now = new Date().toISOString()
 
   const { data, error } = await supabase
     .from('presences')
-    .update({ clock_out: now, updated_at: now })
+    .update({ clock_out: clockOutTime, updated_at: new Date().toISOString() })
     .eq('employee_id', user.id)
     .eq('date', today)
     .select()

@@ -11,6 +11,8 @@ type PresenceRow = {
   date: string
   clock_in: string | null
   clock_out: string | null
+  break_start: string | null
+  break_end: string | null
   profiles: {
     id: string
     full_name: string | null
@@ -223,6 +225,11 @@ function PresenceCard({ presence: p, now }: { presence: PresenceRow; now: Date }
                 </span>
               )}
             </div>
+            {p.break_start && (
+              <p className="text-[10px] text-amber-500 mt-0.5">
+                ☕ {formatTime(p.break_start)}{p.break_end ? ` → ${formatTime(p.break_end)}` : ' (en pause)'}
+              </p>
+            )}
             <p className="text-[10px] text-gray-400 mt-0.5 flex items-center justify-end gap-1">
               <Clock className="h-3 w-3" />
               {formatDuration(p.clock_in, p.clock_out)}

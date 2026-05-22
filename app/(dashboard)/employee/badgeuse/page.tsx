@@ -1,15 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, LogIn, LogOut, Clock } from 'lucide-react'
+import { ChevronLeft, LogIn, LogOut, Coffee, PlayCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { TimeCarousel, timeValueToISO, isoToTimeValue, nowTimeValue, type TimeValue } from '@/components/ui/time-carousel'
 
 type Presence = {
   id: string
   date: string
   clock_in: string | null
   clock_out: string | null
+  break_start: string | null
+  break_end: string | null
 }
 
 function formatTime(iso: string | null): string {
@@ -17,143 +20,288 @@ function formatTime(iso: string | null): string {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 
-function formatDuration(clockIn: string, clockOut: string | null): string {
-  const end = clockOut ? new Date(clockOut) : new Date()
-  const diffMs = end.getTime() - new Date(clockIn).getTime()
-  const totalMin = Math.floor(diffMs / 60000)
-  const h = Math.floor(totalMin / 60)
-  const m = totalMin % 60
+function minutesSince(iso: string): number {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+}
+
+function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
   return h > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${m} min`
 }
 
 function formatDate(): string {
-  return new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date().toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+}
+
+// État de la journée
+type DayState = 'idle' | 'working' | 'on_break' | 'after_break' | 'done'
+
+function getDayState(p: Presence | null): DayState {
+  if (!p?.clock_in) return 'idle'
+  if (p.clock_out) return 'done'
+  if (p.break_start && !p.break_end) return 'on_break'
+  if (p.break_start && p.break_end) return 'after_break'
+  return 'working'
 }
 
 export default function BadgeusePage() {
   const [presence, setPresence] = useState<Presence | null | undefined>(undefined)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(new Date())
 
-  useEffect(() => {
-    fetchPresence()
-    const tick = setInterval(() => setNow(new Date()), 30000)
-    return () => clearInterval(tick)
-  }, [])
+  // Carousel times — initialisés à l'heure courante
+  const [clockInTime, setClockInTime] = useState<TimeValue>(nowTimeValue())
+  const [breakStartTime, setBreakStartTime] = useState<TimeValue>(nowTimeValue())
+  const [breakEndTime, setBreakEndTime] = useState<TimeValue>(nowTimeValue())
+  const [clockOutTime, setClockOutTime] = useState<TimeValue>(nowTimeValue())
 
-  async function fetchPresence() {
+  const fetchPresence = useCallback(async () => {
     const res = await fetch('/api/presences')
     if (res.ok) setPresence(await res.json())
-  }
+    else setPresence(null)
+  }, [])
 
-  async function handleClockIn() {
-    setLoading(true)
+  useEffect(() => {
+    fetchPresence()
+    const tick = setInterval(() => {
+      setNow(new Date())
+      // Sync les carousels non encore utilisés à l'heure courante
+      setPresence(prev => {
+        const state = getDayState(prev ?? null)
+        if (state === 'idle') setClockInTime(nowTimeValue())
+        return prev
+      })
+    }, 60000)
+    return () => clearInterval(tick)
+  }, [fetchPresence])
+
+  async function post(endpoint: string, time: TimeValue) {
+    setLoading(endpoint)
     setError(null)
-    const res = await fetch('/api/presences/clock-in', { method: 'POST' })
+    const res = await fetch(`/api/presences/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ time: timeValueToISO(time) }),
+    })
     if (res.ok) setPresence(await res.json())
-    else setError('Erreur lors du pointage')
-    setLoading(false)
+    else setError('Erreur lors du pointage. Réessayez.')
+    setLoading(null)
   }
 
-  async function handleClockOut() {
-    setLoading(true)
-    setError(null)
-    const res = await fetch('/api/presences/clock-out', { method: 'POST' })
-    if (res.ok) setPresence(await res.json())
-    else setError('Erreur lors du pointage')
-    setLoading(false)
-  }
+  const p = presence ?? null
+  const state = getDayState(p)
 
-  const isClockedIn = !!presence?.clock_in
-  const isClockedOut = !!presence?.clock_out
+  // Minutes travaillées depuis l'arrivée (hors pause)
+  const minutesWorked = p?.clock_in
+    ? minutesSince(p.clock_in) -
+      (p.break_start && p.break_end
+        ? Math.floor((new Date(p.break_end).getTime() - new Date(p.break_start).getTime()) / 60000)
+        : p.break_start
+        ? minutesSince(p.break_start)
+        : 0)
+    : 0
+
+  const breakAllowed = minutesWorked >= 420 // 7h = 420 min
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-lg">
+    <div className="container mx-auto px-4 py-8 max-w-md">
       <div className="mb-6">
         <Link href="/employee" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
           <ChevronLeft className="h-4 w-4" />Mon espace
         </Link>
       </div>
 
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Badgeuse</h1>
-        <p className="text-gray-500 mt-1 text-sm capitalize">{formatDate()}</p>
+        <p className="text-gray-500 mt-0.5 text-sm capitalize">{formatDate()}</p>
       </div>
 
-      {/* Horloge */}
-      <div className="text-center mb-8">
+      {/* Horloge live */}
+      <div className="text-center mb-6">
         <p className="text-5xl font-bold text-gray-900 tabular-nums">
           {now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
 
-      {/* Statut du jour */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Aujourd&apos;hui</h2>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="text-center p-4 rounded-lg bg-green-50 border border-green-100">
-            <p className="text-xs text-green-600 font-medium mb-1">Arrivée</p>
-            <p className="text-xl font-bold text-green-700">
-              {presence === undefined ? '…' : formatTime(presence?.clock_in ?? null)}
-            </p>
-          </div>
-          <div className="text-center p-4 rounded-lg bg-orange-50 border border-orange-100">
-            <p className="text-xs text-orange-600 font-medium mb-1">Départ</p>
-            <p className="text-xl font-bold text-orange-700">
-              {presence === undefined ? '…' : formatTime(presence?.clock_out ?? null)}
-            </p>
-          </div>
-        </div>
-
-        {isClockedIn && (
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500 pt-1">
-            <Clock className="h-4 w-4" />
-            <span>
-              {isClockedOut
-                ? `Durée : ${formatDuration(presence!.clock_in!, presence!.clock_out)}`
-                : `En service depuis ${formatDuration(presence!.clock_in!, null)}`}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Boutons d'action */}
-      {error && <p className="text-sm text-red-600 text-center mb-4">{error}</p>}
-
-      {presence === undefined ? null : !isClockedIn ? (
-        <Button
-          onClick={handleClockIn}
-          disabled={loading}
-          className="w-full h-14 text-base gap-2 bg-green-600 hover:bg-green-700"
-        >
-          <LogIn className="h-5 w-5" />
-          {loading ? 'Pointage…' : 'Pointer mon arrivée'}
-        </Button>
-      ) : !isClockedOut ? (
-        <div className="space-y-3">
-          <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-center text-sm text-green-700 font-medium">
-            ✓ Arrivée pointée à {formatTime(presence!.clock_in)}
-          </div>
-          <Button
-            onClick={handleClockOut}
-            disabled={loading}
-            variant="outline"
-            className="w-full h-14 text-base gap-2 border-orange-300 text-orange-700 hover:bg-orange-50"
-          >
-            <LogOut className="h-5 w-5" />
-            {loading ? 'Pointage…' : 'Pointer mon départ'}
-          </Button>
-        </div>
+      {presence === undefined ? (
+        <p className="text-center text-gray-400 py-8">Chargement…</p>
       ) : (
-        <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-4 text-center space-y-1">
-          <p className="text-sm font-medium text-gray-700">Journée terminée</p>
-          <p className="text-xs text-gray-500">
-            {formatTime(presence!.clock_in)} → {formatTime(presence!.clock_out)} · {formatDuration(presence!.clock_in!, presence!.clock_out)}
-          </p>
+        <div className="space-y-4">
+
+          {/* ── IDLE : pas encore pointé ── */}
+          {state === 'idle' && (
+            <ActionCard
+              title="Pointer mon arrivée"
+              color="green"
+              icon={<LogIn className="h-5 w-5" />}
+              carousel={<TimeCarousel value={clockInTime} onChange={setClockInTime} label="Heure d'arrivée" />}
+              onConfirm={() => post('clock-in', clockInTime)}
+              loading={loading === 'clock-in'}
+            />
+          )}
+
+          {/* ── WORKING / AFTER BREAK : en service ── */}
+          {(state === 'working' || state === 'after_break') && (
+            <>
+              {/* Résumé arrivée */}
+              <SummaryRow
+                label="Arrivée"
+                time={formatTime(p!.clock_in)}
+                color="green"
+              />
+
+              {/* Résumé pause (si after_break) */}
+              {state === 'after_break' && (
+                <SummaryRow
+                  label={`Pause  ${formatTime(p!.break_start)} → ${formatTime(p!.break_end)}`}
+                  time={formatDuration(
+                    Math.floor((new Date(p!.break_end!).getTime() - new Date(p!.break_start!).getTime()) / 60000)
+                  )}
+                  color="amber"
+                />
+              )}
+
+              {/* Bloc pause — grisé si < 7h */}
+              {state === 'working' && (
+                <ActionCard
+                  title="Début de pause"
+                  color="amber"
+                  icon={<Coffee className="h-5 w-5" />}
+                  carousel={<TimeCarousel value={breakStartTime} onChange={setBreakStartTime} label="Heure de pause" compact />}
+                  onConfirm={() => post('break-start', breakStartTime)}
+                  loading={loading === 'break-start'}
+                  disabled={!breakAllowed}
+                  disabledReason={`Disponible après 7h de service (${formatDuration(minutesWorked)} travaillé${minutesWorked >= 60 ? 's' : ''})`}
+                />
+              )}
+
+              {/* Départ */}
+              <ActionCard
+                title="Pointer mon départ"
+                color="red"
+                icon={<LogOut className="h-5 w-5" />}
+                carousel={<TimeCarousel value={clockOutTime} onChange={setClockOutTime} label="Heure de départ" compact />}
+                onConfirm={() => post('clock-out', clockOutTime)}
+                loading={loading === 'clock-out'}
+              />
+            </>
+          )}
+
+          {/* ── ON BREAK : en pause ── */}
+          {state === 'on_break' && (
+            <>
+              <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-center">
+                <p className="text-sm font-semibold text-amber-700">En pause depuis {formatTime(p!.break_start)}</p>
+                <p className="text-xs text-amber-500 mt-1">
+                  {formatDuration(minutesSince(p!.break_start!))} de pause
+                </p>
+              </div>
+              <ActionCard
+                title="Fin de pause"
+                color="green"
+                icon={<PlayCircle className="h-5 w-5" />}
+                carousel={<TimeCarousel value={breakEndTime} onChange={setBreakEndTime} label="Fin de pause" compact />}
+                onConfirm={() => post('break-end', breakEndTime)}
+                loading={loading === 'break-end'}
+              />
+            </>
+          )}
+
+          {/* ── DONE : journée terminée ── */}
+          {state === 'done' && (
+            <div className="rounded-xl bg-gray-50 border border-gray-200 p-5 space-y-3">
+              <p className="text-sm font-semibold text-gray-700 text-center mb-2">Journée terminée</p>
+              <DaySummaryRow label="Arrivée" value={formatTime(p!.clock_in)} />
+              {p!.break_start && (
+                <DaySummaryRow
+                  label="Pause"
+                  value={`${formatTime(p!.break_start)} → ${formatTime(p!.break_end)}`}
+                />
+              )}
+              <DaySummaryRow label="Départ" value={formatTime(p!.clock_out)} />
+              <div className="border-t pt-2">
+                <DaySummaryRow
+                  label="Total travaillé"
+                  value={formatDuration(minutesWorked)}
+                  bold
+                />
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <p className="text-sm text-red-600 text-center">{error}</p>
+          )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Composants internes ──────────────────────────────────────────────────────
+
+type CardColor = 'green' | 'red' | 'amber'
+
+const COLOR_MAP: Record<CardColor, { btn: string; border: string }> = {
+  green: { btn: 'bg-green-600 hover:bg-green-700', border: 'border-green-200' },
+  red:   { btn: 'bg-red-500 hover:bg-red-600',     border: 'border-red-200' },
+  amber: { btn: 'bg-amber-500 hover:bg-amber-600', border: 'border-amber-200' },
+}
+
+function ActionCard({
+  title, color, icon, carousel, onConfirm, loading, disabled = false, disabledReason,
+}: {
+  title: string
+  color: CardColor
+  icon: React.ReactNode
+  carousel: React.ReactNode
+  onConfirm: () => void
+  loading: boolean
+  disabled?: boolean
+  disabledReason?: string
+}) {
+  const c = COLOR_MAP[color]
+  return (
+    <div className={`rounded-xl border bg-white p-4 space-y-4 ${disabled ? 'opacity-50' : c.border}`}>
+      <div className="flex justify-center">
+        {carousel}
+      </div>
+      {disabledReason && (
+        <p className="text-xs text-center text-gray-400 italic">{disabledReason}</p>
+      )}
+      <Button
+        onClick={onConfirm}
+        disabled={loading || disabled}
+        className={`w-full h-12 gap-2 text-white ${c.btn}`}
+      >
+        {icon}
+        {loading ? 'Pointage…' : title}
+      </Button>
+    </div>
+  )
+}
+
+function SummaryRow({ label, time, color }: { label: string; time: string; color: 'green' | 'amber' }) {
+  const cls = color === 'green'
+    ? 'bg-green-50 border-green-100 text-green-700'
+    : 'bg-amber-50 border-amber-100 text-amber-700'
+  return (
+    <div className={`rounded-lg border px-4 py-2 flex items-center justify-between text-sm ${cls}`}>
+      <span className="font-medium">{label}</span>
+      <span className="font-bold tabular-nums">{time}</span>
+    </div>
+  )
+}
+
+function DaySummaryRow({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <div className="flex justify-between text-sm">
+      <span className="text-gray-500">{label}</span>
+      <span className={`tabular-nums ${bold ? 'font-bold text-gray-900' : 'text-gray-700'}`}>{value}</span>
     </div>
   )
 }
