@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Globe, Printer } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Globe, Printer, Mail } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { type Profile, type Shift, type Poste } from '@/types'
@@ -182,6 +182,8 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
   const [copyError, setCopyError] = useState<string | null>(null)
   const [statusLoading, setStatusLoading] = useState(false)
   const [statusError, setStatusError] = useState<string | null>(null)
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [emailFeedback, setEmailFeedback] = useState<string | null>(null)
 
   // DnD state
   const [activeDragShiftId, setActiveDragShiftId] = useState<string | null>(null)
@@ -229,6 +231,26 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
       setCopyError(err instanceof Error ? err.message : 'Erreur inconnue')
     } finally {
       setCopyLoading(false)
+    }
+  }
+
+  async function handleResendEmails() {
+    setEmailLoading(true)
+    setEmailFeedback(null)
+    try {
+      const response = await fetch('/api/shifts/send-planning-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ week_monday: toISODate(weekDates[0]) }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error ?? 'Erreur')
+      setEmailFeedback(`✓ ${data.sent} email${data.sent !== 1 ? 's' : ''} envoyé${data.sent !== 1 ? 's' : ''}`)
+      setTimeout(() => setEmailFeedback(null), 4000)
+    } catch (err) {
+      setEmailFeedback(err instanceof Error ? err.message : 'Erreur')
+    } finally {
+      setEmailLoading(false)
     }
   }
 
@@ -414,6 +436,27 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
               <Copy className="h-3.5 w-3.5" />
               {copyLoading ? 'Copie...' : 'Copier →'}
             </Button>
+
+            {/* Resend emails button — visible only when week is published */}
+            {weekPublished && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={handleResendEmails}
+                disabled={emailLoading}
+                title="Renvoyer les emails du planning à tous les employés"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                {emailLoading ? 'Envoi...' : 'Envoyer emails'}
+              </Button>
+            )}
+
+            {emailFeedback && (
+              <span className={`text-xs ${emailFeedback.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>
+                {emailFeedback}
+              </span>
+            )}
 
             {/* PDF / Print button */}
             <Link href={`/manager/planning/print?week=${toISODate(weekDates[0])}`} target="_blank">
