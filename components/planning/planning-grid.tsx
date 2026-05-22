@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Globe, Printer, Mail } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Printer, Mail } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { type Profile, type Shift, type Poste } from '@/types'
@@ -369,75 +369,69 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
           <div className="flex items-center gap-3 flex-wrap justify-center">
             <h2 className="text-lg font-semibold text-gray-900">{weekLabel}</h2>
 
-            {/* Status badge */}
-            {weekLocked ? (
-              <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-100 gap-1">
-                <Lock className="h-3 w-3" /> Verrouillé
-              </Badge>
-            ) : weekPublished ? (
-              <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
-                Publié
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-100">
-                Brouillon
-              </Badge>
-            )}
-
-            {/* Status action buttons */}
-            {!weekPublished && !weekLocked && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50"
-                onClick={() => handleWeekStatus({ published: true })}
-                disabled={statusLoading || employees.length === 0}
+            {/* Toggle Publié / Non-publié — indépendant */}
+            <button
+              role="switch"
+              aria-checked={weekPublished}
+              onClick={() => handleWeekStatus({ published: !weekPublished })}
+              disabled={statusLoading || employees.length === 0}
+              title={weekPublished ? 'Cliquer pour dépublier' : 'Cliquer pour publier'}
+              className={`relative inline-flex h-7 w-[120px] cursor-pointer items-center rounded-full border transition-colors duration-300 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                weekPublished
+                  ? 'bg-green-500 border-green-500'
+                  : 'bg-white border-gray-300'
+              }`}
+            >
+              {/* Knob */}
+              <span
+                className={`absolute h-5 w-5 rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-300 ease-in-out ${
+                  weekPublished ? 'translate-x-[92px]' : 'translate-x-1'
+                }`}
+              />
+              {/* Labels */}
+              <span
+                className={`absolute inset-0 flex items-center transition-opacity duration-200 ${
+                  weekPublished ? 'opacity-100' : 'opacity-0'
+                }`}
               >
-                <Globe className="h-3.5 w-3.5" />
-                Publier
-              </Button>
-            )}
-
-            {weekPublished && !weekLocked && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 border-red-300 text-red-700 hover:bg-red-50"
-                onClick={() => handleWeekStatus({ locked: true })}
-                disabled={statusLoading}
+                <span className="pl-3 text-xs font-semibold text-white">Publié</span>
+              </span>
+              <span
+                className={`absolute inset-0 flex items-center justify-end transition-opacity duration-200 ${
+                  weekPublished ? 'opacity-0' : 'opacity-100'
+                }`}
               >
-                <Lock className="h-3.5 w-3.5" />
-                Verrouiller
-              </Button>
-            )}
+                <span className="pr-3 text-xs font-semibold text-gray-500">Non-publié</span>
+              </span>
+            </button>
 
-            {weekLocked && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50"
-                onClick={() => handleWeekStatus({ locked: false })}
-                disabled={statusLoading}
-              >
-                <Unlock className="h-3.5 w-3.5" />
-                Déverrouiller
-              </Button>
-            )}
+            {/* Verrou — indépendant */}
+            <Button
+              variant="outline"
+              size="sm"
+              className={`gap-1.5 ${weekLocked ? 'border-orange-300 text-orange-700 hover:bg-orange-50' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+              onClick={() => handleWeekStatus({ locked: !weekLocked })}
+              disabled={statusLoading}
+              title={weekLocked ? 'Déverrouiller la semaine' : 'Verrouiller la semaine'}
+            >
+              {weekLocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+              {weekLocked ? 'Verrouillé' : 'Déverrouiller'}
+            </Button>
 
-            {/* Copy week button — always visible */}
+            {/* Copier la semaine */}
             <Button
               variant="outline"
               size="sm"
               className="gap-1.5"
               onClick={handleCopyWeek}
               disabled={copyLoading || employees.length === 0}
-              title="Copier tous les créneaux de cette semaine vers la semaine suivante"
+              title="Copier tous les créneaux vers la semaine suivante"
             >
               <Copy className="h-3.5 w-3.5" />
               {copyLoading ? 'Copie...' : 'Copier →'}
             </Button>
 
-            {/* Envoyer le planning — toujours visible, indépendant du statut */}
+            {/* Envoyer le planning par email */}
             <Button
               variant="outline"
               size="sm"
@@ -450,13 +444,7 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
               {emailLoading ? 'Envoi...' : 'Envoyer le planning'}
             </Button>
 
-            {emailFeedback && (
-              <span className={`text-xs ${emailFeedback.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>
-                {emailFeedback}
-              </span>
-            )}
-
-            {/* PDF / Print button */}
+            {/* PDF */}
             <Link href={`/manager/planning/print?week=${toISODate(weekDates[0])}`} target="_blank">
               <Button variant="outline" size="sm" className="gap-1.5" title="Télécharger le planning en PDF">
                 <Printer className="h-3.5 w-3.5" />
@@ -464,12 +452,11 @@ export function PlanningGrid({ weekDates, employees, shifts, weekLocked, weekPub
               </Button>
             </Link>
 
-            {copyError && (
-              <span className="text-xs text-red-600">{copyError}</span>
+            {emailFeedback && (
+              <span className={`text-xs ${emailFeedback.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>{emailFeedback}</span>
             )}
-            {statusError && (
-              <span className="text-xs text-red-600">{statusError}</span>
-            )}
+            {copyError && <span className="text-xs text-red-600">{copyError}</span>}
+            {statusError && <span className="text-xs text-red-600">{statusError}</span>}
           </div>
 
           <Link href={`?week=${nextWeekParam}`}>
