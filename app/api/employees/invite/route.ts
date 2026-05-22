@@ -20,51 +20,42 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
+      { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // Construire l'URL de base depuis les headers Vercel/proxy
     const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:3000'
     const proto = host.includes('localhost') ? 'http' : 'https'
     const siteUrl = `${proto}://${host}`
 
-    const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${siteUrl}/auth/set-password`,
-      data: {
-        role: 'employee',
-        full_name,
-        position,
+    // generateLink bypasses Supabase's SMTP entirely — no rate limit, no email sent
+    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: {
+        redirectTo: `${siteUrl}/auth/set-password`,
+        data: { role: 'employee', full_name, position },
       },
     })
 
     if (error) {
       if (error.message.includes('already been registered') || error.message.includes('already exists')) {
         return NextResponse.json(
-          { error: 'Un compte avec cet email existe déjà' },
+          { error: 'Un compte avec cet email existe déjà. Utilisez "Renvoyer le lien" depuis la liste des employés.' },
           { status: 409 }
-        )
-      }
-      if (error.message.includes('rate limit')) {
-        return NextResponse.json(
-          { error: 'Trop d\'invitations envoyées. Patientez quelques minutes avant de réessayer.' },
-          { status: 429 }
         )
       }
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    const inviteLink = data.properties?.action_link
+    if (!inviteLink) {
+      return NextResponse.json({ error: 'Impossible de générer le lien' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, inviteLink })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erreur inconnue'
     console.error('[invite] exception:', message)
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

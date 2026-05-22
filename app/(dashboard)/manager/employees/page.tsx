@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { UserPlus, Users, Pencil } from 'lucide-react'
 import DeleteEmployeeButton from './delete-employee-button'
+import ResendLinkButton from './resend-link-button'
 
 function getInitials(name: string): string {
   return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
@@ -116,6 +117,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: { 
                           <Pencil className="h-3.5 w-3.5 mr-1" />Modifier
                         </Link>
                       </Button>
+                      <ResendLinkButton employee={employee} />
                       <DeleteEmployeeButton employee={employee} />
                     </div>
                   </TableCell>
