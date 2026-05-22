@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import {
   Card,
@@ -80,10 +81,11 @@ export default async function EmployeeDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {navigationCards.map((card) => {
           const Icon = card.icon
-          return (
+          const isPlanning = card.href === '/employee/planning'
+
+          const cardContent = (
             <Card
-              key={card.title}
-              className="hover:shadow-md transition-shadow cursor-pointer"
+              className={`transition-shadow ${isPlanning ? 'hover:shadow-md cursor-pointer' : 'opacity-70'}`}
             >
               <CardHeader className="flex flex-row items-center gap-4 pb-2">
                 <div className={`p-3 rounded-lg ${card.bgColor}`}>
@@ -97,11 +99,21 @@ export default async function EmployeeDashboard() {
                 <CardDescription className="text-sm">
                   {card.description}
                 </CardDescription>
-                <p className="text-xs text-muted-foreground mt-2 italic">
-                  Disponible prochainement
-                </p>
+                {!isPlanning && (
+                  <p className="text-xs text-muted-foreground mt-2 italic">
+                    Disponible prochainement
+                  </p>
+                )}
               </CardContent>
             </Card>
+          )
+
+          return isPlanning ? (
+            <Link key={card.title} href={card.href}>
+              {cardContent}
+            </Link>
+          ) : (
+            <div key={card.title}>{cardContent}</div>
           )
         })}
       </div>
