@@ -25,6 +25,7 @@ export default function SetPasswordForm() {
   useEffect(() => {
     const supabase = createClient()
 
+    // 1. PKCE flow: ?code= in query string
     const code = searchParams.get('code')
     if (code) {
       supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
@@ -38,30 +39,39 @@ export default function SetPasswordForm() {
       return
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
-        setPageState('ready')
+    // 2. Hash/implicit flow: #access_token= in URL fragment
+    // createBrowserClient (@supabase/ssr) does NOT auto-parse hash tokens,
+    // so we extract them manually and call setSession directly.
+    const hash = typeof window !== 'undefined' ? window.location.hash : ''
+    if (hash && hash.includes('access_token=')) {
+      const params = new URLSearchParams(hash.substring(1))
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
+      if (accessToken && refreshToken) {
+        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          .then(({ error }) => {
+            if (error) {
+              setSessionError("Le lien d'invitation a expiré ou est invalide. Demandez un nouvel accès au manager.")
+              setPageState('error')
+            } else {
+              // Clean the hash from the URL without triggering a reload
+              window.history.replaceState(null, '', window.location.pathname)
+              setPageState('ready')
+            }
+          })
+        return
       }
-    })
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setPageState('ready')
-    })
-
-    const timeout = setTimeout(() => {
-      setPageState(prev => {
-        if (prev === 'loading') {
-          setSessionError("Le lien d'invitation a expiré ou est invalide. Demandez un nouvel accès au manager.")
-          return 'error'
-        }
-        return prev
-      })
-    }, 8000)
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timeout)
     }
+
+    // 3. Session already present (page reload after step 2)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setPageState('ready')
+        return
+      }
+      setSessionError("Aucun lien d'accès détecté. Demandez un nouveau lien à votre manager.")
+      setPageState('error')
+    })
   }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
