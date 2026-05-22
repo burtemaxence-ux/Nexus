@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, LogIn, LogOut, Coffee, PlayCircle } from 'lucide-react'
+import { ChevronLeft, LogIn, LogOut, Coffee, PlayCircle, CalendarX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { TimeCarousel, timeValueToISO, isoToTimeValue, nowTimeValue, type TimeValue } from '@/components/ui/time-carousel'
+import { TimeCarousel, timeValueToISO, nowTimeValue, type TimeValue } from '@/components/ui/time-carousel'
 
 type Presence = {
   id: string
@@ -15,13 +15,21 @@ type Presence = {
   break_end: string | null
 }
 
+type Shift = {
+  id: string
+  start_time: string
+  end_time: string
+  position: string | null
+}
+
 function formatTime(iso: string | null): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 
-function minutesSince(iso: string): number {
-  return Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+function minutesBetween(from: string, to: string | null): number {
+  const end = to ? new Date(to) : new Date()
+  return Math.floor((end.getTime() - new Date(from).getTime()) / 60000)
 }
 
 function formatDuration(minutes: number): string {
@@ -36,7 +44,6 @@ function formatDate(): string {
   })
 }
 
-// État de la journée
 type DayState = 'idle' | 'working' | 'on_break' | 'after_break' | 'done'
 
 function getDayState(p: Presence | null): DayState {
@@ -49,35 +56,36 @@ function getDayState(p: Presence | null): DayState {
 
 export default function BadgeusePage() {
   const [presence, setPresence] = useState<Presence | null | undefined>(undefined)
+  const [todayShifts, setTodayShifts] = useState<Shift[] | undefined>(undefined)
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(new Date())
 
-  // Carousel times — initialisés à l'heure courante
   const [clockInTime, setClockInTime] = useState<TimeValue>(nowTimeValue())
   const [breakStartTime, setBreakStartTime] = useState<TimeValue>(nowTimeValue())
   const [breakEndTime, setBreakEndTime] = useState<TimeValue>(nowTimeValue())
   const [clockOutTime, setClockOutTime] = useState<TimeValue>(nowTimeValue())
 
-  const fetchPresence = useCallback(async () => {
-    const res = await fetch('/api/presences')
-    if (res.ok) setPresence(await res.json())
+  const fetchData = useCallback(async () => {
+    const today = new Date().toISOString().slice(0, 10)
+
+    const [presRes, shiftsRes] = await Promise.all([
+      fetch('/api/presences'),
+      fetch(`/api/shifts?employee=me&date=${today}`),
+    ])
+
+    if (presRes.ok) setPresence(await presRes.json())
     else setPresence(null)
+
+    if (shiftsRes.ok) setTodayShifts(await shiftsRes.json())
+    else setTodayShifts([])
   }, [])
 
   useEffect(() => {
-    fetchPresence()
-    const tick = setInterval(() => {
-      setNow(new Date())
-      // Sync les carousels non encore utilisés à l'heure courante
-      setPresence(prev => {
-        const state = getDayState(prev ?? null)
-        if (state === 'idle') setClockInTime(nowTimeValue())
-        return prev
-      })
-    }, 60000)
+    fetchData()
+    const tick = setInterval(() => setNow(new Date()), 60000)
     return () => clearInterval(tick)
-  }, [fetchPresence])
+  }, [fetchData])
 
   async function post(endpoint: string, time: TimeValue) {
     setLoading(endpoint)
@@ -94,18 +102,19 @@ export default function BadgeusePage() {
 
   const p = presence ?? null
   const state = getDayState(p)
+  const hasShiftToday = todayShifts !== undefined && todayShifts.length > 0
 
-  // Minutes travaillées depuis l'arrivée (hors pause)
+  // Durée totale travaillée (sans la pause)
   const minutesWorked = p?.clock_in
-    ? minutesSince(p.clock_in) -
+    ? minutesBetween(p.clock_in, p.clock_out ?? null) -
       (p.break_start && p.break_end
-        ? Math.floor((new Date(p.break_end).getTime() - new Date(p.break_start).getTime()) / 60000)
-        : p.break_start
-        ? minutesSince(p.break_start)
+        ? minutesBetween(p.break_start, p.break_end)
+        : p.break_start && !p.break_end
+        ? minutesBetween(p.break_start, null)
         : 0)
     : 0
 
-  const breakAllowed = minutesWorked >= 420 // 7h = 420 min
+  const isLoading = presence === undefined || todayShifts === undefined
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-md">
@@ -120,19 +129,38 @@ export default function BadgeusePage() {
         <p className="text-gray-500 mt-0.5 text-sm capitalize">{formatDate()}</p>
       </div>
 
-      {/* Horloge live */}
+      {/* Horloge */}
       <div className="text-center mb-6">
         <p className="text-5xl font-bold text-gray-900 tabular-nums">
           {now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
 
-      {presence === undefined ? (
+      {isLoading ? (
         <p className="text-center text-gray-400 py-8">Chargement…</p>
+      ) : !hasShiftToday && state === 'idle' ? (
+        /* Pas de service aujourd'hui */
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-8 text-center space-y-3">
+          <CalendarX className="h-10 w-10 text-gray-300 mx-auto" />
+          <p className="text-base font-semibold text-gray-500">Pas de service aujourd&apos;hui</p>
+          <p className="text-sm text-gray-400">
+            Aucun créneau n&apos;est planifié pour vous ce jour. La badgeuse est disponible uniquement les jours de travail.
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
 
-          {/* ── IDLE : pas encore pointé ── */}
+          {/* Shifts du jour */}
+          {todayShifts && todayShifts.length > 0 && (
+            <div className="rounded-lg bg-blue-50 border border-blue-100 px-4 py-2.5 flex items-center justify-between text-sm">
+              <span className="text-blue-600 font-medium">Service prévu</span>
+              <span className="text-blue-700 font-bold tabular-nums">
+                {todayShifts[0].start_time.slice(0, 5)} – {todayShifts[0].end_time.slice(0, 5)}
+              </span>
+            </div>
+          )}
+
+          {/* IDLE */}
           {state === 'idle' && (
             <ActionCard
               title="Pointer mon arrivée"
@@ -144,28 +172,20 @@ export default function BadgeusePage() {
             />
           )}
 
-          {/* ── WORKING / AFTER BREAK : en service ── */}
+          {/* WORKING ou AFTER_BREAK */}
           {(state === 'working' || state === 'after_break') && (
             <>
-              {/* Résumé arrivée */}
-              <SummaryRow
-                label="Arrivée"
-                time={formatTime(p!.clock_in)}
-                color="green"
-              />
+              <SummaryRow label="Arrivée" time={formatTime(p!.clock_in)} color="green" />
 
-              {/* Résumé pause (si after_break) */}
               {state === 'after_break' && (
                 <SummaryRow
                   label={`Pause  ${formatTime(p!.break_start)} → ${formatTime(p!.break_end)}`}
-                  time={formatDuration(
-                    Math.floor((new Date(p!.break_end!).getTime() - new Date(p!.break_start!).getTime()) / 60000)
-                  )}
+                  time={formatDuration(minutesBetween(p!.break_start!, p!.break_end))}
                   color="amber"
                 />
               )}
 
-              {/* Bloc pause — grisé si < 7h */}
+              {/* Pause — toujours disponible si shift aujourd'hui */}
               {state === 'working' && (
                 <ActionCard
                   title="Début de pause"
@@ -174,12 +194,9 @@ export default function BadgeusePage() {
                   carousel={<TimeCarousel value={breakStartTime} onChange={setBreakStartTime} label="Heure de pause" compact />}
                   onConfirm={() => post('break-start', breakStartTime)}
                   loading={loading === 'break-start'}
-                  disabled={!breakAllowed}
-                  disabledReason={`Disponible après 7h de service (${formatDuration(minutesWorked)} travaillé${minutesWorked >= 60 ? 's' : ''})`}
                 />
               )}
 
-              {/* Départ */}
               <ActionCard
                 title="Pointer mon départ"
                 color="red"
@@ -191,13 +208,13 @@ export default function BadgeusePage() {
             </>
           )}
 
-          {/* ── ON BREAK : en pause ── */}
+          {/* ON_BREAK */}
           {state === 'on_break' && (
             <>
               <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-center">
                 <p className="text-sm font-semibold text-amber-700">En pause depuis {formatTime(p!.break_start)}</p>
                 <p className="text-xs text-amber-500 mt-1">
-                  {formatDuration(minutesSince(p!.break_start!))} de pause
+                  {formatDuration(minutesBetween(p!.break_start!, null))} de pause
                 </p>
               </div>
               <ActionCard
@@ -211,7 +228,7 @@ export default function BadgeusePage() {
             </>
           )}
 
-          {/* ── DONE : journée terminée ── */}
+          {/* DONE */}
           {state === 'done' && (
             <div className="rounded-xl bg-gray-50 border border-gray-200 p-5 space-y-3">
               <p className="text-sm font-semibold text-gray-700 text-center mb-2">Journée terminée</p>
@@ -224,62 +241,35 @@ export default function BadgeusePage() {
               )}
               <DaySummaryRow label="Départ" value={formatTime(p!.clock_out)} />
               <div className="border-t pt-2">
-                <DaySummaryRow
-                  label="Total travaillé"
-                  value={formatDuration(minutesWorked)}
-                  bold
-                />
+                <DaySummaryRow label="Total travaillé" value={formatDuration(minutesWorked)} bold />
               </div>
             </div>
           )}
 
-          {error && (
-            <p className="text-sm text-red-600 text-center">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-600 text-center">{error}</p>}
         </div>
       )}
     </div>
   )
 }
 
-// ── Composants internes ──────────────────────────────────────────────────────
-
 type CardColor = 'green' | 'red' | 'amber'
-
 const COLOR_MAP: Record<CardColor, { btn: string; border: string }> = {
   green: { btn: 'bg-green-600 hover:bg-green-700', border: 'border-green-200' },
   red:   { btn: 'bg-red-500 hover:bg-red-600',     border: 'border-red-200' },
   amber: { btn: 'bg-amber-500 hover:bg-amber-600', border: 'border-amber-200' },
 }
 
-function ActionCard({
-  title, color, icon, carousel, onConfirm, loading, disabled = false, disabledReason,
-}: {
-  title: string
-  color: CardColor
-  icon: React.ReactNode
-  carousel: React.ReactNode
-  onConfirm: () => void
-  loading: boolean
-  disabled?: boolean
-  disabledReason?: string
+function ActionCard({ title, color, icon, carousel, onConfirm, loading }: {
+  title: string; color: CardColor; icon: React.ReactNode
+  carousel: React.ReactNode; onConfirm: () => void; loading: boolean
 }) {
   const c = COLOR_MAP[color]
   return (
-    <div className={`rounded-xl border bg-white p-4 space-y-4 ${disabled ? 'opacity-50' : c.border}`}>
-      <div className="flex justify-center">
-        {carousel}
-      </div>
-      {disabledReason && (
-        <p className="text-xs text-center text-gray-400 italic">{disabledReason}</p>
-      )}
-      <Button
-        onClick={onConfirm}
-        disabled={loading || disabled}
-        className={`w-full h-12 gap-2 text-white ${c.btn}`}
-      >
-        {icon}
-        {loading ? 'Pointage…' : title}
+    <div className={`rounded-xl border bg-white p-4 space-y-4 ${c.border}`}>
+      <div className="flex justify-center">{carousel}</div>
+      <Button onClick={onConfirm} disabled={loading} className={`w-full h-12 gap-2 text-white ${c.btn}`}>
+        {icon}{loading ? 'Pointage…' : title}
       </Button>
     </div>
   )

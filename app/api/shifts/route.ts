@@ -1,6 +1,32 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
+export async function GET(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
+  const { searchParams } = new URL(request.url)
+  const employeeParam = searchParams.get('employee')
+  const date = searchParams.get('date')
+
+  let query = supabase.from('shifts').select('id, start_time, end_time, position, date, employee_id')
+
+  if (employeeParam === 'me') {
+    query = query.eq('employee_id', user.id)
+  } else if (employeeParam) {
+    query = query.eq('employee_id', employeeParam)
+  }
+
+  if (date) {
+    query = query.eq('date', date)
+  }
+
+  const { data, error } = await query
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data)
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
