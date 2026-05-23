@@ -2,25 +2,23 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Pencil, Trash2, Check, X, Euro, Clock, Layers } from 'lucide-react'
+import {
+  Plus, Pencil, Trash2, Check, X, Euro, Clock, Layers,
+  ShieldCheck, UserPlus, ChevronDown, ChevronRight,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 import type { Poste } from '@/types'
+
+// ── Postes helpers ────────────────────────────────────────────────────────────
 
 const BREAK_OPTIONS = [
   { value: '15', label: '15 min' },
@@ -35,28 +33,142 @@ function numLabel(v: number, u: string) { return !v || v === 0 ? '—' : `${v} $
 
 // ── Permissions ───────────────────────────────────────────────────────────────
 
-const FEATURES = [
-  { key: 'planning',   label: 'Planning' },
-  { key: 'employees',  label: 'Employés' },
-  { key: 'reports',    label: 'Rapports' },
-  { key: 'settings',   label: 'Paramètres' },
+const PERMISSION_CATEGORIES = [
+  {
+    id: 'planning',
+    label: 'Planning',
+    permissions: [
+      { key: 'planning.view',       label: "Voir le planning de l'équipe" },
+      { key: 'planning.create',     label: 'Créer un créneau' },
+      { key: 'planning.edit',       label: 'Modifier un créneau' },
+      { key: 'planning.delete',     label: 'Supprimer un créneau' },
+      { key: 'planning.copy_week',  label: 'Copier une semaine' },
+      { key: 'planning.publish',    label: 'Publier le planning' },
+      { key: 'planning.lock',       label: 'Verrouiller le planning' },
+      { key: 'planning.export_pdf', label: 'Exporter le planning en PDF' },
+    ],
+  },
+  {
+    id: 'employees',
+    label: 'Employés',
+    permissions: [
+      { key: 'employees.view',           label: 'Voir la liste des employés' },
+      { key: 'employees.invite',         label: 'Inviter un employé' },
+      { key: 'employees.edit',           label: "Modifier le profil d'un employé" },
+      { key: 'employees.archive',        label: 'Archiver un employé' },
+      { key: 'employees.view_contracts', label: 'Voir les contrats' },
+      { key: 'employees.edit_contracts', label: 'Modifier les contrats' },
+    ],
+  },
+  {
+    id: 'leave',
+    label: 'Congés & absences',
+    permissions: [
+      { key: 'leave.request',   label: 'Faire une demande de congé' },
+      { key: 'leave.view_team', label: "Voir les demandes de l'équipe" },
+      { key: 'leave.validate',  label: 'Valider une demande' },
+      { key: 'leave.refuse',    label: 'Refuser une demande' },
+      { key: 'leave.manual',    label: 'Saisir une absence manuellement' },
+    ],
+  },
+  {
+    id: 'reports',
+    label: 'Rapports',
+    permissions: [
+      { key: 'reports.view',   label: 'Voir les rapports' },
+      { key: 'reports.export', label: 'Exporter les rapports' },
+    ],
+  },
+  {
+    id: 'settings',
+    label: 'Paramètres',
+    permissions: [
+      { key: 'settings.access', label: 'Accéder aux paramètres' },
+      { key: 'settings.edit',   label: 'Modifier les paramètres' },
+    ],
+  },
+  {
+    id: 'presence',
+    label: 'Présences',
+    permissions: [
+      { key: 'presence.view_team', label: "Voir les présences de l'équipe" },
+      { key: 'presence.edit',      label: 'Modifier une présence' },
+    ],
+  },
 ] as const
 
-type Feature = (typeof FEATURES)[number]['key']
-type PermRow = Record<Feature, boolean>
-type PermMatrix = { manager: PermRow; superviseur: PermRow; employe: PermRow }
+const ALL_PERM_KEYS = PERMISSION_CATEGORIES.flatMap(c => c.permissions.map(p => p.key))
 
-const DEFAULT_PERMS: PermMatrix = {
-  manager:     { planning: true,  employees: true,  reports: true,  settings: true  },
-  superviseur: { planning: true,  employees: false, reports: false, settings: false },
-  employe:     { planning: true,  employees: false, reports: false, settings: false },
+const BUILTIN_ROLES = ['manager', 'superviseur', 'employe'] as const
+type BuiltinRole = (typeof BUILTIN_ROLES)[number]
+
+const ROLE_LABELS: Record<string, string> = {
+  manager: 'Manager',
+  superviseur: 'Superviseur',
+  employe: 'Employé',
 }
 
-const ROLE_LABELS: Record<keyof PermMatrix, string> = {
-  manager: 'Manager', superviseur: 'Superviseur', employe: 'Employé',
+function buildAllTrue(): Record<string, boolean> {
+  return Object.fromEntries(ALL_PERM_KEYS.map(k => [k, true]))
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+function buildSuperviseurDefaults(): Record<string, boolean> {
+  const on = new Set([
+    'planning.view', 'planning.create', 'planning.edit', 'planning.copy_week',
+    'employees.view', 'leave.view_team', 'leave.validate', 'leave.refuse',
+    'leave.manual', 'reports.view', 'presence.view_team', 'presence.edit',
+  ])
+  return Object.fromEntries(ALL_PERM_KEYS.map(k => [k, on.has(k)]))
+}
+
+function buildEmployeDefaults(): Record<string, boolean> {
+  const on = new Set(['planning.view', 'leave.request'])
+  return Object.fromEntries(ALL_PERM_KEYS.map(k => [k, on.has(k)]))
+}
+
+function buildEmptyPerms(): Record<string, boolean> {
+  return Object.fromEntries(ALL_PERM_KEYS.map(k => [k, false]))
+}
+
+const DEFAULT_MATRIX: Record<string, Record<string, boolean>> = {
+  manager:     buildAllTrue(),
+  superviseur: buildSuperviseurDefaults(),
+  employe:     buildEmployeDefaults(),
+}
+
+type PermConfig = {
+  custom_roles: string[]
+  matrix: Record<string, Record<string, boolean>>
+}
+
+// ── Toggle ────────────────────────────────────────────────────────────────────
+
+function PermToggle({ checked, onChange, disabled }: {
+  checked: boolean; onChange: () => void; disabled?: boolean
+}) {
+  if (disabled) {
+    return (
+      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-emerald-100 text-emerald-600">
+        <Check className="h-3 w-3" />
+      </span>
+    )
+  }
+  return (
+    <button
+      onClick={onChange}
+      className={cn(
+        'inline-flex items-center justify-center h-5 w-5 rounded-full transition-colors',
+        checked
+          ? 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'
+          : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+      )}
+    >
+      {checked ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+    </button>
+  )
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function PostesPage() {
   const router = useRouter()
@@ -94,9 +206,13 @@ export default function PostesPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // Permissions
-  const [perms, setPerms] = useState<PermMatrix>(DEFAULT_PERMS)
+  const [permMatrix, setPermMatrix] = useState<Record<string, Record<string, boolean>>>(DEFAULT_MATRIX)
+  const [customRoles, setCustomRoles] = useState<string[]>([])
   const [permsSaving, setPermsSaving] = useState(false)
   const [permsSaved, setPermsSaved] = useState(false)
+  const [showAddRole, setShowAddRole] = useState(false)
+  const [newRoleName, setNewRoleName] = useState('')
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set())
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
@@ -117,13 +233,26 @@ export default function PostesPage() {
       .then(r => r.json())
       .then((s: Record<string, string>) => {
         if (s.permissions_matrix) {
-          try { setPerms(JSON.parse(s.permissions_matrix)) } catch { /* keep default */ }
+          try {
+            const parsed = JSON.parse(s.permissions_matrix) as PermConfig
+            if (parsed.matrix) {
+              const merged = { ...DEFAULT_MATRIX }
+              const roles = [...BUILTIN_ROLES, ...(parsed.custom_roles ?? [])]
+              for (const role of roles) {
+                if (parsed.matrix[role]) {
+                  merged[role] = { ...buildEmptyPerms(), ...parsed.matrix[role] }
+                }
+              }
+              setPermMatrix(merged)
+              setCustomRoles(parsed.custom_roles ?? [])
+            }
+          } catch { /* keep defaults */ }
         }
       })
       .catch(() => {})
   }, [fetchPostes])
 
-  // ── Add ────────────────────────────────────────────────────────────────────
+  // ── Add poste ─────────────────────────────────────────────────────────────
 
   function resetAdd() {
     setShowAddForm(false); setAddName(''); setAddColor('#3B82F6')
@@ -153,7 +282,7 @@ export default function PostesPage() {
     } finally { setAddLoading(false) }
   }
 
-  // ── Edit ───────────────────────────────────────────────────────────────────
+  // ── Edit poste ────────────────────────────────────────────────────────────
 
   function startEdit(p: Poste) {
     setEditingId(p.id); setEditName(p.name); setEditColor(p.color)
@@ -189,7 +318,7 @@ export default function PostesPage() {
     } finally { setEditLoading(false) }
   }
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
+  // ── Delete poste ──────────────────────────────────────────────────────────
 
   async function handleDelete(id: string) {
     setDeleteLoading(true); setDeleteError(null)
@@ -202,25 +331,58 @@ export default function PostesPage() {
     } finally { setDeleteLoading(false) }
   }
 
-  // ── Permissions ────────────────────────────────────────────────────────────
+  // ── Permissions handlers ──────────────────────────────────────────────────
 
-  function togglePerm(role: keyof PermMatrix, feat: Feature) {
-    setPerms(prev => ({
+  function togglePerm(role: string, permKey: string) {
+    setPermMatrix(prev => ({
       ...prev,
-      [role]: { ...prev[role], [feat]: !prev[role][feat] },
+      [role]: { ...prev[role], [permKey]: !prev[role]?.[permKey] },
     }))
+  }
+
+  function addCustomRole() {
+    const name = newRoleName.trim()
+    if (!name || customRoles.includes(name) || BUILTIN_ROLES.includes(name as BuiltinRole)) return
+    const slug = name.toLowerCase().replace(/\s+/g, '_')
+    setCustomRoles(prev => [...prev, slug])
+    setPermMatrix(prev => ({ ...prev, [slug]: buildEmptyPerms() }))
+    setNewRoleName('')
+    setShowAddRole(false)
+  }
+
+  function removeCustomRole(slug: string) {
+    setCustomRoles(prev => prev.filter(r => r !== slug))
+    setPermMatrix(prev => {
+      const next = { ...prev }
+      delete next[slug]
+      return next
+    })
+  }
+
+  function toggleCategory(catId: string) {
+    setCollapsedCategories(prev => {
+      const next = new Set(prev)
+      next.has(catId) ? next.delete(catId) : next.add(catId)
+      return next
+    })
   }
 
   async function savePerms() {
     setPermsSaving(true)
-    const res = await fetch('/api/settings', {
+    const config: PermConfig = { custom_roles: customRoles, matrix: permMatrix }
+    await fetch('/api/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ permissions_matrix: JSON.stringify(perms) }),
+      body: JSON.stringify({ permissions_matrix: JSON.stringify(config) }),
     })
-    if (res.ok) { setPermsSaved(true); setTimeout(() => setPermsSaved(false), 3000) }
     setPermsSaving(false)
+    setPermsSaved(true)
+    setTimeout(() => setPermsSaved(false), 2500)
   }
+
+  // ── All visible roles (builtin + custom) ──────────────────────────────────
+
+  const allRoles = [...BUILTIN_ROLES, ...customRoles]
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -266,7 +428,7 @@ export default function PostesPage() {
               <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Pause auto</Label>
               <button
                 onClick={() => setAddAutoBreak(v => !v)}
-                className={`h-8 px-3 rounded-md border text-xs font-medium transition-colors ${addAutoBreak ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                className={cn('h-8 px-3 rounded-md border text-xs font-medium transition-colors', addAutoBreak ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50')}
               >
                 {addAutoBreak ? 'Oui' : 'Non'}
               </button>
@@ -322,7 +484,7 @@ export default function PostesPage() {
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/60">
                 {['Poste', 'Pause', 'Coût/h', 'Max/j', 'Max/sem', ''].map(h => (
-                  <th key={h} className={`px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide ${h === '' ? 'text-right' : 'text-left'}`}>{h}</th>
+                  <th key={h} className={cn('px-5 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide', h === '' ? 'text-right' : 'text-left')}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -350,7 +512,7 @@ export default function PostesPage() {
                           <Label className="text-xs font-medium text-gray-600 mb-1 block">Pause auto</Label>
                           <button
                             onClick={() => setEditAutoBreak(v => !v)}
-                            className={`h-8 px-3 rounded-md border text-xs font-medium transition-colors ${editAutoBreak ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                            className={cn('h-8 px-3 rounded-md border text-xs font-medium transition-colors', editAutoBreak ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50')}
                           >
                             {editAutoBreak ? 'Oui' : 'Non'}
                           </button>
@@ -427,59 +589,151 @@ export default function PostesPage() {
         )}
       </div>
 
-      {/* ── Permissions ──────────────────────────────────────────────────── */}
+      {/* ── Permissions matrix ───────────────────────────────────────────── */}
       <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <p className="text-sm font-semibold text-gray-900">Permissions par rôle</p>
-          <p className="text-xs text-gray-500 mt-0.5">Définissez les accès de chaque rôle dans l&apos;application</p>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+              <ShieldCheck className="h-4 w-4 text-violet-500" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Permissions par rôle</p>
+              <p className="text-xs text-gray-500 mt-0.5">Définissez les accès de chaque rôle dans l&apos;application</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-xs h-8"
+            onClick={() => { setShowAddRole(true); setNewRoleName('') }}
+            disabled={showAddRole}
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            Nouveau rôle
+          </Button>
         </div>
-        <div className="px-6 py-5">
+
+        {/* Add custom role input */}
+        {showAddRole && (
+          <div className="px-6 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center gap-2">
+            <Input
+              autoFocus
+              placeholder="Nom du rôle (ex: Chef de rang)"
+              value={newRoleName}
+              onChange={e => setNewRoleName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') addCustomRole(); if (e.key === 'Escape') setShowAddRole(false) }}
+              className="h-7 text-sm max-w-xs"
+            />
+            <Button size="sm" className="h-7 text-xs" onClick={addCustomRole} disabled={!newRoleName.trim()}>
+              Créer
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAddRole(false)}>
+              Annuler
+            </Button>
+          </div>
+        )}
+
+        {/* Scrollable matrix */}
+        <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr>
-                <th className="text-left py-2 pr-6 font-medium text-gray-500 text-xs uppercase tracking-wide w-36">Rôle</th>
-                {FEATURES.map(f => (
-                  <th key={f.key} className="text-center py-2 px-4 font-medium text-gray-500 text-xs uppercase tracking-wide">{f.label}</th>
+              <tr className="border-b border-gray-100 bg-gray-50/40">
+                {/* Permission label column */}
+                <th className="text-left px-6 py-3 font-medium text-gray-500 text-xs uppercase tracking-wide min-w-[220px]">
+                  Permission
+                </th>
+                {allRoles.map(role => (
+                  <th key={role} className="text-center px-4 py-3 font-medium text-xs uppercase tracking-wide min-w-[100px]">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className={cn(
+                        'font-semibold',
+                        role === 'manager' ? 'text-emerald-700' :
+                        role === 'superviseur' ? 'text-indigo-600' :
+                        role === 'employe' ? 'text-gray-600' :
+                        'text-violet-600'
+                      )}>
+                        {ROLE_LABELS[role] ?? role}
+                      </span>
+                      {customRoles.includes(role) && (
+                        <button
+                          onClick={() => removeCustomRole(role)}
+                          className="text-gray-300 hover:text-red-400 transition-colors"
+                          title="Supprimer ce rôle"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                      {role === 'manager' && (
+                        <span className="text-[9px] font-normal text-emerald-600 normal-case tracking-normal">Accès total</span>
+                      )}
+                    </div>
+                  </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {(Object.keys(ROLE_LABELS) as (keyof PermMatrix)[]).map(role => (
-                <tr key={role}>
-                  <td className="py-3 pr-6">
-                    <span className="font-medium text-gray-800">{ROLE_LABELS[role]}</span>
-                    {role === 'employe' && (
-                      <span className="ml-2 text-[10px] text-gray-400">planning personnel uniquement</span>
-                    )}
-                  </td>
-                  {FEATURES.map(f => (
-                    <td key={f.key} className="py-3 px-4 text-center">
-                      {role === 'manager' ? (
-                        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-emerald-100 text-emerald-600">
-                          <Check className="h-3 w-3" />
+            <tbody>
+              {PERMISSION_CATEGORIES.map(category => {
+                const isCollapsed = collapsedCategories.has(category.id)
+                return [
+                  // Category header row
+                  <tr
+                    key={`cat-${category.id}`}
+                    className="border-t border-gray-100 bg-gray-50/70 cursor-pointer hover:bg-gray-100/70 transition-colors"
+                    onClick={() => toggleCategory(category.id)}
+                  >
+                    <td colSpan={allRoles.length + 1} className="px-6 py-2">
+                      <div className="flex items-center gap-2">
+                        {isCollapsed
+                          ? <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+                          : <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+                        }
+                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                          {category.label}
                         </span>
-                      ) : (
-                        <button
-                          onClick={() => togglePerm(role, f.key)}
-                          className={`inline-flex items-center justify-center h-5 w-5 rounded-full transition-colors ${
-                            perms[role][f.key]
-                              ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
-                              : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                          }`}
-                        >
-                          {perms[role][f.key] ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                        </button>
-                      )}
+                        <span className="text-[10px] text-gray-400 font-normal normal-case tracking-normal">
+                          {category.permissions.length} permission{category.permissions.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
                     </td>
-                  ))}
-                </tr>
-              ))}
+                  </tr>,
+                  // Permission rows (hidden when collapsed)
+                  ...(!isCollapsed ? category.permissions.map(perm => (
+                    <tr key={perm.key} className="border-t border-gray-50 hover:bg-gray-50/40 transition-colors">
+                      <td className="px-6 py-2.5 pl-10">
+                        <span className="text-sm text-gray-700">{perm.label}</span>
+                      </td>
+                      {allRoles.map(role => (
+                        <td key={role} className="px-4 py-2.5 text-center">
+                          <PermToggle
+                            checked={permMatrix[role]?.[perm.key] ?? false}
+                            onChange={() => togglePerm(role, perm.key)}
+                            disabled={role === 'manager'}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  )) : []),
+                ]
+              })}
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
-          <Button size="sm" onClick={savePerms} disabled={permsSaving} className="gap-2">
-            {permsSaving ? 'Enregistrement…' : permsSaved ? 'Enregistré !' : 'Enregistrer les permissions'}
+
+        {/* Footer note + save */}
+        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between gap-4">
+          <p className="text-xs text-gray-400">
+            <span className="text-emerald-600 font-medium">✓ Manager</span> — accès total non modifiable.
+            Les rôles personnalisés s&apos;assignent depuis le profil employé.
+          </p>
+          <Button size="sm" onClick={savePerms} disabled={permsSaving} className="gap-2 shrink-0">
+            {permsSaving
+              ? <><span className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Enregistrement…</>
+              : permsSaved
+              ? <><Check className="h-3.5 w-3.5" />Enregistré</>
+              : 'Enregistrer les permissions'
+            }
           </Button>
         </div>
       </div>
