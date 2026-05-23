@@ -113,7 +113,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: { 
                   <TableCell className="pr-6">
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/manager/employees/${employee.id}/edit`}>
+                        <Link href={`/manager/employees/${employee.id}`}>
                           <Pencil className="h-3.5 w-3.5 mr-1" />Modifier
                         </Link>
                       </Button>
