@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Printer, Mail } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Printer, Mail, Share2, Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
@@ -31,19 +31,19 @@ interface PlanningGridProps {
   postes: Poste[]
 }
 
-const LEAVE_STYLES: Record<LeaveType, { bg: string; border: string; text: string; label: string }> = {
-  CP:         { bg: 'bg-blue-50',   border: 'border-blue-300',  text: 'text-blue-700',  label: 'CP' },
-  RTT:        { bg: 'bg-purple-50', border: 'border-purple-300', text: 'text-purple-700', label: 'RTT' },
-  maladie:    { bg: 'bg-red-50',    border: 'border-red-300',   text: 'text-red-700',   label: 'Maladie' },
-  sans_solde: { bg: 'bg-gray-100',  border: 'border-gray-300',  text: 'text-gray-600',  label: 'Sans solde' },
-  autre:      { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700', label: 'Autre' },
+const LEAVE_STYLES: Record<LeaveType, { bg: string; border: string; text: string; label: string; icon: string }> = {
+  CP:         { bg: 'bg-blue-50',    border: 'border-blue-200',   text: 'text-blue-700',   label: 'Congé payé',  icon: '🏖️' },
+  RTT:        { bg: 'bg-violet-50',  border: 'border-violet-200', text: 'text-violet-700', label: 'RTT',         icon: '🗓️' },
+  maladie:    { bg: 'bg-red-50',     border: 'border-red-200',    text: 'text-red-600',    label: 'Maladie',     icon: '🤒' },
+  sans_solde: { bg: 'bg-slate-100',  border: 'border-slate-300',  text: 'text-slate-600',  label: 'Sans solde',  icon: '📋' },
+  autre:      { bg: 'bg-amber-50',   border: 'border-amber-200',  text: 'text-amber-700',  label: 'Absence',     icon: '📌' },
 }
 
 function AbsenceBadge({ type }: { type: LeaveType }) {
   const s = LEAVE_STYLES[type]
   return (
-    <div className={`rounded border px-1.5 py-1 text-[10px] font-semibold ${s.bg} ${s.border} ${s.text} flex items-center gap-1`}>
-      <span>🏖</span>
+    <div className={`rounded-md px-2 py-1.5 text-[10px] font-semibold ${s.bg} ${s.border} ${s.text} flex items-center gap-1.5 border`}>
+      <span className="text-[11px]">{s.icon}</span>
       <span>{s.label}</span>
     </div>
   )
@@ -166,12 +166,18 @@ function DroppableCell({ id, children, className, style, isLocked, onEmptyCellCl
       style={{ minHeight: '80px', ...style }}
     >
       {!hasShifts ? (
-        <div
-          onClick={isLocked ? undefined : onEmptyCellClick}
-          className={`min-h-[80px] bg-gray-50 rounded-sm border border-dashed border-gray-200 transition-colors ${
-            isLocked ? 'cursor-default' : 'hover:bg-blue-50 cursor-pointer hover:border-blue-300'
-          }`}
-        />
+        isLocked ? (
+          <div className="min-h-[80px] flex items-center justify-center">
+            <span className="text-[10px] text-gray-300 font-medium tracking-wide">Repos</span>
+          </div>
+        ) : (
+          <div
+            onClick={onEmptyCellClick}
+            className="min-h-[80px] bg-gray-50 rounded-sm border border-dashed border-gray-200 transition-colors hover:bg-blue-50 cursor-pointer hover:border-blue-300 flex items-center justify-center group"
+          >
+            <span className="text-[10px] text-gray-300 group-hover:text-blue-400 transition-colors">+ ajouter</span>
+          </div>
+        )
       ) : (
         children
       )}
@@ -197,6 +203,7 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
 
   // Modal state
   const [modalState, setModalState] = useState<ModalState>({ type: 'closed' })
+  const [shareCopied, setShareCopied] = useState(false)
   const [copyLoading, setCopyLoading] = useState(false)
   const [copyError, setCopyError] = useState<string | null>(null)
   const [statusLoading, setStatusLoading] = useState(false)
@@ -377,6 +384,12 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
           <div className="flex items-center gap-3 flex-wrap">
             {/* View toggle */}
             <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium">
+              <Link
+                href={`/manager/planning?view=day&date=${toISODate(new Date())}`}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Jour
+              </Link>
               <div className="px-4 py-2 bg-gray-900 text-white select-none">
                 Semaine
               </div>
@@ -472,6 +485,22 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
             >
               <Mail className="h-3.5 w-3.5" />
               {emailLoading ? 'Envoi...' : 'Envoyer le planning'}
+            </Button>
+
+            {/* Share */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href)
+                setShareCopied(true)
+                setTimeout(() => setShareCopied(false), 2000)
+              }}
+              title="Copier le lien du planning"
+            >
+              {shareCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Share2 className="h-3.5 w-3.5" />}
+              {shareCopied ? 'Lien copié !' : 'Partager'}
             </Button>
 
             {/* PDF */}
@@ -644,6 +673,32 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td className="border-t-2 border-r border-gray-200 bg-gray-50/80 px-4 py-2.5">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total / jour</span>
+                  </td>
+                  {weekDates.map((date) => {
+                    const dateStr = toISODate(date)
+                    const dayTotal = shifts
+                      .filter(s => s.date === dateStr)
+                      .reduce((sum, s) => sum + calcShiftHours(s.start_time, s.end_time, s.break_minutes), 0)
+                    const today = isToday(date)
+                    return (
+                      <td key={dateStr} className={`border-t-2 border-r border-gray-200 px-3 py-2.5 text-center ${today ? 'bg-blue-50/50' : 'bg-gray-50/80'}`}>
+                        <span className={`text-sm font-bold ${dayTotal > 0 ? (today ? 'text-blue-700' : 'text-gray-800') : 'text-gray-300'}`}>
+                          {dayTotal > 0 ? formatHours(dayTotal) : '—'}
+                        </span>
+                      </td>
+                    )
+                  })}
+                  <td className="border-t-2 border-gray-200 bg-gray-50/80 px-3 py-2.5 text-center">
+                    <span className="text-sm font-bold text-gray-800">
+                      {formatHours(shifts.reduce((sum, s) => sum + calcShiftHours(s.start_time, s.end_time, s.break_minutes), 0))}
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
