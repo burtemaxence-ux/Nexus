@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import {
   Calendar, Users, BarChart3, Clock,
-  PalmTree, AlertTriangle, Upload, FileText,
+  Palmtree, AlertTriangle, Upload, FileText,
   Settings, ChevronLeft, ChevronRight, LogOut,
   UtensilsCrossed,
 } from 'lucide-react'
@@ -47,7 +47,7 @@ function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
       items: [
         {
           label: 'Congés',
-          icon: PalmTree,
+          icon: Palmtree,
           href: '/manager/conges',
           badge: pendingLeavesCount,
           badgeColor: 'orange',
@@ -81,7 +81,7 @@ const employeeNav: NavGroup[] = [
     group: 'Navigation',
     items: [
       { label: 'Mon planning', icon: Calendar,  href: '/employee/planning' },
-      { label: 'Mes congés',   icon: PalmTree,  href: '/employee/conges' },
+      { label: 'Mes congés',   icon: Palmtree,  href: '/employee/conges' },
       { label: 'Badgeuse',     icon: Clock,     href: '/employee/badgeuse' },
     ],
   },
