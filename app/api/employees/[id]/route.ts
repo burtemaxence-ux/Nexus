@@ -23,11 +23,11 @@ export async function PATCH(
   if (error) return error
 
   const body = await request.json()
-  const { full_name, position, contract_type, weekly_hours } = body
+  const { full_name, position, contract_type, weekly_hours, phone, pay_ref, pin, disability } = body
 
   const { error: updateError } = await supabase!
     .from('profiles')
-    .update({ full_name, position, contract_type, weekly_hours, updated_at: new Date().toISOString() })
+    .update({ full_name, position, contract_type, weekly_hours, phone, pay_ref, pin, disability, updated_at: new Date().toISOString() })
     .eq('id', params.id)
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })

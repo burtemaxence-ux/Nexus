@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -16,6 +17,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Get the current logged-in manager
+    const supabase = await createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,6 +55,11 @@ export async function POST(request: NextRequest) {
     const inviteLink = data.properties?.action_link
     if (!inviteLink) {
       return NextResponse.json({ error: 'Impossible de générer le lien' }, { status: 500 })
+    }
+
+    // Set invited_by on the newly created profile
+    if (user) {
+      await supabase.from('profiles').update({ invited_by: user.id }).eq('email', email)
     }
 
     return NextResponse.json({ success: true, inviteLink })

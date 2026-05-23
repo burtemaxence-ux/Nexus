@@ -14,6 +14,34 @@ export type Profile = {
   position: string | null
   contract_type: 'CDI 35h' | 'CDI 28h' | 'CDD' | 'CDD Saisonnier' | 'Extra' | null
   weekly_hours: number | null
+  phone: string | null
+  pay_ref: string | null
+  pin: string | null
+  disability: boolean
+  archived: boolean
+  invited_by: string | null
+  created_at: string
+}
+
+export type Contract = {
+  id: string
+  employee_id: string
+  type: 'CDI 35h' | 'CDI 28h' | 'CDD' | 'CDD Saisonnier' | 'Extra'
+  start_date: string
+  end_date: string | null
+  weekly_hours: number
+  hourly_rate: number | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export type Availability = {
+  id: string
+  employee_id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
   created_at: string
 }
 
