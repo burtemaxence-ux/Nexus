@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import { Sidebar } from './sidebar'
+import { AiAssistant } from './ai-assistant'
 
 interface AppShellProps {
   role: 'manager' | 'employee'
@@ -27,6 +28,9 @@ export function AppShell({ role, userName, userEmail, establishmentName, childre
       <main className="flex-1 overflow-y-auto min-w-0">
         {children}
       </main>
+      {role === 'manager' && (
+        <AiAssistant establishmentName={establishmentName} userName={userName} />
+      )}
     </div>
   )
 }

@@ -1,0 +1,107 @@
+import Anthropic from '@anthropic-ai/sdk'
+import { createClient } from '@/lib/supabase/server'
+
+const client = new Anthropic()
+
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export async function POST(req: Request) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return Response.json(
+      { error: 'Clé API Anthropic manquante. Ajoutez ANTHROPIC_API_KEY dans vos variables d\'environnement.' },
+      { status: 503 }
+    )
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const { messages, establishmentName } = await req.json() as {
+    messages: Message[]
+    establishmentName: string
+  }
+
+  // Fetch context data to give the AI awareness of real data
+  const [
+    { data: employees },
+    { data: pendingLeaves },
+    { data: recentShifts },
+    { data: settings },
+  ] = await Promise.all([
+    supabase.from('profiles').select('id, full_name, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false),
+    supabase.from('leave_requests').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(10),
+    supabase.from('shifts').select('*').gte('date', new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]).limit(50),
+    supabase.from('settings').select('key, value').in('key', ['collective_agreement', 'opening_time', 'closing_time']),
+  ])
+
+  const settingsMap = Object.fromEntries((settings ?? []).map(s => [s.key, s.value]))
+
+  const systemPrompt = `Tu es l'assistant IA intégré à D-pot, un logiciel de planning pour la restauration.
+Tu aides le manager de l'établissement **${establishmentName}** à gérer son planning, ses employés et son activité.
+
+## Données actuelles de l'établissement
+
+### Employés actifs (${employees?.length ?? 0})
+${employees?.map(e => `- ${e.full_name ?? 'Sans nom'} | ${e.position ?? 'Sans poste'} | ${e.contract_type ?? 'Sans contrat'} | ${e.weekly_hours ?? '?'}h/sem`).join('\n') ?? 'Aucun employé'}
+
+### Congés en attente de validation (${pendingLeaves?.length ?? 0})
+${pendingLeaves?.map(l => `- ${l.employee_id} | ${l.type} | ${l.start_date} → ${l.end_date}`).join('\n') || 'Aucun congé en attente'}
+
+### Paramètres établissement
+- Convention collective : ${settingsMap.collective_agreement ?? 'Non définie'}
+- Horaires : ${settingsMap.opening_time ?? '?'} → ${settingsMap.closing_time ?? '?'}
+
+### Shifts récents (7 derniers jours) : ${recentShifts?.length ?? 0} créneaux planifiés
+
+## Tes capacités
+- Analyser les données de planning et d'employés
+- Donner des conseils sur la gestion RH et le droit du travail (restauration française)
+- Suggérer des optimisations de planning
+- Expliquer les alertes légales
+- Répondre aux questions sur les conventions collectives IDCC 1501 et 1786
+- Aider à rédiger des messages aux employés
+
+## Style de réponse
+- Réponds en français, de façon concise et professionnelle
+- Utilise des listes à puces pour les informations structurées
+- Mets en **gras** les éléments importants
+- Si tu proposes un planning ou une action concrète, sois précis et actionnable
+- Ne révèle pas les détails techniques de l'architecture`
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const response = await client.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          stream: true,
+        })
+
+        for await (const event of response) {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            controller.enqueue(new TextEncoder().encode(event.delta.text))
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Erreur inconnue'
+        controller.enqueue(new TextEncoder().encode(`\n\n⚠️ ${msg}`))
+      } finally {
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Transfer-Encoding': 'chunked',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  })
+}
