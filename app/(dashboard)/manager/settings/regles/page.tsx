@@ -8,7 +8,7 @@ export default function ReglesPage() {
       </div>
       <h2 className="text-lg font-semibold text-foreground mb-2">Règles & Compteurs</h2>
       <p className="text-sm text-muted-foreground max-w-sm">
-        Convention collective, horaires d'ouverture, pauses, charges patronales — en cours de développement.
+        Convention collective, horaires d&apos;ouverture, pauses, charges patronales — en cours de développement.
       </p>
     </div>
   )
