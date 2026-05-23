@@ -3,6 +3,9 @@ export type Poste = {
   name: string
   color: string
   break_minutes: number
+  hourly_cost: number
+  max_hours_per_day: number
+  max_hours_per_week: number
   created_at: string
 }
 

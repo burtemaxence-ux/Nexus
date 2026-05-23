@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-// PATCH : modifier un poste { name?, color?, break_minutes? }
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -9,7 +8,14 @@ export async function PATCH(
   const supabase = await createClient()
   const { id } = await params
 
-  let body: { name?: string; color?: string; break_minutes?: number }
+  let body: {
+    name?: string
+    color?: string
+    break_minutes?: number
+    hourly_cost?: number
+    max_hours_per_day?: number
+    max_hours_per_week?: number
+  }
   try {
     body = await request.json()
   } catch {
@@ -20,6 +26,9 @@ export async function PATCH(
   if (body.name !== undefined) updates.name = body.name.trim()
   if (body.color !== undefined) updates.color = body.color
   if (body.break_minutes !== undefined) updates.break_minutes = body.break_minutes
+  if (body.hourly_cost !== undefined) updates.hourly_cost = body.hourly_cost
+  if (body.max_hours_per_day !== undefined) updates.max_hours_per_day = body.max_hours_per_day
+  if (body.max_hours_per_week !== undefined) updates.max_hours_per_week = body.max_hours_per_week
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'Aucun champ à mettre à jour' }, { status: 400 })
@@ -32,14 +41,10 @@ export async function PATCH(
     .select()
     .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
 
-// DELETE : supprimer un poste
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -47,14 +52,8 @@ export async function DELETE(
   const supabase = await createClient()
   const { id } = await params
 
-  const { error } = await supabase
-    .from('postes')
-    .delete()
-    .eq('id', id)
+  const { error } = await supabase.from('postes').delete().eq('id', id)
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })
 }
