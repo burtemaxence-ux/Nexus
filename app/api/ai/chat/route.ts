@@ -89,8 +89,19 @@ ${pendingLeaves?.map(l => `- ${l.employee_id} | ${l.type} | ${l.start_date} → 
           }
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Erreur inconnue'
-        controller.enqueue(new TextEncoder().encode(`\n\n⚠️ ${msg}`))
+        let msg = 'Erreur inconnue'
+        if (err instanceof Anthropic.APIError) {
+          if (err.status === 400 && String(err.message).includes('credit')) {
+            msg = 'Crédits Anthropic insuffisants. Rendez-vous sur console.anthropic.com → Billing pour recharger votre compte.'
+          } else if (err.status === 401) {
+            msg = 'Clé API Anthropic invalide. Vérifiez la variable ANTHROPIC_API_KEY dans Vercel.'
+          } else {
+            msg = err.message
+          }
+        } else if (err instanceof Error) {
+          msg = err.message
+        }
+        controller.enqueue(new TextEncoder().encode(`⚠️ ${msg}`))
       } finally {
         controller.close()
       }
