@@ -1,20 +1,338 @@
-import { BarChart3 } from 'lucide-react'
+'use client'
+
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import dynamic from 'next/dynamic'
+import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
+import { getWeekDates, toISODate, getWeekLabel } from '@/lib/utils/dates'
+import type { Profile, Shift, LeaveRequest } from '@/types'
+import { ChevronLeft, ChevronRight, Loader2, Users, Clock, TrendingUp, CalendarOff } from 'lucide-react'
+import type { EmployeeReportRow } from './rapport-pdf'
+
+const PDFButton = dynamic(() => import('./pdf-button'), { ssr: false })
+
+type Mode = 'day' | 'week' | 'month'
+
+type Presence = {
+  id: string
+  employee_id: string
+  date: string
+  clock_in: string | null
+  clock_out: string | null
+  break_minutes_used: number
+}
+
+function timeToMin(t: string): number {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
+function shiftHours(s: Shift): number {
+  const start = timeToMin(s.start_time)
+  let end = timeToMin(s.end_time)
+  if (end < start) end += 1440
+  return Math.max(0, (end - start - s.break_minutes) / 60)
+}
+
+function presenceHours(p: Presence): number {
+  if (!p.clock_in || !p.clock_out) return 0
+  const ms = new Date(p.clock_out).getTime() - new Date(p.clock_in).getTime()
+  return Math.max(0, ms / 3600000 - p.break_minutes_used / 60)
+}
+
+function overlapDays(start1: Date, end1: Date, start2: Date, end2: Date): number {
+  const s = Math.max(start1.getTime(), start2.getTime())
+  const e = Math.min(end1.getTime(), end2.getTime())
+  if (e < s) return 0
+  return Math.round((e - s) / 86400000) + 1
+}
+
+function contractRefHours(weeklyHours: number | null, start: Date, end: Date): number {
+  if (!weeklyHours) return 0
+  const days = Math.round((end.getTime() - start.getTime()) / 86400000) + 1
+  return weeklyHours * days / 7
+}
+
+function fh(h: number): string {
+  const sign = h < 0 ? '-' : ''
+  const abs = Math.abs(h)
+  const hh = Math.floor(abs)
+  const mm = Math.round((abs - hh) * 60)
+  return `${sign}${hh}h${mm > 0 ? mm.toString().padStart(2, '0') : ''}`
+}
+
+function getPeriod(mode: Mode, ref: Date): { start: Date; end: Date; label: string } {
+  if (mode === 'day') {
+    const label = ref.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    return { start: ref, end: ref, label: label.charAt(0).toUpperCase() + label.slice(1) }
+  }
+  if (mode === 'week') {
+    const dates = getWeekDates(ref)
+    return { start: dates[0], end: dates[6], label: getWeekLabel(dates) }
+  }
+  const start = new Date(ref.getFullYear(), ref.getMonth(), 1)
+  const end = new Date(ref.getFullYear(), ref.getMonth() + 1, 0)
+  const label = ref.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  return { start, end, label: label.charAt(0).toUpperCase() + label.slice(1) }
+}
+
+function navigatePeriod(mode: Mode, ref: Date, dir: 1 | -1): Date {
+  const d = new Date(ref)
+  if (mode === 'day')  { d.setDate(d.getDate() + dir); return d }
+  if (mode === 'week') { d.setDate(d.getDate() + dir * 7); return d }
+  d.setMonth(d.getMonth() + dir); return d
+}
 
 export default function RapportPage() {
+  const [mode, setMode] = useState<Mode>('week')
+  const [refDate, setRefDate] = useState(new Date())
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('all')
+  const [employees, setEmployees] = useState<Profile[]>([])
+  const [shifts, setShifts] = useState<Shift[]>([])
+  const [presences, setPresences] = useState<Presence[]>([])
+  const [leaves, setLeaves] = useState<LeaveRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [establishmentName, setEstablishmentName] = useState('Mon établissement')
+
+  const period = useMemo(() => getPeriod(mode, refDate), [mode, refDate])
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    const supabase = createClient()
+    const startStr = toISODate(period.start)
+    const endStr = toISODate(period.end)
+
+    const [empRes, shiftRes, presRes, leaveRes, settingRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('role', 'employee').eq('archived', false).order('full_name'),
+      supabase.from('shifts').select('*').gte('date', startStr).lte('date', endStr),
+      supabase.from('presences').select('*').gte('date', startStr).lte('date', endStr),
+      supabase.from('leave_requests').select('*').eq('status', 'approved').lte('start_date', endStr).gte('end_date', startStr),
+      supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
+    ])
+
+    setEmployees((empRes.data ?? []) as Profile[])
+    setShifts((shiftRes.data ?? []) as Shift[])
+    setPresences((presRes.data ?? []) as Presence[])
+    setLeaves((leaveRes.data ?? []) as LeaveRequest[])
+    if (settingRes.data?.value) setEstablishmentName(settingRes.data.value)
+    setLoading(false)
+  }, [period.start, period.end])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  const rows: EmployeeReportRow[] = useMemo(() => {
+    const filtered = selectedEmployee === 'all' ? employees : employees.filter(e => e.id === selectedEmployee)
+    return filtered.map(emp => {
+      const empShifts = shifts.filter(s => s.employee_id === emp.id)
+      const empPresences = presences.filter(p => p.employee_id === emp.id)
+      const empLeaves = leaves.filter(l => l.employee_id === emp.id)
+
+      const plannedHours = empShifts.reduce((s, sh) => s + shiftHours(sh), 0)
+      const realHours = empPresences.reduce((s, p) => s + presenceHours(p), 0)
+      const refHours = contractRefHours(emp.weekly_hours, period.start, period.end)
+      const diffHours = plannedHours - refHours
+      const plannedDays = new Set(empShifts.map(s => s.date)).size
+      const totalBreakMinutes = empShifts.reduce((s, sh) => s + sh.break_minutes, 0)
+
+      const absenceCP      = empLeaves.filter(l => l.type === 'CP').reduce((s, l) => s + overlapDays(period.start, period.end, new Date(l.start_date), new Date(l.end_date)), 0)
+      const absenceRTT     = empLeaves.filter(l => l.type === 'RTT').reduce((s, l) => s + overlapDays(period.start, period.end, new Date(l.start_date), new Date(l.end_date)), 0)
+      const absenceMaladie = empLeaves.filter(l => l.type === 'maladie').reduce((s, l) => s + overlapDays(period.start, period.end, new Date(l.start_date), new Date(l.end_date)), 0)
+      const absenceSS      = empLeaves.filter(l => l.type === 'sans_solde').reduce((s, l) => s + overlapDays(period.start, period.end, new Date(l.start_date), new Date(l.end_date)), 0)
+      const absenceAutre   = empLeaves.filter(l => l.type === 'autre').reduce((s, l) => s + overlapDays(period.start, period.end, new Date(l.start_date), new Date(l.end_date)), 0)
+
+      return {
+        id: emp.id,
+        name: emp.full_name ?? emp.email,
+        position: emp.position,
+        contractType: emp.contract_type,
+        weeklyHours: emp.weekly_hours,
+        plannedHours,
+        realHours,
+        contractRefHours: refHours,
+        diffHours,
+        plannedDays,
+        totalBreakMinutes,
+        absenceCP, absenceRTT, absenceMaladie, absenceSS, absenceAutre,
+      }
+    })
+  }, [employees, shifts, presences, leaves, selectedEmployee, period])
+
+  const totals = useMemo(() => ({
+    employees: rows.length,
+    plannedHours: rows.reduce((s, r) => s + r.plannedHours, 0),
+    realHours: rows.reduce((s, r) => s + r.realHours, 0),
+    diffHours: rows.reduce((s, r) => s + r.diffHours, 0),
+    absences: rows.reduce((s, r) => s + r.absenceCP + r.absenceRTT + r.absenceMaladie + r.absenceSS + r.absenceAutre, 0),
+  }), [rows])
+
   return (
-    <div className="px-6 py-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Rapport</h1>
-        <p className="text-muted-foreground mt-1">Synthèse des heures planifiées et réelles par employé.</p>
-      </div>
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-          <BarChart3 className="h-8 w-8 text-primary" />
+    <div className="min-h-full">
+      {/* Sticky header */}
+      <div className="border-b border-border bg-card sticky top-0 z-10">
+        <div className="px-6 max-w-6xl mx-auto">
+          <div className="flex items-center gap-3 h-14 flex-wrap">
+            <h1 className="text-lg font-semibold text-foreground shrink-0">Rapport</h1>
+
+            {/* Mode tabs */}
+            <div className="flex items-center bg-muted rounded-lg p-1 gap-0.5">
+              {(['day', 'week', 'month'] as Mode[]).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={cn(
+                    'px-3 py-1 text-sm font-medium rounded-md transition-all',
+                    mode === m ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {m === 'day' ? 'Jour' : m === 'week' ? 'Semaine' : 'Mois'}
+                </button>
+              ))}
+            </div>
+
+            {/* Period navigation */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setRefDate(d => navigatePeriod(mode, d, -1))}
+                className="p-1.5 rounded-md hover:bg-muted transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <span className="text-sm font-medium text-foreground min-w-[160px] text-center px-1">{period.label}</span>
+              <button
+                onClick={() => setRefDate(d => navigatePeriod(mode, d, 1))}
+                className="p-1.5 rounded-md hover:bg-muted transition-colors"
+              >
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+
+            {/* Employee filter */}
+            <select
+              value={selectedEmployee}
+              onChange={e => setSelectedEmployee(e.target.value)}
+              className="text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 ml-auto"
+            >
+              <option value="all">Tous les employés</option>
+              {employees.map(e => (
+                <option key={e.id} value={e.id}>{e.full_name ?? e.email}</option>
+              ))}
+            </select>
+
+            <PDFButton rows={rows} periodLabel={period.label} establishmentName={establishmentName} />
+          </div>
         </div>
-        <h2 className="text-lg font-semibold text-foreground mb-2">Rapport en cours de développement</h2>
-        <p className="text-sm text-muted-foreground max-w-sm">
-          Cette section affichera les heures planifiées, les heures réelles, les absences et les compteurs par employé.
-        </p>
+      </div>
+
+      <div className="px-6 py-6 max-w-6xl mx-auto space-y-6">
+        {/* Summary cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { icon: Users, label: 'Employés', value: totals.employees.toString(), sub: null },
+            { icon: Clock, label: 'H. planifiées', value: fh(totals.plannedHours), sub: totals.realHours > 0 ? `${fh(totals.realHours)} réelles` : null },
+            {
+              icon: TrendingUp, label: 'Écart contrat',
+              value: `${totals.diffHours >= 0 ? '+' : ''}${fh(totals.diffHours)}`,
+              color: totals.diffHours > 0.1 ? 'text-emerald-600' : totals.diffHours < -0.1 ? 'text-destructive' : undefined,
+              sub: null,
+            },
+            { icon: CalendarOff, label: "J. d'absence", value: totals.absences.toString(), sub: null },
+          ].map(({ icon: Icon, label, value, sub, color }) => (
+            <div key={label} className="bg-card border border-border rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Icon className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
+              </div>
+              <p className={cn('text-2xl font-bold text-foreground', color)}>{value}</p>
+              {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
+            </div>
+          ))}
+        </div>
+
+        {/* Table */}
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-xl bg-card">
+            <Users className="h-8 w-8 text-muted-foreground/40 mb-3" />
+            <p className="text-sm font-medium text-foreground">Aucune donnée pour cette période</p>
+            <p className="text-xs text-muted-foreground mt-1">Aucun shift ou présence enregistré.</p>
+          </div>
+        ) : (
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/60 border-b border-border">
+                    {['Employé', 'Contrat', 'H. planif.', 'H. réelles', 'H. contrat', 'Écart', 'Jours', 'Pauses', 'Absences'].map(h => (
+                      <th key={h} className={cn(
+                        'px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide',
+                        ['H. planif.', 'H. réelles', 'H. contrat', 'Écart', 'Jours', 'Pauses'].includes(h) ? 'text-right' : 'text-left',
+                      )}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, i) => {
+                    const totalAbs = row.absenceCP + row.absenceRTT + row.absenceMaladie + row.absenceSS + row.absenceAutre
+                    return (
+                      <tr key={row.id} className={cn('border-b border-border/60 hover:bg-muted/30 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-foreground leading-tight">{row.name}</p>
+                          {row.position && <p className="text-xs text-muted-foreground">{row.position}</p>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-foreground">{row.contractType ?? '—'}</p>
+                          {row.weeklyHours && <p className="text-xs text-muted-foreground">{row.weeklyHours}h/sem.</p>}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium text-foreground">{fh(row.plannedHours)}</td>
+                        <td className="px-4 py-3 text-right text-muted-foreground">{row.realHours > 0 ? fh(row.realHours) : '—'}</td>
+                        <td className="px-4 py-3 text-right text-muted-foreground">{row.contractRefHours > 0.1 ? fh(row.contractRefHours) : '—'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <span className={cn('font-medium', row.diffHours > 0.1 ? 'text-emerald-600' : row.diffHours < -0.1 ? 'text-destructive' : 'text-muted-foreground')}>
+                            {row.contractRefHours > 0.1 ? `${row.diffHours >= 0 ? '+' : ''}${fh(row.diffHours)}` : '—'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-foreground">{row.plannedDays > 0 ? `${row.plannedDays}j` : '—'}</td>
+                        <td className="px-4 py-3 text-right text-muted-foreground">{row.totalBreakMinutes > 0 ? `${row.totalBreakMinutes}min` : '—'}</td>
+                        <td className="px-4 py-3">
+                          {totalAbs === 0 ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {row.absenceCP > 0      && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">CP {row.absenceCP}j</span>}
+                              {row.absenceRTT > 0     && <span className="text-xs bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full">RTT {row.absenceRTT}j</span>}
+                              {row.absenceMaladie > 0 && <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Mal. {row.absenceMaladie}j</span>}
+                              {row.absenceSS > 0      && <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">SS {row.absenceSS}j</span>}
+                              {row.absenceAutre > 0   && <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">Autre {row.absenceAutre}j</span>}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+                {rows.length > 1 && (
+                  <tfoot>
+                    <tr className="bg-muted/60 border-t-2 border-border">
+                      <td className="px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wide" colSpan={2}>Total</td>
+                      <td className="px-4 py-3 text-right font-bold text-foreground">{fh(totals.plannedHours)}</td>
+                      <td className="px-4 py-3 text-right font-medium text-muted-foreground">{totals.realHours > 0 ? fh(totals.realHours) : '—'}</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">—</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={cn('font-bold', totals.diffHours > 0.1 ? 'text-emerald-600' : totals.diffHours < -0.1 ? 'text-destructive' : 'text-muted-foreground')}>
+                          {totals.diffHours >= 0 ? '+' : ''}{fh(totals.diffHours)}
+                        </span>
+                      </td>
+                      <td colSpan={3} />
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
