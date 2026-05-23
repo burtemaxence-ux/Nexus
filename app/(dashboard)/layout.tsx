@@ -20,13 +20,22 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     userName = profile?.full_name ?? ''
   }
 
-  const { data: setting } = await supabase
-    .from('settings')
-    .select('value')
-    .eq('key', 'establishment_name')
-    .maybeSingle()
+  // Fetch settings in parallel
+  const [
+    { data: nameRow },
+    { data: logoRow },
+    { data: pendingLeaves },
+  ] = await Promise.all([
+    supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
+    supabase.from('settings').select('value').eq('key', 'org_logo_url').maybeSingle(),
+    role === 'manager'
+      ? supabase.from('leave_requests').select('id').eq('status', 'pending')
+      : Promise.resolve({ data: [] }),
+  ])
 
-  const establishmentName = setting?.value ?? 'Mon établissement'
+  const establishmentName = nameRow?.value ?? 'Mon établissement'
+  const orgLogoUrl = logoRow?.value ?? ''
+  const pendingLeavesCount = pendingLeaves?.length ?? 0
 
   return (
     <AppShell
@@ -34,6 +43,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       userName={userName}
       userEmail={userEmail}
       establishmentName={establishmentName}
+      orgLogoUrl={orgLogoUrl}
+      pendingLeavesCount={pendingLeavesCount}
     >
       {children}
     </AppShell>

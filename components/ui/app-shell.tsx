@@ -9,10 +9,16 @@ interface AppShellProps {
   userName: string
   userEmail: string
   establishmentName: string
+  orgLogoUrl?: string
+  pendingLeavesCount?: number
   children: ReactNode
 }
 
-export function AppShell({ role, userName, userEmail, establishmentName, children }: AppShellProps) {
+export function AppShell({
+  role, userName, userEmail, establishmentName,
+  orgLogoUrl = '', pendingLeavesCount = 0,
+  children,
+}: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
@@ -22,6 +28,8 @@ export function AppShell({ role, userName, userEmail, establishmentName, childre
         userName={userName}
         userEmail={userEmail}
         establishmentName={establishmentName}
+        orgLogoUrl={orgLogoUrl}
+        pendingLeavesCount={pendingLeavesCount}
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
       />
