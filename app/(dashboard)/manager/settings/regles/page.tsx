@@ -6,15 +6,99 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Check } from 'lucide-react'
+import { Loader2, Check, ChevronRight, BookOpen } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Activity types ────────────────────────────────────────────────────────────
 
-const AGREEMENTS = [
-  { value: 'IDCC 1501', label: 'IDCC 1501 — Restauration Rapide' },
-  { value: 'IDCC 1786', label: 'IDCC 1786 — Restauration Traditionnelle' },
-  { value: 'Autre', label: 'Autre' },
-]
+const ACTIVITY_TYPES = [
+  { id: 'fast_food',      label: 'Restauration rapide',        emoji: '🍔' },
+  { id: 'restaurant',     label: 'Restauration traditionnelle', emoji: '🍽️' },
+  { id: 'bakery',         label: 'Boulangerie / Pâtisserie',   emoji: '🥐' },
+  { id: 'hotel',          label: 'Hôtellerie',                 emoji: '🏨' },
+  { id: 'catering',       label: 'Traiteur / Événementiel',    emoji: '🎪' },
+  { id: 'camping',        label: 'Hôtellerie de plein air',    emoji: '🏕️' },
+  { id: 'pizza',          label: 'Pizzeria',                   emoji: '🍕' },
+  { id: 'cafe',           label: 'Café / Bar / Brasserie',     emoji: '☕' },
+  { id: 'food_industry',  label: 'Industrie alimentaire',      emoji: '🏭' },
+  { id: 'other',          label: 'Autre',                      emoji: '🔧' },
+] as const
+
+type ActivityTypeId = (typeof ACTIVITY_TYPES)[number]['id']
+
+// ── Conventions data ──────────────────────────────────────────────────────────
+
+type ConventionData = {
+  code: string
+  label: string
+  weekly_hours: string
+  overtime_from: string
+  rest_hours: string
+  notes: string
+}
+
+const CONVENTIONS: Record<string, ConventionData> = {
+  'IDCC 1501': {
+    code: 'IDCC 1501', label: 'Restauration Rapide',
+    weekly_hours: '35h', overtime_from: '36h', rest_hours: '11h',
+    notes: 'Majoration 10 % entre 36h et 43h, puis 25 % au-delà.',
+  },
+  'IDCC 1786': {
+    code: 'IDCC 1786', label: 'CHR — Cafés Hôtels Restaurants',
+    weekly_hours: '39h (équivalences)', overtime_from: '36h', rest_hours: '11h',
+    notes: 'Régime des équivalences : 39h réelles = 35h légales pour hôtels et restaurants.',
+  },
+  'IDCC 1286': {
+    code: 'IDCC 1286', label: 'CHR — ancienne convention',
+    weekly_hours: '39h', overtime_from: '36h', rest_hours: '11h',
+    notes: 'Convention antérieure à la CCN CHR 1997, encore appliquée dans certains établissements.',
+  },
+  'IDCC 3061': {
+    code: 'IDCC 3061', label: 'Boulangerie-Pâtisserie Artisanale',
+    weekly_hours: '35h', overtime_from: '36h', rest_hours: '11h',
+    notes: 'Travail dominical fréquent avec compensations spécifiques. Travail de nuit dès 21h.',
+  },
+  'IDCC 2601': {
+    code: 'IDCC 2601', label: 'Boulangerie Industrielle',
+    weekly_hours: '35h', overtime_from: '36h', rest_hours: '11h',
+    notes: 'Majoration nuit et dimanche. Modulation annuelle possible.',
+  },
+  'IDCC 1979': {
+    code: 'IDCC 1979', label: 'Hôtellerie',
+    weekly_hours: '39h (équivalences)', overtime_from: '36h', rest_hours: '11h',
+    notes: 'Équivalences similaires à la CCN CHR. Repos compensateur obligatoire.',
+  },
+  'IDCC 1938': {
+    code: 'IDCC 1938', label: 'Traiteurs et Organisateurs de Réceptions',
+    weekly_hours: '35h', overtime_from: '36h', rest_hours: '11h',
+    notes: 'Modulation du temps de travail largement utilisée. Majorations week-end.',
+  },
+  'IDCC 2060': {
+    code: 'IDCC 2060', label: 'Hôtellerie de Plein Air',
+    weekly_hours: '35h', overtime_from: '36h', rest_hours: '11h',
+    notes: 'Saisonnalité importante. Repos compensateur et repos hebdomadaire spécifiques.',
+  },
+  'IDCC 2584': {
+    code: 'IDCC 2584', label: 'Pizzerias et Assimilés',
+    weekly_hours: '39h (équivalences)', overtime_from: '36h', rest_hours: '11h',
+    notes: 'Rattaché aux conventions CHR pour les pizzerias avec service à table.',
+  },
+}
+
+const ACTIVITY_CONVENTIONS: Record<ActivityTypeId, string[]> = {
+  fast_food:    ['IDCC 1501'],
+  restaurant:   ['IDCC 1786', 'IDCC 1286'],
+  bakery:       ['IDCC 3061', 'IDCC 2601'],
+  hotel:        ['IDCC 1979', 'IDCC 1786'],
+  catering:     ['IDCC 1938'],
+  camping:      ['IDCC 2060'],
+  pizza:        ['IDCC 2584'],
+  cafe:         ['IDCC 1786', 'IDCC 1286'],
+  food_industry:['IDCC 2601'],
+  other:        [],
+}
+
+// ── Other constants ───────────────────────────────────────────────────────────
 
 const BREAK_TRIGGER_OPTIONS = [
   { value: '300', label: '5h00' },
@@ -53,7 +137,6 @@ const WEEK_DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Settings = {
-  // existing
   collective_agreement: string
   opening_time: string
   closing_time: string
@@ -62,7 +145,6 @@ type Settings = {
   employer_charges_rate: string
   reference_work_days: string
   meal_allowance_enabled: string
-  // new — Section 3
   min_shift_duration: string
   max_shift_duration: string
   min_rest_hours: string
@@ -92,7 +174,7 @@ const DEFAULTS: Settings = {
   color_overtime: '#F59E0B',
 }
 
-// ── Small helpers ─────────────────────────────────────────────────────────────
+// ── Toggle ────────────────────────────────────────────────────────────────────
 
 function Toggle({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
   return (
@@ -120,33 +202,40 @@ export default function ReglesPage() {
   const [settings, setSettings] = useState<Settings>(DEFAULTS)
   const [closedDays, setClosedDays] = useState<number[]>([])
 
+  // Convention collective
+  const [activityType, setActivityType] = useState<ActivityTypeId | ''>('')
+  const [customAgreement, setCustomAgreement] = useState('')
+
   useEffect(() => {
     fetch('/api/settings')
       .then(r => r.json())
       .then((data: Record<string, string>) => {
         setSettings({
-          collective_agreement:  data.collective_agreement  ?? DEFAULTS.collective_agreement,
-          opening_time:          data.opening_time          ?? DEFAULTS.opening_time,
-          closing_time:          data.closing_time          ?? DEFAULTS.closing_time,
-          break_trigger_minutes: data.break_trigger_minutes ?? DEFAULTS.break_trigger_minutes,
-          paid_breaks:           data.paid_breaks           ?? DEFAULTS.paid_breaks,
-          employer_charges_rate: data.employer_charges_rate ?? DEFAULTS.employer_charges_rate,
-          reference_work_days:   data.reference_work_days   ?? DEFAULTS.reference_work_days,
-          meal_allowance_enabled:data.meal_allowance_enabled?? DEFAULTS.meal_allowance_enabled,
-          min_shift_duration:    data.min_shift_duration    ?? DEFAULTS.min_shift_duration,
-          max_shift_duration:    data.max_shift_duration    ?? DEFAULTS.max_shift_duration,
-          min_rest_hours:        data.min_rest_hours        ?? DEFAULTS.min_rest_hours,
-          overtime_allowed:      data.overtime_allowed      ?? DEFAULTS.overtime_allowed,
-          color_shift:           data.color_shift           ?? DEFAULTS.color_shift,
-          color_absence:         data.color_absence         ?? DEFAULTS.color_absence,
-          color_conge:           data.color_conge           ?? DEFAULTS.color_conge,
-          color_overtime:        data.color_overtime        ?? DEFAULTS.color_overtime,
+          collective_agreement:   data.collective_agreement   ?? DEFAULTS.collective_agreement,
+          opening_time:           data.opening_time           ?? DEFAULTS.opening_time,
+          closing_time:           data.closing_time           ?? DEFAULTS.closing_time,
+          break_trigger_minutes:  data.break_trigger_minutes  ?? DEFAULTS.break_trigger_minutes,
+          paid_breaks:            data.paid_breaks            ?? DEFAULTS.paid_breaks,
+          employer_charges_rate:  data.employer_charges_rate  ?? DEFAULTS.employer_charges_rate,
+          reference_work_days:    data.reference_work_days    ?? DEFAULTS.reference_work_days,
+          meal_allowance_enabled: data.meal_allowance_enabled ?? DEFAULTS.meal_allowance_enabled,
+          min_shift_duration:     data.min_shift_duration     ?? DEFAULTS.min_shift_duration,
+          max_shift_duration:     data.max_shift_duration     ?? DEFAULTS.max_shift_duration,
+          min_rest_hours:         data.min_rest_hours         ?? DEFAULTS.min_rest_hours,
+          overtime_allowed:       data.overtime_allowed       ?? DEFAULTS.overtime_allowed,
+          color_shift:            data.color_shift            ?? DEFAULTS.color_shift,
+          color_absence:          data.color_absence          ?? DEFAULTS.color_absence,
+          color_conge:            data.color_conge            ?? DEFAULTS.color_conge,
+          color_overtime:         data.color_overtime         ?? DEFAULTS.color_overtime,
         })
         if (data.closed_days) {
           try { setClosedDays(JSON.parse(data.closed_days)) } catch { /* keep empty */ }
         }
+        if (data.activity_type) setActivityType(data.activity_type as ActivityTypeId)
+        if (data.collective_agreement_custom) setCustomAgreement(data.collective_agreement_custom)
         setLoading(false)
       })
+      .catch(() => setLoading(false))
   }, [])
 
   function set<K extends keyof Settings>(key: K, value: string) {
@@ -159,6 +248,14 @@ export default function ReglesPage() {
     )
   }
 
+  function selectActivityType(id: ActivityTypeId) {
+    setActivityType(id)
+    // Auto-select convention if only one option
+    const options = ACTIVITY_CONVENTIONS[id]
+    if (options.length === 1) set('collective_agreement', options[0])
+    else if (id === 'other') set('collective_agreement', 'Autre')
+  }
+
   async function handleSave() {
     setSaving(true)
     await fetch('/api/settings', {
@@ -167,6 +264,8 @@ export default function ReglesPage() {
       body: JSON.stringify({
         ...settings,
         closed_days: JSON.stringify(closedDays),
+        activity_type: activityType,
+        collective_agreement_custom: customAgreement,
       }),
     })
     setSaving(false)
@@ -182,6 +281,13 @@ export default function ReglesPage() {
     )
   }
 
+  // Convention details for the selected agreement
+  const conventionDetails = settings.collective_agreement !== 'Autre'
+    ? CONVENTIONS[settings.collective_agreement]
+    : null
+
+  const availableConventions = activityType ? ACTIVITY_CONVENTIONS[activityType] : null
+
   return (
     <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
       <div>
@@ -194,18 +300,148 @@ export default function ReglesPage() {
       {/* ── Convention collective ──────────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Convention collective</CardTitle>
-          <CardDescription>
-            Détermine les règles légales applicables (repos, heures sup., primes).
-          </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+              <BookOpen className="h-4 w-4 text-amber-500" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Convention collective</CardTitle>
+              <CardDescription>
+                Détermine les règles légales applicables (repos, heures sup., primes).
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <Select value={settings.collective_agreement} onValueChange={v => set('collective_agreement', v)}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {AGREEMENTS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <CardContent className="space-y-5">
+
+          {/* Step 1 — Activity type */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Étape 1 — Type d&apos;activité
+            </p>
+            <div className="grid grid-cols-5 gap-2">
+              {ACTIVITY_TYPES.map(at => (
+                <button
+                  key={at.id}
+                  onClick={() => selectActivityType(at.id)}
+                  className={cn(
+                    'flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center transition-all',
+                    activityType === at.id
+                      ? 'border-primary bg-primary/5 shadow-sm'
+                      : 'border-border hover:border-gray-300 hover:bg-muted/40'
+                  )}
+                >
+                  <span className="text-xl leading-none">{at.emoji}</span>
+                  <span className={cn(
+                    'text-[10px] font-medium leading-tight',
+                    activityType === at.id ? 'text-primary' : 'text-muted-foreground'
+                  )}>
+                    {at.label}
+                  </span>
+                  {activityType === at.id && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Step 2 — Convention selector (shown once activity type is selected) */}
+          {activityType && (
+            <div className="space-y-2 pt-1 border-t border-border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-3">
+                Étape 2 — Convention collective
+              </p>
+
+              {activityType === 'other' ? (
+                /* Free text input for "Autre" */
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Nom de la convention</Label>
+                      <Input
+                        value={customAgreement}
+                        onChange={e => setCustomAgreement(e.target.value)}
+                        placeholder="Ex: Convention entreprise interne"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Numéro IDCC (facultatif)</Label>
+                      <Input
+                        value={settings.collective_agreement === 'Autre' ? '' : settings.collective_agreement}
+                        onChange={e => set('collective_agreement', e.target.value || 'Autre')}
+                        placeholder="Ex: IDCC 9999"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : availableConventions && availableConventions.length > 0 ? (
+                /* Radio-style convention list */
+                <div className="space-y-1.5">
+                  {availableConventions.map(code => {
+                    const conv = CONVENTIONS[code]
+                    const isSelected = settings.collective_agreement === code
+                    return (
+                      <button
+                        key={code}
+                        onClick={() => set('collective_agreement', code)}
+                        className={cn(
+                          'w-full flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-all',
+                          isSelected
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-gray-300 hover:bg-muted/30'
+                        )}
+                      >
+                        <div className={cn(
+                          'h-4 w-4 rounded-full border-2 shrink-0 transition-colors',
+                          isSelected ? 'border-primary bg-primary' : 'border-gray-300'
+                        )}>
+                          {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white m-auto mt-0.5" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn('text-sm font-medium', isSelected ? 'text-primary' : 'text-foreground')}>
+                            {code}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">{conv?.label}</p>
+                        </div>
+                        {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
+
+              {/* Convention details panel */}
+              {conventionDetails && (
+                <div className="rounded-lg border border-amber-100 bg-amber-50/50 p-4 mt-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-semibold text-amber-800 uppercase tracking-wide">
+                      {conventionDetails.code} — {conventionDetails.label}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 mb-3">
+                    {[
+                      { label: 'Durée légale hebdo', value: conventionDetails.weekly_hours },
+                      { label: 'Heures sup. dès',    value: conventionDetails.overtime_from },
+                      { label: 'Repos quotidien',    value: conventionDetails.rest_hours },
+                    ].map(item => (
+                      <div key={item.label} className="rounded-md bg-white/80 border border-amber-100 px-3 py-2">
+                        <p className="text-[10px] text-amber-700 font-medium uppercase tracking-wide">{item.label}</p>
+                        <p className="text-sm font-semibold text-amber-900 mt-0.5">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <ChevronRight className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                    <p className="text-xs text-amber-700">{conventionDetails.notes}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
         </CardContent>
       </Card>
 
@@ -232,7 +468,7 @@ export default function ReglesPage() {
         </CardContent>
       </Card>
 
-      {/* ── Règles de planification (NEW) ────────────────────────────── */}
+      {/* ── Règles de planification ───────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Règles de planification</CardTitle>
@@ -287,7 +523,7 @@ export default function ReglesPage() {
         </CardContent>
       </Card>
 
-      {/* ── Jours de fermeture (NEW) ─────────────────────────────────── */}
+      {/* ── Jours de fermeture ────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Jours de fermeture</CardTitle>
@@ -303,11 +539,12 @@ export default function ReglesPage() {
                 <button
                   key={idx}
                   onClick={() => toggleDay(idx)}
-                  className={`h-9 w-12 rounded-lg border text-sm font-medium transition-colors ${
+                  className={cn(
+                    'h-9 w-12 rounded-lg border text-sm font-medium transition-colors',
                     closed
                       ? 'border-red-300 bg-red-50 text-red-700'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
+                  )}
                 >
                   {day}
                 </button>
@@ -322,7 +559,7 @@ export default function ReglesPage() {
         </CardContent>
       </Card>
 
-      {/* ── Règles des pauses (existing) ─────────────────────────────── */}
+      {/* ── Règles des pauses ─────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Règles des pauses</CardTitle>
@@ -355,7 +592,7 @@ export default function ReglesPage() {
         </CardContent>
       </Card>
 
-      {/* ── Paramètres salariaux (existing) ──────────────────────────── */}
+      {/* ── Paramètres salariaux ──────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Paramètres salariaux</CardTitle>
@@ -383,7 +620,7 @@ export default function ReglesPage() {
         </CardContent>
       </Card>
 
-      {/* ── Indemnisation repas (existing) ───────────────────────────── */}
+      {/* ── Indemnisation repas ───────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Indemnisation des repas</CardTitle>
@@ -405,7 +642,7 @@ export default function ReglesPage() {
         </CardContent>
       </Card>
 
-      {/* ── Couleurs du planning (NEW) ───────────────────────────────── */}
+      {/* ── Couleurs du planning ──────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Couleurs du planning</CardTitle>
