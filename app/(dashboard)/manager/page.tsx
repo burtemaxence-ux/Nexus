@@ -1,146 +1,87 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Calendar, Users, FileText, Clock, Settings } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Calendar, Users, FileText, Clock, Settings, BarChart3 } from 'lucide-react'
 
-async function signOut() {
-  'use server'
-  const { createClient } = await import('@/lib/supabase/server')
-  const supabase = await createClient()
-  await supabase.auth.signOut()
-  redirect('/login')
-}
+const cards = [
+  { title: 'Planning', description: 'Gérer et visualiser le planning', icon: Calendar, href: '/manager/planning', color: 'text-primary', bg: 'bg-primary/10' },
+  { title: 'Employés', description: 'Gérer les profils et contrats', icon: Users, href: '/manager/employees', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { title: 'Rapport', description: 'Synthèse horaire par employé', icon: BarChart3, href: '/manager/rapport', color: 'text-violet-600', bg: 'bg-violet-50' },
+  { title: 'Congés', description: 'Traiter les demandes de congés', icon: FileText, href: '/manager/conges', color: 'text-amber-600', bg: 'bg-amber-50' },
+  { title: 'Présences', description: 'Suivre les horaires réels', icon: Clock, href: '/manager/presences', color: 'text-rose-600', bg: 'bg-rose-50' },
+  { title: 'Paramètres', description: 'Postes, règles et alertes', icon: Settings, href: '/manager/settings', color: 'text-slate-600', bg: 'bg-slate-100' },
+]
 
 export default async function ManagerDashboard() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+  const firstName = profile?.full_name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'Manager'
 
-  if (!user) {
-    redirect('/login')
-  }
-
-  const fullName = user.user_metadata?.full_name as string | undefined
-  const firstName = fullName?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'Manager'
-
-  const navigationCards = [
-    {
-      title: 'Planning',
-      description: 'Gérer et visualiser le planning de votre équipe',
-      icon: Calendar,
-      href: '/manager/planning',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-    },
-    {
-      title: 'Employés',
-      description: 'Gérer les profils et disponibilités de vos employés',
-      icon: Users,
-      href: '/manager/employees',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-    },
-    {
-      title: 'Demandes de congés',
-      description: 'Consulter et traiter les demandes de congés',
-      icon: FileText,
-      href: '/manager/conges',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-    },
-    {
-      title: 'Présences',
-      description: 'Suivre les présences et les horaires réels',
-      icon: Clock,
-      href: '/manager/presences',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-    },
-    {
-      title: 'Paramètres',
-      description: 'Gérer les postes, les couleurs et la configuration du planning',
-      icon: Settings,
-      href: '/manager/settings/postes',
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-100',
-    },
-  ]
+  const { data: employees } = await supabase.from('profiles').select('id').eq('role', 'employee')
+  const { data: pendingLeaves } = await supabase.from('leave_requests').select('id').eq('status', 'pending')
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Bonjour {firstName} 👋
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Tableau de bord Manager — D-pot
-          </p>
-        </div>
-        <form action={signOut}>
-          <Button variant="outline" type="submit">
-            Se déconnecter
-          </Button>
-        </form>
+    <div className="px-6 py-8 max-w-6xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-foreground">Bonjour {firstName} 👋</h1>
+        <p className="text-muted-foreground mt-1">Tableau de bord — D-pot</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {navigationCards.map((card) => {
+      {/* Stats row */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        <Card>
+          <CardContent className="pt-5">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Employés actifs</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{employees?.length ?? 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Congés en attente</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{pendingLeaves?.length ?? 0}</p>
+          </CardContent>
+        </Card>
+        <Card className="col-span-2 md:col-span-1">
+          <CardContent className="pt-5">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Semaine</p>
+            <p className="text-3xl font-bold text-foreground mt-1">S{getCurrentWeek()}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Nav cards */}
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Accès rapide</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {cards.map((card) => {
           const Icon = card.icon
-          const isActive = card.href === '/manager/employees' || card.href === '/manager/planning' || card.href === '/manager/settings/postes' || card.href === '/manager/conges' || card.href === '/manager/presences'
-          return isActive ? (
-            <Link key={card.title} href={card.href} className="block">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                  <div className={`p-3 rounded-lg ${card.bgColor}`}>
-                    <Icon className={`h-6 w-6 ${card.color}`} />
+          return (
+            <Link key={card.title} href={card.href}>
+              <Card className="hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer h-full border-border/60">
+                <CardHeader className="flex flex-row items-center gap-3 pb-2 pt-5">
+                  <div className={`p-2.5 rounded-xl ${card.bg}`}>
+                    <Icon className={`h-5 w-5 ${card.color}`} />
                   </div>
-                  <div>
-                    <CardTitle className="text-lg">{card.title}</CardTitle>
-                  </div>
+                  <CardTitle className="text-sm font-semibold">{card.title}</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm">
-                    {card.description}
-                  </CardDescription>
+                <CardContent className="pb-5">
+                  <p className="text-xs text-muted-foreground">{card.description}</p>
                 </CardContent>
               </Card>
             </Link>
-          ) : (
-            <Card
-              key={card.title}
-              className="hover:shadow-md transition-shadow cursor-pointer"
-            >
-              <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                <div className={`p-3 rounded-lg ${card.bgColor}`}>
-                  <Icon className={`h-6 w-6 ${card.color}`} />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">{card.title}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-sm">
-                  {card.description}
-                </CardDescription>
-                <p className="text-xs text-muted-foreground mt-2 italic">
-                  Disponible prochainement
-                </p>
-              </CardContent>
-            </Card>
           )
         })}
       </div>
     </div>
   )
+}
+
+function getCurrentWeek() {
+  const now = new Date()
+  const startOfYear = new Date(now.getFullYear(), 0, 1)
+  const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000))
+  return Math.ceil((days + startOfYear.getDay() + 1) / 7)
 }

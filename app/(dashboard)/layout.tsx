@@ -1,14 +1,41 @@
-import { TopNav } from '@/components/ui/top-nav'
+import type { ReactNode } from 'react'
+import { createClient } from '@/lib/supabase/server'
+import { AppShell } from '@/components/ui/app-shell'
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function DashboardLayout({ children }: { children: ReactNode }) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let role: 'manager' | 'employee' = 'employee'
+  let userName = ''
+  let userEmail = user?.email ?? ''
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, full_name')
+      .eq('id', user.id)
+      .single()
+    role = (profile?.role as 'manager' | 'employee') ?? 'employee'
+    userName = profile?.full_name ?? ''
+  }
+
+  const { data: setting } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', 'establishment_name')
+    .maybeSingle()
+
+  const establishmentName = setting?.value ?? 'Mon établissement'
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <TopNav />
+    <AppShell
+      role={role}
+      userName={userName}
+      userEmail={userEmail}
+      establishmentName={establishmentName}
+    >
       {children}
-    </div>
+    </AppShell>
   )
 }
