@@ -6,7 +6,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  let role: 'manager' | 'employee' = 'employee'
+  let role: 'manager' | 'employee' | 'supervisor' = 'employee'
   let userName = ''
   let userEmail = user?.email ?? ''
 
@@ -16,9 +16,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       .select('role, full_name')
       .eq('id', user.id)
       .single()
-    role = (profile?.role as 'manager' | 'employee') ?? 'employee'
+    role = (profile?.role as 'manager' | 'employee' | 'supervisor') ?? 'employee'
     userName = profile?.full_name ?? ''
   }
+
+  const isManagerOrSupervisor = role === 'manager' || role === 'supervisor'
 
   // Fetch settings in parallel
   const [
@@ -28,7 +30,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   ] = await Promise.all([
     supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
     supabase.from('settings').select('value').eq('key', 'org_logo_url').maybeSingle(),
-    role === 'manager'
+    isManagerOrSupervisor
       ? supabase.from('leave_requests').select('id').eq('status', 'pending')
       : Promise.resolve({ data: [] }),
   ])

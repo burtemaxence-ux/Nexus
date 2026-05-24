@@ -5,20 +5,37 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, full_name, position } = body as {
+    const {
+      first_name,
+      last_name,
+      email,
+      phone,
+      role = 'employee',
+      position,
+      contract_type,
+      weekly_hours,
+      start_date,
+    } = body as {
+      first_name: string
+      last_name: string
       email: string
-      full_name: string
-      position: string
+      phone?: string
+      role?: 'manager' | 'employee' | 'supervisor'
+      position?: string
+      contract_type?: string
+      weekly_hours?: number
+      start_date?: string
     }
 
-    if (!email || !full_name || !position) {
+    if (!first_name?.trim() || !last_name?.trim() || !email?.trim()) {
       return NextResponse.json(
-        { error: 'Email, nom complet et poste sont requis' },
+        { error: 'Prénom, nom et email sont requis' },
         { status: 400 }
       )
     }
 
-    // Get the current logged-in manager
+    const full_name = `${first_name.trim()} ${last_name.trim()}`
+
     const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -38,7 +55,7 @@ export async function POST(request: NextRequest) {
       email,
       options: {
         redirectTo: `${siteUrl}/auth/set-password`,
-        data: { role: 'employee', full_name, position },
+        data: { role, full_name, first_name: first_name.trim(), last_name: last_name.trim(), position },
       },
     })
 
@@ -57,12 +74,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Impossible de générer le lien' }, { status: 500 })
     }
 
-    // Set invited_by on the newly created profile
-    if (user) {
-      await supabase.from('profiles').update({ invited_by: user.id }).eq('email', email)
+    // Enrich the profile created by the DB trigger
+    const profileUpdate: Record<string, unknown> = {
+      first_name: first_name.trim(),
+      last_name: last_name.trim(),
+      full_name,
+      position: position ?? null,
+      phone: phone?.trim() || null,
+      contract_type: contract_type ?? null,
+      weekly_hours: weekly_hours ?? null,
+    }
+    if (user) profileUpdate.invited_by = user.id
+
+    await supabaseAdmin
+      .from('profiles')
+      .update(profileUpdate)
+      .eq('email', email)
+
+    // Auto-create first contract if enough data provided
+    if (contract_type && start_date && weekly_hours) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .single()
+
+      if (profile) {
+        await supabaseAdmin.from('contracts').insert({
+          employee_id: profile.id,
+          type: contract_type,
+          start_date,
+          weekly_hours,
+          created_by: user?.id ?? null,
+        })
+      }
     }
 
-    return NextResponse.json({ success: true, inviteLink })
+    return NextResponse.json({ success: true, inviteLink, full_name })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erreur inconnue'
     console.error('[invite] exception:', message)

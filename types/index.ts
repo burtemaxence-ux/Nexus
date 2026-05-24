@@ -9,11 +9,15 @@ export type Poste = {
   created_at: string
 }
 
+export type UserRole = 'manager' | 'employee' | 'supervisor'
+
 export type Profile = {
   id: string
   email: string
+  first_name: string | null
+  last_name: string | null
   full_name: string | null
-  role: 'manager' | 'employee'
+  role: UserRole
   position: string | null
   contract_type: 'CDI 35h' | 'CDI 28h' | 'CDD' | 'CDD Saisonnier' | 'Extra' | null
   weekly_hours: number | null

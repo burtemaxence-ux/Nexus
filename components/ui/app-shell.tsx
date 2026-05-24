@@ -5,7 +5,7 @@ import { Sidebar } from './sidebar'
 import { AiAssistant } from './ai-assistant'
 
 interface AppShellProps {
-  role: 'manager' | 'employee'
+  role: 'manager' | 'employee' | 'supervisor'
   userName: string
   userEmail: string
   establishmentName: string
@@ -36,7 +36,7 @@ export function AppShell({
       <main className="flex-1 overflow-y-auto min-w-0">
         {children}
       </main>
-      {role === 'manager' && (
+      {(role === 'manager' || role === 'supervisor') && (
         <AiAssistant establishmentName={establishmentName} userName={userName} />
       )}
     </div>

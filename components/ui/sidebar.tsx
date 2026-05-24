@@ -121,7 +121,7 @@ function Badge({ count, color }: { count: number; color: 'orange' | 'red' }) {
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
-  role: 'manager' | 'employee'
+  role: 'manager' | 'employee' | 'supervisor'
   userName: string
   userEmail: string
   establishmentName: string
@@ -138,7 +138,7 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const navGroups = role === 'manager'
+  const navGroups = (role === 'manager' || role === 'supervisor')
     ? buildManagerNav(pendingLeavesCount)
     : employeeNav
 

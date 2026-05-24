@@ -29,14 +29,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Protection des routes manager
-    if (pathname.startsWith('/manager') && role !== 'manager') {
+    // Protection des routes manager (managers et superviseurs autorisés)
+    if (pathname.startsWith('/manager') && role !== 'manager' && role !== 'supervisor') {
       const url = request.nextUrl.clone()
       url.pathname = '/employee'
       return NextResponse.redirect(url)
     }
 
-    // Protection des routes employee
+    // Protection des routes employee (employés seulement)
     if (pathname.startsWith('/employee') && role !== 'employee') {
       const url = request.nextUrl.clone()
       url.pathname = '/manager'
