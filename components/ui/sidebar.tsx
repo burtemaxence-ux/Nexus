@@ -308,6 +308,11 @@ export function Sidebar({
       <div className="flex-shrink-0 border-t border-sidebar-border">
 
         {/* Establishment row — switcher when multi-site */}
+        {establishments.length > 1 && !collapsed && (
+          <p className="px-3 pt-2.5 pb-0.5 text-[9px] font-bold tracking-[0.12em] text-sidebar-foreground/35 uppercase">
+            Établissement actif
+          </p>
+        )}
         {establishments.length > 1 && !collapsed ? (
           <div className="relative border-b border-sidebar-border/50" ref={switcherRef}>
             <button
