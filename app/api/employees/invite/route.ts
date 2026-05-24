@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -38,12 +38,6 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
-
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
 
     const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:3000'
     const proto = host.includes('localhost') ? 'http' : 'https'

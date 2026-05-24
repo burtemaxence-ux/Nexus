@@ -1,5 +1,5 @@
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
 async function getManagerOrError() {
@@ -9,7 +9,7 @@ async function getManagerOrError() {
 
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'manager')
+  if (!['manager', 'supervisor'].includes(profile?.role ?? ''))
     return { error: NextResponse.json({ error: 'Accès refusé' }, { status: 403 }) }
 
   return { supabase }
@@ -40,12 +40,6 @@ export async function DELETE(
 ) {
   const { error } = await getManagerOrError()
   if (error) return error
-
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
 
   // Deleting the auth user cascades to profiles → shifts → leave_requests
   const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(params.id)
