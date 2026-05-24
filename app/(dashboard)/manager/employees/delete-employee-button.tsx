@@ -19,9 +19,10 @@ interface Props {
     email: string | null
     position: string | null
   }
+  onDeleted?: () => void
 }
 
-export default function DeleteEmployeeButton({ employee }: Props) {
+export default function DeleteEmployeeButton({ employee, onDeleted }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -39,7 +40,8 @@ export default function DeleteEmployeeButton({ employee }: Props) {
     }
     setLoading(false)
     setOpen(false)
-    router.refresh()
+    if (onDeleted) onDeleted()
+    else router.refresh()
   }
 
   return (
