@@ -59,9 +59,11 @@ function exportCSV(employees: Employee[]) {
 
 interface Props {
   initialEmployees: Employee[]
+  callerRole?: 'manager' | 'supervisor' | 'employee'
 }
 
-export default function EmployeesClient({ initialEmployees }: Props) {
+export default function EmployeesClient({ initialEmployees, callerRole = 'manager' }: Props) {
+  const isManager = callerRole === 'manager'
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees)
   const [loading, setLoading] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
@@ -234,14 +236,16 @@ export default function EmployeesClient({ initialEmployees }: Props) {
                 CSV
               </button>
 
-              {/* Invite */}
-              <Link
-                href="/manager/employees/new"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"
-              >
-                <UserPlus className="h-3.5 w-3.5" />
-                Inviter
-              </Link>
+              {/* Invite — manager only */}
+              {isManager && (
+                <Link
+                  href="/manager/employees/new"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Inviter
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -281,7 +285,7 @@ export default function EmployeesClient({ initialEmployees }: Props) {
                 ? 'Invitez votre premier employé.'
                 : 'Essayez de modifier vos filtres.'}
             </p>
-            {employees.length === 0 && (
+            {employees.length === 0 && isManager && (
               <Link
                 href="/manager/employees/new"
                 className="mt-4 flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"

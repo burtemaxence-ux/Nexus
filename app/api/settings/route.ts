@@ -20,7 +20,7 @@ export async function PATCH(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
   const { data: profile } = await supabase.from('profiles').select('role, establishment_id').eq('id', user.id).single()
-  if (!['manager', 'supervisor'].includes(profile?.role ?? '')) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  if (profile?.role !== 'manager') return NextResponse.json({ error: 'Seul un manager peut modifier les paramètres' }, { status: 403 })
 
   const body = await request.json()
   const updates: { establishment_id: string; key: string; value: string; updated_at: string }[] = []

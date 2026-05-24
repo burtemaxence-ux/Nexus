@@ -305,9 +305,21 @@ export function Sidebar({
           {!collapsed && (
             <>
               <div className="flex-1 overflow-hidden min-w-0">
-                <p className="text-[12px] font-medium text-sidebar-foreground-active truncate leading-tight">
-                  {userName || 'Utilisateur'}
-                </p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p className="text-[12px] font-medium text-sidebar-foreground-active truncate leading-tight">
+                    {userName || 'Utilisateur'}
+                  </p>
+                  {role !== 'employee' && (
+                    <span className={cn(
+                      'shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none',
+                      role === 'manager'
+                        ? 'bg-[#4F46E5]/20 text-[#4F46E5]'
+                        : 'bg-amber-500/20 text-amber-600'
+                    )}>
+                      {role === 'manager' ? 'Manager' : 'Superviseur'}
+                    </span>
+                  )}
+                </div>
                 <p className="text-[10px] text-sidebar-foreground/60 truncate leading-tight">{userEmail}</p>
               </div>
               <button
