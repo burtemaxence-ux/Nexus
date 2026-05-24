@@ -101,10 +101,12 @@ export default function RapportPage() {
   const [mode, setMode] = useState<Mode>('week')
   const [refDate, setRefDate] = useState(new Date())
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all')
+  const [selectedPoste, setSelectedPoste] = useState<string>('all')
   const [employees, setEmployees] = useState<Profile[]>([])
   const [shifts, setShifts] = useState<Shift[]>([])
   const [presences, setPresences] = useState<Presence[]>([])
   const [leaves, setLeaves] = useState<LeaveRequest[]>([])
+  const [hourlyRateMap, setHourlyRateMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [establishmentName, setEstablishmentName] = useState('Mon établissement')
   const [tab, setTab] = useState<RapportTab>('heures')
@@ -120,12 +122,13 @@ export default function RapportPage() {
     const startStr = toISODate(period.start)
     const endStr = toISODate(period.end)
 
-    const [empRes, shiftRes, presRes, leaveRes, settingRes] = await Promise.all([
+    const [empRes, shiftRes, presRes, leaveRes, settingRes, contractRes] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false).order('full_name'),
-      supabase.from('shifts').select('id, employee_id, date, start_time, end_time, break_minutes, position').gte('date', startStr).lte('date', endStr),
+      supabase.from('shifts').select('id, employee_id, date, start_time, end_time, break_minutes, position').gte('date', startStr).lte('date', endStr).is('deleted_at', null),
       supabase.from('presences').select('id, employee_id, date, clock_in, clock_out, break_minutes_used').gte('date', startStr).lte('date', endStr),
       supabase.from('leave_requests').select('id, employee_id, start_date, end_date, type').eq('status', 'approved').lte('start_date', endStr).gte('end_date', startStr),
       supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
+      supabase.from('contracts').select('employee_id, hourly_rate, start_date').is('deleted_at', null).order('start_date', { ascending: false }),
     ])
 
     setEmployees((empRes.data ?? []) as Profile[])
@@ -133,6 +136,13 @@ export default function RapportPage() {
     setPresences((presRes.data ?? []) as Presence[])
     setLeaves((leaveRes.data ?? []) as LeaveRequest[])
     if (settingRes.data?.value) setEstablishmentName(settingRes.data.value)
+
+    // Build most-recent hourly rate per employee
+    const rateMap: Record<string, number> = {}
+    for (const c of contractRes.data ?? []) {
+      if (!rateMap[c.employee_id] && c.hourly_rate) rateMap[c.employee_id] = c.hourly_rate
+    }
+    setHourlyRateMap(rateMap)
     setLoading(false)
   }, [period.start, period.end])
 
@@ -151,8 +161,25 @@ export default function RapportPage() {
       .catch(() => setLatenessLoading(false))
   }, [tab, period.start, period.end, selectedEmployee])
 
+  const postes = useMemo(() => {
+    const seen = new Set<string>()
+    employees.forEach(e => { if (e.position) seen.add(e.position) })
+    return Array.from(seen).sort()
+  }, [employees])
+
+  const presenceRate = useMemo(() => {
+    const filteredShifts = selectedEmployee === 'all' ? shifts : shifts.filter(s => s.employee_id === selectedEmployee)
+    if (filteredShifts.length === 0) return null
+    const present = filteredShifts.filter(s =>
+      presences.some(p => p.employee_id === s.employee_id && p.date === s.date)
+    ).length
+    return Math.round(present / filteredShifts.length * 100)
+  }, [shifts, presences, selectedEmployee])
+
   const rows: EmployeeReportRow[] = useMemo(() => {
-    const filtered = selectedEmployee === 'all' ? employees : employees.filter(e => e.id === selectedEmployee)
+    const filtered = employees
+      .filter(e => selectedEmployee === 'all' || e.id === selectedEmployee)
+      .filter(e => selectedPoste === 'all' || e.position === selectedPoste)
     return filtered.map(emp => {
       const empShifts = shifts.filter(s => s.employee_id === emp.id)
       const empPresences = presences.filter(p => p.employee_id === emp.id)
@@ -171,6 +198,9 @@ export default function RapportPage() {
       const absenceSS      = empLeaves.filter(l => l.type === 'sans_solde').reduce((s, l) => s + overlapDays(period.start, period.end, new Date(l.start_date), new Date(l.end_date)), 0)
       const absenceAutre   = empLeaves.filter(l => l.type === 'autre').reduce((s, l) => s + overlapDays(period.start, period.end, new Date(l.start_date), new Date(l.end_date)), 0)
 
+      const hourlyRate = hourlyRateMap[emp.id] ?? null
+      const estimatedCost = hourlyRate && realHours > 0 ? realHours * hourlyRate : null
+
       return {
         id: emp.id,
         name: emp.full_name ?? emp.email,
@@ -184,17 +214,24 @@ export default function RapportPage() {
         plannedDays,
         totalBreakMinutes,
         absenceCP, absenceRTT, absenceMaladie, absenceSS, absenceAutre,
+        hourlyRate,
+        estimatedCost,
       }
     })
-  }, [employees, shifts, presences, leaves, selectedEmployee, period])
+  }, [employees, shifts, presences, leaves, selectedEmployee, selectedPoste, hourlyRateMap, period])
 
-  const totals = useMemo(() => ({
-    employees: rows.length,
-    plannedHours: rows.reduce((s, r) => s + r.plannedHours, 0),
-    realHours: rows.reduce((s, r) => s + r.realHours, 0),
-    diffHours: rows.reduce((s, r) => s + r.diffHours, 0),
-    absences: rows.reduce((s, r) => s + r.absenceCP + r.absenceRTT + r.absenceMaladie + r.absenceSS + r.absenceAutre, 0),
-  }), [rows])
+  const totals = useMemo(() => {
+    const totalCost = rows.reduce((s, r) => s + (r.estimatedCost ?? 0), 0)
+    return {
+      employees: rows.length,
+      plannedHours: rows.reduce((s, r) => s + r.plannedHours, 0),
+      realHours: rows.reduce((s, r) => s + r.realHours, 0),
+      diffHours: rows.reduce((s, r) => s + r.diffHours, 0),
+      absences: rows.reduce((s, r) => s + r.absenceCP + r.absenceRTT + r.absenceMaladie + r.absenceSS + r.absenceAutre, 0),
+      totalCost,
+      hasCost: rows.some(r => r.estimatedCost !== null),
+    }
+  }, [rows])
 
   const filteredLateness = useMemo(() => {
     if (latenessFilter === 'justified') return latenessRecords.filter(r => r.justified)
@@ -271,11 +308,23 @@ export default function RapportPage() {
               </button>
             </div>
 
+            {/* Poste filter */}
+            {postes.length > 0 && (
+              <select
+                value={selectedPoste}
+                onChange={e => setSelectedPoste(e.target.value)}
+                className="text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 ml-auto"
+              >
+                <option value="all">Tous les postes</option>
+                {postes.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            )}
+
             {/* Employee filter */}
             <select
               value={selectedEmployee}
               onChange={e => setSelectedEmployee(e.target.value)}
-              className="text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 ml-auto"
+              className={`text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 ${postes.length === 0 ? 'ml-auto' : ''}`}
             >
               <option value="all">Tous les employés</option>
               {employees.map(e => (
@@ -396,27 +445,58 @@ export default function RapportPage() {
         {tab === 'heures' && (
         <>
         {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { icon: Users, label: 'Employés', value: totals.employees.toString(), sub: null },
-            { icon: Clock, label: 'H. planifiées', value: fh(totals.plannedHours), sub: totals.realHours > 0 ? `${fh(totals.realHours)} réelles` : null },
-            {
-              icon: TrendingUp, label: 'Écart contrat',
-              value: `${totals.diffHours >= 0 ? '+' : ''}${fh(totals.diffHours)}`,
-              color: totals.diffHours > 0.1 ? 'text-emerald-600' : totals.diffHours < -0.1 ? 'text-destructive' : undefined,
-              sub: null,
-            },
-            { icon: CalendarOff, label: "J. d'absence", value: totals.absences.toString(), sub: null },
-          ].map(({ icon: Icon, label, value, sub, color }) => (
-            <div key={label} className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon className="h-4 w-4 text-primary" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
-              </div>
-              <p className={cn('text-2xl font-bold text-foreground', color)}>{value}</p>
-              {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
+        <div className={cn('grid gap-4', totals.hasCost ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6' : 'grid-cols-2 md:grid-cols-5')}>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Employés</span>
             </div>
-          ))}
+            <p className="text-2xl font-bold text-foreground">{totals.employees}</p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">H. planifiées</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{fh(totals.plannedHours)}</p>
+            {totals.realHours > 0 && <p className="text-xs text-muted-foreground mt-1">{fh(totals.realHours)} réelles</p>}
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Écart contrat</span>
+            </div>
+            <p className={cn('text-2xl font-bold', totals.diffHours > 0.1 ? 'text-emerald-600' : totals.diffHours < -0.1 ? 'text-destructive' : 'text-foreground')}>
+              {totals.diffHours >= 0 ? '+' : ''}{fh(totals.diffHours)}
+            </p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CalendarOff className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">J. d&apos;absence</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{totals.absences}</p>
+          </div>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Taux présence</span>
+            </div>
+            <p className={cn('text-2xl font-bold', presenceRate === null ? 'text-muted-foreground' : presenceRate >= 80 ? 'text-emerald-600' : presenceRate >= 60 ? 'text-amber-600' : 'text-destructive')}>
+              {presenceRate === null ? '—' : `${presenceRate}%`}
+            </p>
+          </div>
+          {totals.hasCost && (
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-bold text-primary">€</span>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Coût estimé</span>
+              </div>
+              <p className="text-2xl font-bold text-foreground">
+                {totals.totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Table */}
@@ -436,10 +516,10 @@ export default function RapportPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-muted/60 border-b border-border">
-                    {['Employé', 'Contrat', 'H. planif.', 'H. réelles', 'H. contrat', 'Écart', 'Jours', 'Pauses', 'Absences'].map(h => (
+                    {['Employé', 'Contrat', 'H. planif.', 'H. réelles', 'H. contrat', 'Écart', 'Jours', 'Pauses', ...(totals.hasCost ? ['Coût'] : []), 'Absences'].map(h => (
                       <th key={h} className={cn(
                         'px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide',
-                        ['H. planif.', 'H. réelles', 'H. contrat', 'Écart', 'Jours', 'Pauses'].includes(h) ? 'text-right' : 'text-left',
+                        ['H. planif.', 'H. réelles', 'H. contrat', 'Écart', 'Jours', 'Pauses', 'Coût'].includes(h) ? 'text-right' : 'text-left',
                       )}>{h}</th>
                     ))}
                   </tr>
@@ -467,6 +547,14 @@ export default function RapportPage() {
                         </td>
                         <td className="px-4 py-3 text-right text-foreground">{row.plannedDays > 0 ? `${row.plannedDays}j` : '—'}</td>
                         <td className="px-4 py-3 text-right text-muted-foreground">{row.totalBreakMinutes > 0 ? `${row.totalBreakMinutes}min` : '—'}</td>
+                        {totals.hasCost && (
+                          <td className="px-4 py-3 text-right">
+                            {row.estimatedCost
+                              ? <span className="font-medium text-foreground">{row.estimatedCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span>
+                              : <span className="text-muted-foreground">—</span>
+                            }
+                          </td>
+                        )}
                         <td className="px-4 py-3">
                           {totalAbs === 0 ? (
                             <span className="text-muted-foreground">—</span>
@@ -496,7 +584,13 @@ export default function RapportPage() {
                           {totals.diffHours >= 0 ? '+' : ''}{fh(totals.diffHours)}
                         </span>
                       </td>
-                      <td colSpan={3} />
+                      <td colSpan={2} />
+                      {totals.hasCost && (
+                        <td className="px-4 py-3 text-right font-bold text-foreground">
+                          {totals.totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+                        </td>
+                      )}
+                      <td />
                     </tr>
                   </tfoot>
                 )}

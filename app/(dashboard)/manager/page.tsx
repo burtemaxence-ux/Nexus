@@ -21,10 +21,31 @@ export default async function ManagerDashboard() {
   const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
   const firstName = profile?.full_name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'Manager'
 
-  const { data: employees } = await supabase.from('profiles').select('id').eq('role', 'employee')
+  const { data: employees } = await supabase.from('profiles').select('id').eq('role', 'employee').eq('archived', false)
   const { data: pendingLeaves } = await supabase.from('leave_requests').select('id').eq('status', 'pending')
   const { data: nameRow } = await supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle()
   const isDefaultName = !nameRow?.value || nameRow.value === 'Mon établissement'
+
+  // Week bounds (Mon–Sun)
+  const today = new Date()
+  const dow = today.getDay() || 7
+  const monday = new Date(today); monday.setDate(today.getDate() - dow + 1)
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6)
+  const weekStart = monday.toISOString().split('T')[0]
+  const weekEnd   = sunday.toISOString().split('T')[0]
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
+
+  const [{ data: weekShifts }, { data: weekPresences }, { data: monthLateness }] = await Promise.all([
+    supabase.from('shifts').select('employee_id, date').gte('date', weekStart).lte('date', weekEnd).is('deleted_at', null),
+    supabase.from('presences').select('employee_id, date').gte('date', weekStart).lte('date', weekEnd).not('clock_in', 'is', null),
+    supabase.from('lateness_records').select('id').gte('date', monthStart),
+  ])
+
+  const totalShifts   = weekShifts?.length ?? 0
+  const shiftKeys     = new Set((weekShifts ?? []).map(s => `${s.employee_id}_${s.date}`))
+  const presentCount  = (weekPresences ?? []).filter(p => shiftKeys.has(`${p.employee_id}_${p.date}`)).length
+  const presenceRate  = totalShifts > 0 ? Math.round(presentCount / totalShifts * 100) : null
+  const latenessCount = monthLateness?.length ?? 0
 
   return (
     <div className="px-6 py-8 max-w-6xl mx-auto">
@@ -63,10 +84,32 @@ export default async function ManagerDashboard() {
             <p className="text-3xl font-bold text-foreground mt-1">{pendingLeaves?.length ?? 0}</p>
           </CardContent>
         </Card>
-        <Card className="col-span-2 md:col-span-1">
+        <Card>
           <CardContent className="pt-5">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Semaine</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Semaine en cours</p>
             <p className="text-3xl font-bold text-foreground mt-1">S{getCurrentWeek()}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Shifts cette semaine</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{totalShifts}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Taux présence (semaine)</p>
+            <p className={`text-3xl font-bold mt-1 ${presenceRate === null ? 'text-muted-foreground' : presenceRate >= 80 ? 'text-emerald-600' : presenceRate >= 60 ? 'text-amber-600' : 'text-destructive'}`}>
+              {presenceRate === null ? '—' : `${presenceRate}%`}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Retards ce mois</p>
+            <p className={`text-3xl font-bold mt-1 ${latenessCount === 0 ? 'text-foreground' : 'text-orange-600'}`}>
+              {latenessCount}
+            </p>
           </CardContent>
         </Card>
       </div>

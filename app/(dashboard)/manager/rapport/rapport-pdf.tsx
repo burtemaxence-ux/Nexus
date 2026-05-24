@@ -66,6 +66,8 @@ export type EmployeeReportRow = {
   absenceMaladie: number
   absenceSS: number
   absenceAutre: number
+  hourlyRate?: number | null
+  estimatedCost?: number | null
 }
 
 interface Props {
