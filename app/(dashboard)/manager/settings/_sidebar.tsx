@@ -11,18 +11,20 @@ import {
   Bell,
   Download,
   Plug,
+  Store,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
-  { label: 'Organisation',      href: '/manager/settings/organisation', icon: Building2 },
-  { label: 'Postes & rôles',   href: '/manager/settings/postes',       icon: Layers },
-  { label: 'Planning',          href: '/manager/settings/regles',       icon: CalendarDays },
-  { label: 'Contrats & RH',    href: '/manager/settings/contrats',     icon: FileText },
-  { label: 'Congés & absences', href: '/manager/settings/conges',      icon: Umbrella },
-  { label: 'Notifications',     href: '/manager/settings/alertes',     icon: Bell },
-  { label: 'Exports & paie',   href: '/manager/settings/exports',      icon: Download },
-  { label: 'Intégrations',     href: '/manager/settings/integrations', icon: Plug },
+  { label: 'Organisation',       href: '/manager/settings/organisation',   icon: Building2 },
+  { label: 'Établissements',     href: '/manager/settings/establishments', icon: Store },
+  { label: 'Postes & rôles',    href: '/manager/settings/postes',         icon: Layers },
+  { label: 'Planning',           href: '/manager/settings/regles',         icon: CalendarDays },
+  { label: 'Contrats & RH',     href: '/manager/settings/contrats',       icon: FileText },
+  { label: 'Congés & absences',  href: '/manager/settings/conges',        icon: Umbrella },
+  { label: 'Notifications',      href: '/manager/settings/alertes',       icon: Bell },
+  { label: 'Exports & paie',    href: '/manager/settings/exports',        icon: Download },
+  { label: 'Intégrations',      href: '/manager/settings/integrations',   icon: Plug },
 ]
 
 export default function SettingsSidebar() {

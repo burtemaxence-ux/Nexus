@@ -5,6 +5,11 @@ import { Sidebar } from './sidebar'
 import { AiAssistant } from './ai-assistant'
 import { BreadcrumbNav } from './breadcrumb-nav'
 
+interface EstablishmentEntry {
+  id: string
+  name: string
+}
+
 interface AppShellProps {
   role: 'manager' | 'employee' | 'supervisor'
   userName: string
@@ -12,12 +17,15 @@ interface AppShellProps {
   establishmentName: string
   orgLogoUrl?: string
   pendingLeavesCount?: number
+  establishments?: EstablishmentEntry[]
+  activeEstablishmentId?: string
   children: ReactNode
 }
 
 export function AppShell({
   role, userName, userEmail, establishmentName,
   orgLogoUrl = '', pendingLeavesCount = 0,
+  establishments = [], activeEstablishmentId = '',
   children,
 }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false)
@@ -31,6 +39,8 @@ export function AppShell({
         establishmentName={establishmentName}
         orgLogoUrl={orgLogoUrl}
         pendingLeavesCount={pendingLeavesCount}
+        establishments={establishments}
+        activeEstablishmentId={activeEstablishmentId}
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
       />

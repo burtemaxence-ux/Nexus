@@ -1,6 +1,7 @@
 'use client'
 
 import type { ElementType } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -10,10 +11,15 @@ import {
   Calendar, Users, BarChart3, Clock,
   Palmtree, AlertTriangle, Upload, FileText,
   Settings, ChevronLeft, ChevronRight, LogOut,
-  UtensilsCrossed, ShieldCheck,
+  UtensilsCrossed, ShieldCheck, ChevronsUpDown, Plus, Check,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
+interface EstablishmentEntry {
+  id: string
+  name: string
+}
 
 interface NavItem {
   label: string
@@ -128,6 +134,8 @@ interface SidebarProps {
   establishmentName: string
   orgLogoUrl?: string
   pendingLeavesCount?: number
+  establishments?: EstablishmentEntry[]
+  activeEstablishmentId?: string
   collapsed: boolean
   onToggle: () => void
 }
@@ -135,10 +143,40 @@ interface SidebarProps {
 export function Sidebar({
   role, userName, userEmail, establishmentName,
   orgLogoUrl, pendingLeavesCount = 0,
+  establishments = [], activeEstablishmentId = '',
   collapsed, onToggle,
 }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const [switcherOpen, setSwitcherOpen] = useState(false)
+  const [switching, setSwitching] = useState(false)
+  const switcherRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleOutsideClick(e: MouseEvent) {
+      if (switcherRef.current && !switcherRef.current.contains(e.target as Node)) {
+        setSwitcherOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [])
+
+  async function handleSwitch(id: string) {
+    if (id === activeEstablishmentId || switching) return
+    setSwitching(true)
+    setSwitcherOpen(false)
+    try {
+      await fetch('/api/establishments/switch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ establishment_id: id }),
+      })
+      router.refresh()
+    } finally {
+      setSwitching(false)
+    }
+  }
   const navGroups = (role === 'manager' || role === 'supervisor')
     ? buildManagerNav(pendingLeavesCount)
     : employeeNav
@@ -269,28 +307,103 @@ export function Sidebar({
       {/* ── Bottom section ────────────────────────────────────────────── */}
       <div className="flex-shrink-0 border-t border-sidebar-border">
 
-        {/* Establishment row */}
-        <div className={cn(
-          'flex items-center gap-2.5 px-3 py-3 border-b border-sidebar-border/50',
-          collapsed ? 'justify-center' : ''
-        )}>
-          {orgLogoUrl ? (
-            <div className="h-7 w-7 rounded-lg overflow-hidden flex-shrink-0 bg-white border border-sidebar-border/30">
-              <Image src={orgLogoUrl} alt={establishmentName} width={28} height={28} className="object-cover w-full h-full" />
-            </div>
-          ) : (
-            <div className="h-7 w-7 rounded-lg bg-[#4F46E5]/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-[10px] font-bold text-[#4F46E5]">
-                {getEstablishmentInitials(establishmentName)}
-              </span>
-            </div>
-          )}
-          {!collapsed && (
-            <p className="text-[12px] font-medium text-sidebar-foreground-active truncate leading-tight">
-              {establishmentName}
-            </p>
-          )}
-        </div>
+        {/* Establishment row — switcher when multi-site */}
+        {establishments.length > 1 && !collapsed ? (
+          <div className="relative border-b border-sidebar-border/50" ref={switcherRef}>
+            <button
+              onClick={() => setSwitcherOpen(o => !o)}
+              disabled={switching}
+              className={cn(
+                'w-full flex items-center gap-2.5 px-3 py-3 hover:bg-white/5 transition-colors',
+                switching && 'opacity-60'
+              )}
+            >
+              {orgLogoUrl ? (
+                <div className="h-7 w-7 rounded-lg overflow-hidden flex-shrink-0 bg-white border border-sidebar-border/30">
+                  <Image src={orgLogoUrl} alt={establishmentName} width={28} height={28} className="object-cover w-full h-full" />
+                </div>
+              ) : (
+                <div className="h-7 w-7 rounded-lg bg-[#4F46E5]/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-[10px] font-bold text-[#4F46E5]">
+                    {getEstablishmentInitials(establishmentName)}
+                  </span>
+                </div>
+              )}
+              <p className="flex-1 text-left text-[12px] font-medium text-sidebar-foreground-active truncate leading-tight">
+                {establishmentName}
+              </p>
+              <ChevronsUpDown className="h-3.5 w-3.5 text-sidebar-foreground/40 flex-shrink-0" />
+            </button>
+
+            {switcherOpen && (
+              <div className="absolute bottom-full left-0 right-0 mb-1 bg-sidebar border border-sidebar-border rounded-lg shadow-lg overflow-hidden z-50">
+                <div className="px-2.5 pt-2 pb-1">
+                  <p className="text-[9px] font-bold tracking-[0.12em] text-sidebar-foreground/40 uppercase">
+                    Changer d&apos;établissement
+                  </p>
+                </div>
+                {establishments.map(est => (
+                  <button
+                    key={est.id}
+                    onClick={() => handleSwitch(est.id)}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-white/5 transition-colors"
+                  >
+                    <div className="h-5 w-5 rounded-md bg-[#4F46E5]/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[8px] font-bold text-[#4F46E5]">
+                        {getEstablishmentInitials(est.name)}
+                      </span>
+                    </div>
+                    <span className="flex-1 text-[12px] text-sidebar-foreground-active truncate">
+                      {est.name}
+                    </span>
+                    {est.id === activeEstablishmentId && (
+                      <Check className="h-3 w-3 text-[#4F46E5] flex-shrink-0" />
+                    )}
+                  </button>
+                ))}
+                {role === 'manager' && (
+                  <>
+                    <div className="mx-2.5 my-1 border-t border-sidebar-border/40" />
+                    <Link
+                      href="/manager/settings/establishments"
+                      onClick={() => setSwitcherOpen(false)}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-white/5 transition-colors"
+                    >
+                      <div className="h-5 w-5 rounded-md bg-sidebar-foreground/10 flex items-center justify-center flex-shrink-0">
+                        <Plus className="h-3 w-3 text-sidebar-foreground/60" />
+                      </div>
+                      <span className="text-[12px] text-sidebar-foreground/60">
+                        Gérer les établissements
+                      </span>
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className={cn(
+            'flex items-center gap-2.5 px-3 py-3 border-b border-sidebar-border/50',
+            collapsed ? 'justify-center' : ''
+          )}>
+            {orgLogoUrl ? (
+              <div className="h-7 w-7 rounded-lg overflow-hidden flex-shrink-0 bg-white border border-sidebar-border/30">
+                <Image src={orgLogoUrl} alt={establishmentName} width={28} height={28} className="object-cover w-full h-full" />
+              </div>
+            ) : (
+              <div className="h-7 w-7 rounded-lg bg-[#4F46E5]/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-[10px] font-bold text-[#4F46E5]">
+                  {getEstablishmentInitials(establishmentName)}
+                </span>
+              </div>
+            )}
+            {!collapsed && (
+              <p className="text-[12px] font-medium text-sidebar-foreground-active truncate leading-tight">
+                {establishmentName}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* User row */}
         <div className={cn(
