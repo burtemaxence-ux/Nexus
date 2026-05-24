@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { Loader2, Check, BellDot, Lock, Mail } from 'lucide-react'
+import { Loader2, Check, BellDot, Lock, Mail, Zap } from 'lucide-react'
 
 // ── Email notifications ───────────────────────────────────────────────────────
 
@@ -85,6 +85,53 @@ const ALERTS: AlertDef[] = [
   { id: 'absences_volume',        label: 'Absences vs volume horaire',                 description: "Le cumul des absences dépasse le volume horaire contractuel sur la période.",                                                       defaultEnabled: false, defaultBlocking: false },
 ]
 
+// ── Automation rules ──────────────────────────────────────────────────────────
+
+type AutomationId =
+  | 'email_employee_planning'
+  | 'email_employee_leave'
+  | 'sync_leave_planning'
+  | 'auto_justify_late_on_leave'
+  | 'alert_cdd_expiry'
+
+type AutomationSettings = Record<AutomationId, boolean>
+
+const AUTOMATIONS: { id: AutomationId; label: string; description: string }[] = [
+  {
+    id: 'email_employee_planning',
+    label: 'Email employé — planning publié',
+    description: 'Envoie automatiquement le planning à chaque employé quand il est publié.',
+  },
+  {
+    id: 'email_employee_leave',
+    label: 'Email employé — congé approuvé / refusé',
+    description: "Notifie l'employé par email dès que sa demande de congé est traitée.",
+  },
+  {
+    id: 'sync_leave_planning',
+    label: 'Afficher les congés approuvés sur le planning',
+    description: "Les congés apparaissent automatiquement dans la grille de planning.",
+  },
+  {
+    id: 'auto_justify_late_on_leave',
+    label: 'Justifier auto. les retards pendant un congé',
+    description: "Si un employé en congé approuvé pointe quand même, son retard est automatiquement justifié.",
+  },
+  {
+    id: 'alert_cdd_expiry',
+    label: 'Alerte fin de CDD imminente (< 30 jours)',
+    description: "Signale dans le tableau des alertes les CDD dont l'échéance est dans moins de 30 jours.",
+  },
+]
+
+const DEFAULT_AUTOMATIONS: AutomationSettings = {
+  email_employee_planning:    true,
+  email_employee_leave:       true,
+  sync_leave_planning:        true,
+  auto_justify_late_on_leave: false,
+  alert_cdd_expiry:           true,
+}
+
 function buildDefaults(): AlertSettings {
   const out: AlertSettings = {}
   for (const a of ALERTS) out[a.id] = { enabled: a.defaultEnabled, blocking: a.defaultBlocking }
@@ -99,6 +146,7 @@ export default function AlertesPage() {
   const [saved, setSaved] = useState(false)
   const [alerts, setAlerts] = useState<AlertSettings>(buildDefaults())
   const [emailNotifs, setEmailNotifs] = useState<EmailNotifSettings>(DEFAULT_EMAIL_NOTIFS)
+  const [automations, setAutomations] = useState<AutomationSettings>(DEFAULT_AUTOMATIONS)
 
   useEffect(() => {
     fetch('/api/settings')
@@ -118,6 +166,12 @@ export default function AlertesPage() {
           try {
             const parsed = JSON.parse(data.email_notifications) as Partial<EmailNotifSettings>
             setEmailNotifs(prev => ({ ...prev, ...parsed }))
+          } catch { /* keep defaults */ }
+        }
+        if (data.automation_rules) {
+          try {
+            const parsed = JSON.parse(data.automation_rules) as Partial<AutomationSettings>
+            setAutomations(prev => ({ ...prev, ...parsed }))
           } catch { /* keep defaults */ }
         }
         setLoading(false)
@@ -148,6 +202,7 @@ export default function AlertesPage() {
       body: JSON.stringify({
         alert_settings: JSON.stringify(alerts),
         email_notifications: JSON.stringify(emailNotifs),
+        automation_rules: JSON.stringify(automations),
       }),
     })
     setSaving(false)
@@ -212,6 +267,51 @@ export default function AlertesPage() {
                   <span className={cn(
                     'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform',
                     emailNotifs[notif.id] ? 'translate-x-4' : 'translate-x-0.5',
+                  )} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Règles d'automatisation ───────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+              <Zap className="h-4 w-4 text-violet-500" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Règles d&apos;automatisation</CardTitle>
+              <CardDescription>
+                Actions déclenchées automatiquement par le système.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="divide-y divide-border">
+            {AUTOMATIONS.map(rule => (
+              <div key={rule.id} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+                <div>
+                  <p className={cn('text-sm font-medium', automations[rule.id] ? 'text-foreground' : 'text-muted-foreground')}>
+                    {rule.label}
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">{rule.description}</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={automations[rule.id]}
+                  onClick={() => setAutomations(prev => ({ ...prev, [rule.id]: !prev[rule.id] }))}
+                  className={cn(
+                    'relative inline-flex h-5 w-9 shrink-0 ml-4 items-center rounded-full transition-colors focus:outline-none',
+                    automations[rule.id] ? 'bg-primary' : 'bg-muted-foreground/30',
+                  )}
+                >
+                  <span className={cn(
+                    'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform',
+                    automations[rule.id] ? 'translate-x-4' : 'translate-x-0.5',
                   )} />
                 </button>
               </div>

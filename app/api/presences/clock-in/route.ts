@@ -41,6 +41,28 @@ export async function POST(request: NextRequest) {
       const lateMinutes = Math.max(0, Math.floor((clockInMs - shiftStartMs) / 60000))
 
       if (lateMinutes > 0) {
+        // Check auto_justify_late_on_leave automation setting
+        let autoJustify = false
+        const { data: settingRow } = await supabase
+          .from('settings').select('value').eq('key', 'automation_rules').maybeSingle()
+        if (settingRow?.value) {
+          try { autoJustify = JSON.parse(settingRow.value).auto_justify_late_on_leave === true } catch { /* ignore */ }
+        }
+
+        // If auto_justify is on, check for an approved leave today
+        let justifiedByLeave = false
+        if (autoJustify) {
+          const { data: leave } = await supabase
+            .from('leave_requests')
+            .select('id')
+            .eq('employee_id', user.id)
+            .eq('status', 'approved')
+            .lte('start_date', today)
+            .gte('end_date', today)
+            .limit(1)
+          if (leave && leave.length > 0) justifiedByLeave = true
+        }
+
         await supabase.from('lateness_records').upsert(
           {
             employee_id: user.id,
@@ -48,6 +70,7 @@ export async function POST(request: NextRequest) {
             scheduled_time: closest.start_time,
             actual_time: clockInTime,
             late_minutes: lateMinutes,
+            justified: justifiedByLeave,
           },
           { onConflict: 'employee_id,date' }
         )
