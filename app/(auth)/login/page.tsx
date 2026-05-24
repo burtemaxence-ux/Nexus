@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { UtensilsCrossed, Calendar, Clock, Palmtree, ArrowRight, Loader2 } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Calendar, Clock, Users, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// ── Preserved Supabase auth logic ─────────────────────────────────────────────
+// ── Supabase auth logic — NE PAS MODIFIER ─────────────────────────────────────
 
 function useLogin() {
   const router = useRouter()
@@ -24,15 +24,9 @@ function useLogin() {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      if (
-        error.message.includes('Email not confirmed') ||
-        error.message.includes('email_not_confirmed')
-      ) {
+      if (error.message.includes('Email not confirmed') || error.message.includes('email_not_confirmed')) {
         setError("Compte non activé. Demandez à votre manager de vous renvoyer le lien d'accès.")
-      } else if (
-        error.message.includes('Invalid login credentials') ||
-        error.message.includes('invalid_credentials')
-      ) {
+      } else if (error.message.includes('Invalid login credentials') || error.message.includes('invalid_credentials')) {
         setError("Email ou mot de passe incorrect. Si vous n'avez pas encore défini votre mot de passe, utilisez le lien envoyé par votre manager.")
       } else {
         setError(error.message)
@@ -49,122 +43,243 @@ function useLogin() {
   return { email, setEmail, password, setPassword, error, loading, handleLogin }
 }
 
-// ── Left panel — branding ─────────────────────────────────────────────────────
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function DpotLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
+  const s = size === 'md'
+  return (
+    <div className={cn('flex items-center', s ? 'gap-2.5' : 'gap-2')}>
+      <div className={cn(
+        'rounded-xl bg-[#4F46E5] flex items-center justify-center font-bold text-white select-none',
+        s ? 'w-9 h-9 text-[17px]' : 'w-7 h-7 text-[14px]'
+      )}>
+        D
+      </div>
+      <span className={cn('font-semibold tracking-tight text-[#18181B]', s ? 'text-[17px]' : 'text-[15px]')}>
+        D-pot
+      </span>
+    </div>
+  )
+}
 
 const BENEFITS = [
-  { icon: Calendar, label: 'Planning intelligent',      desc: 'Construisez et ajustez les plannings en quelques clics.' },
-  { icon: Clock,    label: 'Présences en temps réel',   desc: 'Suivez les badgeages et les retards instantanément.' },
-  { icon: Palmtree, label: 'Congés synchronisés',       desc: 'Validez les absences sans friction, tout est centralisé.' },
+  {
+    icon: Calendar,
+    label: 'Planning intelligent',
+    desc: 'Créez vos plannings rapidement.',
+  },
+  {
+    icon: Clock,
+    label: 'Présences en temps réel',
+    desc: 'Suivez retards et pointages.',
+  },
+  {
+    icon: Users,
+    label: 'Congés synchronisés',
+    desc: "Centralisez les demandes d'absence.",
+  },
 ]
 
-function BrandPanel() {
+// Faux aperçu de l'interface planning — décoration bas de page gauche
+function AppMockup() {
   return (
-    <div className="hidden lg:flex flex-col justify-between px-14 py-14 bg-[#1C1741] text-white">
-      {/* Logo */}
-      <div className="flex items-center gap-2.5">
-        <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-white/10">
-          <UtensilsCrossed className="h-4 w-4 text-white" />
+    <div className="relative w-full max-w-[360px]">
+      {/* Card mockup */}
+      <div className="rounded-2xl border border-[#4F46E5]/10 bg-white/70 shadow-sm overflow-hidden">
+        {/* Header bar */}
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#4F46E5]/08 bg-white/50">
+          <div className="w-2 h-2 rounded-full bg-[#4F46E5]/30" />
+          <div className="h-1.5 w-20 rounded-full bg-[#4F46E5]/15" />
+          <div className="ml-auto h-1.5 w-10 rounded-full bg-[#4F46E5]/10" />
         </div>
-        <span className="font-semibold text-[15px] tracking-tight">D-pot</span>
-      </div>
-
-      {/* Main pitch */}
-      <div className="space-y-8">
-        <div className="space-y-4">
-          <h1 className="text-[2rem] leading-[1.2] font-semibold tracking-tight text-white">
-            Le planning d&apos;équipe,<br />simplement maîtrisé.
-          </h1>
-          <p className="text-[15px] leading-relaxed text-white/55 max-w-[340px]">
-            Gérez les horaires, absences et présences de votre établissement depuis une interface claire, rapide et moderne.
-          </p>
-        </div>
-
-        {/* Benefits */}
-        <div className="space-y-5">
-          {BENEFITS.map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="flex items-start gap-3.5">
-              <div className="mt-0.5 flex items-center justify-center w-7 h-7 rounded-lg bg-white/10 flex-shrink-0">
-                <Icon className="h-3.5 w-3.5 text-white/80" />
+        {/* Grid rows */}
+        <div className="px-4 py-3 space-y-2">
+          {[70, 50, 85, 60].map((w, i) => (
+            <div key={i} className="flex items-center gap-2.5">
+              <div className="w-5 h-5 rounded-md bg-[#4F46E5]/10 flex-shrink-0" />
+              <div className="flex gap-1.5 flex-1">
+                <div className="h-1.5 rounded-full bg-[#4F46E5]/20" style={{ width: `${w}%` }} />
               </div>
-              <div>
-                <p className="text-[13px] font-medium text-white/90 leading-snug">{label}</p>
-                <p className="text-[12px] text-white/45 leading-snug mt-0.5">{desc}</p>
-              </div>
+              <div className="h-4 w-8 rounded-md bg-[#4F46E5]/10 flex-shrink-0" />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Footer */}
-      <p className="text-[11px] text-white/25">
-        © {new Date().getFullYear()} D-pot — Tous droits réservés
-      </p>
+      {/* Floating stat chip */}
+      <div className="absolute -right-4 top-6 bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 shadow-sm flex items-center gap-2">
+        <div className="w-2 h-2 rounded-full bg-green-400" />
+        <span className="text-[11px] font-medium text-[#374151]">12 présents</span>
+      </div>
+
+      {/* Floating badge */}
+      <div className="absolute -left-2 -bottom-3 bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 shadow-sm">
+        <span className="text-[11px] font-medium text-[#374151]">3 congés en attente</span>
+      </div>
     </div>
   )
 }
 
-// ── Right panel — login card ──────────────────────────────────────────────────
+// Google logo SVG (inline — pas de dépendance)
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+      <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+    </svg>
+  )
+}
+
+// ── Page principale ────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
   const { email, setEmail, password, setPassword, error, loading, handleLogin } = useLogin()
+  const [showPassword, setShowPassword] = useState(false)
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-[1fr_1fr]">
-      <BrandPanel />
+    <div className="min-h-screen bg-[#EDEEFF] lg:grid lg:grid-cols-2">
 
-      {/* Right: form */}
-      <div className="flex flex-col items-center justify-center min-h-screen px-6 py-14 bg-[#FAFAFA]">
+      {/* ── COLONNE GAUCHE — Branding ───────────────────────────────────────── */}
+      <div className="hidden lg:flex flex-col justify-between px-16 py-14">
 
-        {/* Mobile logo */}
-        <div className="flex lg:hidden items-center gap-2 mb-10">
-          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#4F46E5]">
-            <UtensilsCrossed className="h-3.5 w-3.5 text-white" />
+        {/* Logo */}
+        <DpotLogo size="md" />
+
+        {/* Pitch central */}
+        <div className="space-y-10">
+
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#4F46E5]/20 bg-white/60 text-[#4F46E5] text-[12px] font-medium tracking-wide">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5]" />
+            Le logiciel de planning nouvelle génération
           </div>
-          <span className="font-semibold text-[15px] text-[#18181B]">D-pot</span>
+
+          {/* Headline */}
+          <div className="space-y-4">
+            <h1 className="text-[2.6rem] leading-[1.15] font-bold text-[#18181B] tracking-tight">
+              Le planning d&apos;équipe,<br />
+              simplement{' '}
+              <span className="text-[#4F46E5]">maîtrisé.</span>
+            </h1>
+            <p className="text-[15px] leading-relaxed text-[#6B7280] max-w-[360px]">
+              Gérez les horaires, absences et présences de votre établissement depuis une interface claire, rapide et fiable.
+            </p>
+          </div>
+
+          {/* Bénéfices */}
+          <div className="space-y-5">
+            {BENEFITS.map(({ icon: Icon, label, desc }) => (
+              <div key={label} className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center flex-shrink-0">
+                  <Icon className="h-[18px] w-[18px] text-[#4F46E5]" />
+                </div>
+                <div>
+                  <p className="text-[14px] font-semibold text-[#18181B] leading-tight">{label}</p>
+                  <p className="text-[13px] text-[#6B7280] leading-tight mt-0.5">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Décoration bas */}
+        <div className="pt-4">
+          <AppMockup />
+        </div>
+      </div>
+
+      {/* ── COLONNE DROITE — Formulaire ─────────────────────────────────────── */}
+      <div className="flex flex-col items-center justify-center min-h-screen px-6 py-16">
+
+        {/* Logo mobile uniquement */}
+        <div className="lg:hidden mb-10">
+          <DpotLogo size="sm" />
         </div>
 
         {/* Card */}
-        <div className="w-full max-w-[400px] bg-white rounded-2xl border border-[#E5E7EB] shadow-[0_2px_16px_0_rgba(0,0,0,0.06)] px-8 py-9">
+        <div className="w-full max-w-[420px] bg-white rounded-[20px] border border-[#E5E7EB] shadow-[0_4px_32px_0_rgba(79,70,229,0.08)] px-9 py-10">
 
-          {/* Card header */}
-          <div className="mb-8">
-            <h2 className="text-[22px] font-semibold text-[#18181B] tracking-tight">Connexion</h2>
-            <p className="text-[14px] text-[#6B7280] mt-1">Accédez à votre espace de gestion</p>
+          {/* En-tête */}
+          <div className="mb-8 text-center">
+            <h2 className="text-[26px] font-bold text-[#18181B] tracking-tight">
+              Connexion
+            </h2>
+            <p className="text-[14px] text-[#6B7280] mt-1.5">
+              Accédez à votre espace de gestion
+            </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
+          {/* Formulaire */}
+          <form onSubmit={handleLogin} className="space-y-4">
 
             {/* Email */}
             <div className="space-y-1.5">
               <label htmlFor="email" className="block text-[13px] font-medium text-[#374151]">
                 Adresse email
               </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="vous@exemple.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                disabled={loading}
-                className={cn(
-                  'w-full px-3.5 py-2.5 text-[14px] text-[#18181B] placeholder:text-[#9CA3AF]',
-                  'bg-white border border-[#E5E7EB] rounded-xl outline-none',
-                  'transition-all duration-150',
-                  'focus:border-[#4F46E5] focus:ring-3 focus:ring-[#4F46E5]/12',
-                  'disabled:opacity-50 disabled:cursor-not-allowed'
-                )}
-              />
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-[#9CA3AF] pointer-events-none" />
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="votre@email.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                  className={cn(
+                    'w-full pl-10 pr-4 py-3 text-[14px] text-[#18181B] placeholder:text-[#C4C9D4]',
+                    'bg-white border border-[#E5E7EB] rounded-xl outline-none',
+                    'transition-all duration-150',
+                    'hover:border-[#C7C8F0]',
+                    'focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10',
+                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                  )}
+                />
+              </div>
             </div>
 
-            {/* Password */}
+            {/* Mot de passe */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-[13px] font-medium text-[#374151]">
-                  Mot de passe
-                </label>
+              <label htmlFor="password" className="block text-[13px] font-medium text-[#374151]">
+                Mot de passe
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-[#9CA3AF] pointer-events-none" />
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                  className={cn(
+                    'w-full pl-10 pr-11 py-3 text-[14px] text-[#18181B] placeholder:text-[#C4C9D4]',
+                    'bg-white border border-[#E5E7EB] rounded-xl outline-none',
+                    'transition-all duration-150',
+                    'hover:border-[#C7C8F0]',
+                    'focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10',
+                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                  )}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
+                >
+                  {showPassword
+                    ? <EyeOff className="h-[15px] w-[15px]" />
+                    : <Eye className="h-[15px] w-[15px]" />
+                  }
+                </button>
+              </div>
+              <div className="flex justify-end pt-0.5">
                 <button
                   type="button"
                   tabIndex={-1}
@@ -173,45 +288,28 @@ export default function LoginPage() {
                   Mot de passe oublié ?
                 </button>
               </div>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="••••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                className={cn(
-                  'w-full px-3.5 py-2.5 text-[14px] text-[#18181B] placeholder:text-[#9CA3AF]',
-                  'bg-white border border-[#E5E7EB] rounded-xl outline-none',
-                  'transition-all duration-150',
-                  'focus:border-[#4F46E5] focus:ring-3 focus:ring-[#4F46E5]/12',
-                  'disabled:opacity-50 disabled:cursor-not-allowed'
-                )}
-              />
             </div>
 
-            {/* Error */}
+            {/* Erreur */}
             {error && (
-              <div className="flex gap-2.5 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
-                <span className="text-red-400 mt-px flex-shrink-0 text-base leading-none">✕</span>
+              <div className="flex gap-3 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
+                <span className="text-red-400 text-[13px] mt-px flex-shrink-0">✕</span>
                 <p className="text-[13px] text-red-600 leading-snug">{error}</p>
               </div>
             )}
 
-            {/* Submit */}
+            {/* Bouton principal */}
             <button
               type="submit"
               disabled={loading}
               className={cn(
-                'w-full flex items-center justify-center gap-2',
-                'px-4 py-2.5 rounded-xl text-[14px] font-medium text-white',
+                'w-full flex items-center justify-center gap-2 mt-1',
+                'px-4 py-3 rounded-xl text-[14px] font-semibold text-white',
                 'bg-[#4F46E5] hover:bg-[#4338CA] active:bg-[#3730A3]',
                 'transition-all duration-150',
-                'shadow-[0_1px_3px_0_rgba(79,70,229,0.3)]',
-                'disabled:opacity-60 disabled:cursor-not-allowed',
-                'group'
+                'shadow-[0_2px_8px_0_rgba(79,70,229,0.35)]',
+                'hover:shadow-[0_4px_12px_0_rgba(79,70,229,0.4)]',
+                'disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none'
               )}
             >
               {loading ? (
@@ -220,16 +318,36 @@ export default function LoginPage() {
                   <span>Connexion en cours…</span>
                 </>
               ) : (
-                <>
-                  <span>Se connecter</span>
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
-                </>
+                <span>Se connecter</span>
               )}
             </button>
           </form>
 
-          {/* Card footer */}
-          <p className="mt-8 text-center text-[11px] text-[#9CA3AF]">
+          {/* Séparateur */}
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-[#F3F4F6]" />
+            <span className="text-[12px] text-[#9CA3AF]">ou</span>
+            <div className="flex-1 h-px bg-[#F3F4F6]" />
+          </div>
+
+          {/* Bouton Google — UI uniquement, OAuth à configurer dans Supabase */}
+          <button
+            type="button"
+            disabled
+            className={cn(
+              'w-full flex items-center justify-center gap-2.5',
+              'px-4 py-3 rounded-xl text-[14px] font-medium text-[#374151]',
+              'bg-white border border-[#E5E7EB]',
+              'hover:bg-[#F9FAFB] transition-all duration-150',
+              'opacity-60 cursor-not-allowed'
+            )}
+          >
+            <GoogleIcon />
+            <span>Se connecter avec Google</span>
+          </button>
+
+          {/* Pied de carte */}
+          <p className="mt-8 text-center text-[11px] text-[#C4C9D4]">
             D-pot — Gestion planning &amp; équipe
           </p>
         </div>
