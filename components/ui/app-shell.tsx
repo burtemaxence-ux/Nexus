@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react'
 import { Sidebar } from './sidebar'
 import { AiAssistant } from './ai-assistant'
+import { BreadcrumbNav } from './breadcrumb-nav'
 
 interface AppShellProps {
   role: 'manager' | 'employee' | 'supervisor'
@@ -33,8 +34,11 @@ export function AppShell({
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
       />
-      <main className="flex-1 overflow-y-auto min-w-0">
-        {children}
+      <main className="flex-1 overflow-y-auto min-w-0 flex flex-col">
+        <BreadcrumbNav />
+        <div className="flex-1">
+          {children}
+        </div>
       </main>
       {(role === 'manager' || role === 'supervisor') && (
         <AiAssistant establishmentName={establishmentName} userName={userName} />
