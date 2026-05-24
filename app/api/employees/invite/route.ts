@@ -1,9 +1,14 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 import { InviteSchema, validationError } from '@/lib/validations'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request)
+  const rl = checkRateLimit({ key: `invite:${ip}`, limit: 10, windowMs: 60 * 60 * 1000 })
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt)
+
   try {
     const raw = await request.json().catch(() => null)
     const parsed = InviteSchema.safeParse(raw)

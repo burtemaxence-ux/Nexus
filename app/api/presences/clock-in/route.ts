@@ -1,10 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { NextRequest, NextResponse } from 'next/server'
+
+const LATE_GRACE_MINUTES = 2
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
+  // 5 clock-ins per hour max per user — covers legit retries and blocks abuse
+  const rl = checkRateLimit({ key: `clock-in:${user.id}`, limit: 5, windowMs: 60 * 60 * 1000 })
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const body = await request.json().catch(() => ({}))
   const clockInTime = body.time ?? new Date().toISOString()
@@ -40,7 +47,7 @@ export async function POST(request: NextRequest) {
       const shiftStartMs = new Date(`${today}T${closest.start_time}`).getTime()
       const lateMinutes = Math.max(0, Math.floor((clockInMs - shiftStartMs) / 60000))
 
-      if (lateMinutes > 0) {
+      if (lateMinutes >= LATE_GRACE_MINUTES) {
         // Check auto_justify_late_on_leave automation setting
         let autoJustify = false
         const { data: settingRow } = await supabase

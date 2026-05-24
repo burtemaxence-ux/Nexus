@@ -1,8 +1,13 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request)
+  const rl = checkRateLimit({ key: `resend-link:${ip}`, limit: 5, windowMs: 60 * 60 * 1000 })
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt)
+
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })

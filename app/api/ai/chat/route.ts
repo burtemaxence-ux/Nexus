@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
 const client = new Anthropic()
 
@@ -19,6 +20,9 @@ export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const rl = checkRateLimit({ key: `ai-chat:${user.id}`, limit: 30, windowMs: 60 * 60 * 1000 })
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const { messages, establishmentName } = await req.json() as {
     messages: Message[]
