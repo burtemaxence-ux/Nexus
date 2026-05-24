@@ -6,8 +6,22 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { getWeekDates, toISODate, getWeekLabel } from '@/lib/utils/dates'
 import type { Profile, Shift, LeaveRequest } from '@/types'
-import { ChevronLeft, ChevronRight, Loader2, Users, Clock, TrendingUp, CalendarOff } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Users, Clock, TrendingUp, CalendarOff, AlarmClock } from 'lucide-react'
 import type { EmployeeReportRow } from './rapport-pdf'
+
+type LatenessRecord = {
+  id: string
+  employee_id: string
+  date: string
+  scheduled_time: string
+  actual_time: string
+  late_minutes: number
+  justified: boolean
+  notes: string | null
+  profiles: { id: string; full_name: string | null; email: string | null; position: string | null } | null
+}
+
+type RapportTab = 'heures' | 'retards'
 
 const PDFButton = dynamic(() => import('./pdf-button'), { ssr: false })
 
@@ -93,6 +107,10 @@ export default function RapportPage() {
   const [leaves, setLeaves] = useState<LeaveRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [establishmentName, setEstablishmentName] = useState('Mon établissement')
+  const [tab, setTab] = useState<RapportTab>('heures')
+  const [latenessRecords, setLatenessRecords] = useState<LatenessRecord[]>([])
+  const [latenessLoading, setLatenessLoading] = useState(false)
+  const [latenessFilter, setLatenessFilter] = useState<'all' | 'justified' | 'unjustified'>('all')
 
   const period = useMemo(() => getPeriod(mode, refDate), [mode, refDate])
 
@@ -119,6 +137,19 @@ export default function RapportPage() {
   }, [period.start, period.end])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  // Fetch lateness for retards tab
+  useEffect(() => {
+    if (tab !== 'retards') return
+    setLatenessLoading(true)
+    const startStr = toISODate(period.start)
+    const endStr = toISODate(period.end)
+    const empParam = selectedEmployee !== 'all' ? `&employee_id=${selectedEmployee}` : ''
+    fetch(`/api/lateness?from=${startStr}&to=${endStr}${empParam}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { setLatenessRecords(Array.isArray(d) ? d : []); setLatenessLoading(false) })
+      .catch(() => setLatenessLoading(false))
+  }, [tab, period.start, period.end, selectedEmployee])
 
   const rows: EmployeeReportRow[] = useMemo(() => {
     const filtered = selectedEmployee === 'all' ? employees : employees.filter(e => e.id === selectedEmployee)
@@ -165,6 +196,23 @@ export default function RapportPage() {
     absences: rows.reduce((s, r) => s + r.absenceCP + r.absenceRTT + r.absenceMaladie + r.absenceSS + r.absenceAutre, 0),
   }), [rows])
 
+  const filteredLateness = useMemo(() => {
+    if (latenessFilter === 'justified') return latenessRecords.filter(r => r.justified)
+    if (latenessFilter === 'unjustified') return latenessRecords.filter(r => !r.justified)
+    return latenessRecords
+  }, [latenessRecords, latenessFilter])
+
+  const toggleJustified = useCallback(async (record: LatenessRecord) => {
+    const res = await fetch(`/api/lateness/${record.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ justified: !record.justified }),
+    })
+    if (res.ok) {
+      setLatenessRecords(prev => prev.map(r => r.id === record.id ? { ...r, justified: !r.justified } : r))
+    }
+  }, [])
+
   return (
     <div className="min-h-full">
       {/* Sticky header */}
@@ -172,6 +220,23 @@ export default function RapportPage() {
         <div className="px-6 max-w-6xl mx-auto">
           <div className="flex items-center gap-3 h-14 flex-wrap">
             <h1 className="text-lg font-semibold text-foreground shrink-0">Rapport</h1>
+
+            {/* Report type tabs */}
+            <div className="flex items-center bg-muted rounded-lg p-1 gap-0.5">
+              {(['heures', 'retards'] as RapportTab[]).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1 text-sm font-medium rounded-md transition-all',
+                    tab === t ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {t === 'retards' && <AlarmClock className="h-3.5 w-3.5" />}
+                  {t === 'heures' ? 'Heures' : 'Retards'}
+                </button>
+              ))}
+            </div>
 
             {/* Mode tabs */}
             <div className="flex items-center bg-muted rounded-lg p-1 gap-0.5">
@@ -218,12 +283,118 @@ export default function RapportPage() {
               ))}
             </select>
 
-            <PDFButton rows={rows} periodLabel={period.label} establishmentName={establishmentName} />
+            {tab === 'heures' && <PDFButton rows={rows} periodLabel={period.label} establishmentName={establishmentName} />}
           </div>
         </div>
       </div>
 
       <div className="px-6 py-6 max-w-6xl mx-auto space-y-6">
+        {tab === 'retards' && (
+          <>
+            {/* Retards summary cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { icon: AlarmClock, label: 'Total retards', value: latenessRecords.length.toString(), color: undefined },
+                { icon: Clock, label: 'Minutes perdues', value: latenessRecords.reduce((s, r) => s + r.late_minutes, 0) + ' min', color: undefined },
+                { icon: TrendingUp, label: 'Non justifiés', value: latenessRecords.filter(r => !r.justified).length.toString(), color: latenessRecords.some(r => !r.justified) ? 'text-destructive' : undefined },
+              ].map(({ icon: Icon, label, value, color }) => (
+                <div key={label} className="bg-card border border-border rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
+                  </div>
+                  <p className={cn('text-2xl font-bold text-foreground', color)}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Retards filter + table */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Filtrer :</span>
+              {(['all', 'justified', 'unjustified'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setLatenessFilter(f)}
+                  className={cn(
+                    'px-3 py-1 text-sm rounded-full border transition-colors',
+                    latenessFilter === f
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30',
+                  )}
+                >
+                  {f === 'all' ? 'Tous' : f === 'justified' ? 'Justifiés' : 'Non justifiés'}
+                </button>
+              ))}
+            </div>
+
+            {latenessLoading ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredLateness.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-xl bg-card">
+                <AlarmClock className="h-8 w-8 text-muted-foreground/40 mb-3" />
+                <p className="text-sm font-medium text-foreground">Aucun retard pour cette période</p>
+                <p className="text-xs text-muted-foreground mt-1">Tous les employés sont à l&apos;heure.</p>
+              </div>
+            ) : (
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted/60 border-b border-border">
+                        {['Employé', 'Date', 'Planifié', 'Arrivée', 'Retard', 'Statut'].map(h => (
+                          <th key={h} className={cn(
+                            'px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-left',
+                            h === 'Retard' && 'text-right',
+                          )}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredLateness.map((rec, i) => (
+                        <tr key={rec.id} className={cn('border-b border-border/60 hover:bg-muted/30 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-foreground leading-tight">{rec.profiles?.full_name ?? rec.profiles?.email ?? '—'}</p>
+                            {rec.profiles?.position && <p className="text-xs text-muted-foreground">{rec.profiles.position}</p>}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {new Date(rec.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {rec.scheduled_time.slice(0, 5)}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {new Date(rec.actual_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="font-medium text-orange-600">+{rec.late_minutes} min</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => toggleJustified(rec)}
+                              className={cn(
+                                'text-xs font-medium px-2.5 py-1 rounded-full border transition-colors',
+                                rec.justified
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100',
+                              )}
+                            >
+                              {rec.justified ? 'Justifié' : 'Non justifié'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {tab === 'heures' && (
+        <>
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
@@ -332,6 +503,8 @@ export default function RapportPage() {
               </table>
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

@@ -18,8 +18,19 @@ import { cn } from '@/lib/utils'
 import {
   User, FileText, FolderOpen, History, Archive,
   Loader2, RefreshCw, Check, AlertTriangle, Plus,
-  Trash2, Shield, Clock, ChevronLeft
+  Trash2, Shield, Clock, ChevronLeft, AlarmClock
 } from 'lucide-react'
+
+type LatenessRecord = {
+  id: string
+  employee_id: string
+  date: string
+  scheduled_time: string
+  actual_time: string
+  late_minutes: number
+  justified: boolean
+  notes: string | null
+}
 
 const TABS = [
   { id: 'info', label: 'Informations personnelles', icon: User },
@@ -59,6 +70,8 @@ export default function EmployeeDetailPage() {
   const [pinVisible, setPinVisible] = useState(false)
   const [pinResetting, setPinResetting] = useState(false)
   const [newPin, setNewPin] = useState<string | null>(null)
+  const [latenessRecords, setLatenessRecords] = useState<LatenessRecord[]>([])
+  const [latenessLoading, setLatenessLoading] = useState(false)
 
   // Form state
   const [fullName, setFullName] = useState('')
@@ -115,7 +128,27 @@ export default function EmployeeDetailPage() {
     setLoading(false)
   }, [id, router])
 
+  const loadLateness = useCallback(async () => {
+    setLatenessLoading(true)
+    const res = await fetch(`/api/lateness?employee_id=${id}`)
+    if (res.ok) setLatenessRecords(await res.json())
+    setLatenessLoading(false)
+  }, [id])
+
+  async function toggleJustified(record: LatenessRecord) {
+    const res = await fetch(`/api/lateness/${record.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ justified: !record.justified }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setLatenessRecords(prev => prev.map(r => r.id === updated.id ? updated : r))
+    }
+  }
+
   useEffect(() => { load() }, [load])
+  useEffect(() => { if (activeTab === 'historique') loadLateness() }, [activeTab, loadLateness])
 
   async function handleSaveInfo() {
     setSaving(true)
@@ -504,12 +537,104 @@ export default function EmployeeDetailPage() {
 
         {/* TAB: Historique & Compteurs */}
         {activeTab === 'historique' && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <History className="h-8 w-8 text-muted-foreground/50" />
+          <div className="space-y-6 max-w-3xl">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Historique des retards</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Retards détectés automatiquement lors du pointage.</p>
             </div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">Historique & Compteurs</h2>
-            <p className="text-sm text-muted-foreground max-w-sm">Heures cumulées, congés posés, absences — disponible prochainement.</p>
+
+            {/* Summary */}
+            {!latenessLoading && latenessRecords.length > 0 && (
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  {
+                    label: 'Total retards',
+                    value: latenessRecords.length,
+                    color: 'text-orange-600',
+                    bg: 'bg-orange-50 border-orange-200',
+                  },
+                  {
+                    label: 'Minutes perdues',
+                    value: `${latenessRecords.reduce((s, r) => s + r.late_minutes, 0)} min`,
+                    color: 'text-red-600',
+                    bg: 'bg-red-50 border-red-200',
+                  },
+                  {
+                    label: 'Non justifiés',
+                    value: latenessRecords.filter(r => !r.justified).length,
+                    color: 'text-gray-600',
+                    bg: 'bg-gray-50 border-gray-200',
+                  },
+                ].map(({ label, value, color, bg }) => (
+                  <div key={label} className={`rounded-xl border p-4 text-center ${bg}`}>
+                    <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {latenessLoading ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : latenessRecords.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-xl">
+                <AlarmClock className="h-8 w-8 text-muted-foreground/30 mb-3" />
+                <p className="text-sm font-medium text-foreground">Aucun retard enregistré</p>
+                <p className="text-xs text-muted-foreground mt-1">Les retards sont détectés automatiquement lors du pointage.</p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border overflow-hidden bg-card">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      {['Date', 'Planifié', 'Arrivée', 'Retard', 'Statut'].map(h => (
+                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {latenessRecords.map(record => (
+                      <tr key={record.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-3 text-sm text-foreground capitalize">
+                          {new Date(record.date + 'T12:00:00').toLocaleDateString('fr-FR', {
+                            weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+                          })}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                          {record.scheduled_time.slice(0, 5)}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-foreground">
+                          {new Date(record.actual_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
+                            +{record.late_minutes} min
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => toggleJustified(record)}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border',
+                              record.justified
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                            )}
+                          >
+                            <span className={cn('h-1.5 w-1.5 rounded-full', record.justified ? 'bg-emerald-500' : 'bg-red-500')} />
+                            {record.justified ? 'Justifié' : 'Non justifié'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
