@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (profileError || !profile || profile.role !== 'manager') {
+    if (profileError || !profile || !['manager', 'supervisor'].includes(profile.role)) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       .select('id')
       .gte('date', toMonday)
       .lte('date', toSunday)
+      .is('deleted_at', null)
       .limit(1)
 
     if (checkError) {
@@ -70,9 +71,10 @@ export async function POST(request: NextRequest) {
     // Fetch all shifts from the source week
     const { data: sourceShifts, error: fetchError } = await supabase
       .from('shifts')
-      .select('*')
+      .select('employee_id, date, start_time, end_time, position, notes, poste_id, break_minutes')
       .gte('date', from_monday)
       .lte('date', fromSunday)
+      .is('deleted_at', null)
 
     if (fetchError) {
       return NextResponse.json({ error: fetchError.message }, { status: 500 })
@@ -92,6 +94,8 @@ export async function POST(request: NextRequest) {
       start_time: shift.start_time,
       end_time: shift.end_time,
       position: shift.position,
+      poste_id: shift.poste_id ?? null,
+      break_minutes: shift.break_minutes ?? 0,
       notes: shift.notes,
       status: 'draft' as const,
     }))

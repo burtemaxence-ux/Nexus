@@ -57,6 +57,10 @@ const ROUTES: { pattern: RegExp; crumbs: (m: RegExpMatchArray) => Crumb[] }[] = 
     { label: 'Paramètres',    href: '/manager/settings' },
     { label: 'Intégrations',  href: '/manager/settings/integrations' },
   ]},
+  { pattern: /^\/manager\/audit-log$/, crumbs: () => [
+    { label: 'Accueil',          href: '/manager' },
+    { label: "Journal d'audit",  href: '/manager/audit-log' },
+  ]},
   // Top-level manager pages
   { pattern: /^\/manager\/employees$/, crumbs: () => [
     { label: 'Accueil',   href: '/manager' },

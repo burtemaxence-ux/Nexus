@@ -13,7 +13,10 @@ export async function GET(request: NextRequest) {
   const from = searchParams.get('from')
   const to = searchParams.get('to')
 
-  let query = supabase.from('shifts').select('id, start_time, end_time, position, date, employee_id')
+  let query = supabase
+    .from('shifts')
+    .select('id, start_time, end_time, position, date, employee_id, break_minutes, notes, poste_id, status')
+    .is('deleted_at', null)
 
   if (employeeParam === 'me') {
     query = query.eq('employee_id', user.id)
@@ -28,7 +31,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur lors de la récupération des shifts' }, { status: 500 })
   return NextResponse.json(data)
 }
 

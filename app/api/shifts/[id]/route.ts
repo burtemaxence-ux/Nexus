@@ -14,7 +14,7 @@ async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>
     .eq('id', user.id)
     .single()
 
-  if (profileError || !profile || profile.role !== 'manager') {
+  if (profileError || !profile || !['manager', 'supervisor'].includes(profile.role)) {
     return { user: null, error: 'Accès refusé', status: 403 }
   }
 
@@ -101,17 +101,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'ID du créneau requis' }, { status: 400 })
     }
 
-    const { error } = await supabase.from('shifts').delete().eq('id', id)
+    // Soft delete — shift stays in DB for audit trail and lateness references
+    const { error } = await supabase
+      .from('shifts')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('deleted_at', null)
 
     if (error) {
       console.error('[shifts DELETE] error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Erreur lors de la suppression du shift' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue'
-    console.error('[shifts DELETE] exception:', message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('[shifts DELETE] exception:', err instanceof Error ? err.message : err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

@@ -10,7 +10,7 @@ import {
   Calendar, Users, BarChart3, Clock,
   Palmtree, AlertTriangle, Upload, FileText,
   Settings, ChevronLeft, ChevronRight, LogOut,
-  UtensilsCrossed,
+  UtensilsCrossed, ShieldCheck,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -63,8 +63,9 @@ function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
     {
       group: 'Outils',
       items: [
-        { label: 'Exports',   icon: Upload,   href: '/manager/settings/exports' },
-        { label: 'Documents', icon: FileText, href: '#', comingSoon: true },
+        { label: 'Exports',   icon: Upload,       href: '/manager/settings/exports' },
+        { label: 'Journal',   icon: ShieldCheck,  href: '/manager/audit-log' },
+        { label: 'Documents', icon: FileText,      href: '#', comingSoon: true },
       ],
     },
     {
