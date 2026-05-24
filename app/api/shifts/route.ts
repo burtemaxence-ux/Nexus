@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const employeeParam = searchParams.get('employee')
   const date = searchParams.get('date')
+  const from = searchParams.get('from')
+  const to = searchParams.get('to')
 
   let query = supabase.from('shifts').select('id, start_time, end_time, position, date, employee_id')
 
@@ -18,7 +20,9 @@ export async function GET(request: NextRequest) {
     query = query.eq('employee_id', employeeParam)
   }
 
-  if (date) {
+  if (from && to) {
+    query = query.gte('date', from).lte('date', to)
+  } else if (date) {
     query = query.eq('date', date)
   }
 

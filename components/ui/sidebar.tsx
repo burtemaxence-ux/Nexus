@@ -39,7 +39,7 @@ function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
         { label: 'Planning',  icon: Calendar,  href: '/manager/planning' },
         { label: 'Employés',  icon: Users,     href: '/manager/employees' },
         { label: 'Rapport',   icon: BarChart3, href: '/manager/rapport' },
-        { label: 'Présences', icon: Clock,     href: '/manager/presences' },
+        { label: 'Badgeuse',  icon: Clock,     href: '/manager/presences' },
       ],
     },
     {
