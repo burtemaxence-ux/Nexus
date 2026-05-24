@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Calendar, Users, FileText, Clock, Settings, BarChart3 } from 'lucide-react'
+import { Calendar, Users, FileText, Clock, Settings, BarChart3, Building2, ArrowRight } from 'lucide-react'
 
 const cards = [
   { title: 'Planning', description: 'Gérer et visualiser le planning', icon: Calendar, href: '/manager/planning', color: 'text-primary', bg: 'bg-primary/10' },
@@ -23,6 +23,8 @@ export default async function ManagerDashboard() {
 
   const { data: employees } = await supabase.from('profiles').select('id').eq('role', 'employee')
   const { data: pendingLeaves } = await supabase.from('leave_requests').select('id').eq('status', 'pending')
+  const { data: nameRow } = await supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle()
+  const isDefaultName = !nameRow?.value || nameRow.value === 'Mon établissement'
 
   return (
     <div className="px-6 py-8 max-w-6xl mx-auto">
@@ -30,6 +32,22 @@ export default async function ManagerDashboard() {
         <h1 className="text-2xl font-bold text-foreground">Bonjour {firstName} 👋</h1>
         <p className="text-muted-foreground mt-1">Tableau de bord — D-pot</p>
       </div>
+
+      {/* Setup banner — shown until the establishment is named */}
+      {isDefaultName && (
+        <Link href="/manager/settings/organisation">
+          <div className="mb-6 flex items-center gap-4 rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 hover:bg-blue-100 transition-colors">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 shrink-0">
+              <Building2 className="h-4.5 w-4.5 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-blue-900">Configurez votre établissement</p>
+              <p className="text-xs text-blue-600 mt-0.5">Ajoutez le nom, l&apos;adresse et le logo pour personnaliser vos exports et emails.</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-blue-400 shrink-0" />
+          </div>
+        </Link>
+      )}
 
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">

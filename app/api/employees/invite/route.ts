@@ -35,7 +35,14 @@ export async function POST(request: NextRequest) {
       email,
       options: {
         redirectTo: `${siteUrl}/auth/set-password`,
-        data: { role, full_name, first_name: first_name.trim(), last_name: last_name.trim(), position },
+        data: {
+          role,
+          full_name,
+          first_name: first_name.trim(),
+          last_name: last_name.trim(),
+          position,
+          establishment_id: managerProfile?.establishment_id ?? null,
+        },
       },
     })
 
