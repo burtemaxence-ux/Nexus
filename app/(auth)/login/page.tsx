@@ -132,6 +132,63 @@ function GoogleIcon() {
   )
 }
 
+// ── Orbes de lumière (gradient mesh blobs) ────────────────────────────────────
+
+function MeshBackground() {
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden>
+      {/* Orbe 1 — haut gauche, indigo doux */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: 600,
+          height: 600,
+          top: '-160px',
+          left: '-140px',
+          background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)',
+          filter: 'blur(40px)',
+        }}
+      />
+      {/* Orbe 2 — centre droit, violet */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: 500,
+          height: 500,
+          top: '30%',
+          right: '-100px',
+          background: 'radial-gradient(circle, rgba(139,92,246,0.14) 0%, transparent 70%)',
+          filter: 'blur(50px)',
+        }}
+      />
+      {/* Orbe 3 — bas gauche, bleu-indigo */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: 450,
+          height: 450,
+          bottom: '-80px',
+          left: '15%',
+          background: 'radial-gradient(circle, rgba(79,70,229,0.12) 0%, transparent 70%)',
+          filter: 'blur(60px)',
+        }}
+      />
+      {/* Orbe 4 — petit accent rose très subtil haut droit */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: 280,
+          height: 280,
+          top: '8%',
+          right: '30%',
+          background: 'radial-gradient(circle, rgba(167,139,250,0.10) 0%, transparent 70%)',
+          filter: 'blur(40px)',
+        }}
+      />
+    </div>
+  )
+}
+
 // ── Page principale ────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
@@ -139,10 +196,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
-    <div className="min-h-screen bg-[#EDEEFF] lg:grid lg:grid-cols-2">
+    <div className="min-h-screen bg-[#EDEEFF] lg:grid lg:grid-cols-2 relative">
+      <MeshBackground />
 
       {/* ── COLONNE GAUCHE — Branding ───────────────────────────────────────── */}
-      <div className="hidden lg:flex flex-col justify-between px-16 py-14">
+      <div className="hidden lg:flex flex-col justify-between px-16 py-14 relative z-10">
 
         {/* Logo */}
         <DpotLogo size="md" />
@@ -191,7 +249,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── COLONNE DROITE — Formulaire ─────────────────────────────────────── */}
-      <div className="flex flex-col items-center justify-center min-h-screen px-6 py-16">
+      <div className="flex flex-col items-center justify-center min-h-screen px-6 py-16 relative z-10">
 
         {/* Logo mobile uniquement */}
         <div className="lg:hidden mb-10">
