@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { LeaveRequestSchema, validationError } from '@/lib/validations'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET — employé : ses propres demandes / manager : toutes
@@ -29,16 +30,11 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const body = await request.json()
-  const { start_date, end_date, type, comment } = body
+  const raw = await request.json().catch(() => null)
+  const parsed = LeaveRequestSchema.safeParse(raw)
+  if (!parsed.success) return validationError(parsed.error)
 
-  if (!start_date || !end_date || !type) {
-    return NextResponse.json({ error: 'start_date, end_date et type sont requis' }, { status: 400 })
-  }
-
-  if (new Date(end_date) < new Date(start_date)) {
-    return NextResponse.json({ error: 'La date de fin doit être après la date de début' }, { status: 400 })
-  }
+  const { start_date, end_date, type, comment } = parsed.data
 
   const { data, error } = await supabase
     .from('leave_requests')
@@ -46,6 +42,6 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur lors de la création de la demande' }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }

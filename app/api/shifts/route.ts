@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { ShiftSchema, validationError } from '@/lib/validations'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -50,28 +51,15 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (profileError || !profile || profile.role !== 'manager') {
+    if (profileError || !profile || !['manager', 'supervisor'].includes(profile.role)) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { employee_id, date, start_time, end_time, position, poste_id, break_minutes, notes } = body as {
-      employee_id: string
-      date: string
-      start_time: string
-      end_time: string
-      position: string
-      poste_id?: string | null
-      break_minutes?: number
-      notes?: string
-    }
+    const raw = await request.json().catch(() => null)
+    const parsed = ShiftSchema.safeParse(raw)
+    if (!parsed.success) return validationError(parsed.error)
 
-    if (!employee_id || !date || !start_time || !end_time) {
-      return NextResponse.json(
-        { error: 'employee_id, date, start_time et end_time sont requis' },
-        { status: 400 }
-      )
-    }
+    const { employee_id, date, start_time, end_time, position, poste_id, break_minutes, notes } = parsed.data
 
     const { data, error } = await supabase
       .from('shifts')
@@ -91,13 +79,12 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[shifts POST] error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Erreur lors de la création du shift' }, { status: 500 })
     }
 
     return NextResponse.json({ shift: data }, { status: 201 })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue'
-    console.error('[shifts POST] exception:', message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('[shifts POST] exception:', err instanceof Error ? err.message : err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

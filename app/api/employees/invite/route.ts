@@ -1,39 +1,15 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { InviteSchema, validationError } from '@/lib/validations'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const {
-      first_name,
-      last_name,
-      email,
-      phone,
-      role = 'employee',
-      position,
-      contract_type,
-      weekly_hours,
-      start_date,
-    } = body as {
-      first_name: string
-      last_name: string
-      email: string
-      phone?: string
-      role?: 'manager' | 'employee' | 'supervisor'
-      position?: string
-      contract_type?: string
-      weekly_hours?: number
-      start_date?: string
-    }
+    const raw = await request.json().catch(() => null)
+    const parsed = InviteSchema.safeParse(raw)
+    if (!parsed.success) return validationError(parsed.error)
 
-    if (!first_name?.trim() || !last_name?.trim() || !email?.trim()) {
-      return NextResponse.json(
-        { error: 'Prénom, nom et email sont requis' },
-        { status: 400 }
-      )
-    }
-
+    const { first_name, last_name, email, phone, role, position, contract_type, weekly_hours, start_date } = parsed.data
     const full_name = `${first_name.trim()} ${last_name.trim()}`
 
     const supabase = await createServerClient()
@@ -60,7 +36,7 @@ export async function POST(request: NextRequest) {
           { status: 409 }
         )
       }
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Impossible de créer le lien d\'invitation' }, { status: 500 })
     }
 
     const inviteLink = data.properties?.action_link
@@ -106,8 +82,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, inviteLink, full_name })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Erreur inconnue'
-    console.error('[invite] exception:', message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('[invite] exception:', err instanceof Error ? err.message : err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

@@ -33,8 +33,8 @@ export async function POST(req: Request) {
     { data: settings },
   ] = await Promise.all([
     supabase.from('profiles').select('id, full_name, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false),
-    supabase.from('leave_requests').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(10),
-    supabase.from('shifts').select('*').gte('date', new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]).limit(50),
+    supabase.from('leave_requests').select('id, type, start_date, end_date, profiles(full_name)').eq('status', 'pending').order('created_at', { ascending: false }).limit(10),
+    supabase.from('shifts').select('id, date, start_time, end_time, position, employee_id').gte('date', new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]).limit(20),
     supabase.from('settings').select('key, value').in('key', ['collective_agreement', 'opening_time', 'closing_time']),
   ])
 
@@ -49,7 +49,7 @@ Tu aides le manager de l'établissement **${establishmentName}** à gérer son p
 ${employees?.map(e => `- ${e.full_name ?? 'Sans nom'} | ${e.position ?? 'Sans poste'} | ${e.contract_type ?? 'Sans contrat'} | ${e.weekly_hours ?? '?'}h/sem`).join('\n') ?? 'Aucun employé'}
 
 ### Congés en attente de validation (${pendingLeaves?.length ?? 0})
-${pendingLeaves?.map(l => `- ${l.employee_id} | ${l.type} | ${l.start_date} → ${l.end_date}`).join('\n') || 'Aucun congé en attente'}
+${(pendingLeaves as unknown as { type: string; start_date: string; end_date: string; profiles: { full_name: string | null } | null }[] ?? []).map(l => `- ${l.profiles?.full_name ?? 'Employé'} | ${l.type} | ${l.start_date} → ${l.end_date}`).join('\n') || 'Aucun congé en attente'}
 
 ### Paramètres établissement
 - Convention collective : ${settingsMap.collective_agreement ?? 'Non définie'}
@@ -64,6 +64,11 @@ ${pendingLeaves?.map(l => `- ${l.employee_id} | ${l.type} | ${l.start_date} → 
 - Expliquer les alertes légales
 - Répondre aux questions sur les conventions collectives IDCC 1501 et 1786
 - Aider à rédiger des messages aux employés
+
+## Confidentialité
+- Ne répète jamais les données brutes de salaires, contrats ou informations personnelles des employés dans tes réponses
+- Agrège ou anonymise si tu dois évoquer des données sensibles
+- Si une question sort du contexte RH/planning, décline poliment
 
 ## Style de réponse
 - Réponds en français, de façon concise et professionnelle
