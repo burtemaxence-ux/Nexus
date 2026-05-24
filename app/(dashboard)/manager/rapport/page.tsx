@@ -121,10 +121,10 @@ export default function RapportPage() {
     const endStr = toISODate(period.end)
 
     const [empRes, shiftRes, presRes, leaveRes, settingRes] = await Promise.all([
-      supabase.from('profiles').select('*').eq('role', 'employee').eq('archived', false).order('full_name'),
-      supabase.from('shifts').select('*').gte('date', startStr).lte('date', endStr),
-      supabase.from('presences').select('*').gte('date', startStr).lte('date', endStr),
-      supabase.from('leave_requests').select('*').eq('status', 'approved').lte('start_date', endStr).gte('end_date', startStr),
+      supabase.from('profiles').select('id, full_name, email, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false).order('full_name'),
+      supabase.from('shifts').select('id, employee_id, date, start_time, end_time, break_minutes, position').gte('date', startStr).lte('date', endStr),
+      supabase.from('presences').select('id, employee_id, date, clock_in, clock_out, break_minutes_used').gte('date', startStr).lte('date', endStr),
+      supabase.from('leave_requests').select('id, employee_id, start_date, end_date, type').eq('status', 'approved').lte('start_date', endStr).gte('end_date', startStr),
       supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
     ])
 
