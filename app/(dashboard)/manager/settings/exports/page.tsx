@@ -146,12 +146,28 @@ export default function ExportsPage() {
   }
 
   async function handleExport(reportId: string) {
+    if (activeFormats.length === 0) return
     setExportingId(reportId)
-    // Simulate export preparation (replace with real API call when ready)
-    await new Promise(r => setTimeout(r, 1800))
-    setExportingId(null)
-    setExportedId(reportId)
-    setTimeout(() => setExportedId(null), 3000)
+    try {
+      const params = new URLSearchParams({ type: reportId, from: customFrom, to: customTo })
+      const res = await fetch(`/api/exports?${params}`)
+      if (!res.ok) throw new Error('Export échoué')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const disposition = res.headers.get('content-disposition') ?? ''
+      const match = disposition.match(/filename="?([^"]+)"?/)
+      a.download = match ? match[1] : `export_${reportId}.csv`
+      a.href = url
+      a.click()
+      URL.revokeObjectURL(url)
+      setExportedId(reportId)
+      setTimeout(() => setExportedId(null), 3000)
+    } catch {
+      // TODO: show error toast
+    } finally {
+      setExportingId(null)
+    }
   }
 
   function periodLabel() {
