@@ -38,6 +38,14 @@ export type Contract = {
   end_date: string | null
   weekly_hours: number
   hourly_rate: number | null
+  job_title: string | null
+  work_location: string | null
+  cdd_reason: string | null
+  trial_period_days: number | null
+  notice_period_days: number | null
+  paid_leave_days: number | null
+  has_confidentiality: boolean
+  has_non_compete: boolean
   notes: string | null
   created_by: string | null
   created_at: string

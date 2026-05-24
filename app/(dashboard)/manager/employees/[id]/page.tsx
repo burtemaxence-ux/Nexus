@@ -84,13 +84,42 @@ export default function EmployeeDetailPage() {
 
   // Contract form state
   const [contractForm, setContractForm] = useState({
-    type: 'CDI 35h',
+    type: 'CDI 35h' as string,
     start_date: '',
     end_date: '',
     weekly_hours: '',
     hourly_rate: '',
+    job_title: '',
+    work_location: '',
+    cdd_reason: '',
+    trial_period_days: '61',
+    notice_period_days: '30',
+    paid_leave_days: '25',
+    has_confidentiality: false,
+    has_non_compete: false,
     notes: '',
   })
+
+  // Auto-compute trial period when contract type or dates change
+  useEffect(() => {
+    if (!showContractDialog) return
+    function computeTrialDays(type: string, start: string, end: string): number {
+      if (type === 'Extra') return 0
+      if (type === 'CDI 35h' || type === 'CDI 28h') return 61
+      const durationDays = (start && end)
+        ? Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86400000)
+        : 0
+      const months = durationDays / 30.44
+      if (months <= 0) return 14
+      if (months <= 6) return Math.min(14, Math.max(1, Math.ceil(durationDays / 7)))
+      if (months <= 12) return 30
+      return 61
+    }
+    const days = computeTrialDays(contractForm.type, contractForm.start_date, contractForm.end_date)
+    const notice = ['CDD', 'CDD Saisonnier', 'Extra'].includes(contractForm.type) ? '0' : '30'
+    setContractForm(p => ({ ...p, trial_period_days: days.toString(), notice_period_days: p.notice_period_days || notice }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contractForm.type, contractForm.start_date, contractForm.end_date, showContractDialog])
 
   const load = useCallback(async () => {
     const supabase = createClient()
@@ -212,12 +241,25 @@ export default function EmployeeDetailPage() {
         end_date: contractForm.end_date || null,
         weekly_hours: parseFloat(contractForm.weekly_hours),
         hourly_rate: contractForm.hourly_rate ? parseFloat(contractForm.hourly_rate) : null,
+        job_title: contractForm.job_title || null,
+        work_location: contractForm.work_location || null,
+        cdd_reason: contractForm.cdd_reason || null,
+        trial_period_days: contractForm.trial_period_days ? parseInt(contractForm.trial_period_days) : null,
+        notice_period_days: contractForm.notice_period_days ? parseInt(contractForm.notice_period_days) : null,
+        paid_leave_days: contractForm.paid_leave_days ? parseInt(contractForm.paid_leave_days) : 25,
+        has_confidentiality: contractForm.has_confidentiality,
+        has_non_compete: contractForm.has_non_compete,
         notes: contractForm.notes || null,
       }),
     })
     if (res.ok) {
       setShowContractDialog(false)
-      setContractForm({ type: 'CDI 35h', start_date: '', end_date: '', weekly_hours: '', hourly_rate: '', notes: '' })
+      setContractForm({
+        type: 'CDI 35h', start_date: '', end_date: '', weekly_hours: '', hourly_rate: '',
+        job_title: '', work_location: '', cdd_reason: '',
+        trial_period_days: '61', notice_period_days: '30', paid_leave_days: '25',
+        has_confidentiality: false, has_non_compete: false, notes: '',
+      })
       load()
     }
   }
@@ -489,14 +531,17 @@ export default function EmployeeDetailPage() {
                   <Card key={contract.id} className={cn(i === 0 && 'border-primary/30 bg-primary/5')}>
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
+                        <div className="space-y-1 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant={i === 0 ? 'default' : 'outline'} className="text-xs">
                               {contract.type}
                             </Badge>
                             {i === 0 && <span className="text-xs text-primary font-medium">Actuel</span>}
+                            {contract.job_title && (
+                              <span className="text-xs text-muted-foreground">— {contract.job_title}</span>
+                            )}
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-2">
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {contract.weekly_hours}h/sem.
@@ -506,6 +551,24 @@ export default function EmployeeDetailPage() {
                               Du {formatDate(contract.start_date)}
                               {contract.end_date ? ` au ${formatDate(contract.end_date)}` : ' (en cours)'}
                             </span>
+                            {contract.work_location && <span>📍 {contract.work_location}</span>}
+                          </div>
+                          <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
+                            {contract.trial_period_days != null && contract.trial_period_days > 0 && (
+                              <span>Essai : {contract.trial_period_days}j</span>
+                            )}
+                            {contract.notice_period_days != null && contract.notice_period_days > 0 && (
+                              <span>Préavis : {contract.notice_period_days}j</span>
+                            )}
+                            {contract.paid_leave_days != null && (
+                              <span>CP : {contract.paid_leave_days}j/an</span>
+                            )}
+                            {contract.has_confidentiality && (
+                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">Confidentialité</span>
+                            )}
+                            {contract.has_non_compete && (
+                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">Non-concurrence</span>
+                            )}
                           </div>
                           {contract.notes && <p className="text-xs text-muted-foreground mt-1 italic">{contract.notes}</p>}
                         </div>
@@ -673,49 +736,232 @@ export default function EmployeeDetailPage() {
 
       {/* Create contract dialog */}
       <Dialog open={showContractDialog} onOpenChange={setShowContractDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nouveau contrat</DialogTitle>
             <DialogDescription>Enregistrez un nouveau contrat pour cet employé.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label>Type de contrat</Label>
-              <Select value={contractForm.type} onValueChange={v => setContractForm(p => ({ ...p, type: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CONTRACT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
+
+          {/* Alerts */}
+          {(() => {
+            const SMIC = 11.88
+            const hours = parseFloat(contractForm.weekly_hours)
+            const rate = parseFloat(contractForm.hourly_rate)
+            const isCDD = ['CDD', 'CDD Saisonnier'].includes(contractForm.type)
+            const alerts: { level: 'warning' | 'error'; msg: string }[] = []
+            if (contractForm.hourly_rate && !isNaN(rate) && rate < SMIC)
+              alerts.push({ level: 'warning', msg: `Taux inférieur au SMIC (${SMIC} €/h).` })
+            if (isCDD && !contractForm.end_date)
+              alerts.push({ level: 'warning', msg: 'La date de fin est obligatoire pour un CDD (art. L.1242-7).' })
+            if (!isNaN(hours) && hours > 48)
+              alerts.push({ level: 'error', msg: 'Dépassement du maximum légal absolu (48 h/sem.).' })
+            else if (!isNaN(hours) && hours > 44)
+              alerts.push({ level: 'warning', msg: 'Volume proche du plafond légal (48 h/sem.).' })
+            if (alerts.length === 0) return null
+            return (
+              <div className="space-y-2">
+                {alerts.map((a, i) => (
+                  <div key={i} className={cn(
+                    'flex items-start gap-2 rounded-lg px-3 py-2.5 text-sm',
+                    a.level === 'error'
+                      ? 'bg-destructive/10 text-destructive border border-destructive/20'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200',
+                  )}>
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    {a.msg}
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
+          <div className="space-y-5 py-1">
+            {/* Section: Identification */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Identification du poste</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Intitulé du poste</Label>
+                  <Input
+                    value={contractForm.job_title}
+                    onChange={e => setContractForm(p => ({ ...p, job_title: e.target.value }))}
+                    placeholder="Ex : Cuisinier, Chef de rang…"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Lieu de travail</Label>
+                  <Input
+                    value={contractForm.work_location}
+                    onChange={e => setContractForm(p => ({ ...p, work_location: e.target.value }))}
+                    placeholder="Ex : 12 rue de la Paix, Paris"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Date de début</Label>
-                <Input type="date" value={contractForm.start_date} onChange={e => setContractForm(p => ({ ...p, start_date: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Date de fin <span className="text-muted-foreground text-xs">(facultatif)</span></Label>
-                <Input type="date" value={contractForm.end_date} onChange={e => setContractForm(p => ({ ...p, end_date: e.target.value }))} />
+
+            {/* Section: Type & Dates */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Type & durée</p>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Type de contrat</Label>
+                  <Select value={contractForm.type} onValueChange={v => setContractForm(p => ({ ...p, type: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CONTRACT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Date de début</Label>
+                    <Input type="date" value={contractForm.start_date} onChange={e => setContractForm(p => ({ ...p, start_date: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>
+                      Date de fin
+                      {['CDD', 'CDD Saisonnier'].includes(contractForm.type)
+                        ? <span className="ml-1 text-destructive text-xs">*</span>
+                        : <span className="ml-1 text-muted-foreground text-xs">(facultatif)</span>
+                      }
+                    </Label>
+                    <Input type="date" value={contractForm.end_date} onChange={e => setContractForm(p => ({ ...p, end_date: e.target.value }))} />
+                  </div>
+                </div>
+                {['CDD', 'CDD Saisonnier'].includes(contractForm.type) && (
+                  <div className="space-y-1.5">
+                    <Label>Motif du CDD <span className="text-destructive text-xs">*</span></Label>
+                    <Select value={contractForm.cdd_reason} onValueChange={v => setContractForm(p => ({ ...p, cdd_reason: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner un motif…" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="accroissement">Accroissement temporaire d&apos;activité</SelectItem>
+                        <SelectItem value="remplacement_salarie">Remplacement d&apos;un salarié absent</SelectItem>
+                        <SelectItem value="saisonnier">Emploi saisonnier</SelectItem>
+                        <SelectItem value="usage">Contrat d&apos;usage (secteur HCR)</SelectItem>
+                        <SelectItem value="remplacement_chef">Remplacement d&apos;un chef d&apos;entreprise</SelectItem>
+                        <SelectItem value="autre">Autre (préciser dans les notes)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Volume horaire (h/sem.)</Label>
-                <Input type="number" min="1" max="60" step="0.5" value={contractForm.weekly_hours} onChange={e => setContractForm(p => ({ ...p, weekly_hours: e.target.value }))} placeholder="35" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Taux horaire brut (€) <span className="text-muted-foreground text-xs">(facultatif)</span></Label>
-                <Input type="number" min="0" step="0.01" value={contractForm.hourly_rate} onChange={e => setContractForm(p => ({ ...p, hourly_rate: e.target.value }))} placeholder="11.88" />
+
+            {/* Section: Rémunération */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Rémunération</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Volume horaire (h/sem.) <span className="text-destructive text-xs">*</span></Label>
+                  <Input
+                    type="number" min="1" max="60" step="0.5"
+                    value={contractForm.weekly_hours}
+                    onChange={e => setContractForm(p => ({ ...p, weekly_hours: e.target.value }))}
+                    placeholder="35"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Taux horaire brut (€) <span className="text-muted-foreground text-xs">(facultatif)</span></Label>
+                  <div className="relative">
+                    <Input
+                      type="number" min="0" step="0.01"
+                      value={contractForm.hourly_rate}
+                      onChange={e => setContractForm(p => ({ ...p, hourly_rate: e.target.value }))}
+                      placeholder="11.88"
+                      className="pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">€</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">SMIC 2025 : 11.88 €/h</p>
+                </div>
               </div>
             </div>
+
+            {/* Section: Conditions */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Conditions</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Période d&apos;essai (jours)</Label>
+                  <Input
+                    type="number" min="0" max="180" step="1"
+                    value={contractForm.trial_period_days}
+                    onChange={e => setContractForm(p => ({ ...p, trial_period_days: e.target.value }))}
+                    placeholder="0"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Auto-calculé — modifiable</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Préavis (jours)</Label>
+                  <Select
+                    value={contractForm.notice_period_days}
+                    onValueChange={v => setContractForm(p => ({ ...p, notice_period_days: v }))}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Aucun</SelectItem>
+                      <SelectItem value="7">7 jours</SelectItem>
+                      <SelectItem value="14">14 jours</SelectItem>
+                      <SelectItem value="30">30 jours</SelectItem>
+                      <SelectItem value="60">60 jours</SelectItem>
+                      <SelectItem value="90">90 jours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Congés payés (jours/an)</Label>
+                  <Input
+                    type="number" min="0" max="60" step="1"
+                    value={contractForm.paid_leave_days}
+                    onChange={e => setContractForm(p => ({ ...p, paid_leave_days: e.target.value }))}
+                    placeholder="25"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Clauses */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Clauses</p>
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={contractForm.has_confidentiality}
+                    onChange={e => setContractForm(p => ({ ...p, has_confidentiality: e.target.checked }))}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm text-foreground">Clause de confidentialité</span>
+                </label>
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={contractForm.has_non_compete}
+                    onChange={e => setContractForm(p => ({ ...p, has_non_compete: e.target.checked }))}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm text-foreground">Clause de non-concurrence</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Notes */}
             <div className="space-y-1.5">
               <Label>Notes <span className="text-muted-foreground text-xs">(facultatif)</span></Label>
-              <Input value={contractForm.notes} onChange={e => setContractForm(p => ({ ...p, notes: e.target.value }))} placeholder="Ex : Avenant volume horaire, renouvellement CDD..." />
+              <Input
+                value={contractForm.notes}
+                onChange={e => setContractForm(p => ({ ...p, notes: e.target.value }))}
+                placeholder="Avenant, renouvellement, précisions motif CDD…"
+              />
             </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowContractDialog(false)}>Annuler</Button>
-            <Button onClick={handleCreateContract} disabled={!contractForm.type || !contractForm.start_date || !contractForm.weekly_hours}>
+            <Button
+              onClick={handleCreateContract}
+              disabled={!contractForm.type || !contractForm.start_date || !contractForm.weekly_hours}
+            >
               Créer le contrat
             </Button>
           </DialogFooter>
