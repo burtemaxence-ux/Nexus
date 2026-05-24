@@ -152,7 +152,53 @@ CREATE POLICY "establishments_manager"
   USING (owner_id = auth.uid() OR public.is_manager());
 
 -- ══════════════════════════════════════════════════════════════
--- PART 6 — Add establishment_id to all tables + triggers
+-- PART 6 — Ensure all tables exist (guard for skipped migrations)
+-- ══════════════════════════════════════════════════════════════
+
+-- contracts (from 010 — may be missing if 010 was never applied)
+CREATE TABLE IF NOT EXISTS public.contracts (
+  id           UUID        DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_id  UUID        REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  type         TEXT        NOT NULL CHECK (type IN ('CDI 35h', 'CDI 28h', 'CDD', 'CDD Saisonnier', 'Extra')),
+  start_date   DATE        NOT NULL,
+  end_date     DATE,
+  weekly_hours NUMERIC     NOT NULL,
+  hourly_rate  NUMERIC,
+  notes        TEXT,
+  created_by   UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;
+
+-- availabilities (from 010 — conditionally skipped by migration 015)
+CREATE TABLE IF NOT EXISTS public.availabilities (
+  id           UUID    DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_id  UUID    REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  day_of_week  INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+  start_time   TIME    NOT NULL DEFAULT '09:00',
+  end_time     TIME    NOT NULL DEFAULT '17:00',
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (employee_id, day_of_week)
+);
+ALTER TABLE public.availabilities ENABLE ROW LEVEL SECURITY;
+
+-- lateness_records (from 013 — may be missing if 013 was never applied)
+CREATE TABLE IF NOT EXISTS public.lateness_records (
+  id             UUID    DEFAULT uuid_generate_v4() PRIMARY KEY,
+  employee_id    UUID    REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  date           DATE    NOT NULL,
+  scheduled_time TIME    NOT NULL,
+  actual_time    TIMESTAMPTZ NOT NULL,
+  late_minutes   INTEGER NOT NULL CHECK (late_minutes > 0),
+  justified      BOOLEAN NOT NULL DEFAULT FALSE,
+  notes          TEXT,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (employee_id, date)
+);
+ALTER TABLE public.lateness_records ENABLE ROW LEVEL SECURITY;
+
+-- ══════════════════════════════════════════════════════════════
+-- PART 7 — Add establishment_id to all tables + triggers
 -- ══════════════════════════════════════════════════════════════
 
 -- ── shifts ───────────────────────────────────────────────────
@@ -327,7 +373,7 @@ SET establishment_id = (SELECT id FROM public.establishments LIMIT 1)
 WHERE establishment_id IS NULL;
 
 -- ══════════════════════════════════════════════════════════════
--- PART 7 — Rebuild audit trigger with establishment_id (020)
+-- PART 8 — Rebuild audit trigger with establishment_id (020)
 -- ══════════════════════════════════════════════════════════════
 
 CREATE OR REPLACE FUNCTION public.log_audit_event()
@@ -405,7 +451,7 @@ END;
 $$;
 
 -- ══════════════════════════════════════════════════════════════
--- PART 8 — RLS: drop old policies, create establishment-scoped
+-- PART 9 — RLS: drop old policies, create establishment-scoped
 -- ══════════════════════════════════════════════════════════════
 
 -- profiles
