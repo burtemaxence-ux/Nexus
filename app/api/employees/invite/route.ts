@@ -20,6 +20,11 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
 
+    // Fetch manager's establishment to propagate it to the new employee
+    const { data: managerProfile } = user
+      ? await supabase.from('profiles').select('establishment_id').eq('id', user.id).single()
+      : { data: null }
+
     const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:3000'
     const proto = host.includes('localhost') ? 'http' : 'https'
     const siteUrl = `${proto}://${host}`
@@ -58,6 +63,7 @@ export async function POST(request: NextRequest) {
       phone: phone?.trim() || null,
       contract_type: contract_type ?? null,
       weekly_hours: weekly_hours ?? null,
+      establishment_id: managerProfile?.establishment_id ?? null,
     }
     if (user) profileUpdate.invited_by = user.id
 

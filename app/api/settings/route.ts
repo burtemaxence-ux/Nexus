@@ -19,17 +19,17 @@ export async function PATCH(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'manager') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  const { data: profile } = await supabase.from('profiles').select('role, establishment_id').eq('id', user.id).single()
+  if (!['manager', 'supervisor'].includes(profile?.role ?? '')) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
   const body = await request.json()
-  const updates: { key: string; value: string; updated_at: string }[] = []
+  const updates: { establishment_id: string; key: string; value: string; updated_at: string }[] = []
 
   for (const [key, value] of Object.entries(body)) {
-    updates.push({ key, value: String(value), updated_at: new Date().toISOString() })
+    updates.push({ establishment_id: profile!.establishment_id!, key, value: String(value), updated_at: new Date().toISOString() })
   }
 
-  const { error } = await supabase.from('settings').upsert(updates, { onConflict: 'key' })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  const { error } = await supabase.from('settings').upsert(updates, { onConflict: 'establishment_id,key' })
+  if (error) return NextResponse.json({ error: 'Erreur lors de la sauvegarde des paramètres' }, { status: 500 })
   return NextResponse.json({ success: true })
 }

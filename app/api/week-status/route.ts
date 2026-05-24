@@ -6,19 +6,19 @@ async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) return { user: null, error: 'Non authentifié', status: 401 }
+  if (!user) return { user: null, profile: null, error: 'Non authentifié', status: 401 }
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, establishment_id')
     .eq('id', user.id)
     .single()
 
-  if (profileError || !profile || profile.role !== 'manager') {
-    return { user: null, error: 'Accès refusé', status: 403 }
+  if (profileError || !profile || !['manager', 'supervisor'].includes(profile.role)) {
+    return { user: null, profile: null, error: 'Accès refusé', status: 403 }
   }
 
-  return { user, error: null, status: 200 }
+  return { user, profile, error: null, status: 200 }
 }
 
 // GET : récupère le statut d'une semaine
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { user, error: authError, status: authStatus } = await getManagerUser(supabase)
+    const { user, profile, error: authError, status: authStatus } = await getManagerUser(supabase)
 
     if (!user) {
       return NextResponse.json({ error: authError }, { status: authStatus })
@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     const upsertData: Record<string, unknown> = {
+      establishment_id: profile!.establishment_id,
       week_monday,
       published: existing?.published ?? false,
       locked: existing?.locked ?? false,
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('week_status')
-      .upsert(upsertData, { onConflict: 'week_monday' })
+      .upsert(upsertData, { onConflict: 'establishment_id,week_monday' })
       .select()
       .single()
 
