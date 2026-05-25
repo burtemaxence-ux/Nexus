@@ -63,7 +63,7 @@ export function AppShell({
             {l.label}
           </Link>
         ))}
-        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>© {new Date().getFullYear()} Quartz</span>
+        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>Powered by Quartz</span>
       </footer>
     </div>
   )

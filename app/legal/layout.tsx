@@ -35,7 +35,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
       {/* Footer */}
       <footer className="max-w-3xl mx-auto px-6 py-8" style={{ borderTop: '0.5px solid var(--border)' }}>
         <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-          © {new Date().getFullYear()} Quartz. Tous droits réservés. — Plateforme Nexus
+          © {new Date().getFullYear()} Quartz. Tous droits réservés. Nexus est propulsé par Quartz.
         </p>
       </footer>
     </div>
