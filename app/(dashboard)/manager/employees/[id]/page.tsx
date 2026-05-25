@@ -20,6 +20,7 @@ import {
   Loader2, RefreshCw, Check, AlertTriangle, Plus,
   Trash2, Shield, Clock, ChevronLeft, AlarmClock
 } from 'lucide-react'
+import { DocumentsTab } from '@/components/employees/documents-tab'
 
 type LatenessRecord = {
   id: string
@@ -692,13 +693,7 @@ export default function EmployeeDetailPage() {
 
         {/* TAB: Documents */}
         {activeTab === 'documents' && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-              <Archive className="h-8 w-8 text-muted-foreground/50" />
-            </div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">Documents</h2>
-            <p className="text-sm text-muted-foreground max-w-sm">Contrats signés, bulletins de salaire, justificatifs — disponible prochainement.</p>
-          </div>
+          <DocumentsTab employeeId={id} />
         )}
       </div>
 

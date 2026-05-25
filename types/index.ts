@@ -129,3 +129,19 @@ export type AbsenceAlert = {
   endTime: string
 }
 
+export type DocumentType = 'contract' | 'id' | 'payslip' | 'medical' | 'other'
+
+export type EmployeeDocument = {
+  id: string
+  employee_id: string
+  establishment_id: string
+  name: string
+  file_path: string
+  file_size: number
+  mime_type: string
+  document_type: DocumentType
+  uploaded_by: string | null
+  created_at: string
+  url?: string
+}
+
