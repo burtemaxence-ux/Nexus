@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { PlanningGrid } from '@/components/planning/planning-grid'
+import { PlanningWeekTimeline } from '@/components/planning/planning-week-timeline'
 import { PlanningMonth } from '@/components/planning/planning-month'
 import { PlanningDay } from '@/components/planning/planning-day'
 import { getWeekDates, toISODate } from '@/lib/utils/dates'
@@ -170,7 +170,7 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
       <h1 className="text-[20px] font-medium tracking-[-0.02em] mb-5" style={{ color: 'var(--text-primary)' }}>
         Planning
       </h1>
-      <PlanningGrid
+      <PlanningWeekTimeline
         weekDates={weekDates}
         employees={employees}
         shifts={shifts}
