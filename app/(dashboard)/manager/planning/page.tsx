@@ -64,10 +64,10 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
     const shifts: Shift[] = (shiftsData ?? []) as Shift[]
 
     return (
-      <div className="px-6 py-8 max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Planning</h1>
-        </div>
+      <div className="px-6 py-6 max-w-6xl mx-auto">
+        <h1 className="text-[20px] font-medium tracking-[-0.02em] mb-5" style={{ color: 'var(--text-primary)' }}>
+          Planning
+        </h1>
         <PlanningMonth
           month={monthDate}
           employees={employees}
@@ -107,10 +107,10 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
     const weekStatus: WeekStatus = weekStatusData ?? { week_monday: mondayStr, published: false, locked: false, published_at: null, locked_at: null }
 
     return (
-      <div className="px-6 py-8 max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Planning</h1>
-        </div>
+      <div className="px-6 py-6 max-w-6xl mx-auto">
+        <h1 className="text-[20px] font-medium tracking-[-0.02em] mb-5" style={{ color: 'var(--text-primary)' }}>
+          Planning
+        </h1>
         <PlanningDay
           date={dayDate}
           employees={employees}
@@ -166,10 +166,10 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
   }
 
   return (
-    <div className="px-6 py-8 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Planning</h1>
-      </div>
+    <div className="px-6 py-6 max-w-6xl mx-auto">
+      <h1 className="text-[20px] font-medium tracking-[-0.02em] mb-5" style={{ color: 'var(--text-primary)' }}>
+        Planning
+      </h1>
       <PlanningGrid
         weekDates={weekDates}
         employees={employees}

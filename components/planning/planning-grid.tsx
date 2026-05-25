@@ -4,8 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Printer, Mail, Share2, Check } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
@@ -31,32 +29,39 @@ interface PlanningGridProps {
   postes: Poste[]
 }
 
-const LEAVE_STYLES: Record<LeaveType, { bg: string; border: string; text: string; label: string; icon: string }> = {
-  CP:         { bg: 'bg-blue-50',    border: 'border-blue-200',   text: 'text-blue-700',   label: 'Congé payé',  icon: '🏖️' },
-  RTT:        { bg: 'bg-violet-50',  border: 'border-violet-200', text: 'text-violet-700', label: 'RTT',         icon: '🗓️' },
-  maladie:    { bg: 'bg-red-50',     border: 'border-red-200',    text: 'text-red-600',    label: 'Maladie',     icon: '🤒' },
-  sans_solde: { bg: 'bg-slate-100',  border: 'border-slate-300',  text: 'text-slate-600',  label: 'Sans solde',  icon: '📋' },
-  autre:      { bg: 'bg-amber-50',   border: 'border-amber-200',  text: 'text-amber-700',  label: 'Absence',     icon: '📌' },
+// ── Leave styles ──────────────────────────────────────────────────────────────
+
+const LEAVE_STYLES: Record<LeaveType, { bg: string; border: string; text: string; label: string }> = {
+  CP:         { bg: 'var(--accent-light)',  border: 'var(--accent)',   text: 'var(--accent)',   label: 'Congé payé' },
+  RTT:        { bg: 'var(--accent-light)',  border: 'var(--accent)',   text: 'var(--accent)',   label: 'RTT' },
+  maladie:    { bg: '#FEE2E2',             border: 'var(--danger)',   text: 'var(--danger)',   label: 'Maladie' },
+  sans_solde: { bg: 'var(--muted)',         border: 'var(--border)',   text: 'var(--text-secondary)', label: 'Sans solde' },
+  autre:      { bg: '#FEF3C7',             border: 'var(--warning)',  text: 'var(--warning)',  label: 'Absence' },
 }
 
 function AbsenceBadge({ type }: { type: LeaveType }) {
   const s = LEAVE_STYLES[type]
   return (
-    <div className={`rounded-md px-2 py-1.5 text-[10px] font-semibold ${s.bg} ${s.border} ${s.text} flex items-center gap-1.5 border`}>
-      <span className="text-[11px]">{s.icon}</span>
-      <span>{s.label}</span>
+    <div
+      className="rounded-[6px] text-[11px] font-medium flex items-center gap-1 leading-none"
+      style={{
+        backgroundColor: s.bg,
+        borderColor: s.border,
+        color: s.text,
+        border: '0.5px solid',
+        padding: '3px 8px',
+      }}
+    >
+      {s.label}
     </div>
   )
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function getInitials(name: string | null): string {
   if (!name) return '?'
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
+  return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
 function getDayLabel(date: Date): { weekday: string; dayMonth: string } {
@@ -96,7 +101,8 @@ function formatHours(hours: number): string {
   return m > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
 }
 
-// --- Draggable shift block ---
+// ── Draggable shift ───────────────────────────────────────────────────────────
+
 interface DraggableShiftProps {
   shift: Shift
   poste: Poste | null | undefined
@@ -111,41 +117,49 @@ function DraggableShift({ shift, poste, employee, onClick, disabled }: Draggable
     disabled,
   })
 
-  const bgColor = poste ? `${poste.color}20` : '#EFF6FF'
-  const borderColor = poste?.color ?? '#BFDBFE'
-  const textColor = poste?.color ?? '#1D4ED8'
+  const bgColor = poste ? `${poste.color}20` : 'var(--accent-light)'
+  const borderColor = poste?.color ?? 'var(--accent)'
+  const textColor = poste?.color ?? 'var(--accent)'
 
   const style = {
     backgroundColor: bgColor,
     borderColor: borderColor,
     color: textColor,
+    border: '0.5px solid',
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.4 : 1,
     cursor: disabled ? 'pointer' : 'grab',
+    height: '24px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    padding: '0 10px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    overflow: 'hidden',
+    flexShrink: 0,
   }
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-md border p-1.5 text-xs hover:opacity-80 transition-opacity"
+      className="hover:opacity-80 transition-opacity duration-150"
       onClick={onClick}
       {...(disabled ? {} : { ...listeners, ...attributes })}
     >
-      <p className="font-semibold">
-        {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
-      </p>
-      <p className="truncate" style={{ color: textColor, opacity: 0.85 }}>
+      <span className="font-medium whitespace-nowrap">
+        {formatTime(shift.start_time)}–{formatTime(shift.end_time)}
+      </span>
+      <span className="truncate opacity-75 text-[11px]">
         {shift.position ?? employee.position}
-      </p>
-      {shift.break_minutes > 0 && (
-        <p className="opacity-60 text-[10px]">pause {shift.break_minutes}min</p>
-      )}
+      </span>
     </div>
   )
 }
 
-// --- Droppable cell ---
+// ── Droppable cell ────────────────────────────────────────────────────────────
+
 interface DroppableCellProps {
   id: string
   children: React.ReactNode
@@ -162,20 +176,42 @@ function DroppableCell({ id, children, className, style, isLocked, onEmptyCellCl
   return (
     <td
       ref={setNodeRef}
-      className={`border-b border-r border-gray-200 px-2 py-2 align-top transition-colors ${isOver && !isLocked ? 'bg-blue-100/50' : ''} ${className ?? ''}`}
-      style={{ minHeight: '80px', ...style }}
+      className={className ?? ''}
+      style={{
+        borderBottom: '0.5px solid var(--border)',
+        borderRight: '0.5px solid var(--border)',
+        padding: '6px 8px',
+        verticalAlign: 'top',
+        minHeight: '72px',
+        backgroundColor: isOver && !isLocked ? 'var(--accent-light)' : undefined,
+        transition: 'background-color 150ms ease',
+        ...style,
+      }}
     >
       {!hasShifts ? (
         isLocked ? (
-          <div className="min-h-[80px] flex items-center justify-center">
-            <span className="text-[10px] text-gray-300 font-medium tracking-wide">Repos</span>
+          <div style={{ minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '10px', color: 'var(--text-tertiary)', letterSpacing: '0.04em' }}>Repos</span>
           </div>
         ) : (
           <div
             onClick={onEmptyCellClick}
-            className="min-h-[80px] bg-gray-50 rounded-sm border border-dashed border-gray-200 transition-colors hover:bg-blue-50 cursor-pointer hover:border-blue-300 flex items-center justify-center group"
+            style={{
+              minHeight: '60px',
+              backgroundColor: 'var(--bg-page)',
+              borderRadius: '6px',
+              border: '0.5px dashed var(--border)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 150ms ease',
+            }}
+            className="group hover:border-[var(--accent)] hover:bg-[var(--accent-light)]"
           >
-            <span className="text-[10px] text-gray-300 group-hover:text-blue-400 transition-colors">+ ajouter</span>
+            <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }} className="group-hover:text-[var(--accent)]">
+              + ajouter
+            </span>
           </div>
         )
       ) : (
@@ -184,6 +220,8 @@ function DroppableCell({ id, children, className, style, isLocked, onEmptyCellCl
     </td>
   )
 }
+
+// ── Main grid ─────────────────────────────────────────────────────────────────
 
 export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, weekLocked, weekPublished, postes }: PlanningGridProps) {
   const router = useRouter()
@@ -195,13 +233,11 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
 
   const weekLabel = getWeekLabel(weekDates)
 
-  // Build poste lookup map
   const posteMap = new Map<string, Poste>()
   for (const poste of postes) {
     posteMap.set(poste.id, poste)
   }
 
-  // Modal state
   const [modalState, setModalState] = useState<ModalState>({ type: 'closed' })
   const [shareCopied, setShareCopied] = useState(false)
   const [copyLoading, setCopyLoading] = useState(false)
@@ -210,16 +246,10 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
   const [statusError, setStatusError] = useState<string | null>(null)
   const [emailLoading, setEmailLoading] = useState(false)
   const [emailFeedback, setEmailFeedback] = useState<string | null>(null)
-
-  // DnD state
   const [activeDragShiftId, setActiveDragShiftId] = useState<string | null>(null)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
 
   function openCreateModal(employee: Profile, date: Date) {
@@ -238,7 +268,6 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
   async function handleCopyWeek() {
     setCopyLoading(true)
     setCopyError(null)
-
     try {
       const fromMonday = toISODate(weekDates[0])
       const response = await fetch('/api/shifts/copy-week', {
@@ -246,12 +275,10 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ from_monday: fromMonday }),
       })
-
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.error ?? 'Erreur lors de la copie')
       }
-
       router.push(`?week=${nextWeekParam}`)
     } catch (err) {
       setCopyError(err instanceof Error ? err.message : 'Erreur inconnue')
@@ -283,19 +310,16 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
   async function handleWeekStatus(payload: { published?: boolean; locked?: boolean }) {
     setStatusLoading(true)
     setStatusError(null)
-
     try {
       const response = await fetch('/api/week-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ week_monday: toISODate(weekDates[0]), ...payload }),
       })
-
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.error ?? 'Erreur')
       }
-
       router.refresh()
     } catch (err) {
       setStatusError(err instanceof Error ? err.message : 'Erreur inconnue')
@@ -304,7 +328,6 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
     }
   }
 
-  // DnD handlers
   function handleDragStart(event: DragStartEvent) {
     setActiveDragShiftId(String(event.active.id))
   }
@@ -312,23 +335,16 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
   async function handleDragEnd(event: DragEndEvent) {
     setActiveDragShiftId(null)
     const { active, over } = event
-
     if (!over) return
 
     const shiftId = String(active.id)
     const droppableId = String(over.id)
-
-    // droppableId format: "employeeId__dateStr"
     const parts = droppableId.split('__')
     if (parts.length !== 2) return
 
     const [targetEmployeeId, targetDate] = parts
-
-    // Find the shift being dragged
     const shift = shifts.find(s => s.id === shiftId)
     if (!shift) return
-
-    // If dropped on the same cell, do nothing
     if (shift.employee_id === targetEmployeeId && shift.date === targetDate) return
 
     try {
@@ -337,19 +353,16 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employee_id: targetEmployeeId, date: targetDate }),
       })
-
       if (!response.ok) {
         console.error('Erreur lors du déplacement du créneau')
         return
       }
-
       router.refresh()
     } catch (err) {
       console.error('Erreur lors du déplacement du créneau:', err)
     }
   }
 
-  // Index shifts by employee_id + date for fast lookup
   const shiftMap = new Map<string, Shift[]>()
   for (const shift of shifts) {
     const key = `${shift.employee_id}__${shift.date}`
@@ -358,7 +371,6 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
     shiftMap.set(key, existing)
   }
 
-  // Index approved absences by employee_id + date (expand multi-day ranges)
   const absenceMap = new Map<string, LeaveType>()
   for (const req of leaveRequests) {
     const start = new Date(req.start_date + 'T00:00:00')
@@ -369,129 +381,127 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
     }
   }
 
-  // Active drag shift for overlay
   const activeDragShift = activeDragShiftId ? shifts.find(s => s.id === activeDragShiftId) : null
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="space-y-4">
-        {/* Header navigation */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap">
+
+        {/* ── Toolbar ───────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+
+          {/* Left: view toggle + prev */}
+          <div className="flex items-center gap-2 flex-wrap">
             {/* View toggle */}
-            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium">
+            <div className="flex overflow-hidden text-[13px]"
+              style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}
+            >
               <Link
                 href={`/manager/planning?view=day&date=${toISODate(new Date())}`}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                className="px-3 py-1.5 transition-colors duration-150"
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 Jour
               </Link>
-              <div className="px-4 py-2 bg-gray-900 text-white select-none">
+              <div className="px-3 py-1.5 select-none"
+                style={{
+                  backgroundColor: 'var(--text-primary)',
+                  color: 'var(--bg-card)',
+                  borderLeft: '0.5px solid var(--border)',
+                  borderRight: '0.5px solid var(--border)',
+                }}
+              >
                 Semaine
               </div>
               <Link
-                href={`/manager/planning?view=month`}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                href="/manager/planning?view=month"
+                className="px-3 py-1.5 transition-colors duration-150"
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 Mois
               </Link>
             </div>
 
             <Link href={`?week=${prevWeekParam}`}>
-              <Button variant="outline" size="sm" className="gap-1">
-                <ChevronLeft className="h-4 w-4" />
+              <button className="btn-secondary flex items-center gap-1">
+                <ChevronLeft className="h-3.5 w-3.5" />
                 Précédente
-              </Button>
+              </button>
             </Link>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap justify-center">
-            <h2 className="text-lg font-semibold text-gray-900">{weekLabel}</h2>
+          {/* Centre: week label + controls */}
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <span className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>
+              {weekLabel}
+            </span>
 
-            {/* Toggle Publié / Non-publié — indépendant */}
+            {/* Published toggle */}
             <button
               role="switch"
               aria-checked={weekPublished}
               onClick={() => handleWeekStatus({ published: !weekPublished })}
               disabled={statusLoading || employees.length === 0}
               title={weekPublished ? 'Cliquer pour dépublier' : 'Cliquer pour publier'}
-              className={`relative inline-flex h-7 w-[120px] cursor-pointer items-center rounded-full border transition-colors duration-300 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                weekPublished
-                  ? 'bg-green-500 border-green-500'
-                  : 'bg-white border-gray-300'
-              }`}
+              className="relative inline-flex h-7 w-[110px] cursor-pointer items-center rounded-full transition-colors duration-150 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: weekPublished ? 'var(--success)' : 'var(--bg-card)',
+                border: `0.5px solid ${weekPublished ? 'var(--success)' : 'var(--border)'}`,
+              }}
             >
-              {/* Knob */}
               <span
-                className={`absolute h-5 w-5 rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-300 ease-in-out ${
-                  weekPublished ? 'translate-x-[92px]' : 'translate-x-1'
-                }`}
+                className="absolute h-5 w-5 rounded-full transition-transform duration-150 ease-in-out"
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  boxShadow: '0 0 0 0.5px var(--border)',
+                  transform: weekPublished ? 'translateX(84px)' : 'translateX(4px)',
+                }}
               />
-              {/* Labels */}
-              <span
-                className={`absolute inset-0 flex items-center transition-opacity duration-200 ${
-                  weekPublished ? 'opacity-100' : 'opacity-0'
-                }`}
-              >
-                <span className="pl-3 text-xs font-semibold text-white">Publié</span>
+              <span className="absolute inset-0 flex items-center" style={{ opacity: weekPublished ? 1 : 0, transition: 'opacity 150ms' }}>
+                <span className="pl-3 text-[11px] font-medium text-white">Publié</span>
               </span>
-              <span
-                className={`absolute inset-0 flex items-center justify-end transition-opacity duration-200 ${
-                  weekPublished ? 'opacity-0' : 'opacity-100'
-                }`}
-              >
-                <span className="pr-3 text-xs font-semibold text-gray-500">Non-publié</span>
+              <span className="absolute inset-0 flex items-center justify-end" style={{ opacity: weekPublished ? 0 : 1, transition: 'opacity 150ms' }}>
+                <span className="pr-3 text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>Non-publié</span>
               </span>
             </button>
 
-            {/* Verrou — indépendant */}
-            <Button
-              variant="outline"
-              size="sm"
-              className={`gap-1.5 ${weekLocked ? 'border-orange-300 text-orange-700 hover:bg-orange-50' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+            {/* Lock */}
+            <button
+              className="btn-secondary flex items-center gap-1.5"
+              style={weekLocked ? { borderColor: 'var(--warning)', color: 'var(--warning)' } : {}}
               onClick={() => handleWeekStatus({ locked: !weekLocked })}
               disabled={statusLoading}
               title={weekLocked ? 'Déverrouiller la semaine' : 'Verrouiller la semaine'}
             >
               {weekLocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-              {weekLocked ? 'Verrouillé' : 'Déverrouiller'}
-            </Button>
+              {weekLocked ? 'Verrouillé' : 'Verrouiller'}
+            </button>
 
-            {/* Copier la semaine */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
+            {/* Copy */}
+            <button
+              className="btn-secondary flex items-center gap-1.5"
               onClick={handleCopyWeek}
               disabled={copyLoading || employees.length === 0}
               title="Copier tous les créneaux vers la semaine suivante"
             >
               <Copy className="h-3.5 w-3.5" />
               {copyLoading ? 'Copie...' : 'Copier →'}
-            </Button>
+            </button>
 
-            {/* Envoyer le planning par email */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
+            {/* Email */}
+            <button
+              className="btn-secondary flex items-center gap-1.5"
               onClick={handleResendEmails}
               disabled={emailLoading || employees.length === 0}
               title="Envoyer le planning par email à tous les employés"
             >
               <Mail className="h-3.5 w-3.5" />
-              {emailLoading ? 'Envoi...' : 'Envoyer le planning'}
-            </Button>
+              {emailLoading ? 'Envoi...' : 'Envoyer'}
+            </button>
 
             {/* Share */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
+            <button
+              className="btn-secondary flex items-center gap-1.5"
               onClick={() => {
                 navigator.clipboard.writeText(window.location.href)
                 setShareCopied(true)
@@ -499,102 +509,154 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
               }}
               title="Copier le lien du planning"
             >
-              {shareCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Share2 className="h-3.5 w-3.5" />}
-              {shareCopied ? 'Lien copié !' : 'Partager'}
-            </Button>
+              {shareCopied
+                ? <Check className="h-3.5 w-3.5" style={{ color: 'var(--success)' }} />
+                : <Share2 className="h-3.5 w-3.5" />
+              }
+              {shareCopied ? 'Copié !' : 'Partager'}
+            </button>
 
             {/* PDF */}
             <Link href={`/manager/planning/print?week=${toISODate(weekDates[0])}`} target="_blank">
-              <Button variant="outline" size="sm" className="gap-1.5" title="Télécharger le planning en PDF">
+              <button className="btn-secondary flex items-center gap-1.5" title="Télécharger le planning en PDF">
                 <Printer className="h-3.5 w-3.5" />
                 PDF
-              </Button>
+              </button>
             </Link>
 
             {emailFeedback && (
-              <span className={`text-xs ${emailFeedback.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>{emailFeedback}</span>
+              <span className="text-[12px]" style={{ color: emailFeedback.startsWith('✓') ? 'var(--success)' : 'var(--danger)' }}>
+                {emailFeedback}
+              </span>
             )}
-            {copyError && <span className="text-xs text-red-600">{copyError}</span>}
-            {statusError && <span className="text-xs text-red-600">{statusError}</span>}
+            {copyError && <span className="text-[12px]" style={{ color: 'var(--danger)' }}>{copyError}</span>}
+            {statusError && <span className="text-[12px]" style={{ color: 'var(--danger)' }}>{statusError}</span>}
           </div>
 
+          {/* Right: next */}
           <Link href={`?week=${nextWeekParam}`}>
-            <Button variant="outline" size="sm" className="gap-1">
+            <button className="btn-secondary flex items-center gap-1">
               Suivante
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
           </Link>
         </div>
 
-        {/* Empty state */}
+        {/* ── Empty state ───────────────────────────────────────────────── */}
         {employees.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-200 bg-white p-12 text-center">
-            <p className="text-gray-500 mb-3">
+          <div className="rounded-xl p-12 text-center"
+            style={{
+              border: '0.5px dashed var(--border)',
+              backgroundColor: 'var(--bg-card)',
+            }}
+          >
+            <p className="mb-3 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
               Ajoutez des employés pour commencer à planifier
             </p>
             <Link href="/manager/employees">
-              <Button variant="outline" size="sm">
-                Gérer les employés
-              </Button>
+              <button className="btn-secondary">Gérer les employés</button>
             </Link>
           </div>
         ) : (
-          /* Planning grid */
-          <div className={`relative overflow-x-auto rounded-lg border bg-white transition-all duration-300 ${weekLocked ? 'border-gray-300 opacity-60 saturate-50' : 'border-gray-200'}`}>
+          /* ── Planning grid ──────────────────────────────────────────── */
+          <div
+            className="relative overflow-x-auto"
+            style={{
+              borderRadius: '12px',
+              border: '0.5px solid var(--border)',
+              backgroundColor: 'var(--bg-card)',
+              opacity: weekLocked ? 0.65 : 1,
+              filter: weekLocked ? 'saturate(0.4)' : 'none',
+              transition: 'opacity 300ms, filter 300ms',
+            }}
+          >
             <table className="w-full min-w-[700px] border-collapse">
-              <thead>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                 <tr>
-                  {/* Employee column header */}
-                  <th className="border-b border-r border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-600 w-48 min-w-[180px]">
-                    Employés
+                  {/* Employee col header */}
+                  <th
+                    style={{
+                      borderBottom: '0.5px solid var(--border)',
+                      borderRight: '0.5px solid var(--border)',
+                      backgroundColor: 'var(--bg-card)',
+                      padding: '10px 16px',
+                      textAlign: 'left',
+                      width: '180px',
+                      minWidth: '160px',
+                    }}
+                  >
+                    <span className="text-[10px] uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+                      Employés
+                    </span>
                   </th>
-                  {/* Day headers */}
                   {weekDates.map((date) => {
                     const { weekday, dayMonth } = getDayLabel(date)
                     const today = isToday(date)
                     return (
                       <th
                         key={toISODate(date)}
-                        className={`border-b border-r border-gray-200 px-3 py-3 text-center text-sm font-medium ${
-                          today ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-600'
-                        }`}
+                        style={{
+                          borderBottom: '0.5px solid var(--border)',
+                          borderRight: '0.5px solid var(--border)',
+                          backgroundColor: today ? 'var(--accent-light)' : 'var(--bg-card)',
+                          padding: '10px 8px',
+                          textAlign: 'center',
+                        }}
                       >
-                        <div className="font-semibold">{weekday}</div>
-                        <div className={`text-xs font-normal mt-0.5 ${today ? 'text-blue-500' : 'text-gray-400'}`}>
+                        <div className="text-[12px] font-medium" style={{ color: today ? 'var(--accent)' : 'var(--text-primary)' }}>
+                          {weekday}
+                        </div>
+                        <div className="text-[11px] mt-0.5" style={{ color: today ? 'var(--accent)' : 'var(--text-tertiary)' }}>
                           {dayMonth}
                         </div>
                       </th>
                     )
                   })}
-                  {/* Total column header */}
-                  <th className="border-b border-gray-200 bg-gray-50 px-3 py-3 text-center text-sm font-medium text-gray-600 w-20">
-                    Total
+                  {/* Total col header */}
+                  <th
+                    style={{
+                      borderBottom: '0.5px solid var(--border)',
+                      backgroundColor: 'var(--bg-card)',
+                      padding: '10px 8px',
+                      textAlign: 'center',
+                      width: '72px',
+                    }}
+                  >
+                    <span className="text-[10px] uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+                      Total
+                    </span>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {employees.map((employee, rowIndex) => (
-                  <tr
-                    key={employee.id}
-                    className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
-                  >
+                {employees.map((employee) => (
+                  <tr key={employee.id}>
                     {/* Employee cell */}
-                    <td className="border-b border-r border-gray-200 px-4 py-3 last:border-b-0">
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold text-gray-600">
+                    <td
+                      style={{
+                        borderBottom: '0.5px solid var(--border)',
+                        borderRight: '0.5px solid var(--border)',
+                        padding: '10px 16px',
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-medium"
+                          style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}
+                        >
                           {getInitials(employee.full_name)}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-gray-900">
+                          <p className="truncate text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
                             {employee.full_name ?? employee.email}
                           </p>
                           {employee.position && (
-                            <Badge
-                              variant="outline"
-                              className="mt-0.5 px-1.5 py-0 text-[10px] leading-4 font-normal text-gray-500 border-gray-200"
+                            <span
+                              className="text-[10px] leading-none"
+                              style={{ color: 'var(--text-tertiary)' }}
                             >
                               {employee.position}
-                            </Badge>
+                            </span>
                           )}
                         </div>
                       </div>
@@ -616,17 +678,22 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
                           isLocked={weekLocked}
                           onEmptyCellClick={() => openCreateModal(employee, date)}
                           hasShifts={dayShifts.length > 0 || absenceType !== undefined}
-                          className={today ? 'bg-blue-50/30' : ''}
+                          style={today ? { backgroundColor: 'rgba(var(--accent-light-rgb, 238 240 250) / 0.4)' } : undefined}
                         >
-                          <div className="min-h-[80px] space-y-1">
-                            {/* Absence badge */}
+                          <div className="space-y-1" style={{ minHeight: '60px' }}>
                             {absenceType && <AbsenceBadge type={absenceType} />}
 
-                            {/* Conflict warning */}
                             {hasConflict && (
-                              <div className="flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                                <span>⚠️</span>
-                                <span>Créneau sur absence</span>
+                              <div
+                                className="flex items-center gap-1 text-[10px] font-medium rounded-[6px]"
+                                style={{
+                                  border: '0.5px solid var(--warning)',
+                                  backgroundColor: '#FEF3C7',
+                                  color: 'var(--warning)',
+                                  padding: '3px 8px',
+                                }}
+                              >
+                                Créneau sur absence
                               </div>
                             )}
 
@@ -643,19 +710,32 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
                                 />
                               )
                             })}
+
                             {!weekLocked && (
                               <div
                                 onClick={() => openCreateModal(employee, date)}
-                                className="h-6 bg-gray-50 hover:bg-blue-50 cursor-pointer transition-colors rounded-sm border border-dashed border-gray-200 hover:border-blue-300 flex items-center justify-center"
+                                className="group cursor-pointer flex items-center justify-center transition-colors duration-150"
+                                style={{
+                                  height: '24px',
+                                  borderRadius: '6px',
+                                  border: '0.5px dashed var(--border)',
+                                  backgroundColor: 'transparent',
+                                }}
                               >
-                                <span className="text-[10px] text-gray-400 hover:text-blue-400">+ ajouter</span>
+                                <span
+                                  className="text-[10px] transition-colors duration-150"
+                                  style={{ color: 'var(--text-tertiary)' }}
+                                >
+                                  +
+                                </span>
                               </div>
                             )}
                           </div>
                         </DroppableCell>
                       )
                     })}
-                    {/* Weekly total cell */}
+
+                    {/* Weekly total */}
                     {(() => {
                       const employeeShifts = shifts.filter(s => s.employee_id === employee.id)
                       const totalHours = employeeShifts.reduce(
@@ -663,8 +743,18 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
                         0
                       )
                       return (
-                        <td className="border-b border-gray-200 px-3 py-3 text-center align-middle">
-                          <span className={`text-sm font-semibold ${totalHours > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                        <td
+                          style={{
+                            borderBottom: '0.5px solid var(--border)',
+                            padding: '10px 8px',
+                            textAlign: 'center',
+                            verticalAlign: 'middle',
+                          }}
+                        >
+                          <span
+                            className="text-[13px] font-medium"
+                            style={{ color: totalHours > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+                          >
                             {totalHours > 0 ? formatHours(totalHours) : '—'}
                           </span>
                         </td>
@@ -675,8 +765,17 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
               </tbody>
               <tfoot>
                 <tr>
-                  <td className="border-t-2 border-r border-gray-200 bg-gray-50/80 px-4 py-2.5">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total / jour</span>
+                  <td
+                    style={{
+                      borderTop: '0.5px solid var(--border)',
+                      borderRight: '0.5px solid var(--border)',
+                      backgroundColor: 'var(--bg-page)',
+                      padding: '8px 16px',
+                    }}
+                  >
+                    <span className="text-[10px] uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+                      Total / jour
+                    </span>
                   </td>
                   {weekDates.map((date) => {
                     const dateStr = toISODate(date)
@@ -685,15 +784,34 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
                       .reduce((sum, s) => sum + calcShiftHours(s.start_time, s.end_time, s.break_minutes), 0)
                     const today = isToday(date)
                     return (
-                      <td key={dateStr} className={`border-t-2 border-r border-gray-200 px-3 py-2.5 text-center ${today ? 'bg-blue-50/50' : 'bg-gray-50/80'}`}>
-                        <span className={`text-sm font-bold ${dayTotal > 0 ? (today ? 'text-blue-700' : 'text-gray-800') : 'text-gray-300'}`}>
+                      <td
+                        key={dateStr}
+                        style={{
+                          borderTop: '0.5px solid var(--border)',
+                          borderRight: '0.5px solid var(--border)',
+                          backgroundColor: today ? 'var(--accent-light)' : 'var(--bg-page)',
+                          padding: '8px',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <span
+                          className="text-[13px] font-medium"
+                          style={{ color: dayTotal > 0 ? (today ? 'var(--accent)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}
+                        >
                           {dayTotal > 0 ? formatHours(dayTotal) : '—'}
                         </span>
                       </td>
                     )
                   })}
-                  <td className="border-t-2 border-gray-200 bg-gray-50/80 px-3 py-2.5 text-center">
-                    <span className="text-sm font-bold text-gray-800">
+                  <td
+                    style={{
+                      borderTop: '0.5px solid var(--border)',
+                      backgroundColor: 'var(--bg-page)',
+                      padding: '8px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
                       {formatHours(shifts.reduce((sum, s) => sum + calcShiftHours(s.start_time, s.end_time, s.break_minutes), 0))}
                     </span>
                   </td>
@@ -703,7 +821,6 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
           </div>
         )}
 
-        {/* Shift modal */}
         <ShiftModal
           modalState={modalState}
           onClose={closeModal}
@@ -716,11 +833,22 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
       {/* Drag overlay */}
       <DragOverlay>
         {activeDragShift ? (
-          <div className="rounded-md border p-1.5 text-xs bg-white shadow-lg opacity-90 border-blue-300 text-blue-700 cursor-grabbing">
-            <p className="font-semibold">
-              {formatTime(activeDragShift.start_time)} – {formatTime(activeDragShift.end_time)}
-            </p>
-            <p className="truncate opacity-85">{activeDragShift.position}</p>
+          <div
+            className="text-[12px] font-medium cursor-grabbing"
+            style={{
+              height: '24px',
+              borderRadius: '6px',
+              border: '0.5px solid var(--accent)',
+              backgroundColor: 'var(--accent-light)',
+              color: 'var(--accent)',
+              padding: '0 10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>{formatTime(activeDragShift.start_time)}–{formatTime(activeDragShift.end_time)}</span>
+            <span className="opacity-75 text-[11px]">{activeDragShift.position}</span>
           </div>
         ) : null}
       </DragOverlay>
