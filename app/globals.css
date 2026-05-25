@@ -4,60 +4,89 @@
 
 @layer base {
   :root {
-    /* Content area */
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    /* ── Page & Surface ─────────────────────────── */
+    --bg-page:        #FAFAFA;
+    --bg-card:        #FFFFFF;
+    --border:         #EBEBEB;
 
-    /* Brand / Primary = Indigo */
-    --primary: 239 84% 67%;
-    --primary-foreground: 0 0% 100%;
+    /* ── Text ───────────────────────────────────── */
+    --text-primary:   #111111;
+    --text-secondary: #6B7280;
+    --text-tertiary:  #BBBBBB;
 
-    /* Secondary */
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    /* ── Accent ─────────────────────────────────── */
+    --accent:         #2D3A8C;
+    --accent-hover:   #232E70;
+    --accent-light:   #EEF0FA;
 
-    /* Muted */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* ── Status ─────────────────────────────────── */
+    --success:        #16A34A;
+    --warning:        #D97706;
+    --danger:         #DC2626;
 
-    /* Accent */
-    --accent: 239 84% 96%;
-    --accent-foreground: 239 84% 40%;
+    /* ── shadcn/ui tokens (mapped) ──────────────── */
+    --background:     var(--bg-page);
+    --foreground:     var(--text-primary);
+    --card:           var(--bg-card);
+    --card-foreground:var(--text-primary);
+    --popover:        var(--bg-card);
+    --popover-foreground: var(--text-primary);
+    --primary:        var(--accent);
+    --primary-foreground: #FFFFFF;
+    --secondary:      var(--bg-card);
+    --secondary-foreground: var(--text-primary);
+    --muted:          #F5F5F5;
+    --muted-foreground: var(--text-secondary);
+    --accent-ui:      var(--accent-light);
+    --accent-ui-foreground: var(--accent);
+    --destructive:    var(--danger);
+    --destructive-foreground: #FFFFFF;
+    --input:          var(--border);
+    --ring:           var(--accent);
+    --radius:         0.5rem;
+  }
 
-    /* Destructive */
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+  .dark {
+    --bg-page:        #0F1117;
+    --bg-card:        #1A1D27;
+    --border:         #2A2D3A;
+    --text-primary:   #F0F2F8;
+    --text-secondary: #8B90A7;
+    --text-tertiary:  #4A4F66;
+    --accent:         #4A5FD4;
+    --accent-hover:   #5B70E5;
+    --accent-light:   #1A2044;
 
-    /* Border / Input */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 239 84% 67%;
-
-    /* Radius */
-    --radius: 0.625rem;
-
-    /* Sidebar (dark navy) */
-    --sidebar: 222 47% 7%;
-    --sidebar-foreground: 215 20% 60%;
-    --sidebar-foreground-active: 0 0% 100%;
-    --sidebar-accent: 222 47% 12%;
-    --sidebar-active: 239 84% 67%;
-    --sidebar-border: 222 47% 12%;
-    --sidebar-width: 240px;
-    --sidebar-width-collapsed: 64px;
+    --background:     var(--bg-page);
+    --foreground:     var(--text-primary);
+    --card:           var(--bg-card);
+    --card-foreground:var(--text-primary);
+    --popover:        var(--bg-card);
+    --popover-foreground: var(--text-primary);
+    --primary:        var(--accent);
+    --primary-foreground: #FFFFFF;
+    --secondary:      var(--bg-card);
+    --secondary-foreground: var(--text-primary);
+    --muted:          #1A1D27;
+    --muted-foreground: var(--text-secondary);
+    --accent-ui:      var(--accent-light);
+    --accent-ui-foreground: var(--accent);
+    --destructive:    var(--danger);
+    --destructive-foreground: #FFFFFF;
+    --input:          var(--border);
+    --ring:           var(--accent);
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--border);
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.6;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
@@ -65,6 +94,6 @@
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border)) transparent;
+    scrollbar-color: var(--border) transparent;
   }
 }

@@ -131,30 +131,30 @@ export function BreadcrumbNav() {
   const currentCrumb = crumbs[crumbs.length - 1]
 
   return (
-    <div className="flex items-center gap-1 px-4 h-9 border-b border-border/60 bg-background/80 backdrop-blur-sm shrink-0">
+    <div className="flex items-center gap-1 px-5 h-9 border-b border-[var(--border)] bg-[var(--bg-page)] shrink-0">
       {/* Back button */}
       <button
         onClick={() => router.push(parentCrumb.href)}
-        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors pr-2 mr-1 border-r border-border/60"
+        className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors duration-150 pr-2 mr-1 border-r border-[var(--border)]"
       >
-        <ChevronLeft className="h-3.5 w-3.5" />
+        <ChevronLeft className="h-3 w-3" />
         {parentCrumb.label}
       </button>
 
       {/* Full breadcrumb trail */}
-      <nav className="flex items-center gap-1 text-xs min-w-0">
-        <Link href={crumbs[0].href} className="text-muted-foreground/60 hover:text-muted-foreground transition-colors shrink-0">
+      <nav className="flex items-center gap-1 text-[11px] min-w-0">
+        <Link href={crumbs[0].href} className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors duration-150 shrink-0">
           <Home className="h-3 w-3" />
         </Link>
         {crumbs.slice(1).map((crumb, i) => (
           <span key={crumb.href} className="flex items-center gap-1 min-w-0">
-            <span className="text-muted-foreground/40 shrink-0">/</span>
+            <span className="text-[var(--text-tertiary)] shrink-0">/</span>
             {i === crumbs.length - 2 ? (
-              <span className="font-medium text-foreground truncate">{crumb.label}</span>
+              <span className="text-[var(--text-primary)] truncate">{crumb.label}</span>
             ) : (
               <Link
                 href={crumb.href}
-                className={cn('text-muted-foreground hover:text-foreground transition-colors truncate')}
+                className={cn('text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-150 truncate')}
               >
                 {crumb.label}
               </Link>

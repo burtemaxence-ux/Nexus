@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
-import { Sidebar } from './sidebar'
+import type { ReactNode } from 'react'
+import { Topbar } from './topbar'
 import { AiAssistant } from './ai-assistant'
 import { BreadcrumbNav } from './breadcrumb-nav'
 
@@ -24,32 +24,27 @@ interface AppShellProps {
 
 export function AppShell({
   role, userName, userEmail, establishmentName,
-  orgLogoUrl = '', pendingLeavesCount = 0,
+  pendingLeavesCount = 0,
   establishments = [], activeEstablishmentId = '',
   children,
 }: AppShellProps) {
-  const [collapsed, setCollapsed] = useState(false)
-
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar
+    <div className="min-h-screen bg-[var(--bg-page)]">
+      <Topbar
         role={role}
         userName={userName}
         userEmail={userEmail}
         establishmentName={establishmentName}
-        orgLogoUrl={orgLogoUrl}
         pendingLeavesCount={pendingLeavesCount}
         establishments={establishments}
         activeEstablishmentId={activeEstablishmentId}
-        collapsed={collapsed}
-        onToggle={() => setCollapsed(!collapsed)}
       />
-      <main className="flex-1 overflow-y-auto min-w-0 flex flex-col">
+      <div className="pt-11 flex flex-col min-h-screen">
         <BreadcrumbNav />
-        <div className="flex-1">
+        <main className="flex-1">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
       {(role === 'manager' || role === 'supervisor') && (
         <AiAssistant establishmentName={establishmentName} userName={userName} />
       )}
