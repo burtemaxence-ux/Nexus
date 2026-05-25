@@ -7,6 +7,8 @@ import {
   ChevronLeft, ChevronRight, Copy, Lock, Unlock,
   Mail, Share2, Check, Plus, AlertTriangle, Filter,
   Edit2, Trash2, CopyPlus, Printer,
+  Calendar, ChevronDown, SlidersHorizontal,
+  Users, UserCheck, Clock, TrendingUp, MoreHorizontal,
 } from 'lucide-react'
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
@@ -176,26 +178,89 @@ function CtxBtn({ icon, label, onClick, danger }: { icon: React.ReactNode; label
   )
 }
 
-// ── Draggable shift bar ────────────────────────────────────────────────────────
-function ShiftBar({ shift, poste, onClick, onContextMenu, disabled, hasConflict, laneIndex }: {
+// ── Metric card ───────────────────────────────────────────────────────────────
+function MetricCard({
+  icon, iconBg, iconColor, value, label, trend,
+}: {
+  icon: React.ReactNode
+  iconBg: string
+  iconColor: string
+  value: string
+  label: string
+  trend?: 'up' | 'down' | null
+}) {
+  return (
+    <div style={{
+      backgroundColor: 'var(--bg-card)',
+      border: '0.5px solid var(--border)',
+      borderRadius: '12px',
+      padding: '16px 20px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '14px',
+      flex: 1,
+      minWidth: 0,
+      position: 'relative',
+    }}>
+      <div style={{
+        width: '40px', height: '40px', borderRadius: '50%',
+        backgroundColor: iconBg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+        color: iconColor,
+      }}>
+        {icon}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
+          {value}
+        </p>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px', whiteSpace: 'nowrap' }}>
+          {label}
+        </p>
+      </div>
+      {trend && (
+        <div style={{ position: 'absolute', top: '12px', right: '14px' }}>
+          <TrendingUp size={14} style={{ color: trend === 'up' ? 'var(--success)' : 'var(--danger)', opacity: 0.7 }} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Absence badge ──────────────────────────────────────────────────────────────
+function AbsenceBadge({ type }: { type: LeaveType }) {
+  const s = LEAVE_STYLES[type]
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      backgroundColor: s.bg, color: s.color,
+      border: `0.5px solid ${s.color}`,
+      borderRadius: '6px', fontSize: '11px', fontWeight: 500,
+      padding: '2px 7px', marginBottom: '6px',
+    }}>
+      {s.label}
+    </div>
+  )
+}
+
+// ── Shift card (draggable) ────────────────────────────────────────────────────
+function ShiftCard({ shift, poste, onClick, onContextMenu, disabled, hasConflict }: {
   shift: Shift
   poste: Poste | null | undefined
   onClick: () => void
   onContextMenu: (e: React.MouseEvent) => void
   disabled: boolean
   hasConflict: boolean
-  laneIndex: number
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `shift-${shift.id}`,
     disabled,
   })
 
-  const { left, width } = shiftBarStyle(shift.start_time, shift.end_time)
-  const bg = poste ? `${poste.color}25` : 'var(--accent-light)'
-  const border = poste?.color ?? 'var(--accent)'
-  const color = poste?.color ?? 'var(--accent)'
-  const hours = calcHours(shift.start_time, shift.end_time, shift.break_minutes)
+  const bg = poste ? `${poste.color}15` : 'var(--accent-light)'
+  const borderColor = poste?.color ?? 'var(--accent)'
+  const textColor = poste?.color ?? 'var(--accent)'
 
   return (
     <div
@@ -204,135 +269,238 @@ function ShiftBar({ shift, poste, onClick, onContextMenu, disabled, hasConflict,
       onClick={e => { e.stopPropagation(); onClick() }}
       onContextMenu={e => { e.preventDefault(); e.stopPropagation(); onContextMenu(e) }}
       style={{
-        position: 'absolute',
-        left, width,
-        top: `${4 + laneIndex * 34}px`,
-        height: '28px',
         backgroundColor: bg,
-        border: `0.5px solid ${border}`,
-        borderRadius: '6px',
-        display: 'flex', alignItems: 'center', gap: '4px',
-        padding: '0 7px',
+        borderLeft: `3px solid ${borderColor}`,
+        borderRadius: '8px',
+        padding: '8px 10px',
+        minHeight: '52px',
         cursor: disabled ? 'pointer' : 'grab',
         opacity: isDragging ? 0.35 : 1,
         transform: CSS.Translate.toString(transform),
-        overflow: 'hidden',
-        zIndex: 2,
-        transition: 'opacity 150ms, box-shadow 150ms',
-        boxShadow: isDragging ? 'none' : undefined,
+        transition: 'opacity 150ms, filter 150ms',
         userSelect: 'none',
+        marginBottom: '4px',
       }}
-      className="hover:brightness-95"
+      className="hover:brightness-[0.96]"
     >
-      {hasConflict && <AlertTriangle size={9} style={{ color: 'var(--warning)', flexShrink: 0 }} />}
-      <span style={{ fontSize: '11px', fontWeight: 700, color, whiteSpace: 'nowrap' }}>
-        {formatTime(shift.start_time)}–{formatTime(shift.end_time)}
-      </span>
+      {hasConflict && <AlertTriangle size={10} style={{ color: 'var(--warning)', marginBottom: '3px', display: 'block' }} />}
+      <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+        {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
+      </p>
       {shift.position && (
-        <span style={{ fontSize: '10px', color, opacity: 0.65, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1 }}>
+        <p style={{ fontSize: '12px', color: textColor, marginTop: '3px', lineHeight: 1 }}>
           {shift.position}
-        </span>
+        </p>
       )}
-      <span style={{ fontSize: '10px', color, opacity: 0.55, marginLeft: 'auto', flexShrink: 0, whiteSpace: 'nowrap' }}>
-        {formatHours(hours)}
-      </span>
     </div>
   )
 }
 
-// ── Droppable day cell ─────────────────────────────────────────────────────────
-function DayCell({ droppableId, shifts, leaveType, employee, postes, weekLocked, laneCount, onAdd, onClickShift, onContextMenu }: {
+// ── Droppable grid cell ────────────────────────────────────────────────────────
+function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, onAdd, onClickShift, onContextMenu, isToday: isTodayCol }: {
   droppableId: string
   shifts: Shift[]
   leaveType: LeaveType | undefined
-  employee: Profile
   postes: Map<string, Poste>
   weekLocked: boolean
-  laneCount: number
   onAdd: () => void
   onClickShift: (s: Shift) => void
   onContextMenu: (e: React.MouseEvent, s: Shift) => void
+  isToday: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: droppableId })
   const [hov, setHov] = useState(false)
-  const cellH = Math.max(40, laneCount * 34 + 8)
+  const isEmpty = shifts.length === 0 && !leaveType
 
   return (
     <td
       ref={setNodeRef}
-      onClick={weekLocked || shifts.length > 0 ? undefined : onAdd}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        position: 'relative',
         borderBottom: '0.5px solid var(--border)',
         borderRight: '0.5px solid var(--border)',
-        height: `${cellH}px`,
-        minWidth: '120px',
-        padding: 0,
+        padding: '8px',
         verticalAlign: 'top',
-        overflow: 'visible',
-        cursor: !weekLocked && shifts.length === 0 ? 'pointer' : 'default',
         backgroundColor: isOver && !weekLocked
           ? 'var(--accent-light)'
-          : leaveType
-          ? `${LEAVE_STYLES[leaveType].bg}55`
-          : hov && !weekLocked && shifts.length === 0
-          ? 'var(--bg-page)'
+          : isTodayCol
+          ? 'rgba(45,58,140,0.04)'
           : 'transparent',
         transition: 'background-color 120ms ease',
+        minWidth: '120px',
       }}
     >
-      {/* Subtle time guides at 6h / 12h / 18h */}
-      {[6, 12, 18].map(h => (
-        <div key={h} style={{
-          position: 'absolute', top: 0, bottom: 0,
-          left: `${(h / 24) * 100}%`, width: '0.5px',
-          backgroundColor: 'var(--border)', opacity: 0.6,
-          pointerEvents: 'none',
-        }} />
-      ))}
+      {/* Absence badge */}
+      {leaveType && <AbsenceBadge type={leaveType} />}
 
-      {/* Leave stripe */}
-      {leaveType && (
-        <div style={{
-          position: 'absolute', top: 4, left: 6,
-          fontSize: '9px', fontWeight: 700, letterSpacing: '0.03em',
-          padding: '2px 5px', borderRadius: '4px', zIndex: 1,
-          backgroundColor: LEAVE_STYLES[leaveType].bg,
-          color: LEAVE_STYLES[leaveType].color,
-          border: `0.5px solid ${LEAVE_STYLES[leaveType].color}`,
-          pointerEvents: 'none',
-        }}>
-          {LEAVE_STYLES[leaveType].label}
-        </div>
-      )}
-
-      {/* Add hint when empty and hovered */}
-      {!weekLocked && shifts.length === 0 && hov && !leaveType && (
-        <div style={{
-          position: 'absolute', inset: '3px', borderRadius: '6px',
-          border: '0.5px dashed var(--accent)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
-        }}>
-          <Plus size={11} style={{ color: 'var(--accent)', opacity: 0.6 }} />
-        </div>
-      )}
-
-      {/* Shift bars */}
-      {shifts.map((shift, idx) => (
-        <ShiftBar
+      {/* Shift cards */}
+      {shifts.map(shift => (
+        <ShiftCard
           key={shift.id}
           shift={shift}
           poste={shift.poste_id ? postes.get(shift.poste_id) : null}
           onClick={() => onClickShift(shift)}
           onContextMenu={(e) => onContextMenu(e, shift)}
           disabled={weekLocked}
-          hasConflict={!!leaveType}
-          laneIndex={idx}
+          hasConflict={!!leaveType && shifts.length > 0}
         />
       ))}
+
+      {/* Empty cell */}
+      {isEmpty && !weekLocked && (
+        <div
+          onClick={onAdd}
+          style={{
+            minHeight: '52px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', borderRadius: '6px',
+            border: hov ? '0.5px dashed var(--accent)' : '0.5px solid transparent',
+            backgroundColor: hov ? 'var(--accent-light)' : 'transparent',
+            transition: 'all 120ms ease',
+          }}
+        >
+          {hov
+            ? <Plus size={14} style={{ color: 'var(--accent)', opacity: 0.7 }} />
+            : <span style={{ color: 'var(--border)', fontSize: '16px', fontWeight: 300 }}>—</span>
+          }
+        </div>
+      )}
+
+      {isEmpty && weekLocked && (
+        <div style={{ minHeight: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ color: 'var(--border)', fontSize: '16px', fontWeight: 300 }}>—</span>
+        </div>
+      )}
+
+      {/* Add more button when shifts exist */}
+      {shifts.length > 0 && !weekLocked && (
+        <div
+          onClick={onAdd}
+          style={{
+            marginTop: '2px', height: '22px', borderRadius: '5px',
+            border: '0.5px dashed var(--border)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            transition: 'all 120ms ease',
+          }}
+          className="hover:border-[var(--accent)] hover:bg-[var(--accent-light)]"
+        >
+          <Plus size={10} style={{ color: 'var(--text-tertiary)' }} />
+        </div>
+      )}
     </td>
+  )
+}
+
+// ── Donut chart (SVG natif) ───────────────────────────────────────────────────
+function DonutChart({ shifts, postes }: { shifts: Shift[]; postes: Poste[] }) {
+  const posteMap = new Map(postes.map(p => [p.id, p]))
+  const hoursPerPoste = new Map<string, number>()
+  let totalH = 0
+
+  for (const s of shifts) {
+    const h = calcHours(s.start_time, s.end_time, s.break_minutes)
+    const key = s.poste_id ?? '__none__'
+    hoursPerPoste.set(key, (hoursPerPoste.get(key) ?? 0) + h)
+    totalH += h
+  }
+
+  if (totalH === 0) return null
+
+  const entries = Array.from(hoursPerPoste.entries()).map(([id, h]) => ({
+    id,
+    poste: posteMap.get(id),
+    hours: h,
+    pct: Math.round((h / totalH) * 100),
+  })).sort((a, b) => b.hours - a.hours)
+
+  const r = 48, cx = 60, cy = 60, stroke = 18
+  let cumAngle = -Math.PI / 2
+
+  const arcs = entries.map(e => {
+    const angle = (e.hours / totalH) * 2 * Math.PI
+    const x1 = cx + r * Math.cos(cumAngle)
+    const y1 = cy + r * Math.sin(cumAngle)
+    cumAngle += angle
+    const x2 = cx + r * Math.cos(cumAngle)
+    const y2 = cy + r * Math.sin(cumAngle)
+    const large = angle > Math.PI ? 1 : 0
+    return { ...e, d: `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`, color: e.poste?.color ?? 'var(--border)' }
+  })
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <svg width="120" height="120" viewBox="0 0 120 120" style={{ flexShrink: 0 }}>
+        {arcs.map((arc, i) => (
+          <path
+            key={i}
+            d={arc.d}
+            fill="none"
+            stroke={arc.color}
+            strokeWidth={stroke}
+            strokeLinecap="butt"
+          />
+        ))}
+        <text x="60" y="56" textAnchor="middle" style={{ fontSize: '14px', fontWeight: 600, fill: 'var(--text-primary)' }}>{formatHours(totalH)}</text>
+        <text x="60" y="70" textAnchor="middle" style={{ fontSize: '9px', fill: 'var(--text-tertiary)' }}>Total planif.</text>
+      </svg>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {entries.map((e, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: e.poste?.color ?? 'var(--border)', flexShrink: 0 }} />
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {e.poste?.name ?? 'Sans poste'}
+            </span>
+            <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 500, flexShrink: 0 }}>
+              {formatHours(e.hours)}
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', flexShrink: 0, width: '30px', textAlign: 'right' }}>
+              {e.pct}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Alert row ─────────────────────────────────────────────────────────────────
+function AlertRow({ iconBg, iconColor, icon, title, desc, badge }: {
+  iconBg: string; iconColor: string; icon: React.ReactNode
+  title: string; desc: string
+  badge: { label: string; color: string; bg: string }
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+      <div style={{ width: '30px', height: '30px', borderRadius: '50%', backgroundColor: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
+        {icon}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.3 }}>{title}</p>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.4 }}>{desc}</p>
+      </div>
+      <div style={{ padding: '3px 8px', borderRadius: '6px', backgroundColor: badge.bg, color: badge.color, fontSize: '11px', fontWeight: 500, flexShrink: 0 }}>
+        {badge.label}
+      </div>
+    </div>
+  )
+}
+
+// ── Activity row ──────────────────────────────────────────────────────────────
+function ActivityRow({ iconBg, iconColor, icon, desc, sub }: {
+  iconBg: string; iconColor: string; icon: React.ReactNode
+  desc: string; sub: string
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+      <div style={{ width: '30px', height: '30px', borderRadius: '8px', backgroundColor: iconBg, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {icon}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.3 }}>{desc}</p>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '1px' }}>{sub}</p>
+      </div>
+    </div>
   )
 }
 
@@ -392,6 +560,15 @@ export function PlanningWeekTimeline({
   const positions = Array.from(new Set(employees.map(e => e.position).filter(Boolean) as string[])).sort()
   const filteredEmps = filterPoste ? employees.filter(e => e.position === filterPoste) : employees
   const activeDragShift = activeDragId ? shifts.find(s => `shift-${s.id}` === activeDragId) : null
+
+  // ── Metric computations ────────────────────────────────────────────────────
+  const totalPlanned = shifts.reduce((sum, s) => sum + calcHours(s.start_time, s.end_time, s.break_minutes), 0)
+  const employeesWithShift = new Set(shifts.map(s => s.employee_id)).size
+  const coverage = employees.length > 0 ? Math.round((employeesWithShift / employees.length) * 100) : 0
+  const hasWeeklyHours = employees.some(e => e.weekly_hours != null)
+  const overtime = hasWeeklyHours
+    ? Math.max(0, totalPlanned - employees.reduce((sum, e) => sum + (e.weekly_hours ?? 35), 0))
+    : null
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   async function handleWeekStatus(payload: { published?: boolean; locked?: boolean }) {
@@ -478,27 +655,47 @@ export function PlanningWeekTimeline({
       <div className="space-y-4" onClick={() => setCtx(null)}>
 
         {/* ── Toolbar ─────────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          {/* Left: view toggle + prev */}
-          <div className="flex items-center gap-2">
-            <div className="flex overflow-hidden text-[13px]" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
-              <Link href={`/manager/planning?view=day&date=${toISODate(new Date())}`} className="px-3 py-1.5 transition-colors" style={{ color: 'var(--text-tertiary)', borderRight: '0.5px solid var(--border)' }}>Jour</Link>
-              <div className="px-3 py-1.5 select-none" style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-card)' }}>Semaine</div>
-              <Link href="/manager/planning?view=month" className="px-3 py-1.5 transition-colors" style={{ color: 'var(--text-tertiary)', borderLeft: '0.5px solid var(--border)' }}>Mois</Link>
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+
+          {/* Left: nav + dates */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <Link href={`?week=${prevMonday}`}>
-              <button className="btn-secondary flex items-center gap-1"><ChevronLeft className="h-3.5 w-3.5" />Préc.</button>
+              <button className="btn-secondary" style={{ padding: '7px 9px' }} aria-label="Semaine précédente">
+                <ChevronLeft size={14} />
+              </button>
+            </Link>
+            <Link href="/manager/planning">
+              <button className="btn-secondary" style={{ fontSize: '13px', padding: '7px 12px' }}>Aujourd'hui</button>
+            </Link>
+            <Calendar size={15} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{weekLabel}</span>
+              <ChevronDown size={13} style={{ color: 'var(--text-tertiary)' }} />
+            </div>
+          </div>
+
+          {/* Center: Jour / Semaine / Mois pills */}
+          <div style={{ display: 'flex', border: '0.5px solid var(--border)', borderRadius: '8px', overflow: 'hidden', fontSize: '13px' }}>
+            <Link href={`/manager/planning?view=day&date=${toISODate(new Date())}`}>
+              <div style={{ padding: '6px 14px', color: 'var(--text-tertiary)', cursor: 'pointer', transition: 'color 150ms' }}
+                className="hover:text-[var(--text-primary)]">Jour</div>
+            </Link>
+            <div style={{ padding: '6px 14px', backgroundColor: 'var(--accent)', color: '#FFFFFF', userSelect: 'none', borderLeft: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)' }}>
+              Semaine
+            </div>
+            <Link href="/manager/planning?view=month">
+              <div style={{ padding: '6px 14px', color: 'var(--text-tertiary)', cursor: 'pointer', transition: 'color 150ms' }}
+                className="hover:text-[var(--text-primary)]">Mois</div>
             </Link>
           </div>
 
-          {/* Center: label + controls */}
-          <div className="flex items-center gap-2 flex-wrap justify-center">
-            <span className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>{weekLabel}</span>
+          {/* Right: actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
 
             {/* Position filter */}
             {positions.length > 0 && (
-              <label className="flex items-center gap-1.5">
-                <Filter className="h-3 w-3" style={{ color: 'var(--text-tertiary)' }} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Filter size={13} style={{ color: 'var(--text-secondary)' }} />
                 <select value={filterPoste} onChange={e => setFilterPoste(e.target.value)} className="dp-input py-1 text-[12px]" style={{ width: 'auto' }}>
                   <option value="">Tous les postes</option>
                   {positions.map(p => <option key={p} value={p}>{p}</option>)}
@@ -506,56 +703,89 @@ export function PlanningWeekTimeline({
               </label>
             )}
 
-            {/* Publish toggle */}
+            {/* Filtres button */}
+            <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
+              <SlidersHorizontal size={13} />
+              Filtres
+            </button>
+
+            {/* Secondary icon-only actions */}
             <button
-              role="switch" aria-checked={weekPublished}
-              onClick={() => handleWeekStatus({ published: !weekPublished })}
+              className="btn-secondary"
+              style={{ padding: '7px 9px', ...(weekLocked ? { borderColor: 'var(--warning)', color: 'var(--warning)' } : {}) }}
+              onClick={() => handleWeekStatus({ locked: !weekLocked })}
               disabled={statusLoading}
-              className="relative inline-flex h-7 w-[110px] cursor-pointer items-center rounded-full transition-colors duration-200 disabled:opacity-50"
-              style={{ backgroundColor: weekPublished ? 'var(--success)' : 'var(--bg-card)', border: `0.5px solid ${weekPublished ? 'var(--success)' : 'var(--border)'}` }}
+              title={weekLocked ? 'Déverrouiller' : 'Verrouiller'}
             >
-              <span className="absolute h-5 w-5 rounded-full transition-transform duration-200" style={{ backgroundColor: 'var(--bg-card)', boxShadow: '0 0 0 0.5px var(--border)', transform: weekPublished ? 'translateX(84px)' : 'translateX(4px)' }} />
-              <span className="absolute inset-0 flex items-center" style={{ opacity: weekPublished ? 1 : 0, transition: 'opacity 150ms' }}>
-                <span className="pl-3 text-[11px] font-medium text-white">Publié</span>
-              </span>
-              <span className="absolute inset-0 flex items-center justify-end" style={{ opacity: weekPublished ? 0 : 1, transition: 'opacity 150ms' }}>
-                <span className="pr-3 text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>Non-publié</span>
-              </span>
+              {weekLocked ? <Lock size={13} /> : <Unlock size={13} />}
             </button>
 
-            <button className="btn-secondary flex items-center gap-1.5" style={weekLocked ? { borderColor: 'var(--warning)', color: 'var(--warning)' } : {}} onClick={() => handleWeekStatus({ locked: !weekLocked })} disabled={statusLoading}>
-              {weekLocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-              {weekLocked ? 'Verrouillé' : 'Verrouiller'}
+            <button className="btn-secondary" style={{ padding: '7px 9px' }} onClick={handleCopyWeek} disabled={copyLoading || employees.length === 0} title="Copier vers semaine suivante">
+              <Copy size={13} />
             </button>
 
-            <button className="btn-secondary flex items-center gap-1.5" onClick={handleCopyWeek} disabled={copyLoading || employees.length === 0}>
-              <Copy className="h-3.5 w-3.5" />
-              {copyLoading ? 'Copie...' : 'Copier →'}
+            <button className="btn-secondary" style={{ padding: '7px 9px' }} onClick={handleResendEmails} disabled={emailLoading || employees.length === 0} title="Envoyer par email">
+              <Mail size={13} />
             </button>
 
-            <button className="btn-secondary flex items-center gap-1.5" onClick={handleResendEmails} disabled={emailLoading || employees.length === 0}>
-              <Mail className="h-3.5 w-3.5" />
-              {emailLoading ? 'Envoi...' : 'Envoyer'}
-            </button>
-
-            <button className="btn-secondary flex items-center gap-1.5" onClick={() => { navigator.clipboard.writeText(window.location.href); setShareCopied(true); setTimeout(() => setShareCopied(false), 2000) }}>
-              {shareCopied ? <Check className="h-3.5 w-3.5" style={{ color: 'var(--success)' }} /> : <Share2 className="h-3.5 w-3.5" />}
-              {shareCopied ? 'Copié !' : 'Partager'}
+            <button className="btn-secondary" style={{ padding: '7px 9px' }} onClick={() => { navigator.clipboard.writeText(window.location.href); setShareCopied(true); setTimeout(() => setShareCopied(false), 2000) }} title="Partager">
+              {shareCopied ? <Check size={13} style={{ color: 'var(--success)' }} /> : <Share2 size={13} />}
             </button>
 
             <Link href={`/manager/planning/print?week=${mondayStr}`} target="_blank">
-              <button className="btn-secondary flex items-center gap-1.5"><Printer className="h-3.5 w-3.5" />PDF</button>
+              <button className="btn-secondary" style={{ padding: '7px 9px' }} title="Exporter PDF"><Printer size={13} /></button>
             </Link>
 
+            {/* Publier — primary CTA */}
+            <button
+              className="btn-primary"
+              onClick={() => handleWeekStatus({ published: !weekPublished })}
+              disabled={statusLoading || employees.length === 0}
+              style={{ paddingLeft: '18px', paddingRight: '18px', gap: '6px', opacity: statusLoading ? 0.6 : 1 }}
+            >
+              {weekPublished ? <><Check size={13} />Publié</> : 'Publier'}
+            </button>
+
             {emailFeedback && (
-              <span className="text-[12px]" style={{ color: emailFeedback.startsWith('✓') ? 'var(--success)' : 'var(--danger)' }}>{emailFeedback}</span>
+              <span style={{ fontSize: '12px', color: emailFeedback.startsWith('✓') ? 'var(--success)' : 'var(--danger)' }}>{emailFeedback}</span>
             )}
           </div>
+        </div>
 
-          {/* Right: next */}
-          <Link href={`?week=${nextMonday}`}>
-            <button className="btn-secondary flex items-center gap-1">Suiv.<ChevronRight className="h-3.5 w-3.5" /></button>
-          </Link>
+        {/* ── Metric cards ─────────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <MetricCard
+            icon={<Users size={18} />}
+            iconBg="var(--accent-light)"
+            iconColor="var(--accent)"
+            value={totalPlanned > 0 ? formatHours(totalPlanned) : '0h'}
+            label="Total planifiées"
+            trend={totalPlanned > 0 ? 'up' : null}
+          />
+          <MetricCard
+            icon={<UserCheck size={18} />}
+            iconBg="#FFF7ED"
+            iconColor="#EA580C"
+            value="—"
+            label="Total travaillées"
+            trend={null}
+          />
+          <MetricCard
+            icon={<Clock size={18} />}
+            iconBg="#F5F5F5"
+            iconColor="var(--text-secondary)"
+            value={overtime != null ? formatHours(overtime) : '—'}
+            label="Heures supp."
+            trend={overtime != null && overtime > 0 ? 'up' : null}
+          />
+          <MetricCard
+            icon={<Clock size={18} />}
+            iconBg="#F5F3FF"
+            iconColor="#7C3AED"
+            value={employees.length > 0 ? `${coverage}%` : '—'}
+            label="Couverture"
+            trend={coverage >= 80 ? 'up' : coverage > 0 ? 'down' : null}
+          />
         </div>
 
         {/* ── Empty state ──────────────────────────────────────────────────── */}
@@ -578,60 +808,67 @@ export function PlanningWeekTimeline({
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: '860px', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                 <colgroup>
-                  <col style={{ width: '152px' }} />
+                  <col style={{ width: '200px' }} />
                   {weekDates.map(d => <col key={toISODate(d)} />)}
-                  <col style={{ width: '52px' }} />
+                  <col style={{ width: '64px' }} />
                 </colgroup>
 
                 {/* ── Header ──────────────────────────────────────────────── */}
                 <thead>
                   <tr>
-                    {/* Corner cell */}
-                    <th style={{ borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)', padding: '10px 14px', textAlign: 'left', verticalAlign: 'bottom' }}>
-                      <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 600 }}>Équipe</span>
+                    {/* Employés corner */}
+                    <th style={{ borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)', padding: '12px 16px', textAlign: 'left', verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>Employés</span>
+                        <SlidersHorizontal size={11} style={{ color: 'var(--text-tertiary)', opacity: 0.6 }} />
+                      </div>
                     </th>
 
                     {weekDates.map(date => {
                       const today = isToday(date)
                       const dateStr = toISODate(date)
                       const count = shifts.filter(s => s.date === dateStr).length
+                      const dayName = date.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')
+                      const dayNum = date.getDate()
                       return (
-                        <th key={dateStr} style={{ borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', backgroundColor: today ? 'var(--accent-light)' : 'var(--bg-page)', padding: '8px 0 0', textAlign: 'left', verticalAlign: 'bottom' }}>
-                          {/* Day label */}
-                          <div style={{ padding: '0 10px 5px' }}>
-                            <span style={{ fontSize: '12px', fontWeight: 700, color: today ? 'var(--accent)' : 'var(--text-primary)', textTransform: 'capitalize' }}>
-                              {date.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')} {date.getDate()}
+                        <th key={dateStr} style={{
+                          borderBottom: '0.5px solid var(--border)',
+                          borderRight: '0.5px solid var(--border)',
+                          backgroundColor: 'var(--bg-page)',
+                          padding: '12px 8px',
+                          textAlign: 'center',
+                        }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'capitalize', fontWeight: 400 }}>
+                              {dayName}.
                             </span>
+                            {today ? (
+                              <div style={{
+                                width: '28px', height: '28px', borderRadius: '50%',
+                                backgroundColor: 'var(--accent)', color: '#FFFFFF',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '13px', fontWeight: 600,
+                              }}>
+                                {dayNum}
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', width: '28px', textAlign: 'center', lineHeight: '28px' }}>
+                                {dayNum}
+                              </span>
+                            )}
                             {count > 0 && (
-                              <span style={{ marginLeft: 5, fontSize: '10px', color: today ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+                              <span style={{ fontSize: '10px', color: today ? 'var(--accent)' : 'var(--text-tertiary)' }}>
                                 {count} shift{count > 1 ? 's' : ''}
                               </span>
                             )}
-                          </div>
-                          {/* Time ruler */}
-                          <div style={{ position: 'relative', height: '18px', borderTop: '0.5px solid var(--border)' }}>
-                            {TICK_HOURS.map(h => (
-                              <div key={h} style={{
-                                position: 'absolute',
-                                left: `${(h / 24) * 100}%`,
-                                top: 0,
-                                transform: h === 24 ? 'translateX(-100%)' : h === 0 ? 'none' : 'translateX(-50%)',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                              }}>
-                                <div style={{ width: '0.5px', height: '4px', backgroundColor: today ? 'var(--accent)' : 'var(--border)' }} />
-                                <span style={{ fontSize: '8px', color: today ? 'var(--accent)' : 'var(--text-tertiary)', marginTop: '1px', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                                  {h < 24 ? `${h}h` : ''}
-                                </span>
-                              </div>
-                            ))}
                           </div>
                         </th>
                       )
                     })}
 
-                    {/* Total header */}
-                    <th style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)', padding: '10px 8px', textAlign: 'center', verticalAlign: 'bottom' }}>
-                      <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 600 }}>h/sem</span>
+                    {/* H/sem header */}
+                    <th style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)', padding: '12px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 600 }}>H/sem</span>
                     </th>
                   </tr>
                 </thead>
@@ -643,24 +880,28 @@ export function PlanningWeekTimeline({
                       const ds = shiftMap.get(`${emp.id}__${toISODate(date)}`) ?? []
                       return sum + ds.reduce((s, sh) => s + calcHours(sh.start_time, sh.end_time, sh.break_minutes), 0)
                     }, 0)
-                    const maxLanes = Math.max(1, ...weekDates.map(d => (shiftMap.get(`${emp.id}__${toISODate(d)}`) ?? []).length))
 
                     return (
                       <tr key={emp.id}>
-                        {/* Employee info */}
-                        <td style={{ borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', padding: '10px 12px', verticalAlign: 'middle' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--accent)' }}>{getInitials(emp.full_name)}</span>
+                        {/* Employee cell */}
+                        <td style={{ borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', padding: '12px 16px', verticalAlign: 'middle' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)' }}>{getInitials(emp.full_name)}</span>
                             </div>
-                            <div style={{ minWidth: 0 }}>
-                              <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
                                 {emp.full_name ?? emp.email}
                               </p>
                               {emp.position && (
-                                <p style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '1px' }}>{emp.position}</p>
+                                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '1px', lineHeight: 1 }}>{emp.position}</p>
                               )}
                             </div>
+                            {weekTotal > 0 && (
+                              <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                {formatHours(weekTotal)} / sem.
+                              </span>
+                            )}
                           </div>
                         </td>
 
@@ -670,16 +911,16 @@ export function PlanningWeekTimeline({
                           const did = `${emp.id}__${dateStr}`
                           const dayShifts = shiftMap.get(did) ?? []
                           const leaveType = absMap.get(did)
+                          const todayCol = isToday(date)
                           return (
-                            <DayCell
+                            <GridCell
                               key={dateStr}
                               droppableId={did}
                               shifts={dayShifts}
                               leaveType={leaveType}
-                              employee={emp}
                               postes={posteMap}
                               weekLocked={weekLocked}
-                              laneCount={maxLanes}
+                              isToday={todayCol}
                               onAdd={() => !weekLocked && setModal({ type: 'create', employee: emp, date })}
                               onClickShift={s => setModal({ type: 'view', shift: s, employee: emp, date, readOnly: weekLocked })}
                               onContextMenu={(e, s) => setCtx({ x: e.clientX, y: e.clientY, shift: s, employee: emp, date })}
@@ -688,10 +929,10 @@ export function PlanningWeekTimeline({
                         })}
 
                         {/* Weekly total */}
-                        <td style={{ borderBottom: '0.5px solid var(--border)', padding: '10px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                        <td style={{ borderBottom: '0.5px solid var(--border)', padding: '12px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
                           {weekTotal > 0
-                            ? <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{formatHours(weekTotal)}</span>
-                            : <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>—</span>
+                            ? <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{formatHours(weekTotal)}</span>
+                            : <span style={{ fontSize: '14px', color: 'var(--border)', fontWeight: 300 }}>—</span>
                           }
                         </td>
                       </tr>
@@ -702,7 +943,7 @@ export function PlanningWeekTimeline({
                 {/* ── Footer: daily totals ─────────────────────────────────── */}
                 <tfoot>
                   <tr>
-                    <td style={{ borderTop: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)', padding: '8px 14px' }}>
+                    <td style={{ borderTop: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)', padding: '10px 16px' }}>
                       <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 600 }}>Total / jour</span>
                     </td>
                     {weekDates.map(date => {
@@ -710,15 +951,15 @@ export function PlanningWeekTimeline({
                       const total = shifts.filter(s => s.date === dateStr).reduce((sum, s) => sum + calcHours(s.start_time, s.end_time, s.break_minutes), 0)
                       const today = isToday(date)
                       return (
-                        <td key={dateStr} style={{ borderTop: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', backgroundColor: today ? 'var(--accent-light)' : 'var(--bg-page)', padding: '8px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 500, color: total > 0 ? (today ? 'var(--accent)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}>
+                        <td key={dateStr} style={{ borderTop: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', backgroundColor: today ? 'rgba(45,58,140,0.04)' : 'var(--bg-page)', padding: '10px 8px', textAlign: 'center' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 500, color: total > 0 ? (today ? 'var(--accent)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}>
                             {total > 0 ? formatHours(total) : '—'}
                           </span>
                         </td>
                       )
                     })}
-                    <td style={{ borderTop: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)', padding: '8px', textAlign: 'center' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    <td style={{ borderTop: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)', padding: '10px 8px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
                         {formatHours(shifts.reduce((sum, s) => sum + calcHours(s.start_time, s.end_time, s.break_minutes), 0))}
                       </span>
                     </td>
@@ -728,6 +969,97 @@ export function PlanningWeekTimeline({
             </div>
           </div>
         )}
+
+        {/* ── Bottom section ────────────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '8px' }}>
+
+          {/* Col 1 — Aperçu par service */}
+          <div className="dp-card">
+            <h3 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '16px' }}>
+              Aperçu par service
+            </h3>
+            {postes.length === 0 || shifts.length === 0 ? (
+              <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', textAlign: 'center', padding: '24px 0' }}>Aucun shift planifié</p>
+            ) : (
+              <DonutChart shifts={shifts} postes={postes} />
+            )}
+          </div>
+
+          {/* Col 2 — Alertes */}
+          <div className="dp-card">
+            <h3 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '16px' }}>
+              Alertes
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Couverture manquante */}
+              {coverage < 80 && employees.length > 0 && (
+                <AlertRow
+                  iconBg="#FEF3C7" iconColor="var(--warning)"
+                  icon={<Clock size={14} />}
+                  title="Couverture insuffisante"
+                  desc={`Seulement ${coverage}% des employés ont un shift cette semaine`}
+                  badge={{ label: `${100 - coverage}% manquants`, color: 'var(--warning)', bg: '#FEF3C7' }}
+                />
+              )}
+              {/* Heures supp */}
+              {overtime != null && overtime > 2 && (
+                <AlertRow
+                  iconBg="#FEE2E2" iconColor="var(--danger)"
+                  icon={<Clock size={14} />}
+                  title="Heures supplémentaires"
+                  desc={`${formatHours(overtime)} d'heures au-dessus du contractuel cette semaine`}
+                  badge={{ label: `+${formatHours(overtime)}`, color: 'var(--danger)', bg: '#FEE2E2' }}
+                />
+              )}
+              {coverage >= 80 && (overtime == null || overtime <= 2) && (
+                <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', textAlign: 'center', padding: '16px 0' }}>
+                  Aucune alerte active
+                </p>
+              )}
+            </div>
+            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '0.5px solid var(--border)' }}>
+              <a href="/manager/planning" style={{ fontSize: '13px', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+                Voir toutes les alertes <ChevronRight size={13} />
+              </a>
+            </div>
+          </div>
+
+          {/* Col 3 — Activité récente */}
+          <div className="dp-card">
+            <h3 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '16px' }}>
+              Activité récente
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {weekPublished && (
+                <ActivityRow
+                  iconBg="var(--accent-light)" iconColor="var(--accent)"
+                  icon={<Check size={14} />}
+                  desc="Semaine publiée"
+                  sub={weekLabel}
+                />
+              )}
+              {weekPublished === false && shifts.length > 0 && (
+                <ActivityRow
+                  iconBg="#FEF3C7" iconColor="var(--warning)"
+                  icon={<AlertTriangle size={14} />}
+                  desc="Planning non publié"
+                  sub={`${shifts.length} shift${shifts.length > 1 ? 's' : ''} en attente`}
+                />
+              )}
+              {shifts.length === 0 && (
+                <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', textAlign: 'center', padding: '16px 0' }}>
+                  Aucune activité récente
+                </p>
+              )}
+            </div>
+            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '0.5px solid var(--border)' }}>
+              <a href="/manager/planning" style={{ fontSize: '13px', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+                Voir toute l'activité <ChevronRight size={13} />
+              </a>
+            </div>
+          </div>
+
+        </div>
       </div>
 
       {/* ── Context menu ──────────────────────────────────────────────────── */}
