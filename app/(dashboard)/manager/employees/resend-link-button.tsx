@@ -64,7 +64,8 @@ export default function ResendLinkButton({ employee }: Props) {
       <Button
         variant="ghost"
         size="sm"
-        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+        className="hover:opacity-80"
+        style={{ color: 'var(--accent)' }}
         onClick={handleOpen}
         title="Générer un nouveau lien d'accès"
       >
@@ -78,24 +79,26 @@ export default function ResendLinkButton({ employee }: Props) {
           </DialogHeader>
 
           <div className="space-y-3">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
               Partagez ce lien avec <strong>{employee.full_name ?? employee.email}</strong> pour qu&apos;il puisse définir ou réinitialiser son mot de passe.
             </p>
 
             {loading && (
-              <div className="flex items-center gap-2 text-sm text-gray-400 py-4 justify-center">
+              <div className="flex items-center gap-2 text-sm py-4 justify-center" style={{ color: 'var(--text-tertiary)' }}>
                 <Loader2 className="h-4 w-4 animate-spin" />Génération en cours…
               </div>
             )}
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && (
+              <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>
+            )}
 
             {link && (
               <>
-                <div className="rounded-lg border bg-gray-50 p-3">
-                  <p className="text-[11px] font-mono text-gray-600 break-all leading-relaxed">{link}</p>
+                <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--bg-page)', border: '0.5px solid var(--border)' }}>
+                  <p className="text-[11px] font-mono break-all leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{link}</p>
                 </div>
-                <p className="text-xs text-gray-400">Valable 24 heures.</p>
+                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Valable 24 heures.</p>
                 <Button onClick={handleCopy} className="w-full gap-2" variant={copied ? 'outline' : 'default'}>
                   {copied ? <><Check className="h-4 w-4 text-green-600" />Copié !</> : <><Copy className="h-4 w-4" />Copier le lien</>}
                 </Button>

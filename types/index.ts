@@ -102,3 +102,30 @@ export type LeaveRequestWithEmployee = LeaveRequest & {
   profiles: Pick<Profile, 'id' | 'full_name' | 'email' | 'position'>
 }
 
+export type CddAlert = {
+  contractId: string
+  employeeId: string
+  employeeName: string | null
+  employeeEmail: string | null
+  contractType: string
+  endDate: string
+  daysLeft: number
+}
+
+export type LatenessAlert = {
+  id: string
+  employeeId: string
+  employeeName: string | null
+  date: string
+  lateMinutes: number
+}
+
+export type AbsenceAlert = {
+  shiftId: string
+  employeeId: string
+  employeeName: string | null
+  date: string
+  startTime: string
+  endTime: string
+}
+

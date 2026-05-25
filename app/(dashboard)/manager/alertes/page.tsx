@@ -5,33 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { AlertTriangle, AlarmClock, FileText, Calendar, Loader2, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
-
-type CddAlert = {
-  contractId: string
-  employeeId: string
-  employeeName: string | null
-  employeeEmail: string | null
-  contractType: string
-  endDate: string
-  daysLeft: number
-}
-
-type LatenessAlert = {
-  id: string
-  employeeId: string
-  employeeName: string | null
-  date: string
-  lateMinutes: number
-}
-
-type AbsenceAlert = {
-  shiftId: string
-  employeeId: string
-  employeeName: string | null
-  date: string
-  startTime: string
-  endTime: string
-}
+import type { CddAlert, LatenessAlert, AbsenceAlert } from '@/types'
 
 function daysLeft(endDate: string): number {
   const today = new Date()
