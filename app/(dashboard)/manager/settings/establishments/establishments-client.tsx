@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Store, Plus, Check, Loader2, Building2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface Establishment {
   id: string
@@ -77,17 +76,17 @@ export default function EstablishmentsClient({ establishments, activeEstablishme
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Établissements</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Gérez vos sites et basculez entre eux depuis la barre latérale.
+          <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Établissements</h1>
+          <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+            Gérez vos sites et basculez entre eux depuis la barre de navigation.
           </p>
         </div>
         {isManager && (
           <button
             onClick={() => { setShowForm(true); setError('') }}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#4F46E5] text-white text-sm font-medium rounded-lg hover:bg-[#4338CA] transition-colors"
+            className="btn-primary flex items-center gap-1.5"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             Ajouter un site
           </button>
         )}
@@ -95,8 +94,8 @@ export default function EstablishmentsClient({ establishments, activeEstablishme
 
       {/* Add form */}
       {showForm && (
-        <form onSubmit={handleCreate} className="mb-5 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
-          <p className="text-sm font-medium text-gray-700 mb-3">Nom du nouvel établissement</p>
+        <form onSubmit={handleCreate} className="mb-5 p-4 rounded-xl" style={{ backgroundColor: 'var(--accent-light)', border: '0.5px solid var(--accent)' }}>
+          <p className="text-[13px] font-medium mb-3" style={{ color: 'var(--text-primary)' }}>Nom du nouvel établissement</p>
           <div className="flex gap-2">
             <input
               type="text"
@@ -104,12 +103,12 @@ export default function EstablishmentsClient({ establishments, activeEstablishme
               onChange={e => setName(e.target.value)}
               placeholder="Ex : Restaurant Lyon Part-Dieu"
               autoFocus
-              className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/30 focus:border-[#4F46E5]"
+              className="dp-input flex-1 px-3 py-2 text-[13px]"
             />
             <button
               type="submit"
               disabled={!name.trim() || saving}
-              className="px-4 py-2 bg-[#4F46E5] text-white text-sm font-medium rounded-lg hover:bg-[#4338CA] disabled:opacity-50 transition-colors flex items-center gap-1.5"
+              className="btn-primary flex items-center gap-1.5 disabled:opacity-50"
             >
               {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Créer
@@ -117,7 +116,7 @@ export default function EstablishmentsClient({ establishments, activeEstablishme
             <button
               type="button"
               onClick={() => { setShowForm(false); setName(''); setError('') }}
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="btn-secondary"
             >
               Annuler
             </button>
@@ -126,7 +125,7 @@ export default function EstablishmentsClient({ establishments, activeEstablishme
       )}
 
       {error && (
-        <div className="mb-4 px-4 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+        <div className="mb-4 px-4 py-2.5 rounded-lg text-[13px]" style={{ backgroundColor: '#FEE2E2', border: '0.5px solid var(--danger)', color: 'var(--danger)' }}>
           {error}
         </div>
       )}
@@ -134,8 +133,8 @@ export default function EstablishmentsClient({ establishments, activeEstablishme
       {/* Establishments list */}
       {establishments.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Building2 className="h-10 w-10 text-gray-300 mb-3" />
-          <p className="text-gray-500 text-sm">Aucun établissement trouvé.</p>
+          <Building2 className="h-10 w-10 mb-3" style={{ color: 'var(--text-tertiary)' }} />
+          <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>Aucun établissement trouvé.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -145,29 +144,28 @@ export default function EstablishmentsClient({ establishments, activeEstablishme
             return (
               <div
                 key={est.id}
-                className={cn(
-                  'flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-all',
-                  isActive
-                    ? 'border-[#4F46E5]/30 bg-[#4F46E5]/5'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                )}
+                className="flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors duration-150"
+                style={{
+                  border: isActive ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                  backgroundColor: isActive ? 'var(--accent-light)' : 'var(--bg-card)',
+                }}
               >
-                <div className={cn(
-                  'h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0',
-                  isActive ? 'bg-[#4F46E5]/20' : 'bg-gray-100'
-                )}>
-                  <Store className={cn('h-4 w-4', isActive ? 'text-[#4F46E5]' : 'text-gray-400')} />
+                <div
+                  className="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: isActive ? 'var(--accent-light)' : 'var(--bg-page)' }}
+                >
+                  <Store className="h-4 w-4" style={{ color: isActive ? 'var(--accent)' : 'var(--text-tertiary)' }} />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className={cn('text-sm font-medium truncate', isActive ? 'text-[#4F46E5]' : 'text-gray-800')}>
+                  <p className="text-[13px] font-medium truncate" style={{ color: isActive ? 'var(--accent)' : 'var(--text-primary)' }}>
                     {est.name}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5 capitalize">{est.role}</p>
+                  <p className="text-[11px] mt-0.5 capitalize" style={{ color: 'var(--text-tertiary)' }}>{est.role}</p>
                 </div>
 
                 {isActive ? (
-                  <span className="flex items-center gap-1 text-xs font-medium text-[#4F46E5] bg-[#4F46E5]/10 px-2.5 py-1 rounded-full">
+                  <span className="dp-badge-info flex items-center gap-1">
                     <Check className="h-3 w-3" />
                     Actif
                   </span>
@@ -175,7 +173,7 @@ export default function EstablishmentsClient({ establishments, activeEstablishme
                   <button
                     onClick={() => handleSwitch(est.id)}
                     disabled={!!switching}
-                    className="flex items-center gap-1.5 text-xs font-medium text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                    className="btn-secondary flex items-center gap-1.5 text-[12px] disabled:opacity-50"
                   >
                     {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
                     Activer
@@ -188,8 +186,8 @@ export default function EstablishmentsClient({ establishments, activeEstablishme
       )}
 
       {establishments.length > 0 && (
-        <p className="mt-5 text-xs text-gray-400">
-          L&apos;établissement actif détermine les données affichées dans toute l&apos;application. Vous pouvez aussi basculer depuis la barre latérale.
+        <p className="mt-5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+          L&apos;établissement actif détermine les données affichées dans toute l&apos;application. Vous pouvez aussi basculer depuis la barre de navigation.
         </p>
       )}
     </div>

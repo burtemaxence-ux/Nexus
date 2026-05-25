@@ -13,18 +13,17 @@ import {
   Plug,
   Store,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
-  { label: 'Organisation',       href: '/manager/settings/organisation',   icon: Building2 },
-  { label: 'Établissements',     href: '/manager/settings/establishments', icon: Store },
-  { label: 'Postes & rôles',    href: '/manager/settings/postes',         icon: Layers },
-  { label: 'Planning',           href: '/manager/settings/regles',         icon: CalendarDays },
-  { label: 'Contrats & RH',     href: '/manager/settings/contrats',       icon: FileText },
-  { label: 'Congés & absences',  href: '/manager/settings/conges',        icon: Umbrella },
-  { label: 'Notifications',      href: '/manager/settings/alertes',       icon: Bell },
-  { label: 'Exports & paie',    href: '/manager/settings/exports',        icon: Download },
-  { label: 'Intégrations',      href: '/manager/settings/integrations',   icon: Plug },
+  { label: 'Organisation',      href: '/manager/settings/organisation',   icon: Building2 },
+  { label: 'Établissements',    href: '/manager/settings/establishments', icon: Store },
+  { label: 'Postes & rôles',   href: '/manager/settings/postes',         icon: Layers },
+  { label: 'Planning',          href: '/manager/settings/regles',         icon: CalendarDays },
+  { label: 'Contrats & RH',    href: '/manager/settings/contrats',       icon: FileText },
+  { label: 'Congés & absences', href: '/manager/settings/conges',        icon: Umbrella },
+  { label: 'Notifications',     href: '/manager/settings/alertes',       icon: Bell },
+  { label: 'Exports & paie',   href: '/manager/settings/exports',        icon: Download },
+  { label: 'Intégrations',     href: '/manager/settings/integrations',   icon: Plug },
 ]
 
 export default function SettingsSidebar() {
@@ -32,11 +31,15 @@ export default function SettingsSidebar() {
 
   return (
     <aside
-      className="w-[210px] shrink-0 border-r border-gray-200 bg-white flex flex-col py-6 sticky top-0 overflow-y-auto"
-      style={{ height: 'calc(100vh - 48px)' }}
+      className="w-[200px] shrink-0 flex flex-col py-5 sticky top-11 overflow-y-auto"
+      style={{
+        height: 'calc(100vh - 44px)',
+        backgroundColor: 'var(--bg-card)',
+        borderRight: '0.5px solid var(--border)',
+      }}
     >
-      <div className="px-4 mb-4">
-        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+      <div className="px-4 mb-3">
+        <span className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
           Paramètres
         </span>
       </div>
@@ -48,18 +51,15 @@ export default function SettingsSidebar() {
             <Link
               key={href}
               href={href}
-              className={cn(
-                'flex items-center gap-2.5 px-3 py-[7px] rounded-md text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-              )}
+              className="flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] transition-colors duration-150"
+              style={{
+                backgroundColor: isActive ? 'var(--accent-light)' : 'transparent',
+                color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+              }}
             >
               <Icon
-                className={cn(
-                  'h-[15px] w-[15px] shrink-0',
-                  isActive ? 'text-gray-800' : 'text-gray-400'
-                )}
+                className="h-[14px] w-[14px] shrink-0"
+                style={{ color: isActive ? 'var(--accent)' : 'var(--text-tertiary)' }}
               />
               <span>{label}</span>
             </Link>

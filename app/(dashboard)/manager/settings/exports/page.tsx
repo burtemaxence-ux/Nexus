@@ -190,7 +190,7 @@ export default function ExportsPage() {
   return (
     <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Exports & paie</h1>
+        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Exports & paie</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Configurez les formats disponibles et exportez vos récapitulatifs.
         </p>
@@ -200,8 +200,8 @@ export default function ExportsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-              <FileText className="h-4 w-4 text-indigo-500" />
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+              <FileText className="h-4 w-4" style={{ color: 'var(--accent)' }} />
             </div>
             <div>
               <CardTitle className="text-base">Formats d&apos;export</CardTitle>
@@ -215,12 +215,12 @@ export default function ExportsPage() {
               <button
                 key={fmt}
                 onClick={() => toggleFormat(fmt)}
-                className={cn(
-                  'flex-1 h-10 rounded-lg border text-sm font-medium transition-colors',
-                  enabledFormats[fmt]
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border text-muted-foreground hover:bg-muted/50'
-                )}
+                className="flex-1 h-10 rounded-lg text-[13px] font-medium transition-colors duration-150"
+                style={{
+                  border: enabledFormats[fmt] ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                  backgroundColor: enabledFormats[fmt] ? 'var(--accent-light)' : 'transparent',
+                  color: enabledFormats[fmt] ? 'var(--accent)' : 'var(--text-secondary)',
+                }}
               >
                 {fmt}
               </button>
@@ -244,8 +244,8 @@ export default function ExportsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-              <Download className="h-4 w-4 text-emerald-500" />
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+              <Download className="h-4 w-4" style={{ color: 'var(--accent)' }} />
             </div>
             <div>
               <CardTitle className="text-base">Exporter un récapitulatif</CardTitle>
@@ -258,18 +258,17 @@ export default function ExportsPage() {
           {/* Period selector */}
           <div className="space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Période</p>
-            <div className="flex rounded-lg border border-border overflow-hidden text-sm w-fit">
+            <div className="flex overflow-hidden w-fit" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
               {(['week', 'month', 'custom'] as Period[]).map((p, i) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={cn(
-                    'px-4 py-2 font-medium transition-colors',
-                    i > 0 && 'border-l border-border',
-                    period === p
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted/50'
-                  )}
+                  className="px-4 py-1.5 text-[13px] font-medium transition-colors duration-150"
+                  style={{
+                    backgroundColor: period === p ? 'var(--text-primary)' : 'transparent',
+                    color: period === p ? 'var(--bg-card)' : 'var(--text-tertiary)',
+                    borderLeft: i > 0 ? '0.5px solid var(--border)' : undefined,
+                  }}
                 >
                   {p === 'week' ? 'Semaine' : p === 'month' ? 'Mois' : 'Personnalisé'}
                 </button>
@@ -306,12 +305,12 @@ export default function ExportsPage() {
                   <button
                     key={fmt}
                     onClick={() => setSelectedFormat(fmt)}
-                    className={cn(
-                      'px-4 py-1.5 rounded-md border text-sm font-medium transition-colors',
-                      selectedFormat === fmt
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border text-muted-foreground hover:bg-muted/50'
-                    )}
+                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-colors duration-150"
+                    style={{
+                      border: selectedFormat === fmt ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                      backgroundColor: selectedFormat === fmt ? 'var(--accent-light)' : 'transparent',
+                      color: selectedFormat === fmt ? 'var(--accent)' : 'var(--text-secondary)',
+                    }}
                   >
                     {fmt}
                   </button>
@@ -330,7 +329,7 @@ export default function ExportsPage() {
                 return (
                   <div key={report.id} className="flex items-center justify-between px-4 py-3.5 bg-card hover:bg-muted/20 transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--bg-page)' }}>
                         {report.icon}
                       </div>
                       <div>

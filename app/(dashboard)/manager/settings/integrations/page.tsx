@@ -138,18 +138,18 @@ export default function IntegrationsPage() {
   return (
     <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Intégrations</h1>
+        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Intégrations</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Connectez D-pot à vos outils métier pour automatiser votre workflow.
         </p>
       </div>
 
       {/* ── Coming soon notice ───────────────────────────────────────── */}
-      <div className="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3.5">
-        <Plug className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
+      <div className="flex items-start gap-3 rounded-xl px-4 py-3.5" style={{ border: '0.5px solid var(--accent)', backgroundColor: 'var(--accent-light)' }}>
+        <Plug className="h-4 w-4 mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
         <div>
-          <p className="text-sm font-medium text-indigo-900">Intégrations — bientôt disponibles</p>
-          <p className="text-xs text-indigo-600 mt-0.5">
+          <p className="text-[13px] font-medium" style={{ color: 'var(--accent)' }}>Intégrations — bientôt disponibles</p>
+          <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
             Ces connecteurs sont en cours de développement. Ils seront disponibles dans une prochaine mise à jour.
           </p>
         </div>
@@ -164,7 +164,7 @@ export default function IntegrationsPage() {
           >
             {/* Coming soon badge */}
             <div className="absolute top-3 right-3">
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700 uppercase tracking-wide">
+              <span className="dp-badge-warning inline-flex items-center gap-1">
                 <Lock className="h-2.5 w-2.5" />
                 Bientôt
               </span>
@@ -173,7 +173,7 @@ export default function IntegrationsPage() {
             <CardContent className="pt-5 pb-4 px-4">
               {/* Logo + name */}
               <div className="flex items-center gap-3 mb-3">
-                <div className={`h-10 w-10 rounded-xl ${integration.bg} flex items-center justify-center shrink-0 shadow-sm`}>
+                <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--bg-page)', border: '0.5px solid var(--border)' }}>
                   {integration.logo}
                 </div>
                 <div>

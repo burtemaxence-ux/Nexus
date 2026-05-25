@@ -59,9 +59,8 @@ function Toggle({ checked, onToggle, small }: { checked: boolean; onToggle: () =
       role="switch"
       aria-checked={checked}
       onClick={onToggle}
-      className={`relative inline-flex ${h} items-center rounded-full transition-colors focus:outline-none ${
-        checked ? 'bg-primary' : 'bg-muted-foreground/30'
-      }`}
+      className={`relative inline-flex ${h} items-center rounded-full transition-colors duration-150 focus:outline-none`}
+      style={{ backgroundColor: checked ? 'var(--accent)' : 'var(--border)' }}
     >
       <span className={`inline-block ${dot} transform rounded-full bg-white shadow transition-transform ${
         checked ? on : 'translate-x-1'
@@ -131,7 +130,7 @@ export default function CongesPage() {
   return (
     <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Congés & absences</h1>
+        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Congés & absences</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Types de congés, workflow de validation et délais de prévenance.
         </p>
@@ -141,8 +140,8 @@ export default function CongesPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-              <Umbrella className="h-4 w-4 text-emerald-500" />
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+              <Umbrella className="h-4 w-4" style={{ color: 'var(--accent)' }} />
             </div>
             <div>
               <CardTitle className="text-base">Types de congés</CardTitle>
@@ -200,24 +199,25 @@ export default function CongesPage() {
 
                 {/* Validation toggle */}
                 <div className="flex items-center justify-center">
-                  <div className="flex rounded-lg border border-border overflow-hidden text-xs">
+                  <div className="flex overflow-hidden" style={{ border: '0.5px solid var(--border)', borderRadius: '6px' }}>
                     <button
                       onClick={() => setField(key, 'validation', 'auto')}
-                      className={`px-3 py-1.5 font-medium transition-colors ${
-                        config[key].validation === 'auto'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-muted'
-                      }`}
+                      className="px-3 py-1.5 text-[12px] font-medium transition-colors duration-150"
+                      style={{
+                        backgroundColor: config[key].validation === 'auto' ? 'var(--text-primary)' : 'transparent',
+                        color: config[key].validation === 'auto' ? 'var(--bg-card)' : 'var(--text-tertiary)',
+                      }}
                     >
                       Auto
                     </button>
                     <button
                       onClick={() => setField(key, 'validation', 'manager')}
-                      className={`px-3 py-1.5 font-medium transition-colors border-l border-border ${
-                        config[key].validation === 'manager'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-muted'
-                      }`}
+                      className="px-3 py-1.5 text-[12px] font-medium transition-colors duration-150"
+                      style={{
+                        borderLeft: '0.5px solid var(--border)',
+                        backgroundColor: config[key].validation === 'manager' ? 'var(--text-primary)' : 'transparent',
+                        color: config[key].validation === 'manager' ? 'var(--bg-card)' : 'var(--text-tertiary)',
+                      }}
                     >
                       Manager
                     </button>

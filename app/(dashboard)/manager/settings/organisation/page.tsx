@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Building2, Save, Upload, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -15,12 +14,12 @@ import {
 import { createClient } from '@/lib/supabase/client'
 
 const TIMEZONES = [
-  { value: 'Europe/Paris',       label: 'Europe/Paris (UTC+1/+2)' },
-  { value: 'Europe/Brussels',    label: 'Europe/Brussels (UTC+1/+2)' },
-  { value: 'Europe/Zurich',      label: 'Europe/Zurich (UTC+1/+2)' },
-  { value: 'Europe/London',      label: 'Europe/London (UTC+0/+1)' },
-  { value: 'America/New_York',   label: 'America/New_York (UTC-5/-4)' },
-  { value: 'America/Los_Angeles',label: 'America/Los_Angeles (UTC-8/-7)' },
+  { value: 'Europe/Paris',        label: 'Europe/Paris (UTC+1/+2)' },
+  { value: 'Europe/Brussels',     label: 'Europe/Brussels (UTC+1/+2)' },
+  { value: 'Europe/Zurich',       label: 'Europe/Zurich (UTC+1/+2)' },
+  { value: 'Europe/London',       label: 'Europe/London (UTC+0/+1)' },
+  { value: 'America/New_York',    label: 'America/New_York (UTC-5/-4)' },
+  { value: 'America/Los_Angeles', label: 'America/Los_Angeles (UTC-8/-7)' },
 ]
 
 type Fields = {
@@ -138,46 +137,55 @@ export default function OrganisationPage() {
     setSaving(false)
   }
 
+  const fieldLabel = (text: string) => (
+    <label className="block text-[12px] font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+      {text}
+    </label>
+  )
+
   return (
-    <div className="max-w-2xl mx-auto px-8 py-10">
-      <div className="mb-8">
-        <h1 className="text-xl font-semibold text-gray-900">Organisation</h1>
-        <p className="text-sm text-gray-500 mt-1">
+    <div className="max-w-2xl mx-auto px-8 py-8">
+      <div className="mb-6">
+        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
+          Organisation
+        </h1>
+        <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
           Informations légales et coordonnées de votre établissement
         </p>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+      <div className="overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '0.5px solid var(--border)', borderRadius: '12px' }}>
         {/* Card header */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
-          <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-            <Building2 className="h-4 w-4 text-blue-500" />
+        <div className="flex items-center gap-3 px-6 py-4" style={{ borderBottom: '0.5px solid var(--border)' }}>
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+            <Building2 className="h-4 w-4" style={{ color: 'var(--accent)' }} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">Informations de l&apos;établissement</p>
-            <p className="text-xs text-gray-500">Ces informations apparaissent dans vos exports et emails</p>
+            <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>Informations de l&apos;établissement</p>
+            <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>Ces informations apparaissent dans vos exports et emails</p>
           </div>
         </div>
 
         <div className="px-6 py-6 space-y-5">
           {/* Logo */}
           <div>
-            <Label className="text-sm font-medium text-gray-700 mb-2 block">Logo</Label>
+            {fieldLabel('Logo')}
             <div className="flex items-center gap-4">
               {logoPreview ? (
-                <div className="relative h-16 w-16 rounded-xl border border-gray-200 overflow-hidden bg-gray-50 shrink-0">
+                <div className="relative h-16 w-16 rounded-xl overflow-hidden shrink-0" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={logoPreview} alt="Logo" className="h-full w-full object-contain" />
                   <button
                     onClick={removeLogo}
-                    className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-red-50 hover:border-red-200 transition-colors"
+                    className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full flex items-center justify-center transition-colors duration-150"
+                    style={{ backgroundColor: 'var(--bg-card)', border: '0.5px solid var(--border)' }}
                   >
-                    <X className="h-3 w-3 text-gray-500" />
+                    <X className="h-3 w-3" style={{ color: 'var(--text-secondary)' }} />
                   </button>
                 </div>
               ) : (
-                <div className="h-16 w-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center shrink-0 bg-gray-50">
-                  <Building2 className="h-6 w-6 text-gray-300" />
+                <div className="h-16 w-16 rounded-xl flex items-center justify-center shrink-0" style={{ border: '1px dashed var(--border)', backgroundColor: 'var(--bg-page)' }}>
+                  <Building2 className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
                 </div>
               )}
               <div>
@@ -189,77 +197,67 @@ export default function OrganisationPage() {
                   className="hidden"
                   id="logo-upload"
                 />
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 text-xs"
+                  className="btn-secondary flex items-center gap-1.5 text-[12px]"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={logoUploading}
                 >
                   <Upload className="h-3.5 w-3.5" />
                   {logoUploading ? 'Upload en cours…' : 'Choisir une image'}
-                </Button>
-                <p className="text-xs text-gray-400 mt-1.5">PNG, JPG, SVG · max 2 Mo</p>
-                {logoError && <p className="text-xs text-red-500 mt-1">{logoError}</p>}
+                </button>
+                <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-tertiary)' }}>PNG, JPG, SVG · max 2 Mo</p>
+                {logoError && <p className="text-[11px] mt-1" style={{ color: 'var(--danger)' }}>{logoError}</p>}
               </div>
             </div>
           </div>
 
           {/* Nom */}
           <div>
-            <Label htmlFor="org-name" className="text-sm font-medium text-gray-700 mb-1.5 block">
-              Nom de l&apos;établissement
-            </Label>
+            {fieldLabel("Nom de l'établissement")}
             <Input
               id="org-name"
               value={fields.establishment_name}
               onChange={e => set('establishment_name', e.target.value)}
               placeholder="Ex : Bistrot du Marché"
-              className="h-9 text-sm"
+              className="dp-input h-9 text-[13px]"
             />
           </div>
 
           {/* Adresse */}
           <div>
-            <Label htmlFor="org-address" className="text-sm font-medium text-gray-700 mb-1.5 block">
-              Adresse
-            </Label>
+            {fieldLabel('Adresse')}
             <Input
               id="org-address"
               value={fields.org_address}
               onChange={e => set('org_address', e.target.value)}
               placeholder="Ex : 12 rue de la Paix, 75001 Paris"
-              className="h-9 text-sm"
+              className="dp-input h-9 text-[13px]"
             />
           </div>
 
           {/* Téléphone + Email */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="org-phone" className="text-sm font-medium text-gray-700 mb-1.5 block">
-                Téléphone
-              </Label>
+              {fieldLabel('Téléphone')}
               <Input
                 id="org-phone"
                 type="tel"
                 value={fields.org_phone}
                 onChange={e => set('org_phone', e.target.value)}
                 placeholder="Ex : 01 23 45 67 89"
-                className="h-9 text-sm"
+                className="dp-input h-9 text-[13px]"
               />
             </div>
             <div>
-              <Label htmlFor="org-email" className="text-sm font-medium text-gray-700 mb-1.5 block">
-                Email
-              </Label>
+              {fieldLabel('Email')}
               <Input
                 id="org-email"
                 type="email"
                 value={fields.org_email}
                 onChange={e => set('org_email', e.target.value)}
                 placeholder="Ex : contact@monrestaurant.fr"
-                className="h-9 text-sm"
+                className="dp-input h-9 text-[13px]"
               />
             </div>
           </div>
@@ -267,29 +265,25 @@ export default function OrganisationPage() {
           {/* SIRET + Fuseau */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="org-siret" className="text-sm font-medium text-gray-700 mb-1.5 block">
-                SIRET
-              </Label>
+              {fieldLabel('SIRET')}
               <Input
                 id="org-siret"
                 value={fields.org_siret}
                 onChange={e => set('org_siret', e.target.value)}
                 placeholder="123 456 789 00012"
                 maxLength={17}
-                className="h-9 text-sm font-mono tracking-wide"
+                className="dp-input h-9 text-[13px] font-mono tracking-wide"
               />
             </div>
             <div>
-              <Label htmlFor="org-timezone" className="text-sm font-medium text-gray-700 mb-1.5 block">
-                Fuseau horaire
-              </Label>
+              {fieldLabel('Fuseau horaire')}
               <Select value={fields.org_timezone} onValueChange={v => set('org_timezone', v)}>
-                <SelectTrigger id="org-timezone" className="h-9 text-sm">
+                <SelectTrigger id="org-timezone" className="dp-input h-9 text-[13px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {TIMEZONES.map(tz => (
-                    <SelectItem key={tz.value} value={tz.value} className="text-sm">
+                    <SelectItem key={tz.value} value={tz.value} className="text-[13px]">
                       {tz.label}
                     </SelectItem>
                   ))}
@@ -300,15 +294,15 @@ export default function OrganisationPage() {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderTop: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
           {error
-            ? <p className="text-sm text-red-600">{error}</p>
+            ? <p className="text-[12px]" style={{ color: 'var(--danger)' }}>{error}</p>
             : <span />
           }
-          <Button onClick={handleSave} disabled={saving} className="gap-2 ml-auto">
-            <Save className="h-4 w-4" />
+          <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-1.5 ml-auto">
+            <Save className="h-3.5 w-3.5" />
             {saving ? 'Enregistrement…' : saved ? 'Enregistré !' : 'Enregistrer'}
-          </Button>
+          </button>
         </div>
       </div>
     </div>

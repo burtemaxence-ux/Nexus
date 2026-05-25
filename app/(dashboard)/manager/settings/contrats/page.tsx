@@ -58,9 +58,8 @@ function Toggle({ checked, onToggle, small }: { checked: boolean; onToggle: () =
       role="switch"
       aria-checked={checked}
       onClick={onToggle}
-      className={`relative inline-flex ${h} items-center rounded-full transition-colors focus:outline-none ${
-        checked ? 'bg-primary' : 'bg-muted-foreground/30'
-      }`}
+      className={`relative inline-flex ${h} items-center rounded-full transition-colors duration-150 focus:outline-none`}
+      style={{ backgroundColor: checked ? 'var(--accent)' : 'var(--border)' }}
     >
       <span className={`inline-block ${dot} transform rounded-full bg-white shadow transition-transform ${
         checked ? on : 'translate-x-1'
@@ -151,7 +150,7 @@ export default function ContratsPage() {
   return (
     <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Contrats & RH</h1>
+        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Contrats & RH</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Types de contrats actifs et limites automatiques par type.
         </p>

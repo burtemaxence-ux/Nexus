@@ -182,11 +182,10 @@ function Toggle({ checked, onToggle }: { checked: boolean; onToggle: () => void 
       role="switch"
       aria-checked={checked}
       onClick={onToggle}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-        checked ? 'bg-primary' : 'bg-muted-foreground/30'
-      }`}
+      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 focus:outline-none"
+      style={{ backgroundColor: checked ? 'var(--accent)' : 'var(--border)' }}
     >
-      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
         checked ? 'translate-x-6' : 'translate-x-1'
       }`} />
     </button>
@@ -291,8 +290,8 @@ export default function ReglesPage() {
   return (
     <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Planning</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Planning</h1>
+        <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
           Règles de planification, horaires et personnalisation visuelle.
         </p>
       </div>
@@ -324,22 +323,18 @@ export default function ReglesPage() {
                 <button
                   key={at.id}
                   onClick={() => selectActivityType(at.id)}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-center transition-all',
-                    activityType === at.id
-                      ? 'border-primary bg-primary/5 shadow-sm'
-                      : 'border-border hover:border-gray-300 hover:bg-muted/40'
-                  )}
+                  className="flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center transition-colors duration-150"
+                  style={{
+                    border: activityType === at.id ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                    backgroundColor: activityType === at.id ? 'var(--accent-light)' : 'transparent',
+                  }}
                 >
                   <span className="text-xl leading-none">{at.emoji}</span>
-                  <span className={cn(
-                    'text-[10px] font-medium leading-tight',
-                    activityType === at.id ? 'text-primary' : 'text-muted-foreground'
-                  )}>
+                  <span className="text-[10px] font-medium leading-tight" style={{ color: activityType === at.id ? 'var(--accent)' : 'var(--text-secondary)' }}>
                     {at.label}
                   </span>
                   {activityType === at.id && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'var(--accent)' }} />
                   )}
                 </button>
               ))}
@@ -387,26 +382,25 @@ export default function ReglesPage() {
                       <button
                         key={code}
                         onClick={() => set('collective_agreement', code)}
-                        className={cn(
-                          'w-full flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-all',
-                          isSelected
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-gray-300 hover:bg-muted/30'
-                        )}
+                        className="w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors duration-150"
+                        style={{
+                          border: isSelected ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                          backgroundColor: isSelected ? 'var(--accent-light)' : 'transparent',
+                        }}
                       >
-                        <div className={cn(
-                          'h-4 w-4 rounded-full border-2 shrink-0 transition-colors',
-                          isSelected ? 'border-primary bg-primary' : 'border-gray-300'
-                        )}>
-                          {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white m-auto mt-0.5" />}
+                        <div
+                          className="h-4 w-4 rounded-full border-2 shrink-0 transition-colors flex items-center justify-center"
+                          style={{ borderColor: isSelected ? 'var(--accent)' : 'var(--border)', backgroundColor: isSelected ? 'var(--accent)' : 'transparent' }}
+                        >
+                          {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={cn('text-sm font-medium', isSelected ? 'text-primary' : 'text-foreground')}>
+                          <p className="text-[13px] font-medium" style={{ color: isSelected ? 'var(--accent)' : 'var(--text-primary)' }}>
                             {code}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate">{conv?.label}</p>
+                          <p className="text-[12px] truncate" style={{ color: 'var(--text-tertiary)' }}>{conv?.label}</p>
                         </div>
-                        {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                        {isSelected && <Check className="h-4 w-4 shrink-0" style={{ color: 'var(--accent)' }} />}
                       </button>
                     )
                   })}
@@ -415,9 +409,9 @@ export default function ReglesPage() {
 
               {/* Convention details panel */}
               {conventionDetails && (
-                <div className="rounded-lg border border-amber-100 bg-amber-50/50 p-4 mt-2">
+                <div className="rounded-lg p-4 mt-2" style={{ border: '0.5px solid #FDE68A', backgroundColor: '#FFFBEB' }}>
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs font-semibold text-amber-800 uppercase tracking-wide">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--warning)' }}>
                       {conventionDetails.code} — {conventionDetails.label}
                     </span>
                   </div>
@@ -427,15 +421,15 @@ export default function ReglesPage() {
                       { label: 'Heures sup. dès',    value: conventionDetails.overtime_from },
                       { label: 'Repos quotidien',    value: conventionDetails.rest_hours },
                     ].map(item => (
-                      <div key={item.label} className="rounded-md bg-white/80 border border-amber-100 px-3 py-2">
-                        <p className="text-[10px] text-amber-700 font-medium uppercase tracking-wide">{item.label}</p>
-                        <p className="text-sm font-semibold text-amber-900 mt-0.5">{item.value}</p>
+                      <div key={item.label} className="rounded-lg px-3 py-2" style={{ backgroundColor: 'rgba(255,255,255,0.8)', border: '0.5px solid #FDE68A' }}>
+                        <p className="text-[10px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--warning)' }}>{item.label}</p>
+                        <p className="text-[13px] font-medium mt-0.5" style={{ color: '#92400E' }}>{item.value}</p>
                       </div>
                     ))}
                   </div>
                   <div className="flex items-start gap-2">
-                    <ChevronRight className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
-                    <p className="text-xs text-amber-700">{conventionDetails.notes}</p>
+                    <ChevronRight className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} />
+                    <p className="text-[12px]" style={{ color: '#92400E' }}>{conventionDetails.notes}</p>
                   </div>
                 </div>
               )}
@@ -539,12 +533,12 @@ export default function ReglesPage() {
                 <button
                   key={idx}
                   onClick={() => toggleDay(idx)}
-                  className={cn(
-                    'h-9 w-12 rounded-lg border text-sm font-medium transition-colors',
-                    closed
-                      ? 'border-red-300 bg-red-50 text-red-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                  )}
+                  className="h-9 w-12 rounded-lg text-[13px] font-medium transition-colors duration-150"
+                  style={{
+                    border: closed ? '0.5px solid var(--danger)' : '0.5px solid var(--border)',
+                    backgroundColor: closed ? '#FEE2E2' : 'transparent',
+                    color: closed ? 'var(--danger)' : 'var(--text-secondary)',
+                  }}
                 >
                   {day}
                 </button>

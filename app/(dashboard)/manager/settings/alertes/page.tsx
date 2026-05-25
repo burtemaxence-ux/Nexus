@@ -224,7 +224,7 @@ export default function AlertesPage() {
   return (
     <div className="max-w-3xl mx-auto px-8 py-10 space-y-8">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Notifications</h1>
+        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Notifications</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Alertes email et règles de contrôle du planning.
         </p>
@@ -234,8 +234,8 @@ export default function AlertesPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-sky-50 flex items-center justify-center shrink-0">
-              <Mail className="h-4 w-4 text-sky-500" />
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+              <Mail className="h-4 w-4" style={{ color: 'var(--accent)' }} />
             </div>
             <div>
               <CardTitle className="text-base">Alertes email — Manager</CardTitle>
@@ -261,7 +261,7 @@ export default function AlertesPage() {
                   onClick={() => toggleEmailNotif(notif.id)}
                   className={cn(
                     'relative inline-flex h-5 w-9 shrink-0 ml-4 items-center rounded-full transition-colors focus:outline-none',
-                    emailNotifs[notif.id] ? 'bg-primary' : 'bg-muted-foreground/30',
+                    emailNotifs[notif.id] ? 'bg-primary' : 'bg-[var(--border)]',
                   )}
                 >
                   <span className={cn(
@@ -279,8 +279,8 @@ export default function AlertesPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-              <Zap className="h-4 w-4 text-violet-500" />
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+              <Zap className="h-4 w-4" style={{ color: 'var(--accent)' }} />
             </div>
             <div>
               <CardTitle className="text-base">Règles d&apos;automatisation</CardTitle>
@@ -306,7 +306,7 @@ export default function AlertesPage() {
                   onClick={() => setAutomations(prev => ({ ...prev, [rule.id]: !prev[rule.id] }))}
                   className={cn(
                     'relative inline-flex h-5 w-9 shrink-0 ml-4 items-center rounded-full transition-colors focus:outline-none',
-                    automations[rule.id] ? 'bg-primary' : 'bg-muted-foreground/30',
+                    automations[rule.id] ? 'bg-primary' : 'bg-[var(--border)]',
                   )}
                 >
                   <span className={cn(
@@ -342,9 +342,9 @@ export default function AlertesPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-6 text-xs text-muted-foreground bg-muted/40 px-4 py-3 rounded-lg border border-border/50">
+        <div className="flex items-center gap-6 text-[12px] px-4 py-3 rounded-lg" style={{ backgroundColor: 'var(--bg-page)', border: '0.5px solid var(--border)', color: 'var(--text-secondary)' }}>
           <span className="flex items-center gap-2">
-            <span className="inline-block w-8 h-4 rounded-full bg-primary/80" />
+            <span className="inline-block w-8 h-4 rounded-full" style={{ backgroundColor: 'var(--accent)' }} />
             Alerte active — affichée sur la grille
           </span>
           <span className="flex items-center gap-2">
@@ -388,7 +388,7 @@ export default function AlertesPage() {
                     onClick={() => toggleEnabled(alert.id)}
                     className={cn(
                       'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none',
-                      cfg.enabled ? 'bg-primary' : 'bg-muted-foreground/30',
+                      cfg.enabled ? 'bg-primary' : 'bg-[var(--border)]',
                     )}
                   >
                     <span className={cn(

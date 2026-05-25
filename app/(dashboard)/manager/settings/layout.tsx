@@ -12,11 +12,11 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   }
 
   return (
-    <div className="flex" style={{ minHeight: 'calc(100vh - 48px)' }}>
+    <div className="flex" style={{ minHeight: 'calc(100vh - 44px)' }}>
       <SettingsSidebar />
-      <main className="flex-1 overflow-y-auto bg-gray-50/40">
+      <main className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--bg-page)' }}>
         {isSupervisor && (
-          <div className="flex items-center gap-2 px-5 py-2.5 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs font-medium">
+          <div className="flex items-center gap-2 px-5 py-2.5 text-xs font-medium" style={{ backgroundColor: '#FEF3C7', borderBottom: '0.5px solid #FDE68A', color: 'var(--warning)' }}>
             <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
             Accès en lecture seule — les modifications de paramètres sont réservées aux managers.
           </div>
