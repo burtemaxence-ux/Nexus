@@ -389,7 +389,7 @@ export function PlanningWeekTimeline({
     }
   }
 
-  const positions = [...new Set(employees.map(e => e.position).filter(Boolean) as string[])].sort()
+  const positions = Array.from(new Set(employees.map(e => e.position).filter(Boolean) as string[])).sort()
   const filteredEmps = filterPoste ? employees.filter(e => e.position === filterPoste) : employees
   const activeDragShift = activeDragId ? shifts.find(s => `shift-${s.id}` === activeDragId) : null
 
