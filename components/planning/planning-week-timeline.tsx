@@ -665,7 +665,7 @@ export function PlanningWeekTimeline({
               </button>
             </Link>
             <Link href="/manager/planning">
-              <button className="btn-secondary" style={{ fontSize: '13px', padding: '7px 12px' }}>Aujourd'hui</button>
+              <button className="btn-secondary" style={{ fontSize: '13px', padding: '7px 12px' }}>{"Aujourd'hui"}</button>
             </Link>
             <Calendar size={15} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1054,7 +1054,7 @@ export function PlanningWeekTimeline({
             </div>
             <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '0.5px solid var(--border)' }}>
               <a href="/manager/planning" style={{ fontSize: '13px', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
-                Voir toute l'activité <ChevronRight size={13} />
+                {"Voir toute l'activité"} <ChevronRight size={13} />
               </a>
             </div>
           </div>
