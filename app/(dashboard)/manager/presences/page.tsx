@@ -168,12 +168,12 @@ function workedMinutes(p: PresenceRow | null): number {
 // ── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<RowStatus, { label: string; bg: string; text: string; dot: string }> = {
-  present:   { label: 'Présent',  bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  on_break:  { label: 'En pause', bg: 'bg-amber-100',   text: 'text-amber-700',   dot: 'bg-amber-400'   },
-  departed:  { label: 'Parti',    bg: 'bg-gray-100',    text: 'text-gray-600',    dot: 'bg-gray-400'    },
-  absent:    { label: 'Absent',   bg: 'bg-red-100',     text: 'text-red-700',     dot: 'bg-red-500'     },
-  scheduled: { label: 'Attendu',  bg: 'bg-blue-50',     text: 'text-blue-600',    dot: 'bg-blue-300'    },
-  no_data:   { label: '—',        bg: 'bg-gray-50',     text: 'text-gray-400',    dot: 'bg-gray-200'    },
+  present:   { label: 'Présent',  bg: '#DCFCE7',             text: '#16A34A',               dot: '#16A34A'               },
+  on_break:  { label: 'En pause', bg: '#FEF3C7',             text: '#D97706',               dot: '#D97706'               },
+  departed:  { label: 'Parti',    bg: 'var(--bg-page)',      text: 'var(--text-secondary)', dot: 'var(--text-tertiary)'  },
+  absent:    { label: 'Absent',   bg: '#FEE2E2',             text: '#DC2626',               dot: '#DC2626'               },
+  scheduled: { label: 'Attendu',  bg: 'var(--accent-light)', text: 'var(--accent)',         dot: 'var(--accent)'         },
+  no_data:   { label: '—',        bg: 'var(--bg-page)',      text: 'var(--text-tertiary)',  dot: 'var(--border)'         },
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -274,33 +274,38 @@ export default function PresencesDashboardPage() {
   })
 
   return (
-    <div className="px-6 py-8 max-w-5xl mx-auto">
+    <div className="px-6 py-6 max-w-5xl mx-auto">
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Badgeuse</h1>
-          <p className="text-sm text-muted-foreground mt-0.5 capitalize">{todayLabel}</p>
+          <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
+            Badgeuse
+          </h1>
+          <p className="text-[13px] mt-1 capitalize" style={{ color: 'var(--text-tertiary)' }}>{todayLabel}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {period === 'today' && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5">
+            <div className="flex items-center gap-1.5 text-[12px] rounded-[6px] px-3 py-1.5"
+              style={{ color: 'var(--success)', backgroundColor: '#DCFCE7', border: '0.5px solid var(--success)' }}>
               <Wifi className="h-3 w-3" />
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--success)' }} />
               Temps réel
             </div>
           )}
-          <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+          {/* Period toggle */}
+          <div className="flex overflow-hidden text-[13px]"
+            style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
             {(['today', 'week', 'month'] as Period[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={cn(
-                  'px-4 py-1.5 font-medium transition-colors',
-                  period === p
-                    ? 'bg-primary text-white'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
+                className="px-3 py-1.5 transition-colors duration-150"
+                style={{
+                  backgroundColor: period === p ? 'var(--text-primary)' : 'transparent',
+                  color: period === p ? 'var(--bg-card)' : 'var(--text-tertiary)',
+                  borderLeft: p !== 'today' ? '0.5px solid var(--border)' : undefined,
+                }}
               >
                 {p === 'today' ? "Aujourd'hui" : p === 'week' ? 'Semaine' : 'Mois'}
               </button>
@@ -313,15 +318,15 @@ export default function PresencesDashboardPage() {
       {period === 'today' && (
         <div className="grid grid-cols-4 gap-3 mb-6">
           {([
-            { key: 'present',  icon: LogIn,  label: 'En service', color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
-            { key: 'on_break', icon: Coffee, label: 'En pause',   color: 'text-amber-600',   bg: 'bg-amber-50 border-amber-200'   },
-            { key: 'departed', icon: LogOut, label: 'Partis',     color: 'text-gray-600',    bg: 'bg-gray-50 border-gray-200'     },
-            { key: 'absent',   icon: Users,  label: 'Absents',    color: 'text-red-500',     bg: 'bg-red-50 border-red-200'       },
-          ] as const).map(({ key, icon: Icon, label, color, bg }) => (
-            <div key={key} className={`rounded-xl border p-4 text-center ${bg}`}>
-              <Icon className={`h-4 w-4 mx-auto mb-2 ${color}`} />
-              <p className={`text-2xl font-bold ${color}`}>{counts[key]}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
+            { key: 'present'  as const, icon: LogIn,  label: 'En service', color: '#16A34A', bg: '#DCFCE7' },
+            { key: 'on_break' as const, icon: Coffee, label: 'En pause',   color: '#D97706', bg: '#FEF3C7' },
+            { key: 'departed' as const, icon: LogOut, label: 'Partis',     color: 'var(--text-secondary)', bg: 'var(--bg-page)' },
+            { key: 'absent'   as const, icon: Users,  label: 'Absents',    color: '#DC2626', bg: '#FEE2E2' },
+          ]).map(({ key, icon: Icon, label, color, bg }) => (
+            <div key={key} className="rounded-[10px] p-3 text-center" style={{ backgroundColor: bg, border: '0.5px solid var(--border)' }}>
+              <Icon className="h-3.5 w-3.5 mx-auto mb-2" style={{ color }} />
+              <p className="text-[20px] font-[400] leading-none" style={{ color }}>{counts[key]}</p>
+              <p className="text-[10px] uppercase tracking-[0.06em] mt-2" style={{ color: 'var(--text-tertiary)' }}>{label}</p>
             </div>
           ))}
         </div>
@@ -333,38 +338,40 @@ export default function PresencesDashboardPage() {
           <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
         </div>
       ) : rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-12 text-center">
-          <CalendarDays className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">
+        <div className="rounded-xl p-12 text-center" style={{ border: '0.5px dashed var(--border)' }}>
+          <CalendarDays className="h-8 w-8 mx-auto mb-3" style={{ color: 'var(--text-tertiary)' }} />
+          <p className="text-[14px] font-medium" style={{ color: 'var(--text-secondary)' }}>
             {employees.length === 0 ? 'Aucun employé' : 'Aucune donnée pour cette période'}
           </p>
-          <p className="text-xs text-muted-foreground/60 mt-1">
-            {employees.length > 0 && 'Aucun créneau planifié ni pointage enregistré.'}
-          </p>
+          {employees.length > 0 && (
+            <p className="text-[12px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+              Aucun créneau planifié ni pointage enregistré.
+            </p>
+          )}
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden bg-card">
-          <table className="w-full text-sm">
+        <div className="rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+          <table className="w-full">
             <thead>
-              <tr className="border-b border-border bg-muted/40">
+              <tr style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
                 {period !== 'today' && (
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">
+                  <th className="text-left px-4 py-3 whitespace-nowrap" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>
                     Date
                   </th>
                 )}
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Employé</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">Planifié</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Arrivée</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Départ</th>
+                <th className="text-left px-4 py-3" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>Employé</th>
+                <th className="text-left px-4 py-3 whitespace-nowrap" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>Planifié</th>
+                <th className="text-left px-4 py-3" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>Arrivée</th>
+                <th className="text-left px-4 py-3" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>Départ</th>
                 {period === 'today' && (
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  <th className="text-left px-4 py-3" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" />Durée</span>
                   </th>
                 )}
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Statut</th>
+                <th className="text-left px-4 py-3" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>Statut</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/60">
+            <tbody>
               {rows.map(row => (
                 <PresenceTableRow
                   key={row.key}
@@ -398,14 +405,13 @@ function PresenceTableRow({
   const isLate = late_minutes > 0
   const isOnTime = !isLate && !!presence?.clock_in && !!shift
 
+  const rowStyle = status === 'absent' ? { backgroundColor: 'rgba(254,226,226,0.15)' } : {}
+
   return (
-    <tr className={cn(
-      'transition-colors hover:bg-muted/20',
-      status === 'absent' && 'bg-red-50/20',
-    )}>
+    <tr style={{ borderBottom: '0.5px solid var(--border)', ...rowStyle }}>
 
       {showDate && (
-        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap capitalize">
+        <td className="px-4 py-3 text-[12px] whitespace-nowrap capitalize" style={{ color: 'var(--text-secondary)' }}>
           {formatDate(date)}
         </td>
       )}
@@ -413,38 +419,39 @@ function PresenceTableRow({
       {/* Employé */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-primary">
+          <div className="h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-medium"
+            style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
             {getInitials(employee.full_name, employee.email)}
           </div>
           <div>
-            <p className="font-medium text-foreground leading-tight">{employee.full_name ?? employee.email}</p>
-            {employee.position && <p className="text-[11px] text-muted-foreground">{employee.position}</p>}
+            <p className="text-[13px] font-medium leading-tight" style={{ color: 'var(--text-primary)' }}>
+              {employee.full_name ?? employee.email}
+            </p>
+            {employee.position && (
+              <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{employee.position}</p>
+            )}
           </div>
         </div>
       </td>
 
       {/* Planifié */}
-      <td className="px-4 py-3 text-muted-foreground">
-        {shift
-          ? <span className="font-mono text-xs">{shift.start_time.slice(0, 5)} – {shift.end_time.slice(0, 5)}</span>
-          : <span>—</span>}
+      <td className="px-4 py-3 tabular-nums text-[12px]" style={{ color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+        {shift ? `${shift.start_time.slice(0, 5)} – ${shift.end_time.slice(0, 5)}` : '—'}
       </td>
 
       {/* Arrivée */}
-      <td className="px-4 py-3 tabular-nums">
-        {presence?.clock_in
-          ? <span className="font-medium text-foreground">{formatTime(presence.clock_in)}</span>
-          : <span className="text-muted-foreground">—</span>}
+      <td className="px-4 py-3 tabular-nums text-[13px]" style={{ color: presence?.clock_in ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+        {presence?.clock_in ? formatTime(presence.clock_in) : '—'}
       </td>
 
       {/* Départ */}
-      <td className="px-4 py-3 tabular-nums text-muted-foreground">
+      <td className="px-4 py-3 tabular-nums text-[13px]" style={{ color: 'var(--text-secondary)' }}>
         {presence?.clock_out ? formatTime(presence.clock_out) : '—'}
       </td>
 
       {/* Durée (today only) */}
       {showDuration && (
-        <td className="px-4 py-3 tabular-nums text-muted-foreground text-sm">
+        <td className="px-4 py-3 tabular-nums text-[13px]" style={{ color: 'var(--text-secondary)' }}>
           {worked > 0 ? formatDuration(worked) : '—'}
         </td>
       )}
@@ -453,20 +460,19 @@ function PresenceTableRow({
       <td className="px-4 py-3">
         <div className="flex items-center gap-1.5 flex-wrap">
           {status !== 'no_data' && (
-            <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap', cfg.bg, cfg.text)}>
-              <span className={cn('h-1.5 w-1.5 rounded-full flex-shrink-0', cfg.dot)} />
+            <span
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium whitespace-nowrap"
+              style={{ backgroundColor: cfg.bg, color: cfg.text, padding: '3px 8px', borderRadius: '6px', border: '0.5px solid transparent' }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.dot }} />
               {cfg.label}
             </span>
           )}
           {isLate && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 whitespace-nowrap">
-              En retard {late_minutes} min
-            </span>
+            <span className="dp-badge-warning whitespace-nowrap">En retard {late_minutes} min</span>
           )}
           {isOnTime && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600 whitespace-nowrap">
-              À l&apos;heure
-            </span>
+            <span className="dp-badge-success whitespace-nowrap">À l&apos;heure</span>
           )}
         </div>
       </td>

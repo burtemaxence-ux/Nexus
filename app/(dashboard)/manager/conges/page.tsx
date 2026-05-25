@@ -1,9 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Link from 'next/link'
-import { ChevronLeft, CheckCircle, XCircle, Clock } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { CheckCircle, XCircle, Clock } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import type { LeaveRequestWithEmployee } from '@/types'
 
@@ -17,6 +15,11 @@ function formatDate(d: string) {
 
 function countDays(start: string, end: string) {
   return Math.round((new Date(end + 'T00:00:00').getTime() - new Date(start + 'T00:00:00').getTime()) / 86400000) + 1
+}
+
+function getInitials(name: string | null, email: string | null): string {
+  const s = name ?? email ?? '?'
+  return s.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
 }
 
 export default function ManagerCongesPage() {
@@ -59,130 +62,170 @@ export default function ManagerCongesPage() {
   const filtered = requests.filter(r => r.status === filter)
   const pendingCount = requests.filter(r => r.status === 'pending').length
 
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-6">
-        <Link href="/manager" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-          <ChevronLeft className="h-4 w-4" /> Tableau de bord
-        </Link>
-      </div>
+  const FILTERS = [
+    { key: 'pending' as const,  label: 'En attente', icon: Clock },
+    { key: 'approved' as const, label: 'Validés',    icon: CheckCircle },
+    { key: 'rejected' as const, label: 'Refusés',    icon: XCircle },
+  ]
 
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Demandes de congés</h1>
-        <p className="text-gray-500 mt-1 text-sm">Validez ou refusez les demandes de votre équipe</p>
+  return (
+    <div className="px-6 py-6 max-w-4xl mx-auto">
+
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
+          Demandes de congés
+        </h1>
+        <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+          Validez ou refusez les demandes de votre équipe
+        </p>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-lg w-fit mb-6">
-        {([
-          { key: 'pending', label: 'En attente', icon: Clock },
-          { key: 'approved', label: 'Validés', icon: CheckCircle },
-          { key: 'rejected', label: 'Refusés', icon: XCircle },
-        ] as const).map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              filter === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Icon className="h-3.5 w-3.5" />
-            {label}
-            {key === 'pending' && pendingCount > 0 && (
-              <span className="ml-1 bg-orange-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
-                {pendingCount}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="flex overflow-hidden w-fit mb-6" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
+        {FILTERS.map(({ key, label, icon: Icon }) => {
+          const active = filter === key
+          return (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className="flex items-center gap-1.5 px-4 py-1.5 text-[13px] transition-colors duration-150"
+              style={{
+                backgroundColor: active ? 'var(--text-primary)' : 'transparent',
+                color: active ? 'var(--bg-card)' : 'var(--text-tertiary)',
+                borderLeft: key !== 'pending' ? '0.5px solid var(--border)' : undefined,
+              }}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+              {key === 'pending' && pendingCount > 0 && (
+                <span className="dp-badge-warning ml-0.5">{pendingCount}</span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
+      {/* Content */}
       {loading ? (
-        <p className="text-center text-gray-400 py-12">Chargement...</p>
+        <div className="flex justify-center py-12">
+          <div className="h-5 w-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+        </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p className="text-base font-medium text-gray-500">Aucune demande {filter === 'pending' ? 'en attente' : filter === 'approved' ? 'validée' : 'refusée'}</p>
+        <div className="text-center py-16 rounded-xl" style={{ border: '0.5px dashed var(--border)' }}>
+          <p className="text-[14px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+            Aucune demande {filter === 'pending' ? 'en attente' : filter === 'approved' ? 'validée' : 'refusée'}
+          </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filtered.map(req => {
             const emp = req.profiles
             const isOpen = actionId === req.id
             return (
-              <div key={req.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div key={req.id} className="overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '0.5px solid var(--border)', borderRadius: '12px' }}>
                 <div className="p-4 flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     {/* Employee */}
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600 flex-shrink-0">
-                        {(emp.full_name ?? emp.email).slice(0, 2).toUpperCase()}
+                      <div className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0"
+                        style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
+                        {getInitials(emp.full_name, emp.email)}
                       </div>
-                      <span className="font-semibold text-gray-900 text-sm">{emp.full_name ?? emp.email}</span>
-                      {emp.position && <span className="text-xs text-gray-400">{emp.position}</span>}
+                      <span className="font-medium text-[13px]" style={{ color: 'var(--text-primary)' }}>
+                        {emp.full_name ?? emp.email}
+                      </span>
+                      {emp.position && (
+                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{emp.position}</span>
+                      )}
                     </div>
                     {/* Dates */}
-                    <p className="text-sm text-gray-800 font-medium">
-                      {formatDate(req.start_date)}{req.start_date !== req.end_date && <> → {formatDate(req.end_date)}</>}
-                      <span className="ml-2 text-gray-400 font-normal text-xs">({countDays(req.start_date, req.end_date)} j)</span>
+                    <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {formatDate(req.start_date)}
+                      {req.start_date !== req.end_date && <> → {formatDate(req.end_date)}</>}
+                      <span className="ml-2 font-normal text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                        ({countDays(req.start_date, req.end_date)} j)
+                      </span>
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">{LEAVE_LABELS[req.type]}</p>
-                    {req.comment && <p className="text-xs text-gray-400 mt-1 italic">&quot;{req.comment}&quot;</p>}
+                    <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {LEAVE_LABELS[req.type]}
+                    </p>
+                    {req.comment && (
+                      <p className="text-[12px] mt-1 italic" style={{ color: 'var(--text-tertiary)' }}>
+                        &quot;{req.comment}&quot;
+                      </p>
+                    )}
                     {req.manager_comment && filter !== 'pending' && (
-                      <p className="text-xs text-gray-500 mt-1">Réponse : &quot;{req.manager_comment}&quot;</p>
+                      <p className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        Réponse : &quot;{req.manager_comment}&quot;
+                      </p>
                     )}
                   </div>
 
                   {/* Actions */}
-                  {filter === 'pending' && (
+                  {filter === 'pending' && !isOpen && (
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {!isOpen ? (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1 border-green-300 text-green-700 hover:bg-green-50"
-                            onClick={() => { setActionId(req.id); setManagerComment(''); setActionError(null) }}
-                          >
-                            <CheckCircle className="h-3.5 w-3.5" /> Valider
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1 border-red-300 text-red-600 hover:bg-red-50"
-                            onClick={() => handleAction(req.id, 'rejected')}
-                            disabled={actionLoading}
-                          >
-                            <XCircle className="h-3.5 w-3.5" /> Refuser
-                          </Button>
-                        </>
-                      ) : null}
+                      <button
+                        className="flex items-center gap-1.5 text-[13px] transition-colors duration-150"
+                        style={{
+                          border: '0.5px solid var(--success)',
+                          color: 'var(--success)',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          backgroundColor: 'transparent',
+                        }}
+                        onClick={() => { setActionId(req.id); setManagerComment(''); setActionError(null) }}
+                      >
+                        <CheckCircle className="h-3.5 w-3.5" /> Valider
+                      </button>
+                      <button
+                        className="flex items-center gap-1.5 text-[13px] transition-colors duration-150"
+                        style={{
+                          border: '0.5px solid var(--danger)',
+                          color: 'var(--danger)',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          backgroundColor: 'transparent',
+                        }}
+                        onClick={() => handleAction(req.id, 'rejected')}
+                        disabled={actionLoading}
+                      >
+                        <XCircle className="h-3.5 w-3.5" /> Refuser
+                      </button>
                     </div>
                   )}
                 </div>
 
                 {/* Expanded approve form */}
                 {isOpen && (
-                  <div className="border-t border-gray-100 bg-gray-50 p-4 space-y-3">
+                  <div className="p-4 space-y-3" style={{ borderTop: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
                     <Textarea
                       value={managerComment}
                       onChange={e => setManagerComment(e.target.value)}
                       placeholder="Message pour l'employé (optionnel)"
                       rows={2}
-                      className="bg-white"
+                      style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)', fontSize: '13px' }}
                     />
-                    {actionError && <p className="text-sm text-red-600">{actionError}</p>}
+                    {actionError && (
+                      <p className="text-[12px]" style={{ color: 'var(--danger)' }}>{actionError}</p>
+                    )}
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="gap-1 bg-green-600 hover:bg-green-700"
+                      <button
+                        className="flex items-center gap-1.5 text-[13px] text-white transition-colors duration-150"
+                        style={{ backgroundColor: 'var(--success)', borderRadius: '8px', padding: '7px 14px' }}
                         onClick={() => handleAction(req.id, 'approved')}
                         disabled={actionLoading}
                       >
-                        <CheckCircle className="h-3.5 w-3.5" /> {actionLoading ? 'Envoi...' : 'Confirmer la validation'}
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => setActionId(null)} disabled={actionLoading}>
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        {actionLoading ? 'Envoi...' : 'Confirmer la validation'}
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        onClick={() => setActionId(null)}
+                        disabled={actionLoading}
+                      >
                         Annuler
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 )}
