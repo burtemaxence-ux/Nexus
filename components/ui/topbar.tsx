@@ -105,8 +105,11 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
     >
       {item.label}
       {item.badge !== undefined && item.badge > 0 && (
-        <span className="flex items-center justify-center h-4 min-w-[16px] px-1 rounded-[4px] bg-[#FEF3C7] text-[#D97706] text-[10px] font-medium leading-none">
-          {item.badge > 99 ? '99+' : item.badge}
+        <span className="relative flex items-center justify-center">
+          <span className="absolute inset-0 rounded-[4px] bg-[#D97706] opacity-25 animate-ping" />
+          <span className="relative flex items-center justify-center h-4 min-w-[16px] px-1 rounded-[4px] bg-[#FEF3C7] text-[#D97706] text-[10px] font-medium leading-none">
+            {item.badge > 99 ? '99+' : item.badge}
+          </span>
         </span>
       )}
       {isActive && (

@@ -464,7 +464,11 @@ function PresenceTableRow({
               className="inline-flex items-center gap-1.5 text-[11px] font-medium whitespace-nowrap"
               style={{ backgroundColor: cfg.bg, color: cfg.text, padding: '3px 8px', borderRadius: '6px', border: '0.5px solid transparent' }}
             >
-              <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.dot }} />
+              {(status === 'present' || status === 'on_break') ? (
+                <span className={`dp-status-dot ${status === 'present' ? 'active' : 'warning'}`} style={{ width: '6px', height: '6px' }} />
+              ) : (
+                <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.dot }} />
+              )}
               {cfg.label}
             </span>
           )}

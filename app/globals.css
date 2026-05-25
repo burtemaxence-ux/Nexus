@@ -195,4 +195,56 @@
     padding: 3px 8px;
     border-radius: 6px;
   }
+
+  /* ── Button press scale ─────────────────────────────────────── */
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    transition: background-color 150ms ease, transform 100ms ease;
+  }
+  .btn-primary:active,
+  .btn-secondary:active,
+  .btn-danger:active {
+    transform: scale(0.97);
+  }
+
+  /* ── Status dot (pulsing indicator) ────────────────────────── */
+  .dp-status-dot {
+    position: relative;
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dp-status-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    animation: dp-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  .dp-status-dot.active  { background-color: var(--success); }
+  .dp-status-dot.active::after  { background-color: var(--success); }
+  .dp-status-dot.warning { background-color: var(--warning); }
+  .dp-status-dot.warning::after { background-color: var(--warning); }
+  .dp-status-dot.danger  { background-color: var(--danger); }
+  .dp-status-dot.danger::after  { background-color: var(--danger); }
+}
+
+/* ── Keyframes ──────────────────────────────────────────────────────────────── */
+@keyframes dp-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+@keyframes dp-ping {
+  0%        { transform: scale(1);   opacity: 0.7; }
+  75%, 100% { transform: scale(2.2); opacity: 0;   }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: dp-fade-up 220ms ease-out both;
+  }
 }

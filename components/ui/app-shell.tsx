@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { Topbar } from './topbar'
 import { AiAssistant } from './ai-assistant'
 import { BreadcrumbNav } from './breadcrumb-nav'
+import { PageTransition } from './page-transition'
 
 interface EstablishmentEntry {
   id: string
@@ -42,7 +43,7 @@ export function AppShell({
       <div className="pt-11 flex flex-col min-h-screen">
         <BreadcrumbNav />
         <main className="flex-1">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </main>
       </div>
       {(role === 'manager' || role === 'supervisor') && (
