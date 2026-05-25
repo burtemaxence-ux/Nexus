@@ -87,14 +87,11 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
       {/* Controls */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         {/* View toggle */}
-        <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium">
-          <Link
-            href="/manager/planning"
-            className="px-4 py-2 text-gray-600 hover:bg-gray-50 transition-colors"
-          >
+        <div className="flex overflow-hidden text-[13px] font-medium" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
+          <Link href="/manager/planning" className="px-4 py-2 transition-colors duration-150" style={{ color: 'var(--text-secondary)' }}>
             Semaine
           </Link>
-          <div className="px-4 py-2 bg-gray-900 text-white select-none">
+          <div className="px-4 py-2 select-none" style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-card)', borderLeft: '0.5px solid var(--border)' }}>
             Mois
           </div>
         </div>
@@ -106,7 +103,7 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
               <ChevronLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <span className="text-sm font-semibold capitalize w-40 text-center">{monthLabel}</span>
+          <span className="text-[13px] font-medium capitalize w-40 text-center" style={{ color: 'var(--text-primary)' }}>{monthLabel}</span>
           <Button variant="outline" size="sm" asChild>
             <Link href={`/manager/planning?view=month&month=${formatMonthParam(nextMonth)}`}>
               <ChevronRight className="h-4 w-4" />
@@ -117,18 +114,19 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
 
       {/* Empty state */}
       {employees.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-200 bg-white p-12 text-center">
-          <p className="text-gray-500 mb-3">Ajoutez des employés pour commencer à planifier</p>
+        <div className="rounded-xl p-12 text-center" style={{ border: '0.5px dashed var(--border)', backgroundColor: 'var(--bg-card)' }}>
+          <p className="mb-3 text-[13px]" style={{ color: 'var(--text-secondary)' }}>Ajoutez des employés pour commencer à planifier</p>
           <Link href="/manager/employees">
             <Button variant="outline" size="sm">Gérer les employés</Button>
           </Link>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-xl" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
           <table className="border-collapse text-xs" style={{ minWidth: `${180 + days.length * 44 + 72}px` }}>
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="sticky left-0 z-10 bg-gray-50 text-left px-4 py-3 text-sm font-medium text-gray-700 w-44 min-w-[176px] border-r border-gray-200">
+              <tr style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
+                <th className="sticky left-0 z-10 text-left px-4 py-3 text-[11px] font-medium uppercase tracking-[0.06em] w-44 min-w-[176px]"
+                  style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', borderRight: '0.5px solid var(--border)' }}>
                   Employé
                 </th>
                 {days.map((day) => {
@@ -137,16 +135,19 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
                   return (
                     <th
                       key={toISODate(day)}
-                      className={`py-2 px-0.5 text-center font-medium w-11 ${
-                        today ? 'bg-blue-50 text-blue-700' : weekend ? 'text-gray-400' : 'text-gray-600'
-                      }`}
+                      className="py-2 px-0.5 text-center font-medium w-11"
+                      style={{
+                        backgroundColor: today ? 'var(--accent-light)' : 'var(--bg-page)',
+                        color: today ? 'var(--accent)' : weekend ? 'var(--text-tertiary)' : 'var(--text-secondary)',
+                      }}
                     >
                       <div className="text-[10px]">{WEEKDAY_ABBR[day.getDay()]}</div>
-                      <div className={`text-xs font-bold ${today ? 'text-blue-600' : ''}`}>{day.getDate()}</div>
+                      <div className="text-xs font-bold">{day.getDate()}</div>
                     </th>
                   )
                 })}
-                <th className="px-3 py-3 text-right text-sm font-medium text-gray-700 border-l border-gray-200 min-w-[72px]">
+                <th className="px-3 py-3 text-right text-[11px] font-medium uppercase tracking-[0.06em] min-w-[72px]"
+                  style={{ color: 'var(--text-secondary)', borderLeft: '0.5px solid var(--border)' }}>
                   Total
                 </th>
               </tr>
@@ -157,14 +158,17 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
                 return (
                   <tr
                     key={employee.id}
-                    className={`border-b border-gray-100 last:border-b-0 ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
+                    style={{
+                      borderBottom: '0.5px solid var(--border)',
+                      backgroundColor: rowIndex % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-page)',
+                    }}
                   >
-                    <td className="sticky left-0 z-10 bg-inherit border-r border-gray-200 px-4 py-2">
-                      <p className="font-medium text-gray-900 text-sm truncate max-w-[152px]">
+                    <td className="sticky left-0 z-10 bg-inherit px-4 py-2" style={{ borderRight: '0.5px solid var(--border)' }}>
+                      <p className="font-medium text-[13px] truncate max-w-[152px]" style={{ color: 'var(--text-primary)' }}>
                         {employee.full_name ?? employee.email}
                       </p>
                       {employee.position && (
-                        <p className="text-[10px] text-gray-400 truncate">{employee.position}</p>
+                        <p className="text-[10px] mt-0.5 truncate" style={{ color: 'var(--text-tertiary)' }}>{employee.position}</p>
                       )}
                     </td>
 
@@ -178,16 +182,16 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
                         <td
                           key={dateStr}
                           onClick={() => {
-                            if (shift) {
-                              setModalState({ type: 'view', shift, employee, date: day })
-                            } else {
-                              setModalState({ type: 'create', employee, date: day })
-                            }
+                            if (shift) setModalState({ type: 'view', shift, employee, date: day })
+                            else setModalState({ type: 'create', employee, date: day })
                           }}
-                          className={`p-0.5 align-top cursor-pointer transition-colors hover:bg-blue-50 ${
-                            today ? 'bg-blue-50/30' : weekend ? 'bg-gray-50/60' : ''
-                          }`}
-                          style={{ height: '52px', verticalAlign: 'middle' }}
+                          className="p-0.5 align-top cursor-pointer transition-colors duration-150"
+                          style={{
+                            height: '52px',
+                            verticalAlign: 'middle',
+                            backgroundColor: today ? 'var(--accent-light)' : weekend ? 'var(--bg-page)' : undefined,
+                            opacity: today ? 0.85 : 1,
+                          }}
                         >
                           {shift ? (
                             <ShiftCell shift={shift} poste={shift.poste_id ? posteMap.get(shift.poste_id) : undefined} />
@@ -198,8 +202,8 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
                       )
                     })}
 
-                    <td className="px-3 py-2 text-right border-l border-gray-200 align-middle">
-                      <span className={`text-sm font-semibold ${totalMins > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                    <td className="px-3 py-2 text-right align-middle" style={{ borderLeft: '0.5px solid var(--border)' }}>
+                      <span className="text-[13px] font-semibold" style={{ color: totalMins > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
                         {formatMinutes(totalMins)}
                       </span>
                     </td>
@@ -223,7 +227,7 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
 }
 
 function ShiftCell({ shift, poste }: { shift: Shift; poste: Poste | undefined }) {
-  const bg = poste?.color ?? '#6B7280'
+  const bg = poste?.color ?? 'var(--accent)'
   return (
     <div
       className="mx-0.5 rounded px-1 py-0.5 text-white leading-tight text-center hover:opacity-90 transition-opacity"

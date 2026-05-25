@@ -14,18 +14,18 @@ interface EmployeePlanningGridProps {
   leaveRequests: LeaveRequest[]
 }
 
-const LEAVE_STYLES: Record<LeaveType, { bg: string; border: string; text: string; label: string }> = {
-  CP:         { bg: 'bg-blue-50',   border: 'border-blue-300',  text: 'text-blue-700',  label: 'Congés payés' },
-  RTT:        { bg: 'bg-purple-50', border: 'border-purple-300', text: 'text-purple-700', label: 'RTT' },
-  maladie:    { bg: 'bg-red-50',    border: 'border-red-300',   text: 'text-red-700',   label: 'Arrêt maladie' },
-  sans_solde: { bg: 'bg-gray-100',  border: 'border-gray-300',  text: 'text-gray-600',  label: 'Sans solde' },
-  autre:      { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-700', label: 'Autre' },
+const LEAVE_STYLES: Record<LeaveType, { style: React.CSSProperties; label: string }> = {
+  CP:         { label: 'Congés payés',  style: { backgroundColor: 'var(--accent-light)', borderColor: 'var(--accent)', color: 'var(--accent)' } },
+  RTT:        { label: 'RTT',           style: { backgroundColor: 'var(--accent-light)', borderColor: 'var(--accent)', color: 'var(--accent)' } },
+  maladie:    { label: 'Arrêt maladie', style: { backgroundColor: '#FEE2E2', borderColor: 'var(--danger)', color: 'var(--danger)' } },
+  sans_solde: { label: 'Sans solde',    style: { backgroundColor: 'var(--bg-page)', borderColor: 'var(--border)', color: 'var(--text-secondary)' } },
+  autre:      { label: 'Autre',         style: { backgroundColor: '#FEF3C7', borderColor: 'var(--warning)', color: 'var(--warning)' } },
 }
 
 function AbsenceBadge({ type }: { type: LeaveType }) {
   const s = LEAVE_STYLES[type]
   return (
-    <div className={`rounded border px-1.5 py-1 text-[10px] font-semibold ${s.bg} ${s.border} ${s.text} flex items-center gap-1`}>
+    <div className="rounded border px-1.5 py-1 text-[10px] font-semibold flex items-center gap-1" style={s.style}>
       <span>🏖</span>
       <span>{s.label}</span>
     </div>
@@ -43,16 +43,10 @@ function getDayLabel(date: Date): { weekday: string; dayMonth: string } {
 
 function isToday(date: Date): boolean {
   const today = new Date()
-  return (
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear()
-  )
+  return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()
 }
 
-function formatTime(time: string): string {
-  return time.slice(0, 5)
-}
+function formatTime(time: string): string { return time.slice(0, 5) }
 
 function calcShiftHours(start: string, end: string, breakMinutes: number = 0): number {
   const [sh, sm] = start.split(':').map(Number)
@@ -73,18 +67,13 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
   const prevMonday = addDays(weekDates[0], -7)
   const nextMonday = addDays(weekDates[0], 7)
 
-  // Build poste lookup map
   const posteMap = new Map<string, Poste>()
-  for (const poste of postes) {
-    posteMap.set(poste.id, poste)
-  }
+  for (const poste of postes) posteMap.set(poste.id, poste)
 
   const prevWeekParam = toISODate(prevMonday)
   const nextWeekParam = toISODate(nextMonday)
-
   const weekLabel = getWeekLabel(weekDates)
 
-  // Index shifts by date for fast lookup
   const shiftMap = new Map<string, Shift[]>()
   for (const shift of shifts) {
     const existing = shiftMap.get(shift.date) ?? []
@@ -92,7 +81,6 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
     shiftMap.set(shift.date, existing)
   }
 
-  // Expand approved leave requests to individual dates
   const absenceMap = new Map<string, LeaveType>()
   for (const req of leaveRequests) {
     const start = new Date(req.start_date + 'T00:00:00')
@@ -102,7 +90,6 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
     }
   }
 
-  // Total hours for the week (net, after break deduction)
   const totalHours = shifts.reduce(
     (sum, s) => sum + calcShiftHours(s.start_time, s.end_time, s.break_minutes),
     0
@@ -119,7 +106,7 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
           </Button>
         </Link>
 
-        <h2 className="text-lg font-semibold text-gray-900">{weekLabel}</h2>
+        <h2 className="text-[15px] font-medium" style={{ color: 'var(--text-primary)' }}>{weekLabel}</h2>
 
         <Link href={`?week=${nextWeekParam}`}>
           <Button variant="outline" size="sm" className="gap-1">
@@ -130,53 +117,54 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
       </div>
 
       {/* Planning grid */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      <div className="overflow-x-auto rounded-xl" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
         <table className="w-full min-w-[700px] border-collapse">
           <thead>
             <tr>
-              {/* Employee column header */}
-              <th className="border-b border-r border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-600 w-48 min-w-[180px]">
+              <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] w-48 min-w-[180px]"
+                style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)' }}>
                 Semaine
               </th>
-              {/* Day headers */}
               {weekDates.map((date) => {
                 const { weekday, dayMonth } = getDayLabel(date)
                 const today = isToday(date)
                 return (
                   <th
                     key={toISODate(date)}
-                    className={`border-b border-r border-gray-200 px-3 py-3 text-center text-sm font-medium ${
-                      today ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-600'
-                    }`}
+                    className="px-3 py-3 text-center text-[13px] font-medium"
+                    style={{
+                      backgroundColor: today ? 'var(--accent-light)' : 'var(--bg-page)',
+                      color: today ? 'var(--accent)' : 'var(--text-secondary)',
+                      borderBottom: '0.5px solid var(--border)',
+                      borderRight: '0.5px solid var(--border)',
+                    }}
                   >
                     <div className="font-semibold">{weekday}</div>
-                    <div className={`text-xs font-normal mt-0.5 ${today ? 'text-blue-500' : 'text-gray-400'}`}>
+                    <div className="text-[11px] font-normal mt-0.5" style={{ color: today ? 'var(--accent)' : 'var(--text-tertiary)' }}>
                       {dayMonth}
                     </div>
                   </th>
                 )
               })}
-              {/* Total column header */}
-              <th className="border-b border-gray-200 bg-gray-50 px-3 py-3 text-center text-sm font-medium text-gray-600 w-20">
+              <th className="px-3 py-3 text-center text-[11px] font-medium uppercase tracking-[0.06em] w-20"
+                style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', borderBottom: '0.5px solid var(--border)' }}>
                 Total
               </th>
             </tr>
           </thead>
           <tbody>
-            <tr className="bg-white">
-              {/* Employee info cell */}
-              <td className="border-b border-r border-gray-200 px-4 py-3">
+            <tr style={{ backgroundColor: 'var(--bg-card)' }}>
+              <td className="px-4 py-3" style={{ borderRight: '0.5px solid var(--border)', borderBottom: '0.5px solid var(--border)' }}>
                 <div>
-                  <p className="truncate text-sm font-medium text-gray-900">
+                  <p className="truncate text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
                     {employee.full_name ?? employee.email}
                   </p>
                   {employee.position && (
-                    <p className="text-xs text-gray-500 mt-0.5">{employee.position}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{employee.position}</p>
                   )}
                 </div>
               </td>
 
-              {/* Day cells */}
               {weekDates.map((date) => {
                 const dateStr = toISODate(date)
                 const dayShifts = shiftMap.get(dateStr) ?? []
@@ -186,42 +174,46 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
                 return (
                   <td
                     key={dateStr}
-                    className={`border-b border-r border-gray-200 px-2 py-2 align-top ${
-                      today ? 'bg-blue-50/30' : ''
-                    }`}
-                    style={{ minHeight: '80px' }}
+                    className="px-2 py-2 align-top"
+                    style={{
+                      minHeight: '80px',
+                      borderRight: '0.5px solid var(--border)',
+                      borderBottom: '0.5px solid var(--border)',
+                      backgroundColor: today ? 'var(--accent-light)' : undefined,
+                      opacity: today ? 0.85 : 1,
+                    }}
                   >
                     {dayShifts.length === 0 && !absenceType ? (
-                      <div className="min-h-[80px] bg-gray-100 rounded-sm border border-gray-200" />
+                      <div className="min-h-[80px] rounded-sm" style={{ backgroundColor: 'var(--bg-page)', border: '0.5px solid var(--border)' }} />
                     ) : (
                       <div className="min-h-[80px] space-y-1">
                         {absenceType && <AbsenceBadge type={absenceType} />}
                         {dayShifts.map((shift) => {
                           const poste = shift.poste_id ? posteMap.get(shift.poste_id) : null
-                          const bgColor = poste ? `${poste.color}20` : '#EFF6FF'
-                          const borderColor = poste?.color ?? '#BFDBFE'
-                          const textColor = poste?.color ?? '#1D4ED8'
+                          const bgColor = poste ? `${poste.color}20` : 'var(--accent-light)'
+                          const borderColor = poste?.color ?? 'var(--accent)'
+                          const textColor = poste?.color ?? 'var(--accent)'
                           return (
-                          <div
-                            key={shift.id}
-                            style={{ backgroundColor: bgColor, borderColor: borderColor, color: textColor }}
-                            className="rounded-md border p-1.5 text-xs"
-                          >
-                            <p className="font-semibold">
-                              {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
-                            </p>
-                            <p className="truncate" style={{ color: textColor, opacity: 0.85 }}>
-                              {shift.position ?? employee.position}
-                            </p>
-                            {shift.break_minutes > 0 && (
-                              <p className="opacity-60 text-[10px]">pause {shift.break_minutes}min</p>
-                            )}
-                            {shift.notes && (
-                              <p className="truncate mt-0.5 italic" style={{ color: textColor, opacity: 0.7 }}>
-                                {shift.notes}
+                            <div
+                              key={shift.id}
+                              style={{ backgroundColor: bgColor, borderColor, color: textColor, border: `0.5px solid ${borderColor}` }}
+                              className="rounded-md p-1.5 text-xs"
+                            >
+                              <p className="font-semibold">
+                                {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
                               </p>
-                            )}
-                          </div>
+                              <p className="truncate" style={{ color: textColor, opacity: 0.85 }}>
+                                {shift.position ?? employee.position}
+                              </p>
+                              {shift.break_minutes > 0 && (
+                                <p className="opacity-60 text-[10px]">pause {shift.break_minutes}min</p>
+                              )}
+                              {shift.notes && (
+                                <p className="truncate mt-0.5 italic" style={{ color: textColor, opacity: 0.7 }}>
+                                  {shift.notes}
+                                </p>
+                              )}
+                            </div>
                           )
                         })}
                       </div>
@@ -230,9 +222,8 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
                 )
               })}
 
-              {/* Weekly total cell */}
-              <td className="border-b border-gray-200 px-3 py-3 text-center align-middle">
-                <span className={`text-sm font-semibold ${totalHours > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+              <td className="px-3 py-3 text-center align-middle" style={{ borderBottom: '0.5px solid var(--border)' }}>
+                <span className="text-[13px] font-semibold" style={{ color: totalHours > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
                   {totalHours > 0 ? formatHours(totalHours) : '—'}
                 </span>
               </td>

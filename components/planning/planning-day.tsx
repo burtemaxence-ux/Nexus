@@ -19,12 +19,12 @@ interface PlanningDayProps {
   postes: Poste[]
 }
 
-const LEAVE_LABELS: Record<LeaveType, { label: string; className: string; icon: string }> = {
-  CP:         { label: 'Congé payé',  className: 'bg-blue-100 text-blue-700 border-blue-200',   icon: '🏖️' },
-  RTT:        { label: 'RTT',         className: 'bg-violet-100 text-violet-700 border-violet-200', icon: '🗓️' },
-  maladie:    { label: 'Maladie',     className: 'bg-red-100 text-red-700 border-red-200',       icon: '🤒' },
-  sans_solde: { label: 'Sans solde',  className: 'bg-slate-100 text-slate-600 border-slate-300', icon: '📋' },
-  autre:      { label: 'Absence',     className: 'bg-amber-100 text-amber-700 border-amber-200', icon: '📌' },
+const LEAVE_LABELS: Record<LeaveType, { label: string; style: React.CSSProperties; icon: string }> = {
+  CP:         { label: 'Congé payé',  icon: '🏖️', style: { backgroundColor: 'var(--accent-light)', color: 'var(--accent)', border: '0.5px solid var(--accent)' } },
+  RTT:        { label: 'RTT',         icon: '🗓️', style: { backgroundColor: 'var(--accent-light)', color: 'var(--accent)', border: '0.5px solid var(--accent)' } },
+  maladie:    { label: 'Maladie',     icon: '🤒', style: { backgroundColor: '#FEE2E2', color: 'var(--danger)', border: '0.5px solid var(--danger)' } },
+  sans_solde: { label: 'Sans solde',  icon: '📋', style: { backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', border: '0.5px solid var(--border)' } },
+  autre:      { label: 'Absence',     icon: '📌', style: { backgroundColor: '#FEF3C7', color: 'var(--warning)', border: '0.5px solid var(--warning)' } },
 }
 
 function getInitials(name: string | null): string {
@@ -61,7 +61,6 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
   const dayLabel = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   const isTodayDate = toISODate(new Date()) === dateStr
 
-  // Build lookups
   const posteMap = new Map(postes.map(p => [p.id, p]))
   const dayShiftMap = new Map<string, Shift[]>()
   for (const s of shifts) {
@@ -75,13 +74,10 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
     const start = new Date(req.start_date + 'T00:00:00')
     const end = new Date(req.end_date + 'T00:00:00')
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      if (toISODate(d) === dateStr) {
-        absenceMap.set(req.employee_id, req.type)
-      }
+      if (toISODate(d) === dateStr) absenceMap.set(req.employee_id, req.type)
     }
   }
 
-  // Sort: employees with shifts first (by start time), then absences, then rest
   const sorted = [...employees].sort((a, b) => {
     const aShifts = dayShiftMap.get(a.id) ?? []
     const bShifts = dayShiftMap.get(b.id) ?? []
@@ -89,9 +85,7 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
     const bAbs = absenceMap.has(b.id)
     if (aShifts.length > 0 && bShifts.length === 0) return -1
     if (bShifts.length > 0 && aShifts.length === 0) return 1
-    if (aShifts.length > 0 && bShifts.length > 0) {
-      return aShifts[0].start_time.localeCompare(bShifts[0].start_time)
-    }
+    if (aShifts.length > 0 && bShifts.length > 0) return aShifts[0].start_time.localeCompare(bShifts[0].start_time)
     if (aAbs && !bAbs) return -1
     if (bAbs && !aAbs) return 1
     return (a.full_name ?? '').localeCompare(b.full_name ?? '')
@@ -102,7 +96,6 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
   async function handleWeekStatus(payload: { published?: boolean; locked?: boolean }) {
     setStatusLoading(true)
     try {
-      // Get the monday of this week
       const d = new Date(date)
       const day = d.getDay()
       const diff = d.getDate() - day + (day === 0 ? -6 : 1)
@@ -125,10 +118,10 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           {/* View toggle */}
-          <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium">
-            <div className="px-4 py-2 bg-gray-900 text-white select-none">Jour</div>
-            <Link href={`/manager/planning?week=${dateStr}`} className="px-4 py-2 text-gray-600 hover:bg-gray-50 transition-colors">Semaine</Link>
-            <Link href={`/manager/planning?view=month`} className="px-4 py-2 text-gray-600 hover:bg-gray-50 transition-colors">Mois</Link>
+          <div className="flex overflow-hidden text-[13px] font-medium" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
+            <div className="px-4 py-2 select-none" style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-card)' }}>Jour</div>
+            <Link href={`/manager/planning?week=${dateStr}`} className="px-4 py-2 transition-colors duration-150" style={{ color: 'var(--text-secondary)', borderLeft: '0.5px solid var(--border)' }}>Semaine</Link>
+            <Link href={`/manager/planning?view=month`} className="px-4 py-2 transition-colors duration-150" style={{ color: 'var(--text-secondary)', borderLeft: '0.5px solid var(--border)' }}>Mois</Link>
           </div>
           <Link href={`/manager/planning?view=day&date=${toISODate(prevDate)}`}>
             <Button variant="outline" size="sm" className="gap-1"><ChevronLeft className="h-4 w-4" />Préc.</Button>
@@ -136,12 +129,16 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          <h2 className={`text-base font-semibold ${isTodayDate ? 'text-blue-700' : 'text-gray-900'}`}>
+          <h2 className="text-[15px] font-medium" style={{ color: isTodayDate ? 'var(--accent)' : 'var(--text-primary)' }}>
             {dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1)}
-            {isTodayDate && <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">Aujourd&apos;hui</span>}
+            {isTodayDate && (
+              <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
+                Aujourd&apos;hui
+              </span>
+            )}
           </h2>
           {totalDayHours > 0 && (
-            <span className="text-sm text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
+            <span className="text-[13px] px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', border: '0.5px solid var(--border)' }}>
               {formatHours(totalDayHours)} planifiées
             </span>
           )}
@@ -152,20 +149,25 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
             aria-checked={weekPublished}
             onClick={() => handleWeekStatus({ published: !weekPublished })}
             disabled={statusLoading}
-            className={`relative inline-flex h-7 w-[120px] cursor-pointer items-center rounded-full border transition-colors duration-300 focus:outline-none disabled:opacity-50 ${weekPublished ? 'bg-green-500 border-green-500' : 'bg-white border-gray-300'}`}
+            className="relative inline-flex h-7 w-[120px] cursor-pointer items-center rounded-full transition-colors duration-300 focus:outline-none disabled:opacity-50"
+            style={{
+              backgroundColor: weekPublished ? 'var(--success)' : 'var(--bg-card)',
+              border: `0.5px solid ${weekPublished ? 'var(--success)' : 'var(--border)'}`,
+            }}
           >
-            <span className={`absolute h-5 w-5 rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-300 ${weekPublished ? 'translate-x-[92px]' : 'translate-x-1'}`} />
+            <span className={`absolute h-5 w-5 rounded-full bg-white transition-transform duration-300 ${weekPublished ? 'translate-x-[92px]' : 'translate-x-1'}`} />
             <span className={`absolute inset-0 flex items-center transition-opacity ${weekPublished ? 'opacity-100' : 'opacity-0'}`}>
               <span className="pl-3 text-xs font-semibold text-white">Publié</span>
             </span>
             <span className={`absolute inset-0 flex items-center justify-end transition-opacity ${weekPublished ? 'opacity-0' : 'opacity-100'}`}>
-              <span className="pr-3 text-xs font-semibold text-gray-500">Non-publié</span>
+              <span className="pr-3 text-xs font-semibold" style={{ color: 'var(--text-tertiary)' }}>Non-publié</span>
             </span>
           </button>
 
           <Button
             variant="outline" size="sm"
-            className={`gap-1.5 ${weekLocked ? 'border-orange-300 text-orange-700' : ''}`}
+            style={weekLocked ? { borderColor: 'var(--warning)', color: 'var(--warning)' } : undefined}
+            className="gap-1.5"
             onClick={() => handleWeekStatus({ locked: !weekLocked })}
             disabled={statusLoading}
           >
@@ -177,7 +179,7 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
             variant="outline" size="sm" className="gap-1.5"
             onClick={() => { navigator.clipboard.writeText(window.location.href); setShareCopied(true); setTimeout(() => setShareCopied(false), 2000) }}
           >
-            {shareCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Share2 className="h-3.5 w-3.5" />}
+            {shareCopied ? <Check className="h-3.5 w-3.5" style={{ color: 'var(--success)' }} /> : <Share2 className="h-3.5 w-3.5" />}
             {shareCopied ? 'Copié !' : 'Partager'}
           </Button>
         </div>
@@ -189,8 +191,8 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
 
       {/* Employee cards */}
       {employees.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-200 bg-white p-12 text-center">
-          <p className="text-gray-500 mb-3">Ajoutez des employés pour commencer à planifier</p>
+        <div className="rounded-xl p-12 text-center" style={{ border: '0.5px dashed var(--border)', backgroundColor: 'var(--bg-card)' }}>
+          <p className="mb-3 text-[13px]" style={{ color: 'var(--text-secondary)' }}>Ajoutez des employés pour commencer à planifier</p>
           <Link href="/manager/employees"><Button variant="outline" size="sm">Gérer les employés</Button></Link>
         </div>
       ) : (
@@ -205,28 +207,42 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
             return (
               <div
                 key={employee.id}
-                className={`rounded-xl border bg-white transition-all ${isRest ? 'border-gray-100' : 'border-gray-200 shadow-sm'}`}
+                className="rounded-xl transition-colors duration-150"
+                style={{
+                  border: `0.5px solid ${isRest ? 'var(--border)' : 'var(--border)'}`,
+                  backgroundColor: 'var(--bg-card)',
+                  opacity: isRest ? 0.7 : 1,
+                }}
               >
                 <div className="flex items-center gap-4 px-4 py-3">
                   {/* Avatar */}
-                  <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ${hasShifts ? 'bg-primary/10 text-primary' : isRest ? 'bg-gray-100 text-gray-400' : 'bg-amber-100 text-amber-700'}`}>
+                  <div
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                    style={
+                      hasShifts
+                        ? { backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }
+                        : absenceType
+                        ? { backgroundColor: '#FEF3C7', color: 'var(--warning)' }
+                        : { backgroundColor: 'var(--bg-page)', color: 'var(--text-tertiary)' }
+                    }
+                  >
                     {getInitials(employee.full_name)}
                   </div>
 
                   {/* Name */}
                   <div className="w-44 min-w-[176px]">
-                    <p className={`text-sm font-medium ${isRest ? 'text-gray-400' : 'text-gray-900'}`}>
+                    <p className="text-[13px] font-medium" style={{ color: isRest ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
                       {employee.full_name ?? employee.email}
                     </p>
                     {employee.position && (
-                      <p className="text-xs text-gray-400">{employee.position}</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{employee.position}</p>
                     )}
                   </div>
 
                   {/* Content */}
                   <div className="flex-1 flex items-center gap-3 flex-wrap">
                     {absenceType && (
-                      <div className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium border ${LEAVE_LABELS[absenceType].className}`}>
+                      <div className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium" style={LEAVE_LABELS[absenceType].style}>
                         <span>{LEAVE_LABELS[absenceType].icon}</span>
                         <span>{LEAVE_LABELS[absenceType].label}</span>
                       </div>
@@ -234,16 +250,16 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
 
                     {empShifts.map(shift => {
                       const poste = shift.poste_id ? posteMap.get(shift.poste_id) : null
-                      const bgColor = poste ? `${poste.color}18` : '#EFF6FF'
-                      const borderColor = poste ? `${poste.color}60` : '#BFDBFE'
-                      const textColor = poste?.color ?? '#1D4ED8'
+                      const bgColor = poste ? `${poste.color}18` : 'var(--accent-light)'
+                      const borderColor = poste ? `${poste.color}60` : 'var(--accent)'
+                      const textColor = poste?.color ?? 'var(--accent)'
                       const hours = calcHours(shift.start_time, shift.end_time, shift.break_minutes)
                       return (
                         <button
                           key={shift.id}
                           onClick={() => setModalState({ type: 'view', shift, employee, date, readOnly: weekLocked })}
-                          style={{ backgroundColor: bgColor, borderColor, color: textColor }}
-                          className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm hover:opacity-80 transition-opacity text-left"
+                          style={{ backgroundColor: bgColor, borderColor, color: textColor, border: `0.5px solid ${borderColor}` }}
+                          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:opacity-80 transition-opacity text-left"
                         >
                           <div>
                             <p className="font-semibold">{formatTime(shift.start_time)} &ndash; {formatTime(shift.end_time)}</p>
@@ -258,19 +274,22 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
                     })}
 
                     {isRest && (
-                      <span className="text-xs text-gray-300 font-medium tracking-wide">Repos</span>
+                      <span className="text-[12px] font-medium tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Repos</span>
                     )}
                   </div>
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
                     {totalHours > 0 && (
-                      <span className="text-sm font-bold text-gray-700 w-12 text-right">{formatHours(totalHours)}</span>
+                      <span className="text-[13px] font-semibold w-12 text-right" style={{ color: 'var(--text-primary)' }}>{formatHours(totalHours)}</span>
                     )}
                     {!weekLocked && (
                       <button
                         onClick={() => setModalState({ type: 'create', employee, date })}
-                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-primary transition-colors px-2 py-1 rounded-md hover:bg-primary/5"
+                        className="flex items-center gap-1 text-[12px] px-2 py-1 rounded-md transition-colors duration-150"
+                        style={{ color: 'var(--text-tertiary)' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--accent-light)' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)'; (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}
                       >
                         <Plus className="h-3.5 w-3.5" />
                         Ajouter
