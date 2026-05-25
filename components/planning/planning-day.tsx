@@ -344,6 +344,7 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
         postes={postes}
         employees={employees}
         weekDates={[date]}
+        shifts={shifts}
       />
     </div>
   )

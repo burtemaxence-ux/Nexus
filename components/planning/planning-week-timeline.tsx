@@ -1081,6 +1081,7 @@ export function PlanningWeekTimeline({
         postes={postes}
         employees={employees}
         weekDates={weekDates}
+        shifts={shifts}
       />
 
       {/* ── Drag overlay ───────────────────────────────────────────────────── */}

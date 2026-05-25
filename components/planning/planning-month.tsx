@@ -310,6 +310,7 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
         postes={postes}
         employees={employees}
         weekDates={days}
+        shifts={shifts}
       />
     </div>
   )

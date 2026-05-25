@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { AlertTriangle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,95 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { type Profile, type Shift, type Poste } from '@/types'
 import { toISODate } from '@/lib/utils/dates'
+
+// ── Planning rules ────────────────────────────────────────────────────────────
+
+interface PlanningRules {
+  minShiftMinutes: number
+  maxShiftMinutes: number
+  breakTriggerMinutes: number
+  minRestHours: number
+}
+
+const DEFAULT_RULES: PlanningRules = {
+  minShiftMinutes: 30,
+  maxShiftMinutes: 600,
+  breakTriggerMinutes: 360,
+  minRestHours: 11,
+}
+
+function parseRules(data: Record<string, string>): PlanningRules {
+  return {
+    minShiftMinutes: parseInt(data.min_shift_duration ?? '30', 10),
+    maxShiftMinutes: parseInt(data.max_shift_duration ?? '600', 10),
+    breakTriggerMinutes: parseInt(data.break_trigger_minutes ?? '360', 10),
+    minRestHours: parseInt(data.min_rest_hours ?? '11', 10),
+  }
+}
+
+function fmtMins(m: number): string {
+  const h = Math.floor(m / 60)
+  const min = m % 60
+  return min > 0 ? `${h}h${String(min).padStart(2, '0')}` : `${h}h`
+}
+
+function computeWarnings(
+  startTime: string,
+  endTime: string,
+  breakMins: number,
+  rules: PlanningRules,
+  employeeId: string,
+  date: Date,
+  allShifts: Shift[],
+): string[] {
+  const warnings: string[] = []
+  const rawDuration = calcDurationMinutes(startTime, endTime)
+  const netDuration = rawDuration - breakMins
+
+  if (netDuration > 0 && netDuration < rules.minShiftMinutes) {
+    warnings.push(`Créneau trop court — minimum requis : ${fmtMins(rules.minShiftMinutes)}`)
+  }
+  if (netDuration > rules.maxShiftMinutes) {
+    warnings.push(`Créneau trop long — maximum autorisé : ${fmtMins(rules.maxShiftMinutes)}`)
+  }
+  if (rawDuration >= rules.breakTriggerMinutes && breakMins === 0) {
+    warnings.push(`Pause obligatoire — une pause est requise pour un shift dépassant ${fmtMins(rules.breakTriggerMinutes)}`)
+  }
+
+  // Rest time check against adjacent shifts
+  const dateStr = toISODate(date)
+  const empShifts = allShifts.filter(s => s.employee_id === employeeId && s.date !== dateStr)
+
+  const prevDate = new Date(date)
+  prevDate.setDate(prevDate.getDate() - 1)
+  const prevShift = empShifts.find(s => s.date === toISODate(prevDate))
+  if (prevShift) {
+    const [eh, em] = prevShift.end_time.split(':').map(Number)
+    const [sh, sm] = startTime.split(':').map(Number)
+    const gapMins = (24 * 60 - (eh * 60 + em)) + (sh * 60 + sm)
+    if (gapMins < rules.minRestHours * 60) {
+      warnings.push(
+        `Repos insuffisant — seulement ${fmtMins(gapMins)} de repos après le shift de la veille (minimum : ${rules.minRestHours}h)`
+      )
+    }
+  }
+
+  const nextDate = new Date(date)
+  nextDate.setDate(nextDate.getDate() + 1)
+  const nextShift = empShifts.find(s => s.date === toISODate(nextDate))
+  if (nextShift) {
+    const [eh, em] = endTime.split(':').map(Number)
+    const [sh, sm] = nextShift.start_time.split(':').map(Number)
+    const gapMins = (24 * 60 - (eh * 60 + em)) + (sh * 60 + sm)
+    if (gapMins < rules.minRestHours * 60) {
+      warnings.push(
+        `Repos insuffisant — seulement ${fmtMins(gapMins)} de repos avant le shift du lendemain (minimum : ${rules.minRestHours}h)`
+      )
+    }
+  }
+
+  return warnings
+}
 
 const BREAK_OPTIONS = [
   { value: '0', label: 'Aucune' },
@@ -65,12 +155,21 @@ interface ShiftModalProps {
   postes: Poste[]
   employees: Profile[]
   weekDates: Date[]
+  shifts?: Shift[]
 }
 
-export function ShiftModal({ modalState, onClose, postes, employees, weekDates }: ShiftModalProps) {
+export function ShiftModal({ modalState, onClose, postes, employees, weekDates, shifts = [] }: ShiftModalProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [rules, setRules] = useState<PlanningRules>(DEFAULT_RULES)
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then((data: Record<string, string>) => setRules(parseRules(data)))
+      .catch(() => { /* keep defaults */ })
+  }, [])
 
   // Create mode form state
   const [startTime, setStartTime] = useState('09:00')
@@ -304,6 +403,24 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates }
     }
   }
 
+  // Reactive warnings for create mode
+  const createWarnings = useMemo(() => {
+    if (modalState.type !== 'create') return []
+    return computeWarnings(
+      startTime, endTime, parseInt(breakMinutes, 10),
+      rules, modalState.employee.id, modalState.date, shifts
+    )
+  }, [startTime, endTime, breakMinutes, rules, modalState, shifts])
+
+  // Reactive warnings for edit mode
+  const editWarnings = useMemo(() => {
+    if (modalState.type !== 'view' || !isEditing) return []
+    return computeWarnings(
+      editStartTime, editEndTime, parseInt(editBreakMinutes, 10),
+      rules, modalState.employee.id, modalState.date, shifts
+    )
+  }, [editStartTime, editEndTime, editBreakMinutes, rules, modalState, isEditing, shifts])
+
   if (modalState.type === 'closed') {
     return null
   }
@@ -407,6 +524,19 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates }
                 rows={3}
               />
             </div>
+
+            {/* Règles warnings */}
+            {createWarnings.length > 0 && (
+              <div className="space-y-1.5">
+                {createWarnings.map((w, i) => (
+                  <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
+                    style={{ backgroundColor: '#FEF3C7', border: '0.5px solid #D97706' }}>
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#D97706' }} />
+                    <p className="text-[12px] leading-snug" style={{ color: '#92400E' }}>{w}</p>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {error && (
               <p className="text-sm text-red-600">{error}</p>
@@ -529,6 +659,19 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates }
                 rows={3}
               />
             </div>
+
+            {/* Règles warnings */}
+            {editWarnings.length > 0 && (
+              <div className="space-y-1.5">
+                {editWarnings.map((w, i) => (
+                  <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
+                    style={{ backgroundColor: '#FEF3C7', border: '0.5px solid #D97706' }}>
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#D97706' }} />
+                    <p className="text-[12px] leading-snug" style={{ color: '#92400E' }}>{w}</p>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {error && (
               <p className="text-sm text-red-600">{error}</p>
