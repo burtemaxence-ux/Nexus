@@ -4,8 +4,10 @@ import { useState } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Plus, Lock, Unlock, Share2, Check } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import {
+  ChevronLeft, ChevronRight, Plus, Lock, Unlock,
+  Share2, Check, Calendar, ChevronDown, SlidersHorizontal,
+} from 'lucide-react'
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { toISODate, addDays } from '@/lib/utils/dates'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
@@ -20,12 +22,12 @@ interface PlanningDayProps {
   postes: Poste[]
 }
 
-const LEAVE_LABELS: Record<LeaveType, { label: string; style: React.CSSProperties; icon: string }> = {
-  CP:         { label: 'Congé payé',  icon: '🏖️', style: { backgroundColor: 'var(--accent-light)', color: 'var(--accent)', border: '0.5px solid var(--accent)' } },
-  RTT:        { label: 'RTT',         icon: '🗓️', style: { backgroundColor: 'var(--accent-light)', color: 'var(--accent)', border: '0.5px solid var(--accent)' } },
-  maladie:    { label: 'Maladie',     icon: '🤒', style: { backgroundColor: '#FEE2E2', color: 'var(--danger)', border: '0.5px solid var(--danger)' } },
-  sans_solde: { label: 'Sans solde',  icon: '📋', style: { backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', border: '0.5px solid var(--border)' } },
-  autre:      { label: 'Absence',     icon: '📌', style: { backgroundColor: '#FEF3C7', color: 'var(--warning)', border: '0.5px solid var(--warning)' } },
+const LEAVE_LABELS: Record<LeaveType, { label: string; style: React.CSSProperties }> = {
+  CP:         { label: 'Congé payé',  style: { backgroundColor: 'var(--accent-light)', color: 'var(--accent)', border: '0.5px solid var(--accent)' } },
+  RTT:        { label: 'RTT',         style: { backgroundColor: 'var(--accent-light)', color: 'var(--accent)', border: '0.5px solid var(--accent)' } },
+  maladie:    { label: 'Maladie',     style: { backgroundColor: '#FEE2E2', color: 'var(--danger)', border: '0.5px solid var(--danger)' } },
+  sans_solde: { label: 'Sans solde',  style: { backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', border: '0.5px solid var(--border)' } },
+  autre:      { label: 'Absence',     style: { backgroundColor: '#FEF3C7', color: 'var(--warning)', border: '0.5px solid var(--warning)' } },
 }
 
 function getInitials(name: string | null): string {
@@ -116,89 +118,108 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
-          {/* View toggle */}
-          <div className="flex overflow-hidden text-[13px] font-medium" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
-            <div className="px-4 py-2 select-none" style={{ backgroundColor: 'var(--text-primary)', color: 'var(--bg-card)' }}>Jour</div>
-            <Link href={`/manager/planning?week=${dateStr}`} className="px-4 py-2 transition-colors duration-150" style={{ color: 'var(--text-secondary)', borderLeft: '0.5px solid var(--border)' }}>Semaine</Link>
-            <Link href={`/manager/planning?view=month`} className="px-4 py-2 transition-colors duration-150" style={{ color: 'var(--text-secondary)', borderLeft: '0.5px solid var(--border)' }}>Mois</Link>
-          </div>
-          <Link href={`/manager/planning?view=day&date=${toISODate(prevDate)}`}>
-            <Button variant="outline" size="sm" className="gap-1"><ChevronLeft className="h-4 w-4" />Préc.</Button>
-          </Link>
-        </div>
+      {/* ── Toolbar ───────────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <h2 className="text-[15px] font-medium" style={{ color: isTodayDate ? 'var(--accent)' : 'var(--text-primary)' }}>
-            {dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1)}
+        {/* Left: nav + date */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <Link href={`/manager/planning?view=day&date=${toISODate(prevDate)}`}>
+            <button className="btn-secondary" style={{ padding: '7px 9px' }} aria-label="Jour précédent">
+              <ChevronLeft size={14} />
+            </button>
+          </Link>
+          <Link href={`/manager/planning?view=day&date=${toISODate(new Date())}`}>
+            <button className="btn-secondary" style={{ fontSize: '13px', padding: '7px 12px' }}>{"Aujourd'hui"}</button>
+          </Link>
+          <Calendar size={15} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 500, color: isTodayDate ? 'var(--accent)' : 'var(--text-primary)', textTransform: 'capitalize' }}>
+              {dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1)}
+            </span>
             {isTodayDate && (
-              <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
+              <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '20px', backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
                 Aujourd&apos;hui
               </span>
             )}
-          </h2>
+            <ChevronDown size={13} style={{ color: 'var(--text-tertiary)' }} />
+          </div>
+        </div>
+
+        {/* Center: Jour / Semaine / Mois pills */}
+        <div style={{ display: 'flex', border: '0.5px solid var(--border)', borderRadius: '8px', overflow: 'hidden', fontSize: '13px' }}>
+          <div style={{ padding: '6px 14px', backgroundColor: 'var(--accent)', color: '#FFFFFF', userSelect: 'none' }}>
+            Jour
+          </div>
+          <Link href={`/manager/planning?week=${dateStr}`}>
+            <div style={{ padding: '6px 14px', color: 'var(--text-tertiary)', cursor: 'pointer', borderLeft: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', transition: 'color 150ms' }}
+              className="hover:text-[var(--text-primary)]">Semaine</div>
+          </Link>
+          <Link href="/manager/planning?view=month">
+            <div style={{ padding: '6px 14px', color: 'var(--text-tertiary)', cursor: 'pointer', transition: 'color 150ms' }}
+              className="hover:text-[var(--text-primary)]">Mois</div>
+          </Link>
+        </div>
+
+        {/* Right: actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           {totalDayHours > 0 && (
-            <span className="text-[13px] px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', border: '0.5px solid var(--border)' }}>
+            <span style={{ fontSize: '12px', padding: '5px 10px', borderRadius: '20px', backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', border: '0.5px solid var(--border)' }}>
               {formatHours(totalDayHours)} planifiées
             </span>
           )}
-
-          {/* Publish toggle */}
           <button
-            role="switch"
-            aria-checked={weekPublished}
-            onClick={() => handleWeekStatus({ published: !weekPublished })}
-            disabled={statusLoading}
-            className="relative inline-flex h-7 w-[120px] cursor-pointer items-center rounded-full transition-colors duration-300 focus:outline-none disabled:opacity-50"
-            style={{
-              backgroundColor: weekPublished ? 'var(--success)' : 'var(--bg-card)',
-              border: `0.5px solid ${weekPublished ? 'var(--success)' : 'var(--border)'}`,
-            }}
-          >
-            <span className={`absolute h-5 w-5 rounded-full bg-white transition-transform duration-300 ${weekPublished ? 'translate-x-[92px]' : 'translate-x-1'}`} />
-            <span className={`absolute inset-0 flex items-center transition-opacity ${weekPublished ? 'opacity-100' : 'opacity-0'}`}>
-              <span className="pl-3 text-xs font-semibold text-white">Publié</span>
-            </span>
-            <span className={`absolute inset-0 flex items-center justify-end transition-opacity ${weekPublished ? 'opacity-0' : 'opacity-100'}`}>
-              <span className="pr-3 text-xs font-semibold" style={{ color: 'var(--text-tertiary)' }}>Non-publié</span>
-            </span>
-          </button>
-
-          <Button
-            variant="outline" size="sm"
-            style={weekLocked ? { borderColor: 'var(--warning)', color: 'var(--warning)' } : undefined}
-            className="gap-1.5"
+            className="btn-secondary"
+            style={{ padding: '7px 9px', ...(weekLocked ? { borderColor: 'var(--warning)', color: 'var(--warning)' } : {}) }}
             onClick={() => handleWeekStatus({ locked: !weekLocked })}
             disabled={statusLoading}
+            title={weekLocked ? 'Déverrouiller' : 'Verrouiller'}
           >
-            {weekLocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
-            {weekLocked ? 'Verrouillé' : 'Verrouiller'}
-          </Button>
-
-          <Button
-            variant="outline" size="sm" className="gap-1.5"
+            {weekLocked ? <Lock size={13} /> : <Unlock size={13} />}
+          </button>
+          <button
+            className="btn-secondary"
+            style={{ padding: '7px 9px' }}
             onClick={() => { navigator.clipboard.writeText(window.location.href); setShareCopied(true); setTimeout(() => setShareCopied(false), 2000) }}
+            title="Partager"
           >
-            {shareCopied ? <Check className="h-3.5 w-3.5" style={{ color: 'var(--success)' }} /> : <Share2 className="h-3.5 w-3.5" />}
-            {shareCopied ? 'Copié !' : 'Partager'}
-          </Button>
+            {shareCopied ? <Check size={13} style={{ color: 'var(--success)' }} /> : <Share2 size={13} />}
+          </button>
+          <button
+            className="btn-primary"
+            onClick={() => handleWeekStatus({ published: !weekPublished })}
+            disabled={statusLoading || employees.length === 0}
+            style={{ paddingLeft: '18px', paddingRight: '18px', gap: '6px', opacity: statusLoading ? 0.6 : 1 }}
+          >
+            {weekPublished ? <><Check size={13} />Publié</> : 'Publier'}
+          </button>
         </div>
+      </div>
 
+      {/* Right nav */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Link href={`/manager/planning?view=day&date=${toISODate(nextDate)}`}>
-          <Button variant="outline" size="sm" className="gap-1">Suiv.<ChevronRight className="h-4 w-4" /></Button>
+          <button className="btn-secondary" style={{ padding: '7px 9px' }} aria-label="Jour suivant">
+            <ChevronRight size={14} />
+          </button>
         </Link>
       </div>
 
-      {/* Employee cards */}
+      {/* ── Employee cards ──────────────────────────────────────────────────────── */}
       {employees.length === 0 ? (
         <div className="rounded-xl p-12 text-center" style={{ border: '0.5px dashed var(--border)', backgroundColor: 'var(--bg-card)' }}>
           <p className="mb-3 text-[13px]" style={{ color: 'var(--text-secondary)' }}>Ajoutez des employés pour commencer à planifier</p>
-          <Link href="/manager/employees"><Button variant="outline" size="sm">Gérer les employés</Button></Link>
+          <Link href="/manager/employees"><button className="btn-secondary">Gérer les employés</button></Link>
         </div>
       ) : (
-        <div ref={planRef} className={`space-y-2 transition-all ${weekLocked ? 'opacity-60 saturate-50' : ''}`}>
+        <div
+          ref={planRef}
+          style={{
+            display: 'flex', flexDirection: 'column', gap: '6px',
+            opacity: weekLocked ? 0.65 : 1,
+            filter: weekLocked ? 'saturate(0.4)' : 'none',
+            transition: 'opacity 300ms, filter 300ms',
+          }}
+        >
           {sorted.map(employee => {
             const empShifts = dayShiftMap.get(employee.id) ?? []
             const absenceType = absenceMap.get(employee.id)
@@ -209,95 +230,107 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
             return (
               <div
                 key={employee.id}
-                className="rounded-xl transition-colors duration-150"
                 style={{
-                  border: `0.5px solid ${isRest ? 'var(--border)' : 'var(--border)'}`,
                   backgroundColor: 'var(--bg-card)',
-                  opacity: isRest ? 0.7 : 1,
+                  border: '0.5px solid var(--border)',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                  opacity: isRest ? 0.6 : 1,
+                  transition: 'opacity 150ms',
                 }}
               >
-                <div className="flex items-center gap-4 px-4 py-3">
-                  {/* Avatar */}
-                  <div
-                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                    style={
-                      hasShifts
-                        ? { backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }
-                        : absenceType
-                        ? { backgroundColor: '#FEF3C7', color: 'var(--warning)' }
-                        : { backgroundColor: 'var(--bg-page)', color: 'var(--text-tertiary)' }
-                    }
-                  >
-                    {getInitials(employee.full_name)}
-                  </div>
+                {/* Avatar */}
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '11px', fontWeight: 700,
+                  backgroundColor: hasShifts ? 'var(--accent-light)' : absenceType ? '#FEF3C7' : 'var(--bg-page)',
+                  color: hasShifts ? 'var(--accent)' : absenceType ? 'var(--warning)' : 'var(--text-tertiary)',
+                }}>
+                  {getInitials(employee.full_name)}
+                </div>
 
-                  {/* Name */}
-                  <div className="w-44 min-w-[176px]">
-                    <p className="text-[13px] font-medium" style={{ color: isRest ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
-                      {employee.full_name ?? employee.email}
-                    </p>
-                    {employee.position && (
-                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{employee.position}</p>
-                    )}
-                  </div>
+                {/* Name + poste */}
+                <div style={{ width: '160px', minWidth: '140px', flexShrink: 0 }}>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: isRest ? 'var(--text-tertiary)' : 'var(--text-primary)', lineHeight: 1.3 }}>
+                    {employee.full_name ?? employee.email}
+                  </p>
+                  {employee.position && (
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{employee.position}</p>
+                  )}
+                </div>
 
-                  {/* Content */}
-                  <div className="flex-1 flex items-center gap-3 flex-wrap">
-                    {absenceType && (
-                      <div className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium" style={LEAVE_LABELS[absenceType].style}>
-                        <span>{LEAVE_LABELS[absenceType].icon}</span>
-                        <span>{LEAVE_LABELS[absenceType].label}</span>
-                      </div>
-                    )}
+                {/* Shifts + absence */}
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {absenceType && (
+                    <div style={{ ...LEAVE_LABELS[absenceType].style, borderRadius: '8px', padding: '6px 12px', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center' }}>
+                      {LEAVE_LABELS[absenceType].label}
+                    </div>
+                  )}
 
-                    {empShifts.map(shift => {
-                      const poste = shift.poste_id ? posteMap.get(shift.poste_id) : null
-                      const bgColor = poste ? `${poste.color}18` : 'var(--accent-light)'
-                      const borderColor = poste ? `${poste.color}60` : 'var(--accent)'
-                      const textColor = poste?.color ?? 'var(--accent)'
-                      const hours = calcHours(shift.start_time, shift.end_time, shift.break_minutes)
-                      return (
-                        <button
-                          key={shift.id}
-                          onClick={() => setModalState({ type: 'view', shift, employee, date, readOnly: weekLocked })}
-                          style={{ backgroundColor: bgColor, borderColor, color: textColor, border: `0.5px solid ${borderColor}` }}
-                          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:opacity-80 transition-opacity text-left"
-                        >
-                          <div>
-                            <p className="font-semibold">{formatTime(shift.start_time)} &ndash; {formatTime(shift.end_time)}</p>
-                            <p className="text-xs opacity-75">{shift.position ?? poste?.name ?? '—'}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold">{formatHours(hours)}</p>
-                            {shift.break_minutes > 0 && <p className="text-xs opacity-60">pause {shift.break_minutes}min</p>}
-                          </div>
-                        </button>
-                      )
-                    })}
-
-                    {isRest && (
-                      <span className="text-[12px] font-medium tracking-wide" style={{ color: 'var(--text-tertiary)' }}>Repos</span>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    {totalHours > 0 && (
-                      <span className="text-[13px] font-semibold w-12 text-right" style={{ color: 'var(--text-primary)' }}>{formatHours(totalHours)}</span>
-                    )}
-                    {!weekLocked && (
+                  {empShifts.map(shift => {
+                    const poste = shift.poste_id ? posteMap.get(shift.poste_id) : null
+                    const bg = poste ? `${poste.color}15` : 'var(--accent-light)'
+                    const borderColor = poste?.color ?? 'var(--accent)'
+                    const textColor = poste?.color ?? 'var(--accent)'
+                    const hours = calcHours(shift.start_time, shift.end_time, shift.break_minutes)
+                    return (
                       <button
-                        onClick={() => setModalState({ type: 'create', employee, date })}
-                        className="flex items-center gap-1 text-[12px] px-2 py-1 rounded-md transition-colors duration-150"
-                        style={{ color: 'var(--text-tertiary)' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--accent)'; (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--accent-light)' }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)'; (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}
+                        key={shift.id}
+                        onClick={() => setModalState({ type: 'view', shift, employee, date, readOnly: weekLocked })}
+                        style={{
+                          backgroundColor: bg,
+                          borderLeft: `3px solid ${borderColor}`,
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          border: 'none',
+                          borderLeftWidth: '3px',
+                          borderLeftStyle: 'solid',
+                          borderLeftColor: borderColor,
+                          display: 'flex', flexDirection: 'column', gap: '2px',
+                          cursor: 'pointer', textAlign: 'left', minWidth: '120px',
+                        }}
+                        className="hover:brightness-[0.96] transition-all"
                       >
-                        <Plus className="h-3.5 w-3.5" />
-                        Ajouter
+                        <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                          {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 400, marginLeft: '6px' }}>{formatHours(hours)}</span>
+                        </p>
+                        <p style={{ fontSize: '12px', color: textColor, lineHeight: 1 }}>{shift.position ?? poste?.name ?? '—'}</p>
                       </button>
-                    )}
-                  </div>
+                    )
+                  })}
+
+                  {isRest && (
+                    <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>Repos</span>
+                  )}
+                </div>
+
+                {/* Total + Add */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  {totalHours > 0 && (
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', minWidth: '36px', textAlign: 'right' }}>
+                      {formatHours(totalHours)}
+                    </span>
+                  )}
+                  {!weekLocked && (
+                    <button
+                      onClick={() => setModalState({ type: 'create', employee, date })}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        fontSize: '12px', padding: '5px 10px', borderRadius: '6px',
+                        border: '0.5px solid var(--border)', backgroundColor: 'transparent',
+                        color: 'var(--text-tertiary)', cursor: 'pointer',
+                      }}
+                      className="hover:text-[var(--accent)] hover:bg-[var(--accent-light)] hover:border-[var(--accent)] transition-all"
+                    >
+                      <Plus size={12} />
+                      Ajouter
+                    </button>
+                  )}
                 </div>
               </div>
             )
