@@ -4,8 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import type { ElementType } from 'react'
 import {
   Calendar, Users, Clock, Settings, BarChart3,
-  Building2, ArrowRight, AlertTriangle, Palmtree,
+  ArrowRight, AlertTriangle, Palmtree,
 } from 'lucide-react'
+import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
 
 // ── Modules secondaires (config statique) ─────────────────────────────────────
 
@@ -86,10 +87,20 @@ export default async function ManagerDashboard() {
   const weekEnd    = sunday.toISOString().split('T')[0]
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
 
-  const [{ data: weekShifts }, { data: weekPresences }, { data: monthLateness }] = await Promise.all([
+  const [
+    { data: weekShifts },
+    { data: weekPresences },
+    { data: monthLateness },
+    { data: anyShift },
+    { data: anyPublished },
+    { count: postesCount },
+  ] = await Promise.all([
     supabase.from('shifts').select('employee_id, date').gte('date', weekStart).lte('date', weekEnd).is('deleted_at', null),
     supabase.from('presences').select('employee_id, date').gte('date', weekStart).lte('date', weekEnd).not('clock_in', 'is', null),
     supabase.from('lateness_records').select('id').gte('date', monthStart),
+    supabase.from('shifts').select('id').is('deleted_at', null).limit(1),
+    supabase.from('week_status').select('id').eq('published', true).limit(1),
+    supabase.from('postes').select('*', { count: 'exact', head: true }),
   ])
 
   const totalShifts   = weekShifts?.length ?? 0
@@ -102,6 +113,45 @@ export default async function ManagerDashboard() {
   const pendingCount  = pendingLeaves?.length ?? 0
   const employeeCount = employees?.length ?? 0
   const establishmentLabel = !isDefaultName ? nameRow!.value : null
+
+  const onboardingSteps = [
+    {
+      title: "Nommer votre établissement",
+      description: "Ajoutez le nom et les informations de votre établissement.",
+      done: !isDefaultName,
+      href: '/manager/settings/organisation',
+      cta: 'Configurer',
+    },
+    {
+      title: 'Créer vos postes',
+      description: "Définissez les rôles de votre équipe (ex. Serveur, Cuisinier).",
+      done: (postesCount ?? 0) > 0,
+      href: '/manager/settings/postes',
+      cta: 'Créer',
+    },
+    {
+      title: 'Inviter des employés',
+      description: "Ajoutez les membres de votre équipe.",
+      done: employeeCount > 0,
+      href: '/manager/employees/new',
+      cta: 'Inviter',
+    },
+    {
+      title: 'Créer un premier shift',
+      description: "Planifiez votre premier horaire dans le planning.",
+      done: (anyShift?.length ?? 0) > 0,
+      href: '/manager/planning',
+      cta: 'Planifier',
+    },
+    {
+      title: 'Publier le planning',
+      description: "Rendez le planning visible pour vos employés.",
+      done: (anyPublished?.length ?? 0) > 0,
+      href: '/manager/planning',
+      cta: 'Publier',
+    },
+  ]
+  const onboardingAllDone = onboardingSteps.every(s => s.done)
 
   const todayLabel = today.toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -120,22 +170,9 @@ export default async function ManagerDashboard() {
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-page)' }}>
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
-        {/* ── SETUP BANNER ──────────────────────────────────────────────────── */}
-        {isDefaultName && (
-          <Link href="/manager/settings/organisation">
-            <div className="flex items-center gap-3 rounded-xl px-4 py-3 border transition-colors duration-150"
-              style={{
-                borderColor: 'var(--accent)',
-                backgroundColor: 'var(--accent-light)',
-              }}
-            >
-              <Building2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
-              <p className="flex-1 text-[13px] font-medium" style={{ color: 'var(--accent)' }}>
-                Configurez votre établissement — ajoutez le nom, le logo et l&apos;adresse.
-              </p>
-              <ArrowRight className="h-3 w-3 flex-shrink-0" style={{ color: 'var(--accent)' }} />
-            </div>
-          </Link>
+        {/* ── ONBOARDING ────────────────────────────────────────────────────── */}
+        {!onboardingAllDone && (
+          <OnboardingChecklist steps={onboardingSteps} />
         )}
 
         {/* ── HEADER ────────────────────────────────────────────────────────── */}
