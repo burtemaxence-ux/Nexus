@@ -8,7 +8,7 @@ import {
   Mail, Share2, Check, Plus, AlertTriangle, Filter,
   Edit2, Trash2, CopyPlus, Printer,
   Calendar, ChevronDown, SlidersHorizontal,
-  Users, UserCheck, Clock, TrendingUp, MoreHorizontal,
+  Users, UserCheck, Clock, TrendingUp, MoreHorizontal, Sparkles,
 } from 'lucide-react'
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
@@ -735,6 +735,24 @@ export function PlanningWeekTimeline({
             <Link href={`/manager/planning/print?week=${mondayStr}`} target="_blank">
               <button className="btn-secondary" style={{ padding: '7px 9px' }} title="Exporter PDF"><Printer size={13} /></button>
             </Link>
+
+            {/* Générer avec l'IA */}
+            <button
+              className="btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', borderColor: 'var(--accent)', color: 'var(--accent)' }}
+              onClick={() => {
+                const weekLabel = weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) + ' au ' + weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+                window.dispatchEvent(new CustomEvent('ai:open', {
+                  detail: {
+                    message: `Analyse le planning de la semaine du ${weekLabel} et suggère des optimisations. Prends en compte les employés disponibles, les congés en attente et les règles légales de la convention collective.`,
+                  },
+                }))
+              }}
+              title="Analyser et optimiser le planning avec l'IA"
+            >
+              <Sparkles size={13} />
+              Générer
+            </button>
 
             {/* Publier — primary CTA */}
             <button

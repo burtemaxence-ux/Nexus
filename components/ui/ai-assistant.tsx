@@ -30,6 +30,21 @@ export function AiAssistant({ establishmentName, userName }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const sendRef = useRef<((text: string) => void) | null>(null)
+
+  // Listen for external open requests (e.g. "Générer le planning" button)
+  useEffect(() => {
+    function handleExternalOpen(e: Event) {
+      const detail = (e as CustomEvent<{ message?: string }>).detail
+      setOpen(true)
+      if (detail?.message) {
+        // Delay so the panel opens and the greeting initialises first
+        setTimeout(() => sendRef.current?.(detail.message!), 300)
+      }
+    }
+    window.addEventListener('ai:open', handleExternalOpen)
+    return () => window.removeEventListener('ai:open', handleExternalOpen)
+  }, [])
 
   useEffect(() => {
     if (open && messages.length === 0) {
@@ -99,6 +114,9 @@ export function AiAssistant({ establishmentName, userName }: Props) {
       setLoading(false)
     }
   }, [messages, loading, establishmentName])
+
+  // Keep sendRef current so the external event handler can call it
+  useEffect(() => { sendRef.current = send }, [send])
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
