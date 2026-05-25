@@ -253,21 +253,23 @@ export default function RapportPage() {
   return (
     <div className="min-h-full">
       {/* Sticky header */}
-      <div className="border-b border-border bg-card sticky top-0 z-10">
+      <div className="border-b border-border bg-card sticky top-11 z-10">
         <div className="px-6 max-w-6xl mx-auto">
           <div className="flex items-center gap-3 h-14 flex-wrap">
-            <h1 className="text-lg font-semibold text-foreground shrink-0">Rapport</h1>
+            <h1 className="text-[20px] font-medium tracking-[-0.02em] shrink-0" style={{ color: 'var(--text-primary)' }}>Rapport</h1>
 
             {/* Report type tabs */}
-            <div className="flex items-center bg-muted rounded-lg p-1 gap-0.5">
-              {(['heures', 'retards'] as RapportTab[]).map(t => (
+            <div className="flex overflow-hidden" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
+              {(['heures', 'retards'] as RapportTab[]).map((t, i) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1 text-sm font-medium rounded-md transition-all',
-                    tab === t ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground',
-                  )}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium transition-colors duration-150"
+                  style={{
+                    backgroundColor: tab === t ? 'var(--text-primary)' : 'transparent',
+                    color: tab === t ? 'var(--bg-card)' : 'var(--text-tertiary)',
+                    borderLeft: i > 0 ? '0.5px solid var(--border)' : undefined,
+                  }}
                 >
                   {t === 'retards' && <AlarmClock className="h-3.5 w-3.5" />}
                   {t === 'heures' ? 'Heures' : 'Retards'}
@@ -276,15 +278,17 @@ export default function RapportPage() {
             </div>
 
             {/* Mode tabs */}
-            <div className="flex items-center bg-muted rounded-lg p-1 gap-0.5">
-              {(['day', 'week', 'month'] as Mode[]).map(m => (
+            <div className="flex overflow-hidden" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
+              {(['day', 'week', 'month'] as Mode[]).map((m, i) => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
-                  className={cn(
-                    'px-3 py-1 text-sm font-medium rounded-md transition-all',
-                    mode === m ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground',
-                  )}
+                  className="px-3 py-1.5 text-[13px] font-medium transition-colors duration-150"
+                  style={{
+                    backgroundColor: mode === m ? 'var(--text-primary)' : 'transparent',
+                    color: mode === m ? 'var(--bg-card)' : 'var(--text-tertiary)',
+                    borderLeft: i > 0 ? '0.5px solid var(--border)' : undefined,
+                  }}
                 >
                   {m === 'day' ? 'Jour' : m === 'week' ? 'Semaine' : 'Mois'}
                 </button>
@@ -313,7 +317,7 @@ export default function RapportPage() {
               <select
                 value={selectedPoste}
                 onChange={e => setSelectedPoste(e.target.value)}
-                className="text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 ml-auto"
+                className="text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:outline-none ml-auto"
               >
                 <option value="all">Tous les postes</option>
                 {postes.map(p => <option key={p} value={p}>{p}</option>)}
@@ -324,7 +328,7 @@ export default function RapportPage() {
             <select
               value={selectedEmployee}
               onChange={e => setSelectedEmployee(e.target.value)}
-              className={`text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 ${postes.length === 0 ? 'ml-auto' : ''}`}
+              className={`text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:outline-none ${postes.length === 0 ? 'ml-auto' : ''}`}
             >
               <option value="all">Tous les employés</option>
               {employees.map(e => (
@@ -343,16 +347,16 @@ export default function RapportPage() {
             {/* Retards summary cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { icon: AlarmClock, label: 'Total retards', value: latenessRecords.length.toString(), color: undefined },
-                { icon: Clock, label: 'Minutes perdues', value: latenessRecords.reduce((s, r) => s + r.late_minutes, 0) + ' min', color: undefined },
-                { icon: TrendingUp, label: 'Non justifiés', value: latenessRecords.filter(r => !r.justified).length.toString(), color: latenessRecords.some(r => !r.justified) ? 'text-destructive' : undefined },
-              ].map(({ icon: Icon, label, value, color }) => (
+                { icon: AlarmClock, label: 'Total retards', value: latenessRecords.length.toString(), danger: false },
+                { icon: Clock, label: 'Minutes perdues', value: latenessRecords.reduce((s, r) => s + r.late_minutes, 0) + ' min', danger: false },
+                { icon: TrendingUp, label: 'Non justifiés', value: latenessRecords.filter(r => !r.justified).length.toString(), danger: latenessRecords.some(r => !r.justified) },
+              ].map(({ icon: Icon, label, value, danger }) => (
                 <div key={label} className="bg-card border border-border rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Icon className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
+                    <Icon className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+                    <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
                   </div>
-                  <p className={cn('text-2xl font-bold text-foreground', color)}>{value}</p>
+                  <p className="text-[20px] font-normal" style={{ color: danger ? 'var(--danger)' : 'var(--text-primary)' }}>{value}</p>
                 </div>
               ))}
             </div>
@@ -364,12 +368,12 @@ export default function RapportPage() {
                 <button
                   key={f}
                   onClick={() => setLatenessFilter(f)}
-                  className={cn(
-                    'px-3 py-1 text-sm rounded-full border transition-colors',
-                    latenessFilter === f
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30',
-                  )}
+                  className="px-3 py-1 text-[13px] rounded-full transition-colors duration-150"
+                  style={{
+                    border: latenessFilter === f ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                    backgroundColor: latenessFilter === f ? 'var(--accent-light)' : 'transparent',
+                    color: latenessFilter === f ? 'var(--accent)' : 'var(--text-secondary)',
+                  }}
                 >
                   {f === 'all' ? 'Tous' : f === 'justified' ? 'Justifiés' : 'Non justifiés'}
                 </button>
@@ -417,17 +421,16 @@ export default function RapportPage() {
                             {new Date(rec.actual_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <span className="font-medium text-orange-600">+{rec.late_minutes} min</span>
+                            <span className="font-medium" style={{ color: 'var(--warning)' }}>+{rec.late_minutes} min</span>
                           </td>
                           <td className="px-4 py-3">
                             <button
                               onClick={() => toggleJustified(rec)}
-                              className={cn(
-                                'text-xs font-medium px-2.5 py-1 rounded-full border transition-colors',
-                                rec.justified
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                  : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100',
-                              )}
+                              className="text-xs font-medium px-2.5 py-1 rounded-full transition-colors duration-150"
+                              style={rec.justified
+                                ? { backgroundColor: 'var(--accent-light)', color: 'var(--accent)', border: '0.5px solid var(--accent)' }
+                                : { backgroundColor: '#FEE2E2', color: 'var(--danger)', border: '0.5px solid var(--danger)' }
+                              }
                             >
                               {rec.justified ? 'Justifié' : 'Non justifié'}
                             </button>
@@ -448,51 +451,51 @@ export default function RapportPage() {
         <div className={cn('grid gap-4', totals.hasCost ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6' : 'grid-cols-2 md:grid-cols-5')}>
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Users className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Employés</span>
+              <Users className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Employés</span>
             </div>
-            <p className="text-2xl font-bold text-foreground">{totals.employees}</p>
+            <p className="text-[20px] font-normal" style={{ color: 'var(--text-primary)' }}>{totals.employees}</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">H. planifiées</span>
+              <Clock className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">H. planifiées</span>
             </div>
-            <p className="text-2xl font-bold text-foreground">{fh(totals.plannedHours)}</p>
+            <p className="text-[20px] font-normal" style={{ color: 'var(--text-primary)' }}>{fh(totals.plannedHours)}</p>
             {totals.realHours > 0 && <p className="text-xs text-muted-foreground mt-1">{fh(totals.realHours)} réelles</p>}
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Écart contrat</span>
+              <TrendingUp className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Écart contrat</span>
             </div>
-            <p className={cn('text-2xl font-bold', totals.diffHours > 0.1 ? 'text-emerald-600' : totals.diffHours < -0.1 ? 'text-destructive' : 'text-foreground')}>
+            <p className="text-[20px] font-normal" style={{ color: totals.diffHours > 0.1 ? 'var(--success)' : totals.diffHours < -0.1 ? 'var(--danger)' : 'var(--text-primary)' }}>
               {totals.diffHours >= 0 ? '+' : ''}{fh(totals.diffHours)}
             </p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarOff className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">J. d&apos;absence</span>
+              <CalendarOff className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">J. d&apos;absence</span>
             </div>
-            <p className="text-2xl font-bold text-foreground">{totals.absences}</p>
+            <p className="text-[20px] font-normal" style={{ color: 'var(--text-primary)' }}>{totals.absences}</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Taux présence</span>
+              <TrendingUp className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Taux présence</span>
             </div>
-            <p className={cn('text-2xl font-bold', presenceRate === null ? 'text-muted-foreground' : presenceRate >= 80 ? 'text-emerald-600' : presenceRate >= 60 ? 'text-amber-600' : 'text-destructive')}>
+            <p className="text-[20px] font-normal" style={{ color: presenceRate === null ? 'var(--text-tertiary)' : presenceRate >= 80 ? 'var(--success)' : presenceRate >= 60 ? 'var(--warning)' : 'var(--danger)' }}>
               {presenceRate === null ? '—' : `${presenceRate}%`}
             </p>
           </div>
           {totals.hasCost && (
             <div className="bg-card border border-border rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold text-primary">€</span>
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Coût estimé</span>
+                <span className="text-[11px] font-bold" style={{ color: 'var(--accent)' }}>€</span>
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Coût estimé</span>
               </div>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-[20px] font-normal" style={{ color: 'var(--text-primary)' }}>
                 {totals.totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €
               </p>
             </div>
@@ -541,7 +544,7 @@ export default function RapportPage() {
                         <td className="px-4 py-3 text-right text-muted-foreground">{row.realHours > 0 ? fh(row.realHours) : '—'}</td>
                         <td className="px-4 py-3 text-right text-muted-foreground">{row.contractRefHours > 0.1 ? fh(row.contractRefHours) : '—'}</td>
                         <td className="px-4 py-3 text-right">
-                          <span className={cn('font-medium', row.diffHours > 0.1 ? 'text-emerald-600' : row.diffHours < -0.1 ? 'text-destructive' : 'text-muted-foreground')}>
+                          <span className="font-medium" style={{ color: row.diffHours > 0.1 ? 'var(--success)' : row.diffHours < -0.1 ? 'var(--danger)' : 'var(--text-tertiary)' }}>
                             {row.contractRefHours > 0.1 ? `${row.diffHours >= 0 ? '+' : ''}${fh(row.diffHours)}` : '—'}
                           </span>
                         </td>
@@ -560,11 +563,11 @@ export default function RapportPage() {
                             <span className="text-muted-foreground">—</span>
                           ) : (
                             <div className="flex flex-wrap gap-1">
-                              {row.absenceCP > 0      && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">CP {row.absenceCP}j</span>}
-                              {row.absenceRTT > 0     && <span className="text-xs bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full">RTT {row.absenceRTT}j</span>}
-                              {row.absenceMaladie > 0 && <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Mal. {row.absenceMaladie}j</span>}
-                              {row.absenceSS > 0      && <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">SS {row.absenceSS}j</span>}
-                              {row.absenceAutre > 0   && <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">Autre {row.absenceAutre}j</span>}
+                              {row.absenceCP > 0      && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>CP {row.absenceCP}j</span>}
+                              {row.absenceRTT > 0     && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>RTT {row.absenceRTT}j</span>}
+                              {row.absenceMaladie > 0 && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#FEF3C7', color: 'var(--warning)' }}>Mal. {row.absenceMaladie}j</span>}
+                              {row.absenceSS > 0      && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#FEE2E2', color: 'var(--danger)' }}>SS {row.absenceSS}j</span>}
+                              {row.absenceAutre > 0   && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', border: '0.5px solid var(--border)' }}>Autre {row.absenceAutre}j</span>}
                             </div>
                           )}
                         </td>
@@ -580,7 +583,7 @@ export default function RapportPage() {
                       <td className="px-4 py-3 text-right font-medium text-muted-foreground">{totals.realHours > 0 ? fh(totals.realHours) : '—'}</td>
                       <td className="px-4 py-3 text-right text-muted-foreground">—</td>
                       <td className="px-4 py-3 text-right">
-                        <span className={cn('font-bold', totals.diffHours > 0.1 ? 'text-emerald-600' : totals.diffHours < -0.1 ? 'text-destructive' : 'text-muted-foreground')}>
+                        <span className="font-bold" style={{ color: totals.diffHours > 0.1 ? 'var(--success)' : totals.diffHours < -0.1 ? 'var(--danger)' : 'var(--text-tertiary)' }}>
                           {totals.diffHours >= 0 ? '+' : ''}{fh(totals.diffHours)}
                         </span>
                       </td>

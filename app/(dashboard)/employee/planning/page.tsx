@@ -89,7 +89,8 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
       <div className="mb-6">
         <Link
           href="/employee"
-          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          className="inline-flex items-center gap-1 text-[13px] transition-colors duration-150"
+          style={{ color: 'var(--text-secondary)' }}
         >
           <ChevronLeft className="h-4 w-4" />
           Mon espace
@@ -97,23 +98,23 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
       </div>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
           Bonjour {firstName} — Planning de la semaine
         </h1>
-        <p className="text-gray-500 mt-1 text-sm">
+        <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
           Consultez vos horaires pour la semaine en cours
         </p>
       </div>
 
       {!isPublished ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <svg className="h-7 w-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="h-16 w-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'var(--bg-page)' }}>
+            <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--text-tertiary)' }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Planning en cours de préparation</h2>
-          <p className="text-gray-500 text-sm max-w-sm">
+          <h2 className="text-[15px] font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Planning en cours de préparation</h2>
+          <p className="text-[13px] max-w-sm" style={{ color: 'var(--text-secondary)' }}>
             Votre responsable n&apos;a pas encore publié le planning pour cette semaine. Revenez bientôt.
           </p>
         </div>

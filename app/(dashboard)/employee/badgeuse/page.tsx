@@ -140,7 +140,7 @@ export default function BadgeusePage() {
 
         {/* Header */}
         <div className="text-center mb-2">
-          <h1 className="text-2xl font-bold text-foreground">Badgeuse</h1>
+          <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Badgeuse</h1>
           <p className="text-sm text-muted-foreground capitalize mt-0.5">{dateLabel}</p>
         </div>
 
@@ -168,9 +168,9 @@ export default function BadgeusePage() {
           <>
             {/* Service prévu */}
             {shifts.length > 0 && (
-              <div className="rounded-xl bg-primary/8 border border-primary/20 px-4 py-2.5 flex items-center justify-between text-sm">
-                <span className="text-primary font-medium">Service prévu</span>
-                <span className="text-primary font-bold tabular-nums">
+              <div className="rounded-xl px-4 py-2.5 flex items-center justify-between text-sm" style={{ backgroundColor: 'var(--accent-light)', border: '0.5px solid var(--accent)' }}>
+                <span className="font-medium" style={{ color: 'var(--accent)' }}>Service prévu</span>
+                <span className="font-bold tabular-nums" style={{ color: 'var(--accent)' }}>
                   {shifts[0].start_time.slice(0, 5)} – {shifts[0].end_time.slice(0, 5)}
                 </span>
               </div>
@@ -300,11 +300,11 @@ function Row({ label, value, bold = false }: { label: string; value: string; bol
 }
 
 function Chip({ color, label, value }: { color: 'emerald' | 'primary'; label: string; value: string }) {
-  const cls = color === 'emerald'
-    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-    : 'bg-primary/8 border-primary/20 text-primary'
+  const style = color === 'emerald'
+    ? { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0', color: '#15803D' }
+    : { backgroundColor: 'var(--accent-light)', borderColor: 'var(--accent)', color: 'var(--accent)' }
   return (
-    <div className={`flex-1 rounded-xl border px-3 py-2 flex justify-between items-center text-sm ${cls}`}>
+    <div className="flex-1 rounded-xl px-3 py-2 flex justify-between items-center text-sm" style={{ border: `0.5px solid ${style.borderColor}`, backgroundColor: style.backgroundColor, color: style.color }}>
       <span className="font-medium">{label}</span>
       <span className="font-bold tabular-nums">{value}</span>
     </div>

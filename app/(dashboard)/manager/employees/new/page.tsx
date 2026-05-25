@@ -107,14 +107,14 @@ export default function NewEmployeePage() {
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
-          <Link href="/manager" className="text-sm text-gray-500 hover:text-gray-700">Tableau de bord</Link>
-          <span className="text-gray-400">/</span>
-          <Link href="/manager/employees" className="text-sm text-gray-500 hover:text-gray-700">Équipe</Link>
-          <span className="text-gray-400">/</span>
-          <span className="text-sm text-gray-700 font-medium">Inviter</span>
+          <Link href="/manager" className="text-[13px] transition-colors duration-150" style={{ color: 'var(--text-secondary)' }}>Tableau de bord</Link>
+          <span style={{ color: 'var(--text-tertiary)' }}>/</span>
+          <Link href="/manager/employees" className="text-[13px] transition-colors duration-150" style={{ color: 'var(--text-secondary)' }}>Équipe</Link>
+          <span style={{ color: 'var(--text-tertiary)' }}>/</span>
+          <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>Inviter</span>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">Inviter un membre</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Inviter un membre</h1>
+        <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
           Un lien d&apos;accès sera généré — partagez-le par SMS, WhatsApp ou email.
         </p>
       </div>
@@ -130,7 +130,7 @@ export default function NewEmployeePage() {
 
               {/* Identité */}
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Identité</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] mb-3" style={{ color: 'var(--text-secondary)' }}>Identité</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="first_name">Prénom *</Label>
@@ -184,7 +184,7 @@ export default function NewEmployeePage() {
 
               {/* Rôle & Poste */}
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Rôle & Poste</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] mb-3" style={{ color: 'var(--text-secondary)' }}>Rôle & Poste</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="role">Rôle *</Label>
@@ -198,7 +198,7 @@ export default function NewEmployeePage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-[11px] text-gray-400">Détermine les permissions de l&apos;accès</p>
+                    <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>Détermine les permissions de l&apos;accès</p>
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="position">Poste</Label>
@@ -222,7 +222,7 @@ export default function NewEmployeePage() {
 
               {/* Contrat */}
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Contrat</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.06em] mb-3" style={{ color: 'var(--text-secondary)' }}>Contrat</p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="contract_type">Type de contrat</Label>
@@ -268,7 +268,7 @@ export default function NewEmployeePage() {
               </div>
 
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+                <div className="px-4 py-3 rounded-lg text-[13px]" style={{ backgroundColor: '#FEE2E2', border: '0.5px solid var(--danger)', color: 'var(--danger)' }}>
                   {error}
                 </div>
               )}
@@ -289,15 +289,15 @@ export default function NewEmployeePage() {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-green-700">✓ Compte créé</CardTitle>
+            <CardTitle className="text-[15px] font-medium" style={{ color: 'var(--success)' }}>✓ Compte créé</CardTitle>
             <CardDescription>
               Partagez ce lien avec <strong>{invitedFullName}</strong> — il lui permettra de définir son mot de passe et d&apos;accéder à son espace.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-xs text-gray-500 mb-1.5 font-medium">Lien d&apos;invitation</p>
-              <p className="text-xs text-gray-700 break-all font-mono leading-relaxed">{inviteLink}</p>
+            <div className="rounded-lg p-3" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
+              <p className="text-[11px] font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Lien d&apos;invitation</p>
+              <p className="text-[12px] break-all font-mono leading-relaxed" style={{ color: 'var(--text-primary)' }}>{inviteLink}</p>
             </div>
 
             <div className="flex gap-2">
@@ -313,7 +313,7 @@ export default function NewEmployeePage() {
               </Button>
             </div>
 
-            <p className="text-xs text-gray-400">
+            <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
               Ce lien expire après 24 heures. Si besoin, utilisez &ldquo;Renvoyer le lien&rdquo; depuis la liste des employés.
             </p>
 

@@ -24,9 +24,9 @@ const TABLE_LABELS: Record<string, string> = {
 }
 
 const ACTION_CFG = {
-  INSERT: { label: 'Création',     bg: 'bg-emerald-100 text-emerald-700' },
-  UPDATE: { label: 'Modification', bg: 'bg-blue-100 text-blue-700' },
-  DELETE: { label: 'Suppression',  bg: 'bg-red-100 text-red-700' },
+  INSERT: { label: 'Création',     style: { backgroundColor: 'var(--accent-light)', color: 'var(--accent)' } },
+  UPDATE: { label: 'Modification', style: { backgroundColor: '#EFF6FF', color: '#3B82F6' } },
+  DELETE: { label: 'Suppression',  style: { backgroundColor: '#FEE2E2', color: 'var(--danger)' } },
 }
 
 const TABLES  = ['contracts', 'leave_requests', 'profiles', 'lateness_records']
@@ -86,11 +86,11 @@ export default function AuditLogPage() {
   return (
     <div className="min-h-full">
       {/* Sticky header */}
-      <div className="border-b border-border bg-card sticky top-0 z-10">
+      <div className="border-b border-border bg-card sticky top-11 z-10">
         <div className="px-6 max-w-5xl mx-auto">
           <div className="flex items-center gap-3 h-14 flex-wrap">
             <ShieldCheck className="h-4 w-4 text-muted-foreground shrink-0" />
-            <h1 className="text-lg font-semibold text-foreground shrink-0">Journal d&apos;audit</h1>
+            <h1 className="text-[20px] font-medium tracking-[-0.02em] shrink-0" style={{ color: 'var(--text-primary)' }}>Journal d&apos;audit</h1>
             {!loading && (
               <span className="text-xs text-muted-foreground">({total} événements)</span>
             )}
@@ -100,7 +100,7 @@ export default function AuditLogPage() {
               <select
                 value={tableFilter}
                 onChange={e => { setTableFilter(e.target.value); resetPage() }}
-                className="text-xs border border-border rounded-lg px-2 py-1.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="text-xs border border-border rounded-lg px-2 py-1.5 bg-card text-foreground focus:outline-none focus:outline-none"
               >
                 <option value="">Toutes les tables</option>
                 {TABLES.map(t => <option key={t} value={t}>{TABLE_LABELS[t] ?? t}</option>)}
@@ -109,7 +109,7 @@ export default function AuditLogPage() {
               <select
                 value={actionFilter}
                 onChange={e => { setActionFilter(e.target.value); resetPage() }}
-                className="text-xs border border-border rounded-lg px-2 py-1.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="text-xs border border-border rounded-lg px-2 py-1.5 bg-card text-foreground focus:outline-none focus:outline-none"
               >
                 <option value="">Toutes les actions</option>
                 {ACTIONS.map(a => <option key={a} value={a}>{ACTION_CFG[a].label}</option>)}
@@ -121,14 +121,14 @@ export default function AuditLogPage() {
                   type="date"
                   value={fromDate}
                   onChange={e => { setFromDate(e.target.value); resetPage() }}
-                  className="border border-border rounded-lg px-2 py-1 bg-card text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="border border-border rounded-lg px-2 py-1 bg-card text-foreground text-xs focus:outline-none focus:outline-none"
                 />
                 <span>au</span>
                 <input
                   type="date"
                   value={toDate}
                   onChange={e => { setToDate(e.target.value); resetPage() }}
-                  className="border border-border rounded-lg px-2 py-1 bg-card text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="border border-border rounded-lg px-2 py-1 bg-card text-foreground text-xs focus:outline-none focus:outline-none"
                 />
               </div>
 
@@ -188,7 +188,7 @@ export default function AuditLogPage() {
                           {TABLE_LABELS[e.table_name] ?? e.table_name}
                         </td>
                         <td className="px-4 py-2.5">
-                          <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full', ACTION_CFG[e.action].bg)}>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={ACTION_CFG[e.action].style}>
                             {ACTION_CFG[e.action].label}
                           </span>
                         </td>

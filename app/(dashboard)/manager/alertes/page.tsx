@@ -157,10 +157,10 @@ export default function AlertesPage() {
   return (
     <div className="min-h-full">
       {/* Header */}
-      <div className="border-b border-border bg-card sticky top-0 z-10">
+      <div className="border-b border-border bg-card sticky top-11 z-10">
         <div className="px-6 max-w-5xl mx-auto">
           <div className="flex items-center gap-3 h-14">
-            <h1 className="text-lg font-semibold text-foreground">Alertes</h1>
+            <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Alertes</h1>
             {!loading && totalAlerts > 0 && (
               <span className="bg-destructive text-destructive-foreground text-xs font-bold px-2 py-0.5 rounded-full">
                 {totalAlerts}
@@ -184,8 +184,8 @@ export default function AlertesPage() {
           </div>
         ) : totalAlerts === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border rounded-xl bg-card">
-            <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
-              <AlertTriangle className="h-6 w-6 text-emerald-400" />
+            <div className="h-12 w-12 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'var(--accent-light)' }}>
+              <AlertTriangle className="h-6 w-6" style={{ color: 'var(--accent)' }} />
             </div>
             <p className="text-sm font-medium text-foreground">Aucune alerte active</p>
             <p className="text-xs text-muted-foreground mt-1">Tout est en ordre pour le moment.</p>
@@ -222,14 +222,16 @@ export default function AlertesPage() {
                           <td className="px-4 py-3 text-muted-foreground">{a.contractType}</td>
                           <td className="px-4 py-3 text-muted-foreground">{formatDate(a.endDate)}</td>
                           <td className="px-4 py-3">
-                            <span className={cn(
-                              'text-xs font-semibold px-2 py-0.5 rounded-full',
-                              a.daysLeft <= 7
-                                ? 'bg-red-100 text-red-700'
-                                : a.daysLeft <= 15
-                                ? 'bg-orange-100 text-orange-700'
-                                : 'bg-amber-100 text-amber-700',
-                            )}>
+                            <span
+                              className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                              style={
+                                a.daysLeft <= 7
+                                  ? { backgroundColor: '#FEE2E2', color: 'var(--danger)' }
+                                  : a.daysLeft <= 15
+                                  ? { backgroundColor: '#FFEDD5', color: 'var(--warning)' }
+                                  : { backgroundColor: '#FEF3C7', color: '#92400E' }
+                              }
+                            >
                               {a.daysLeft === 0 ? 'Aujourd\'hui' : `J-${a.daysLeft}`}
                             </span>
                           </td>
@@ -272,7 +274,7 @@ export default function AlertesPage() {
                             {new Date(a.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-xs font-semibold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FFEDD5', color: 'var(--warning)' }}>
                               +{a.lateMinutes} min
                             </span>
                           </td>
