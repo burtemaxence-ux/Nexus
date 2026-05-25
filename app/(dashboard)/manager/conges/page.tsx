@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { CheckCircle, XCircle, Clock } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import type { LeaveRequestWithEmployee } from '@/types'
@@ -23,6 +24,7 @@ function getInitials(name: string | null, email: string | null): string {
 }
 
 export default function ManagerCongesPage() {
+  const [listRef] = useAutoAnimate()
   const [requests, setRequests] = useState<LeaveRequestWithEmployee[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected'>('pending')
@@ -118,7 +120,7 @@ export default function ManagerCongesPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div ref={listRef} className="space-y-2">
           {filtered.map(req => {
             const emp = req.profiles
             const isOpen = actionId === req.id

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Plus, Lock, Unlock, Share2, Check } from 'lucide-react'
@@ -50,6 +51,7 @@ function formatHours(h: number): string {
 
 export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked, weekPublished, postes }: PlanningDayProps) {
   const router = useRouter()
+  const [planRef] = useAutoAnimate()
   const [modalState, setModalState] = useState<ModalState>({ type: 'closed' })
   const [statusLoading, setStatusLoading] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
@@ -196,7 +198,7 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
           <Link href="/manager/employees"><Button variant="outline" size="sm">Gérer les employés</Button></Link>
         </div>
       ) : (
-        <div className={`space-y-2 transition-all ${weekLocked ? 'opacity-60 saturate-50' : ''}`}>
+        <div ref={planRef} className={`space-y-2 transition-all ${weekLocked ? 'opacity-60 saturate-50' : ''}`}>
           {sorted.map(employee => {
             const empShifts = dayShiftMap.get(employee.id) ?? []
             const absenceType = absenceMap.get(employee.id)

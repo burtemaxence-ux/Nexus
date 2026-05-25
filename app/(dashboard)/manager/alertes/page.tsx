@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { AlertTriangle, AlarmClock, FileText, Calendar, Loader2, RefreshCw } from 'lucide-react'
@@ -19,6 +20,9 @@ function formatDate(d: string): string {
 }
 
 export default function AlertesPage() {
+  const [cddRef] = useAutoAnimate()
+  const [latenessRef] = useAutoAnimate()
+  const [absenceRef] = useAutoAnimate()
   const [loading, setLoading] = useState(true)
   const [cddAlerts, setCddAlerts] = useState<CddAlert[]>([])
   const [latenessAlerts, setLatenessAlerts] = useState<LatenessAlert[]>([])
@@ -185,7 +189,7 @@ export default function AlertesPage() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody ref={cddRef}>
                       {cddAlerts.map((a, i) => (
                         <tr key={a.contractId} className={cn('border-b border-border/60 hover:bg-muted/30 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
                           <td className="px-4 py-3">
@@ -236,7 +240,7 @@ export default function AlertesPage() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody ref={latenessRef}>
                       {latenessAlerts.map((a, i) => (
                         <tr key={a.id} className={cn('border-b border-border/60 hover:bg-muted/30 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
                           <td className="px-4 py-3">
@@ -279,7 +283,7 @@ export default function AlertesPage() {
                         ))}
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody ref={absenceRef}>
                       {absenceAlerts.map((a, i) => (
                         <tr key={a.shiftId} className={cn('border-b border-border/60 hover:bg-muted/30 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
                           <td className="px-4 py-3">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -64,6 +65,7 @@ interface Props {
 
 export default function EmployeesClient({ initialEmployees, callerRole = 'manager' }: Props) {
   const isManager = callerRole === 'manager'
+  const [tbodyRef] = useAutoAnimate()
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees)
   const [loading, setLoading] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
@@ -326,7 +328,7 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
-                <tbody>
+                <tbody ref={tbodyRef}>
                   {filtered.map((emp) => (
                     <tr
                       key={emp.id}
