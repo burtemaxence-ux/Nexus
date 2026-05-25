@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { fireWebhook } from '@/lib/integrations/webhook'
 import { getWeekLabel, getWeekDates } from '@/lib/utils/dates'
+import { sendPlanningPublishedEmails } from '@/lib/email/planning-email'
+import type { Profile, Shift } from '@/types'
 
 async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -142,14 +144,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Fire webhook when planning is published for the first time
+    // Fire webhook + send emails when planning is published for the first time
     if (published === true && !existing?.published) {
       const weekLabel = getWeekLabel(getWeekDates(new Date(week_monday + 'T00:00:00')))
-      const { count } = await supabase.from('shifts').select('*', { count: 'exact', head: true }).eq('week_monday', week_monday)
-      const { data: settingsData } = await supabase.from('settings').select('key, value')
+      const [{ count }, { data: settingsData }, { data: employees }, { data: weekShifts }] = await Promise.all([
+        supabase.from('shifts').select('*', { count: 'exact', head: true }).eq('week_monday', week_monday),
+        supabase.from('settings').select('key, value'),
+        supabase.from('profiles').select('id, full_name, email, establishment_id').eq('establishment_id', profile!.establishment_id).eq('role', 'employee').eq('archived', false),
+        supabase.from('shifts').select('*').eq('week_monday', week_monday),
+      ])
       const settings: Record<string, string> = {}
       for (const row of settingsData ?? []) settings[row.key] = row.value
       fireWebhook(settings, 'planning.published', { weekLabel, weekMonday: week_monday, employeeCount: count ?? 0 }).catch(() => {})
+      sendPlanningPublishedEmails({
+        employees: (employees ?? []) as unknown as Profile[],
+        shifts: (weekShifts ?? []) as unknown as Shift[],
+        weekLabel,
+      }).catch(() => {})
     }
 
     return NextResponse.json(data)

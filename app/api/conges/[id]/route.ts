@@ -31,6 +31,17 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+    // Si approuvé : supprimer les shifts de l'employé pendant la période de congé
+    if (status === 'approved') {
+      supabase
+        .from('shifts')
+        .delete()
+        .eq('employee_id', data.employee_id)
+        .gte('date', data.start_date)
+        .lte('date', data.end_date)
+        .then(() => {})
+    }
+
     // Notification email à l'employé (silencieuse si domaine non configuré)
     const emp = data.profiles as { id: string; full_name: string | null; email: string } | null
     if (emp?.email) {

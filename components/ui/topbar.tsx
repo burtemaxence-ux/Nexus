@@ -24,13 +24,14 @@ interface NavItem {
 
 // ── Nav definitions ───────────────────────────────────────────────────────────
 
-function buildManagerNav(pendingLeavesCount: number): NavItem[] {
+function buildManagerNav(pendingLeavesCount: number, alertsCount: number): NavItem[] {
   return [
-    { label: 'Planning',  href: '/manager/planning' },
-    { label: 'Employés',  href: '/manager/employees' },
-    { label: 'Rapport',   href: '/manager/rapport' },
-    { label: 'Congés',    href: '/manager/conges', badge: pendingLeavesCount },
-    { label: 'Présences', href: '/manager/presences' },
+    { label: 'Planning',   href: '/manager/planning' },
+    { label: 'Employés',   href: '/manager/employees' },
+    { label: 'Rapport',    href: '/manager/rapport' },
+    { label: 'Congés',     href: '/manager/conges',  badge: pendingLeavesCount },
+    { label: 'Alertes',    href: '/manager/alertes', badge: alertsCount },
+    { label: 'Présences',  href: '/manager/presences' },
     { label: 'Paramètres', href: '/manager/settings' },
   ]
 }
@@ -231,6 +232,7 @@ interface TopbarProps {
   userEmail: string
   establishmentName: string
   pendingLeavesCount?: number
+  alertsCount?: number
   establishments?: EstablishmentEntry[]
   activeEstablishmentId?: string
 }
@@ -238,14 +240,35 @@ interface TopbarProps {
 export function Topbar({
   role, userName, userEmail, establishmentName,
   pendingLeavesCount = 0,
+  alertsCount = 0,
   establishments = [],
   activeEstablishmentId = '',
 }: TopbarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const [livePendingLeaves, setLivePendingLeaves] = useState(pendingLeavesCount)
+
+  // Sync initial server value when it changes (navigation)
+  useEffect(() => { setLivePendingLeaves(pendingLeavesCount) }, [pendingLeavesCount])
+
+  // Supabase Realtime — badge congés en temps réel
+  useEffect(() => {
+    if (role !== 'manager' && role !== 'supervisor') return
+    const supabase = createClient()
+    let active = true
+    const refresh = () => {
+      supabase.from('leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+        .then(({ count }) => { if (active) setLivePendingLeaves(count ?? 0) })
+    }
+    const channel = supabase
+      .channel('topbar-leaves')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, refresh)
+      .subscribe()
+    return () => { active = false; supabase.removeChannel(channel) }
+  }, [role])
 
   const navItems = (role === 'manager' || role === 'supervisor')
-    ? buildManagerNav(pendingLeavesCount)
+    ? buildManagerNav(livePendingLeaves, alertsCount)
     : employeeNav
 
   function isActive(href: string) {
