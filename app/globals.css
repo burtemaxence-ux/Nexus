@@ -97,3 +97,102 @@
     scrollbar-color: var(--border) transparent;
   }
 }
+
+@layer components {
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--accent);
+    color: #FFFFFF;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    transition: background-color 150ms ease;
+  }
+  .btn-primary:hover {
+    background-color: var(--accent-hover);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: transparent;
+    color: var(--text-primary);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    transition: background-color 150ms ease;
+  }
+  .btn-secondary:hover {
+    background-color: #F5F5F5;
+  }
+
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--danger);
+    color: #FFFFFF;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    transition: background-color 150ms ease;
+  }
+  .btn-danger:hover {
+    background-color: #B91C1C;
+  }
+
+  .dp-card {
+    background-color: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+
+  .dp-input {
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+    width: 100%;
+    transition: border-color 150ms ease;
+  }
+  .dp-input:focus {
+    border-color: var(--accent);
+  }
+
+  .dp-badge-warning {
+    background-color: #FEF3C7;
+    color: var(--warning);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .dp-badge-success {
+    background-color: #DCFCE7;
+    color: var(--success);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .dp-badge-danger {
+    background-color: #FEE2E2;
+    color: var(--danger);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .dp-badge-info {
+    background-color: var(--accent-light);
+    color: var(--accent);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+}

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import type { ElementType } from 'react'
 import {
-  Calendar, Users, FileText, Clock, Settings, BarChart3,
+  Calendar, Users, Clock, Settings, BarChart3,
   Building2, ArrowRight, AlertTriangle, Palmtree,
 } from 'lucide-react'
 
@@ -14,8 +14,8 @@ interface ModuleConfig {
   description: string
   icon: ElementType
   href: string
-  iconBg: string
-  iconColor: string
+  accentColor: string
+  accentBg: string
 }
 
 const SECONDARY_MODULES: ModuleConfig[] = [
@@ -24,40 +24,40 @@ const SECONDARY_MODULES: ModuleConfig[] = [
     description: 'Profils, contrats et rôles.',
     icon: Users,
     href: '/manager/employees',
-    iconBg: 'bg-emerald-50',
-    iconColor: 'text-emerald-600',
+    accentColor: 'var(--success)',
+    accentBg: '#DCFCE7',
   },
   {
     title: 'Rapport',
     description: 'Synthèse horaire et coûts.',
     icon: BarChart3,
     href: '/manager/rapport',
-    iconBg: 'bg-violet-50',
-    iconColor: 'text-violet-600',
+    accentColor: 'var(--accent)',
+    accentBg: 'var(--accent-light)',
   },
   {
     title: 'Congés',
     description: "Demandes et soldes d'absence.",
     icon: Palmtree,
     href: '/manager/conges',
-    iconBg: 'bg-amber-50',
-    iconColor: 'text-amber-600',
+    accentColor: 'var(--warning)',
+    accentBg: '#FEF3C7',
   },
   {
     title: 'Présences',
     description: 'Horaires réels et pointages.',
     icon: Clock,
     href: '/manager/presences',
-    iconBg: 'bg-rose-50',
-    iconColor: 'text-rose-600',
+    accentColor: 'var(--danger)',
+    accentBg: '#FEE2E2',
   },
   {
     title: 'Paramètres',
     description: 'Configuration et règles.',
     icon: Settings,
     href: '/manager/settings',
-    iconBg: 'bg-slate-100',
-    iconColor: 'text-slate-500',
+    accentColor: 'var(--text-tertiary)',
+    accentBg: 'var(--muted)',
   },
 ]
 
@@ -109,74 +109,85 @@ export default async function ManagerDashboard() {
 
   // Statut présence
   const presence = presenceRate === null
-    ? { valueColor: 'text-[#9CA3AF]', dotColor: 'bg-[#D1D5DB]', label: 'Aucun shift planifié' }
+    ? { color: 'var(--text-tertiary)', dotColor: 'var(--text-tertiary)', label: 'Aucun shift planifié' }
     : presenceRate >= 80
-    ? { valueColor: 'text-emerald-600', dotColor: 'bg-emerald-500', label: 'Bonne présence' }
+    ? { color: 'var(--success)',  dotColor: 'var(--success)',  label: 'Bonne présence' }
     : presenceRate >= 60
-    ? { valueColor: 'text-amber-600',   dotColor: 'bg-amber-500',   label: 'Présence à surveiller' }
-    : { valueColor: 'text-red-600',     dotColor: 'bg-red-500',     label: 'Présence insuffisante' }
+    ? { color: 'var(--warning)',  dotColor: 'var(--warning)',  label: 'Présence à surveiller' }
+    : { color: 'var(--danger)',   dotColor: 'var(--danger)',   label: 'Présence insuffisante' }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
-      <div className="max-w-6xl mx-auto px-6 py-10 space-y-6">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-page)' }}>
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
         {/* ── SETUP BANNER ──────────────────────────────────────────────────── */}
         {isDefaultName && (
           <Link href="/manager/settings/organisation">
-            <div className="flex items-center gap-3 rounded-xl border border-[#4F46E5]/20 bg-[#4F46E5]/[0.04] px-5 py-3 hover:bg-[#4F46E5]/[0.07] transition-colors">
-              <Building2 className="h-4 w-4 text-[#4F46E5] flex-shrink-0" />
-              <p className="flex-1 text-[13px] text-[#4F46E5] font-medium">
+            <div className="flex items-center gap-3 rounded-xl px-4 py-3 border transition-colors duration-150"
+              style={{
+                borderColor: 'var(--accent)',
+                backgroundColor: 'var(--accent-light)',
+              }}
+            >
+              <Building2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+              <p className="flex-1 text-[13px] font-medium" style={{ color: 'var(--accent)' }}>
                 Configurez votre établissement — ajoutez le nom, le logo et l&apos;adresse.
               </p>
-              <ArrowRight className="h-3.5 w-3.5 text-[#4F46E5]/40 flex-shrink-0" />
+              <ArrowRight className="h-3 w-3 flex-shrink-0" style={{ color: 'var(--accent)' }} />
             </div>
           </Link>
         )}
 
-        {/* ── SECTION 1 : HERO HEADER ───────────────────────────────────────── */}
-        <div className="flex items-start justify-between gap-4 flex-wrap pt-2">
+        {/* ── HEADER ────────────────────────────────────────────────────────── */}
+        <div className="flex items-start justify-between gap-4 flex-wrap pt-1">
           <div>
-            <h1 className="text-[32px] font-bold text-[#18181B] tracking-tight leading-tight">
+            <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
               Bonjour {firstName} 👋
             </h1>
-            <p className="text-[14px] text-[#6B7280] mt-1.5">
-              Voici un aperçu de votre activité aujourd&apos;hui.
+            <p className="text-[13px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+              Voici un aperçu de votre activité.
             </p>
-            <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mt-2">
+            <p className="text-[11px] uppercase tracking-[0.06em] mt-1.5 capitalize" style={{ color: 'var(--text-tertiary)' }}>
               {establishmentLabel
-                ? <>{establishmentLabel} · <span className="capitalize">{todayLabel}</span></>
-                : <span className="capitalize">{todayLabel}</span>
+                ? <>{establishmentLabel} · {todayLabel}</>
+                : todayLabel
               }
             </p>
           </div>
-          <Link
-            href="/manager/planning"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#4F46E5] text-white text-[13px] font-semibold rounded-xl hover:bg-[#4338CA] active:bg-[#3730A3] transition-colors shadow-[0_2px_8px_0_rgba(79,70,229,0.28)] flex-shrink-0"
-          >
+          <Link href="/manager/planning" className="btn-primary flex-shrink-0">
             <Calendar className="h-3.5 w-3.5" />
             Voir le planning
           </Link>
         </div>
 
-        {/* ── SECTION 2 : HERO STATUS CARDS ────────────────────────────────── */}
+        {/* ── METRIC CARDS ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           {/* Card 1 — Présence */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] px-7 py-6 shadow-[0_1px_4px_0_rgba(0,0,0,0.04)]">
-            <p className="text-[11px] font-bold tracking-[0.1em] text-[#9CA3AF] uppercase mb-5">
+          <div className="rounded-xl border p-5"
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              borderColor: 'var(--border)',
+              borderWidth: '0.5px',
+            }}
+          >
+            <p className="text-[10px] uppercase tracking-[0.06em] mb-4" style={{ color: 'var(--text-tertiary)' }}>
               Présence · Semaine S{getCurrentWeek()}
             </p>
-            <div className="flex items-end gap-3 mb-3">
-              <span className={`text-[56px] font-bold leading-none tracking-tight ${presence.valueColor}`}>
+
+            {/* Metric value */}
+            <div className="rounded-[10px] p-3 mb-4 inline-block" style={{ backgroundColor: '#F5F6FA' }}>
+              <span className="text-[20px] font-[400] leading-none" style={{ color: presence.color }}>
                 {presenceRate === null ? '—' : `${presenceRate}%`}
               </span>
             </div>
+
             <div className="flex items-center gap-2 mb-4">
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${presence.dotColor}`} />
-              <span className="text-[13px] text-[#6B7280] font-medium">{presence.label}</span>
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: presence.dotColor }} />
+              <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{presence.label}</span>
             </div>
-            <div className="pt-4 border-t border-[#F3F4F6]">
-              <p className="text-[12px] text-[#9CA3AF]">
+            <div className="pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
+              <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
                 {totalShifts > 0
                   ? `${presentCount} présences sur ${totalShifts} shifts planifiés`
                   : 'Aucun shift planifié pour cette semaine'}
@@ -185,127 +196,167 @@ export default async function ManagerDashboard() {
           </div>
 
           {/* Card 2 — Équipe */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] px-7 py-6 shadow-[0_1px_4px_0_rgba(0,0,0,0.04)]">
-            <p className="text-[11px] font-bold tracking-[0.1em] text-[#9CA3AF] uppercase mb-5">
+          <div className="rounded-xl border p-5"
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              borderColor: 'var(--border)',
+              borderWidth: '0.5px',
+            }}
+          >
+            <p className="text-[10px] uppercase tracking-[0.06em] mb-4" style={{ color: 'var(--text-tertiary)' }}>
               Votre équipe
             </p>
-            <div className="space-y-5">
+            <div className="space-y-3">
 
-              <div className="flex items-center gap-4">
-                <div className="w-9 h-9 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center flex-shrink-0">
-                  <Users className="h-4 w-4 text-[#4F46E5]" />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[26px] font-bold text-[#18181B] leading-none">{employeeCount}</span>
-                  <span className="text-[13px] text-[#6B7280]">employés actifs</span>
-                </div>
+              <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: '#F5F6FA' }}>
+                <Users className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                <span className="text-[20px] font-[400] leading-none" style={{ color: 'var(--text-primary)' }}>{employeeCount}</span>
+                <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>employés actifs</span>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${pendingCount > 0 ? 'bg-amber-50' : 'bg-[#F3F4F6]'}`}>
-                  <Palmtree className={`h-4 w-4 ${pendingCount > 0 ? 'text-amber-600' : 'text-[#9CA3AF]'}`} />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-[26px] font-bold leading-none ${pendingCount > 0 ? 'text-amber-600' : 'text-[#18181B]'}`}>{pendingCount}</span>
-                  <span className="text-[13px] text-[#6B7280]">congé{pendingCount !== 1 ? 's' : ''} en attente</span>
-                </div>
+              <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: '#F5F6FA' }}>
+                <Palmtree className="h-3.5 w-3.5 flex-shrink-0" style={{ color: pendingCount > 0 ? 'var(--warning)' : 'var(--text-tertiary)' }} />
+                <span className="text-[20px] font-[400] leading-none" style={{ color: pendingCount > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>
+                  {pendingCount}
+                </span>
+                <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                  congé{pendingCount !== 1 ? 's' : ''} en attente
+                </span>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${latenessCount > 0 ? 'bg-rose-50' : 'bg-[#F3F4F6]'}`}>
-                  <Clock className={`h-4 w-4 ${latenessCount > 0 ? 'text-rose-600' : 'text-[#9CA3AF]'}`} />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-[26px] font-bold leading-none ${latenessCount > 0 ? 'text-rose-600' : 'text-[#18181B]'}`}>{latenessCount}</span>
-                  <span className="text-[13px] text-[#6B7280]">retard{latenessCount !== 1 ? 's' : ''} ce mois</span>
-                </div>
+              <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: '#F5F6FA' }}>
+                <Clock className="h-3.5 w-3.5 flex-shrink-0" style={{ color: latenessCount > 0 ? 'var(--danger)' : 'var(--text-tertiary)' }} />
+                <span className="text-[20px] font-[400] leading-none" style={{ color: latenessCount > 0 ? 'var(--danger)' : 'var(--text-primary)' }}>
+                  {latenessCount}
+                </span>
+                <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                  retard{latenessCount !== 1 ? 's' : ''} ce mois
+                </span>
               </div>
 
             </div>
           </div>
         </div>
 
-        {/* ── SECTION 3 : ALERTES (conditionnel — disparaît si 0) ──────────── */}
+        {/* ── ALERTES (conditionnel) ────────────────────────────────────────── */}
         {(pendingCount > 0 || latenessCount > 0) && (
           <div className="space-y-2">
             {pendingCount > 0 && (
               <Link href="/manager/conges">
-                <div className="flex items-center gap-3.5 bg-amber-50 border border-amber-200/80 rounded-xl px-5 py-3.5 hover:bg-amber-100/70 transition-colors">
-                  <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                  <p className="flex-1 text-[13px] font-medium text-amber-900">
+                <div className="flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors duration-150"
+                  style={{ backgroundColor: '#FEF3C7', borderColor: '#D97706', borderWidth: '0.5px' }}
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
+                  <p className="flex-1 text-[13px]" style={{ color: '#92400E' }}>
                     {pendingCount} demande{pendingCount !== 1 ? 's' : ''} de congé{pendingCount !== 1 ? 's' : ''} en attente de validation
                   </p>
-                  <span className="text-[12px] font-semibold text-amber-700 flex-shrink-0">Traiter →</span>
+                  <span className="text-[12px] font-medium flex-shrink-0" style={{ color: 'var(--warning)' }}>Traiter →</span>
                 </div>
               </Link>
             )}
             {latenessCount > 0 && (
               <Link href="/manager/presences">
-                <div className="flex items-center gap-3.5 bg-rose-50 border border-rose-200/80 rounded-xl px-5 py-3.5 hover:bg-rose-100/70 transition-colors">
-                  <Clock className="h-4 w-4 text-rose-600 flex-shrink-0" />
-                  <p className="flex-1 text-[13px] font-medium text-rose-900">
+                <div className="flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors duration-150"
+                  style={{ backgroundColor: '#FEE2E2', borderColor: '#DC2626', borderWidth: '0.5px' }}
+                >
+                  <Clock className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--danger)' }} />
+                  <p className="flex-1 text-[13px]" style={{ color: '#991B1B' }}>
                     {latenessCount} retard{latenessCount !== 1 ? 's' : ''} enregistré{latenessCount !== 1 ? 's' : ''} ce mois
                   </p>
-                  <span className="text-[12px] font-semibold text-rose-700 flex-shrink-0">Voir →</span>
+                  <span className="text-[12px] font-medium flex-shrink-0" style={{ color: 'var(--danger)' }}>Voir →</span>
                 </div>
               </Link>
             )}
           </div>
         )}
 
-        {/* ── SECTION 4 : MODULES ───────────────────────────────────────────── */}
+        {/* ── MODULES ───────────────────────────────────────────────────────── */}
         <div className="space-y-3">
-          <p className="text-[11px] font-bold tracking-[0.1em] text-[#9CA3AF] uppercase">Modules</p>
+          <p className="text-[11px] uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+            Modules
+          </p>
 
-          {/* Planning — module principal pleine largeur */}
+          {/* Planning — module principal */}
           <Link href="/manager/planning" className="group block">
-            <div className="bg-[#4F46E5]/[0.04] border border-[#4F46E5]/20 rounded-2xl px-7 py-5 hover:bg-[#4F46E5]/[0.07] hover:border-[#4F46E5]/30 transition-all duration-200">
+            <div className="rounded-xl border px-5 py-4 transition-colors duration-150"
+              style={{
+                backgroundColor: 'var(--accent-light)',
+                borderColor: 'var(--accent)',
+                borderWidth: '0.5px',
+              }}
+            >
               <div className="flex items-center justify-between gap-6">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-11 h-11 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center flex-shrink-0">
-                    <Calendar className="h-5 w-5 text-[#4F46E5]" />
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'var(--accent)', opacity: 0.15 + 0.85 }}
+                  >
+                    <Calendar className="h-4 w-4" style={{ color: 'var(--accent)' }} />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-[15px] font-semibold text-[#18181B]">Planning</p>
-                      <span className="text-[10px] font-bold tracking-wide text-[#4F46E5] bg-[#4F46E5]/10 px-2 py-0.5 rounded-full">
+                      <p className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>Planning</p>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md"
+                        style={{
+                          backgroundColor: 'var(--accent)',
+                          color: '#FFFFFF',
+                          borderRadius: '6px',
+                          fontSize: '10px',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
                         Principal
                       </span>
                     </div>
-                    <p className="text-[13px] text-[#6B7280] mt-0.5 truncate">
+                    <p className="text-[13px] mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
                       Créez, modifiez et publiez les horaires de votre équipe.
                     </p>
                   </div>
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#4F46E5] text-white text-[13px] font-semibold rounded-xl group-hover:bg-[#4338CA] transition-colors flex-shrink-0">
+                <div className="btn-primary flex-shrink-0">
                   Ouvrir
-                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform duration-150" />
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </div>
               </div>
             </div>
           </Link>
 
-          {/* 5 modules secondaires */}
+          {/* Modules secondaires */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {SECONDARY_MODULES.map(({ title, description, icon: Icon, href, iconBg, iconColor }) => {
+            {SECONDARY_MODULES.map(({ title, description, icon: Icon, href, accentColor, accentBg }) => {
               const badge = href === '/manager/conges' ? pendingCount : 0
               return (
                 <Link key={href} href={href} className="group block">
-                  <div className="bg-white rounded-2xl border border-[#E5E7EB] px-5 py-5 shadow-[0_1px_4px_0_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_0_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200 h-full">
-                    <div className="flex items-start justify-between gap-2 mb-3.5">
-                      <div className={`inline-flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0 ${iconBg}`}>
-                        <Icon className={`h-4 w-4 ${iconColor}`} />
+                  <div className="rounded-xl border h-full px-4 py-4 transition-colors duration-150"
+                    style={{
+                      backgroundColor: 'var(--bg-card)',
+                      borderColor: 'var(--border)',
+                      borderWidth: '0.5px',
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: accentBg }}
+                      >
+                        <Icon className="h-3.5 w-3.5" style={{ color: accentColor }} />
                       </div>
                       {badge > 0 && (
-                        <span className="flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold leading-none">
+                        <span className="flex items-center justify-center h-4 min-w-[16px] px-1 text-[10px] font-medium leading-none"
+                          style={{
+                            backgroundColor: '#FEF3C7',
+                            color: 'var(--warning)',
+                            borderRadius: '6px',
+                          }}
+                        >
                           {badge}
                         </span>
                       )}
                     </div>
-                    <p className="text-[14px] font-semibold text-[#18181B] leading-tight">{title}</p>
-                    <p className="text-[12px] text-[#6B7280] mt-1 leading-snug">{description}</p>
-                    <div className="mt-3 flex items-center gap-1 text-[11px] font-medium text-[#C4C9D4] group-hover:text-[#4F46E5] transition-colors">
-                      Accéder <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform duration-150" />
+                    <p className="text-[14px] font-medium leading-tight" style={{ color: 'var(--text-primary)' }}>{title}</p>
+                    <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-secondary)' }}>{description}</p>
+                    <div className="mt-3 flex items-center gap-1 text-[11px] transition-colors duration-150"
+                      style={{ color: 'var(--text-tertiary)' }}
+                    >
+                      Accéder <ArrowRight className="h-3 w-3" />
                     </div>
                   </div>
                 </Link>
