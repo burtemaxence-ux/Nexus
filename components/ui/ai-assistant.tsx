@@ -14,10 +14,10 @@ interface Props {
 }
 
 const SUGGESTIONS = [
-  'Génère le planning de la semaine prochaine',
-  'Qui a le plus d\'heures ce mois-ci ?',
-  'Quelles alertes légales sont actives ?',
-  'Résume les congés en attente',
+  "Génère le planning de la semaine prochaine",
+  "Qui a le plus d'heures ce mois-ci ?",
+  "Quelles alertes légales sont actives ?",
+  "Résume les congés en attente",
 ]
 
 export function AiAssistant({ establishmentName, userName }: Props) {
@@ -26,6 +26,7 @@ export function AiAssistant({ establishmentName, userName }: Props) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [inputFocused, setInputFocused] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -124,43 +125,64 @@ export function AiAssistant({ establishmentName, userName }: Props) {
       <button
         onClick={() => setOpen(v => !v)}
         aria-label="Assistant IA"
-        className={`fixed bottom-6 right-6 z-50 flex h-13 w-13 items-center justify-center rounded-full shadow-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
-          open
-            ? 'bg-gray-800 text-white focus:ring-gray-700 scale-95'
-            : 'bg-primary text-white hover:bg-primary/90 hover:scale-110 focus:ring-primary'
-        }`}
-        style={{ height: '52px', width: '52px' }}
+        className="fixed bottom-6 right-6 z-50 flex items-center justify-center rounded-full transition-all duration-300 focus:outline-none"
+        style={{
+          height: '52px',
+          width: '52px',
+          backgroundColor: open ? 'var(--text-primary)' : 'var(--accent)',
+          color: 'white',
+          border: '0.5px solid var(--border)',
+          transform: open ? 'scale(0.95)' : 'scale(1)',
+        }}
       >
-        <span className={`transition-all duration-200 ${open ? 'rotate-0 scale-100' : 'rotate-0 scale-100'}`}>
-          {open ? <X className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
-        </span>
+        {open ? <X className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
       </button>
 
       {/* Chat panel */}
       <div
-        className={`fixed bottom-24 right-6 z-50 flex w-[380px] flex-col rounded-2xl border border-gray-200 bg-white shadow-2xl transition-all duration-300 ${
+        className={`fixed bottom-24 right-6 z-50 flex w-[380px] flex-col rounded-2xl transition-all duration-300 ${
           open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
-        style={{ maxHeight: 'calc(100vh - 140px)', minHeight: '460px' }}
+        style={{
+          maxHeight: 'calc(100vh - 140px)',
+          minHeight: '460px',
+          border: '0.5px solid var(--border)',
+          backgroundColor: 'var(--bg-card)',
+        }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between rounded-t-2xl bg-gradient-to-r from-primary to-indigo-500 px-4 py-3">
+        <div
+          className="flex items-center justify-between rounded-t-2xl px-4 py-3"
+          style={{ backgroundColor: 'var(--accent)' }}
+        >
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-full"
+              style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
+            >
               <Bot className="h-4 w-4 text-white" />
             </div>
             <div>
               <p className="text-sm font-semibold text-white">Assistant D-pot</p>
-              <p className="text-[10px] text-white/70">Propulsé par Claude</p>
+              <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.7)' }}>Propulsé par Claude</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
             {messages.length > 1 && (
-              <button onClick={reset} className="rounded-lg p-1.5 text-white/70 hover:bg-white/10 hover:text-white transition-colors" title="Nouvelle conversation">
+              <button
+                onClick={reset}
+                className="rounded-lg p-1.5 transition-colors"
+                style={{ color: 'rgba(255,255,255,0.7)' }}
+                title="Nouvelle conversation"
+              >
                 <ChevronDown className="h-4 w-4 rotate-90" />
               </button>
             )}
-            <button onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-white/70 hover:bg-white/10 hover:text-white transition-colors">
+            <button
+              onClick={() => setOpen(false)}
+              className="rounded-lg p-1.5 transition-colors"
+              style={{ color: 'rgba(255,255,255,0.7)' }}
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -171,16 +193,19 @@ export function AiAssistant({ establishmentName, userName }: Props) {
           {messages.map((msg, i) => (
             <div key={i} className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               {msg.role === 'assistant' && (
-                <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 mt-0.5">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <div
+                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full mt-0.5"
+                  style={{ backgroundColor: 'var(--accent-light)' }}
+                >
+                  <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--accent)' }} />
                 </div>
               )}
               <div
-                className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                  msg.role === 'user'
-                    ? 'bg-primary text-white rounded-tr-sm'
-                    : 'bg-gray-100 text-gray-800 rounded-tl-sm'
-                }`}
+                className="max-w-[80%] px-3.5 py-2.5 text-sm leading-relaxed"
+                style={msg.role === 'user'
+                  ? { backgroundColor: 'var(--accent)', color: 'white', borderRadius: '1rem 1rem 0.25rem 1rem' }
+                  : { backgroundColor: 'var(--bg-page)', color: 'var(--text-primary)', borderRadius: '1rem 1rem 1rem 0.25rem' }
+                }
               >
                 <MarkdownText text={msg.content} />
               </div>
@@ -189,19 +214,28 @@ export function AiAssistant({ establishmentName, userName }: Props) {
 
           {loading && (
             <div className="flex gap-2.5">
-              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <div
+                className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
+                style={{ backgroundColor: 'var(--accent-light)' }}
+              >
+                <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--accent)' }} />
               </div>
-              <div className="flex items-center gap-1 rounded-2xl rounded-tl-sm bg-gray-100 px-4 py-3">
-                <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div
+                className="flex items-center gap-1 px-4 py-3"
+                style={{ backgroundColor: 'var(--bg-page)', borderRadius: '1rem 1rem 1rem 0.25rem' }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-secondary)', animationDelay: '0ms' }} />
+                <span className="h-1.5 w-1.5 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-secondary)', animationDelay: '150ms' }} />
+                <span className="h-1.5 w-1.5 rounded-full animate-bounce" style={{ backgroundColor: 'var(--text-secondary)', animationDelay: '300ms' }} />
               </div>
             </div>
           )}
 
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <div
+              className="rounded-lg px-3 py-2 text-xs"
+              style={{ border: '0.5px solid var(--danger)', backgroundColor: '#FEE2E2', color: 'var(--danger)' }}
+            >
               {error}
             </div>
           )}
@@ -210,13 +244,7 @@ export function AiAssistant({ establishmentName, userName }: Props) {
           {messages.length === 1 && !loading && (
             <div className="space-y-2 pt-1">
               {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => send(s)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-left text-xs text-gray-600 hover:border-primary/30 hover:bg-primary/5 hover:text-primary transition-colors"
-                >
-                  {s}
-                </button>
+                <SuggestionBtn key={s} text={s} onPress={() => send(s)} />
               ))}
             </div>
           )}
@@ -225,42 +253,76 @@ export function AiAssistant({ establishmentName, userName }: Props) {
         </div>
 
         {/* Input */}
-        <div className="border-t border-gray-100 p-3">
-          <div className="flex items-end gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 focus-within:border-primary/50 focus-within:bg-white transition-colors">
+        <div className="p-3" style={{ borderTop: '0.5px solid var(--border)' }}>
+          <div
+            className="flex items-end gap-2 rounded-xl px-3 py-2 transition-colors duration-150"
+            style={{
+              border: inputFocused ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+              backgroundColor: inputFocused ? 'var(--bg-card)' : 'var(--bg-page)',
+            }}
+          >
             <textarea
               ref={inputRef}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
               placeholder="Posez votre question…"
               rows={1}
-              className="flex-1 resize-none bg-transparent text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
-              style={{ maxHeight: '100px' }}
+              className="flex-1 resize-none bg-transparent text-sm focus:outline-none"
+              style={{ color: 'var(--text-primary)', maxHeight: '100px' }}
             />
             {loading ? (
-              <button onClick={handleStop} className="flex-shrink-0 rounded-lg p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Arrêter">
+              <button
+                onClick={handleStop}
+                className="flex-shrink-0 rounded-lg p-1.5 transition-colors"
+                style={{ color: 'var(--text-secondary)' }}
+                title="Arrêter"
+              >
                 <Loader2 className="h-4 w-4 animate-spin" />
               </button>
             ) : (
               <button
                 onClick={() => send(input)}
                 disabled={!input.trim()}
-                className="flex-shrink-0 rounded-lg p-1.5 text-primary hover:bg-primary/10 disabled:opacity-30 transition-colors"
+                className="flex-shrink-0 rounded-lg p-1.5 transition-colors disabled:opacity-30"
+                style={{ color: 'var(--accent)' }}
                 title="Envoyer (Entrée)"
               >
                 <Send className="h-4 w-4" />
               </button>
             )}
           </div>
-          <p className="mt-1.5 text-center text-[10px] text-gray-400">Entrée pour envoyer · Maj+Entrée pour sauter une ligne</p>
+          <p className="mt-1.5 text-center text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+            Entrée pour envoyer · Maj+Entrée pour sauter une ligne
+          </p>
         </div>
       </div>
     </>
   )
 }
 
+function SuggestionBtn({ text, onPress }: { text: string; onPress: () => void }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <button
+      onClick={onPress}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="w-full rounded-xl px-3 py-2 text-left text-xs transition-colors duration-150"
+      style={{
+        border: hovered ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+        backgroundColor: hovered ? 'var(--accent-light)' : 'var(--bg-card)',
+        color: hovered ? 'var(--accent)' : 'var(--text-secondary)',
+      }}
+    >
+      {text}
+    </button>
+  )
+}
+
 function MarkdownText({ text }: { text: string }) {
-  // Minimal markdown: bold, italic, line breaks, bullet points
   const lines = text.split('\n')
   return (
     <div className="space-y-1">
