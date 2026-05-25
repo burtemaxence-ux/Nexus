@@ -296,28 +296,37 @@ export default function EmployeeDetailPage() {
   return (
     <div className="min-h-full">
       {/* Page header */}
-      <div className="border-b border-border bg-card">
+      <div style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
         <div className="px-6 max-w-6xl mx-auto">
-          <div className="flex items-center gap-4 py-5">
-            <button onClick={() => router.push('/manager/employees')} className="p-1.5 rounded-md hover:bg-muted transition-colors">
-              <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-4 py-4">
+            <button
+              onClick={() => router.push('/manager/employees')}
+              className="p-1.5 rounded-md transition-colors duration-150"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              <ChevronLeft className="h-4 w-4" />
             </button>
             <div className="flex items-center gap-3 flex-1">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-semibold text-primary">{getInitials(employee.full_name ?? employee.email)}</span>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: 'var(--accent-light)' }}>
+                <span className="text-[12px] font-medium" style={{ color: 'var(--accent)' }}>
+                  {getInitials(employee.full_name ?? employee.email)}
+                </span>
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-semibold text-foreground">{employee.full_name ?? 'Sans nom'}</h1>
-                  {employee.archived && <Badge variant="secondary" className="text-xs">Archivé</Badge>}
-                  <Badge variant="outline" className="text-xs text-muted-foreground">Employé standard</Badge>
+                  <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
+                    {employee.full_name ?? 'Sans nom'}
+                  </h1>
+                  {employee.archived && <span className="dp-badge-warning">Archivé</span>}
+                  <span className="dp-badge-info">Employé</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{employee.email}</p>
+                <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{employee.email}</p>
               </div>
             </div>
           </div>
           {/* Tabs */}
-          <nav className="flex gap-1 -mb-px overflow-x-auto">
+          <nav className="flex gap-0 -mb-px overflow-x-auto">
             {TABS.map(tab => {
               const Icon = tab.icon
               const active = activeTab === tab.id
@@ -325,15 +334,14 @@ export default function EmployeeDetailPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
-                    active
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-                  )}
+                  className="relative flex items-center gap-1.5 px-4 py-2.5 text-[13px] whitespace-nowrap transition-colors duration-150"
+                  style={{ color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
                 >
                   <Icon className="h-3.5 w-3.5" />
                   {tab.label}
+                  {active && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[1.5px] rounded-full" style={{ backgroundColor: 'var(--accent)' }} />
+                  )}
                 </button>
               )
             })}
@@ -528,7 +536,7 @@ export default function EmployeeDetailPage() {
             ) : (
               <div className="space-y-3">
                 {contracts.map((contract, i) => (
-                  <Card key={contract.id} className={cn(i === 0 && 'border-primary/30 bg-primary/5')}>
+                  <Card key={contract.id} style={i === 0 ? { borderColor: 'var(--accent)', backgroundColor: 'var(--accent-light)' } : {}}>
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-start justify-between">
                         <div className="space-y-1 flex-1 min-w-0">
@@ -564,10 +572,10 @@ export default function EmployeeDetailPage() {
                               <span>CP : {contract.paid_leave_days}j/an</span>
                             )}
                             {contract.has_confidentiality && (
-                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">Confidentialité</span>
+                              <span className="dp-badge-info">Confidentialité</span>
                             )}
                             {contract.has_non_compete && (
-                              <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">Non-concurrence</span>
+                              <span className="dp-badge-info">Non-concurrence</span>
                             )}
                           </div>
                           {contract.notes && <p className="text-xs text-muted-foreground mt-1 italic">{contract.notes}</p>}
@@ -610,28 +618,13 @@ export default function EmployeeDetailPage() {
             {!latenessLoading && latenessRecords.length > 0 && (
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  {
-                    label: 'Total retards',
-                    value: latenessRecords.length,
-                    color: 'text-orange-600',
-                    bg: 'bg-orange-50 border-orange-200',
-                  },
-                  {
-                    label: 'Minutes perdues',
-                    value: `${latenessRecords.reduce((s, r) => s + r.late_minutes, 0)} min`,
-                    color: 'text-red-600',
-                    bg: 'bg-red-50 border-red-200',
-                  },
-                  {
-                    label: 'Non justifiés',
-                    value: latenessRecords.filter(r => !r.justified).length,
-                    color: 'text-gray-600',
-                    bg: 'bg-gray-50 border-gray-200',
-                  },
-                ].map(({ label, value, color, bg }) => (
-                  <div key={label} className={`rounded-xl border p-4 text-center ${bg}`}>
-                    <p className={`text-2xl font-bold ${color}`}>{value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{label}</p>
+                  { label: 'Total retards', value: latenessRecords.length, color: 'var(--warning)', bg: '#FEF3C7', border: 'var(--warning)' },
+                  { label: 'Minutes perdues', value: `${latenessRecords.reduce((s, r) => s + r.late_minutes, 0)} min`, color: 'var(--danger)', bg: '#FEE2E2', border: 'var(--danger)' },
+                  { label: 'Non justifiés', value: latenessRecords.filter(r => !r.justified).length, color: 'var(--text-secondary)', bg: 'var(--bg-page)', border: 'var(--border)' },
+                ].map(({ label, value, color, bg, border }) => (
+                  <div key={label} className="rounded-[10px] p-3 text-center" style={{ backgroundColor: bg, border: `0.5px solid ${border}` }}>
+                    <p className="text-[20px] font-[400] leading-none" style={{ color }}>{value}</p>
+                    <p className="text-[10px] uppercase tracking-[0.06em] mt-2" style={{ color: 'var(--text-tertiary)' }}>{label}</p>
                   </div>
                 ))}
               </div>
@@ -674,21 +667,17 @@ export default function EmployeeDetailPage() {
                           {new Date(record.actual_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                         </td>
                         <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
-                            +{record.late_minutes} min
-                          </span>
+                          <span className="dp-badge-warning">+{record.late_minutes} min</span>
                         </td>
                         <td className="px-4 py-3">
                           <button
                             onClick={() => toggleJustified(record)}
                             className={cn(
-                              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border',
-                              record.justified
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                              'inline-flex items-center gap-1.5 transition-colors duration-150',
+                              record.justified ? 'dp-badge-success' : 'dp-badge-danger'
                             )}
                           >
-                            <span className={cn('h-1.5 w-1.5 rounded-full', record.justified ? 'bg-emerald-500' : 'bg-red-500')} />
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: record.justified ? 'var(--success)' : 'var(--danger)' }} />
                             {record.justified ? 'Justifié' : 'Non justifié'}
                           </button>
                         </td>

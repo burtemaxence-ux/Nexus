@@ -153,20 +153,20 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
   return (
     <div className="min-h-full">
       {/* Header */}
-      <div className="border-b border-border bg-card sticky top-0 z-10">
+      <div className="sticky top-11 z-20" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '0.5px solid var(--border)' }}>
         <div className="px-6 max-w-6xl mx-auto">
           <div className="flex items-center gap-3 h-14 flex-wrap">
-            <h1 className="text-lg font-semibold text-foreground shrink-0">Équipe</h1>
+            <h1 className="text-[20px] font-medium tracking-[-0.02em] shrink-0" style={{ color: 'var(--text-primary)' }}>Équipe</h1>
 
             {/* Search */}
             <div className="relative flex-1 min-w-[180px] max-w-xs">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none" style={{ color: 'var(--text-tertiary)' }} />
               <input
                 type="text"
                 placeholder="Rechercher…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="dp-input pl-8"
               />
             </div>
 
@@ -176,14 +176,15 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
                 value={filterContract}
                 onChange={e => setFilterContract(e.target.value)}
                 className={cn(
-                  'appearance-none text-sm border rounded-lg pl-3 pr-7 py-1.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30',
-                  filterContract ? 'border-primary text-primary font-medium' : 'border-border'
+                  'dp-input appearance-none pr-7',
+                  filterContract ? 'border-[var(--accent)] text-[var(--accent)]' : ''
                 )}
+                style={{ width: 'auto' }}
               >
                 <option value="">Tous les contrats</option>
                 {CONTRACT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none" style={{ color: 'var(--text-tertiary)' }} />
             </div>
 
             {/* Position filter */}
@@ -193,14 +194,15 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
                   value={filterPosition}
                   onChange={e => setFilterPosition(e.target.value)}
                   className={cn(
-                    'appearance-none text-sm border rounded-lg pl-3 pr-7 py-1.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30',
-                    filterPosition ? 'border-primary text-primary font-medium' : 'border-border'
+                    'dp-input appearance-none pr-7',
+                    filterPosition ? 'border-[var(--accent)] text-[var(--accent)]' : ''
                   )}
+                  style={{ width: 'auto' }}
                 >
                   <option value="">Tous les postes</option>
                   {positions.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none" style={{ color: 'var(--text-tertiary)' }} />
               </div>
             )}
 
@@ -208,7 +210,8 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
             {activeFilters > 0 && (
               <button
                 onClick={() => { setSearch(''); setFilterContract(''); setFilterPosition('') }}
-                className="text-xs text-muted-foreground hover:text-foreground underline"
+                className="text-[12px] underline transition-colors duration-150"
+                style={{ color: 'var(--text-tertiary)' }}
               >
                 Effacer ({activeFilters})
               </button>
@@ -216,12 +219,12 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
 
             <div className="ml-auto flex items-center gap-2">
               {/* Archived toggle */}
-              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+              <label className="flex items-center gap-1.5 text-[12px] cursor-pointer select-none" style={{ color: 'var(--text-secondary)' }}>
                 <input
                   type="checkbox"
                   checked={showArchived}
                   onChange={e => setShowArchived(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded accent-primary"
+                  className="w-3.5 h-3.5 rounded"
                 />
                 Archivés
               </label>
@@ -230,7 +233,7 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
               <button
                 onClick={() => exportCSV(filtered)}
                 disabled={filtered.length === 0}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-border rounded-lg bg-card hover:bg-muted transition-colors text-foreground disabled:opacity-40"
+                className="btn-secondary flex items-center gap-1.5 disabled:opacity-40"
               >
                 <Download className="h-3.5 w-3.5" />
                 CSV
@@ -238,10 +241,7 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
 
               {/* Invite — manager only */}
               {isManager && (
-                <Link
-                  href="/manager/employees/new"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"
-                >
+                <Link href="/manager/employees/new" className="btn-primary">
                   <UserPlus className="h-3.5 w-3.5" />
                   Inviter
                 </Link>
@@ -253,92 +253,72 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
 
       <div className="px-6 py-6 max-w-6xl mx-auto">
         {/* Stats bar */}
-        <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 mb-4 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
           {loading ? (
             <span className="flex items-center gap-2">
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-t-transparent" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
               Chargement…
             </span>
           ) : (
             <span>
-              <span className="font-semibold text-foreground">{filtered.length}</span>
+              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{filtered.length}</span>
               {' '}employé{filtered.length !== 1 ? 's' : ''}
               {filtered.length !== employees.length && ` sur ${employees.length}`}
             </span>
           )}
-          {filterContract && (
-            <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full font-medium">{filterContract}</span>
-          )}
-          {filterPosition && (
-            <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full font-medium">{filterPosition}</span>
-          )}
+          {filterContract && <span className="dp-badge-info">{filterContract}</span>}
+          {filterPosition && <span className="dp-badge-info">{filterPosition}</span>}
         </div>
 
         {filtered.length === 0 && !loading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-border rounded-xl bg-card">
-            <Users className="h-8 w-8 text-muted-foreground/40 mb-3" />
-            <p className="text-sm font-medium text-foreground">
+          <div className="flex flex-col items-center justify-center py-24 text-center rounded-xl" style={{ border: '0.5px dashed var(--border)', backgroundColor: 'var(--bg-card)' }}>
+            <Users className="h-8 w-8 mb-3" style={{ color: 'var(--text-tertiary)' }} />
+            <p className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>
               {employees.length === 0 ? 'Aucun employé pour l\'instant' : 'Aucun résultat'}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {employees.length === 0
-                ? 'Invitez votre premier employé.'
-                : 'Essayez de modifier vos filtres.'}
+            <p className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+              {employees.length === 0 ? 'Invitez votre premier employé.' : 'Essayez de modifier vos filtres.'}
             </p>
             {employees.length === 0 && isManager && (
-              <Link
-                href="/manager/employees/new"
-                className="mt-4 flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"
-              >
-                <UserPlus className="h-4 w-4" />Inviter un employé
+              <Link href="/manager/employees/new" className="btn-primary mt-4">
+                <UserPlus className="h-3.5 w-3.5" />Inviter un employé
               </Link>
             )}
           </div>
         ) : (
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full">
                 <thead>
-                  <tr className="bg-muted/60 border-b border-border">
-                    <th className="px-4 py-3 text-left">
-                      <button
-                        onClick={() => handleSort('full_name')}
-                        className="flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
-                      >
-                        Employé<SortIcon field="full_name" />
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-left">
-                      <button
-                        onClick={() => handleSort('position')}
-                        className="flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
-                      >
-                        Poste<SortIcon field="position" />
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-left">
-                      <button
-                        onClick={() => handleSort('contract_type')}
-                        className="flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
-                      >
-                        Contrat<SortIcon field="contract_type" />
-                      </button>
-                    </th>
+                  <tr style={{ backgroundColor: 'var(--bg-page)', borderBottom: '0.5px solid var(--border)' }}>
+                    {(['full_name', 'position', 'contract_type'] as const).map((field, idx) => (
+                      <th key={field} className="px-4 py-3 text-left">
+                        <button
+                          onClick={() => handleSort(field)}
+                          className="flex items-center transition-colors duration-150"
+                          style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}
+                        >
+                          {['Employé', 'Poste', 'Contrat'][idx]}<SortIcon field={field} />
+                        </button>
+                      </th>
+                    ))}
                     <th className="px-4 py-3 text-right">
                       <button
                         onClick={() => handleSort('weekly_hours')}
-                        className="flex items-center ml-auto text-xs font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
+                        className="flex items-center ml-auto transition-colors duration-150"
+                        style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}
                       >
                         H/sem.<SortIcon field="weekly_hours" />
                       </button>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>
                       Téléphone
                     </th>
                     <th className="px-4 py-3 text-left">
                       <button
                         onClick={() => handleSort('created_at')}
-                        className="flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
+                        className="flex items-center transition-colors duration-150"
+                        style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}
                       >
                         Arrivée<SortIcon field="created_at" />
                       </button>
@@ -347,59 +327,57 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((emp, i) => (
+                  {filtered.map((emp) => (
                     <tr
                       key={emp.id}
-                      className={cn(
-                        'border-b border-border/60 hover:bg-muted/30 transition-colors',
-                        i % 2 === 1 && 'bg-muted/10',
-                        emp.archived && 'opacity-50',
-                      )}
+                      className="transition-colors duration-150"
+                      style={{
+                        borderBottom: '0.5px solid var(--border)',
+                        opacity: emp.archived ? 0.5 : 1,
+                      }}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-semibold text-primary">
+                          <div className="h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: 'var(--accent-light)' }}>
+                            <span className="text-[10px] font-medium" style={{ color: 'var(--accent)' }}>
                               {getInitials(emp.full_name ?? emp.email ?? '?')}
                             </span>
                           </div>
                           <div>
-                            <p className="font-medium text-foreground leading-tight">
+                            <p className="text-[13px] font-medium leading-tight" style={{ color: 'var(--text-primary)' }}>
                               {emp.full_name ?? '—'}
-                              {emp.archived && (
-                                <span className="ml-2 text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-                                  Archivé
-                                </span>
-                              )}
+                              {emp.archived && <span className="ml-2 dp-badge-info">Archivé</span>}
                             </p>
-                            <p className="text-xs text-muted-foreground">{emp.email}</p>
+                            <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{emp.email}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         {emp.position
-                          ? <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full font-medium">{emp.position}</span>
-                          : <span className="text-muted-foreground">—</span>}
+                          ? <span className="dp-badge-info">{emp.position}</span>
+                          : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
                       </td>
                       <td className="px-4 py-3">
                         {emp.contract_type
-                          ? <span className="text-xs border border-border text-foreground px-2 py-0.5 rounded-full">{emp.contract_type}</span>
-                          : <span className="text-muted-foreground">—</span>}
+                          ? <span className="dp-badge-info">{emp.contract_type}</span>
+                          : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-foreground">
-                        {emp.weekly_hours ? `${emp.weekly_hours}h` : <span className="text-muted-foreground">—</span>}
+                      <td className="px-4 py-3 text-right text-[13px]" style={{ color: 'var(--text-primary)' }}>
+                        {emp.weekly_hours ? `${emp.weekly_hours}h` : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="px-4 py-3 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
                         {emp.phone ?? '—'}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="px-4 py-3 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
                         {formatDate(emp.created_at)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
                           <Link
                             href={`/manager/employees/${emp.id}`}
-                            className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[12px] transition-colors duration-150"
+                            style={{ color: 'var(--text-secondary)' }}
                           >
                             <Pencil className="h-3 w-3" />Modifier
                           </Link>
