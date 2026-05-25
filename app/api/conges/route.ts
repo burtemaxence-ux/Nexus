@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { LeaveRequestSchema, validationError } from '@/lib/validations'
 import { NextRequest, NextResponse } from 'next/server'
+import { fireWebhook } from '@/lib/integrations/webhook'
 
 // GET — employé : ses propres demandes / manager : toutes
 export async function GET() {
@@ -43,5 +44,21 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: 'Erreur lors de la création de la demande' }, { status: 500 })
+
+  // Webhook notification
+  const [{ data: profileData }, { data: settingsData }] = await Promise.all([
+    supabase.from('profiles').select('full_name, email').eq('id', user.id).single(),
+    supabase.from('settings').select('key, value'),
+  ])
+  const settings: Record<string, string> = {}
+  for (const row of settingsData ?? []) settings[row.key] = row.value
+  const leaveTypeLabels: Record<string, string> = { CP: 'Congés payés', RTT: 'RTT', maladie: 'Maladie', sans_solde: 'Sans solde', autre: 'Autre' }
+  fireWebhook(settings, 'leave.requested', {
+    employeeName: profileData?.full_name ?? profileData?.email ?? '—',
+    leaveType: leaveTypeLabels[data.type] ?? data.type,
+    startDate: data.start_date,
+    endDate: data.end_date,
+  }).catch(() => {})
+
   return NextResponse.json(data, { status: 201 })
 }

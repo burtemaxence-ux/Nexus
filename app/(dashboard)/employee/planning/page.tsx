@@ -1,8 +1,11 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { EmployeePlanningGrid } from '@/components/planning/employee-planning-grid'
+import { ICalCopyButton } from '@/components/ui/ical-copy-button'
+import { generateCalendarToken } from '@/lib/integrations/ical'
 import { getWeekDates, toISODate } from '@/lib/utils/dates'
 import type { Profile, Shift, Poste, LeaveRequest } from '@/types'
 
@@ -38,6 +41,12 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
   const sunday = weekDates[6]
 
   const mondayStr = toISODate(monday)
+
+  // Build iCal subscription URL
+  const reqHeaders = await headers()
+  const host = reqHeaders.get('host') ?? 'localhost:3000'
+  const protocol = host.startsWith('localhost') ? 'http' : 'https'
+  const calendarUrl = `${protocol}://${host}/api/calendar/${generateCalendarToken(user.id)}`
   const sundayStr = toISODate(sunday)
 
   // Fetch the employee's profile
@@ -97,13 +106,17 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
         </Link>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
           Bonjour {firstName} — Planning de la semaine
         </h1>
         <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
           Consultez vos horaires pour la semaine en cours
         </p>
+      </div>
+
+      <div className="mb-6">
+        <ICalCopyButton url={calendarUrl} />
       </div>
 
       {!isPublished ? (

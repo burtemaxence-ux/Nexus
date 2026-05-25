@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { fireWebhook } from '@/lib/integrations/webhook'
+import { getWeekLabel, getWeekDates } from '@/lib/utils/dates'
 
 async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -138,6 +140,16 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('[week-status POST] error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Fire webhook when planning is published for the first time
+    if (published === true && !existing?.published) {
+      const weekLabel = getWeekLabel(getWeekDates(new Date(week_monday + 'T00:00:00')))
+      const { count } = await supabase.from('shifts').select('*', { count: 'exact', head: true }).eq('week_monday', week_monday)
+      const { data: settingsData } = await supabase.from('settings').select('key, value')
+      const settings: Record<string, string> = {}
+      for (const row of settingsData ?? []) settings[row.key] = row.value
+      fireWebhook(settings, 'planning.published', { weekLabel, weekMonday: week_monday, employeeCount: count ?? 0 }).catch(() => {})
     }
 
     return NextResponse.json(data)

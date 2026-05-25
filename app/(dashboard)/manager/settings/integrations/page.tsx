@@ -1,43 +1,15 @@
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Plug, Lock } from 'lucide-react'
+'use client'
 
-// ── Integration definitions ───────────────────────────────────────────────────
+import { useEffect, useState } from 'react'
+import { Loader2, Check, Send, Plug, Hash, Calendar } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
-type Integration = {
-  id: string
-  name: string
-  description: string
-  category: string
-  bg: string
-  logo: React.ReactNode
-}
-
-function GoogleCalendarLogo() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none">
-      <rect width="24" height="24" rx="3" fill="#fff" />
-      <rect x="3" y="3" width="18" height="18" rx="2" fill="#fff" stroke="#DADCE0" strokeWidth="1.5" />
-      <rect x="3" y="3" width="18" height="5" rx="2" fill="#4285F4" />
-      <text x="12" y="18" textAnchor="middle" fontSize="8" fontWeight="700" fill="#1A73E8">31</text>
-    </svg>
-  )
-}
-
-function OutlookLogo() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none">
-      <rect width="24" height="24" rx="3" fill="#0078D4" />
-      <rect x="12" y="6" width="9" height="12" rx="1" fill="#50B0F0" />
-      <rect x="3" y="8" width="11" height="10" rx="1.5" fill="#fff" />
-      <text x="8.5" y="16" textAnchor="middle" fontSize="6" fontWeight="700" fill="#0078D4">O</text>
-    </svg>
-  )
-}
+type TestState = 'idle' | 'loading' | 'success' | 'error'
 
 function SlackLogo() {
   return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
       <rect width="24" height="24" rx="3" fill="#4A154B" />
       <circle cx="8.5" cy="8.5" r="1.8" fill="#E01E5A" />
       <circle cx="15.5" cy="8.5" r="1.8" fill="#36C5F0" />
@@ -47,167 +19,346 @@ function SlackLogo() {
   )
 }
 
-function WhatsAppLogo() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none">
-      <rect width="24" height="24" rx="3" fill="#25D366" />
-      <path
-        d="M12 4C7.58 4 4 7.58 4 12c0 1.49.41 2.88 1.12 4.07L4 20l4.07-1.1A7.95 7.95 0 0012 20c4.42 0 8-3.58 8-8s-3.58-8-8-8z"
-        fill="#fff"
-      />
-      <path
-        d="M16.2 14.5c-.2-.1-1.2-.6-1.4-.67-.2-.07-.34-.1-.48.1-.14.2-.54.67-.66.8-.12.14-.24.15-.44.05-.2-.1-.86-.32-1.63-1.01-.6-.54-1-1.2-1.12-1.4-.12-.2-.01-.3.09-.4l.3-.35c.1-.12.13-.2.2-.33.07-.13.03-.25-.02-.35-.05-.1-.48-1.16-.66-1.59-.17-.42-.35-.36-.48-.37H9.7c-.14 0-.36.05-.55.25-.19.2-.72.7-.72 1.71s.74 1.99.84 2.12c.1.14 1.45 2.22 3.52 3.11.49.21.87.34 1.17.43.49.16.94.13 1.29.08.39-.06 1.2-.49 1.37-.96.17-.47.17-.88.12-.97-.05-.09-.19-.14-.4-.24z"
-        fill="#25D366"
-      />
-    </svg>
-  )
-}
-
-function PayFitLogo() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none">
-      <rect width="24" height="24" rx="3" fill="#5046E4" />
-      <text x="12" y="16" textAnchor="middle" fontSize="10" fontWeight="800" fill="#fff">P</text>
-    </svg>
-  )
-}
-
-function SageLogo() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none">
-      <rect width="24" height="24" rx="3" fill="#00B050" />
-      <text x="12" y="16" textAnchor="middle" fontSize="10" fontWeight="800" fill="#fff">S</text>
-    </svg>
-  )
-}
-
-const INTEGRATIONS: Integration[] = [
-  {
-    id: 'google_calendar',
-    name: 'Google Calendar',
-    description: 'Synchronisez automatiquement les plannings publiés avec les agendas Google des employés.',
-    category: 'Calendrier',
-    bg: 'bg-blue-50',
-    logo: <GoogleCalendarLogo />,
-  },
-  {
-    id: 'outlook',
-    name: 'Microsoft Outlook',
-    description: 'Envoyez les shifts directement dans les boîtes Outlook de votre équipe.',
-    category: 'Calendrier',
-    bg: 'bg-sky-50',
-    logo: <OutlookLogo />,
-  },
-  {
-    id: 'slack',
-    name: 'Slack',
-    description: 'Recevez les alertes RH et les publications de planning dans vos canaux Slack.',
-    category: 'Messagerie',
-    bg: 'bg-purple-50',
-    logo: <SlackLogo />,
-  },
-  {
-    id: 'whatsapp',
-    name: 'WhatsApp Business',
-    description: 'Notifiez vos employés via WhatsApp pour les rappels de shift et les changements.',
-    category: 'Messagerie',
-    bg: 'bg-green-50',
-    logo: <WhatsAppLogo />,
-  },
-  {
-    id: 'payfit',
-    name: 'PayFit',
-    description: 'Exportez les heures validées vers PayFit pour automatiser la préparation de la paie.',
-    category: 'Paie',
-    bg: 'bg-violet-50',
-    logo: <PayFitLogo />,
-  },
-  {
-    id: 'sage',
-    name: 'Sage Paie',
-    description: 'Transmettez les récapitulatifs mensuels directement dans votre logiciel Sage.',
-    category: 'Paie',
-    bg: 'bg-emerald-50',
-    logo: <SageLogo />,
-  },
+const WEBHOOK_EVENTS = [
+  { id: 'planning.published', label: 'Planning publié', description: 'Quand un planning de semaine est publié' },
+  { id: 'leave.requested',   label: 'Nouvelle demande de congé', description: 'Quand un employé dépose une demande' },
+  { id: 'leave.approved',    label: 'Congé approuvé', description: 'Quand une demande est validée' },
+  { id: 'leave.rejected',    label: 'Congé refusé', description: 'Quand une demande est refusée' },
 ]
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none shrink-0"
+      style={{ backgroundColor: enabled ? 'var(--accent)' : 'var(--border)' }}
+      role="switch"
+      aria-checked={enabled}
+    >
+      <span
+        className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200"
+        style={{ transform: enabled ? 'translateX(18px)' : 'translateX(2px)' }}
+      />
+    </button>
+  )
+}
 
 export default function IntegrationsPage() {
+  const [loading, setLoading] = useState(true)
+
+  // Webhook state
+  const [webhookUrl, setWebhookUrl] = useState('')
+  const [webhookEnabled, setWebhookEnabled] = useState(false)
+  const [webhookEvents, setWebhookEvents] = useState<Record<string, boolean>>({
+    'planning.published': true,
+    'leave.requested': true,
+    'leave.approved': true,
+    'leave.rejected': true,
+  })
+  const [savingWebhook, setSavingWebhook] = useState(false)
+  const [savedWebhook, setSavedWebhook] = useState(false)
+  const [testWebhook, setTestWebhook] = useState<TestState>('idle')
+
+  // Slack state
+  const [slackUrl, setSlackUrl] = useState('')
+  const [slackEnabled, setSlackEnabled] = useState(false)
+  const [savingSlack, setSavingSlack] = useState(false)
+  const [savedSlack, setSavedSlack] = useState(false)
+  const [testSlack, setTestSlack] = useState<TestState>('idle')
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then((data: Record<string, string>) => {
+        setWebhookUrl(data.webhook_url ?? '')
+        setWebhookEnabled(data.webhook_enabled === '1')
+        setSlackUrl(data.slack_webhook_url ?? '')
+        setSlackEnabled(data.slack_webhook_enabled === '1')
+        if (data.webhook_events) {
+          try { setWebhookEvents(JSON.parse(data.webhook_events)) } catch { /* keep defaults */ }
+        }
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
+  async function saveWebhook() {
+    setSavingWebhook(true)
+    await fetch('/api/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        webhook_url: webhookUrl,
+        webhook_enabled: webhookEnabled ? '1' : '0',
+        webhook_events: JSON.stringify(webhookEvents),
+      }),
+    })
+    setSavingWebhook(false)
+    setSavedWebhook(true)
+    setTimeout(() => setSavedWebhook(false), 2500)
+  }
+
+  async function saveSlack() {
+    setSavingSlack(true)
+    await fetch('/api/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slack_webhook_url: slackUrl,
+        slack_webhook_enabled: slackEnabled ? '1' : '0',
+      }),
+    })
+    setSavingSlack(false)
+    setSavedSlack(true)
+    setTimeout(() => setSavedSlack(false), 2500)
+  }
+
+  async function runTest(type: 'webhook' | 'slack') {
+    const setter = type === 'webhook' ? setTestWebhook : setTestSlack
+    setter('loading')
+    try {
+      const res = await fetch('/api/integrations/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type }),
+      })
+      const data = await res.json()
+      setter(res.ok && data.ok ? 'success' : 'error')
+    } catch {
+      setter('error')
+    }
+    setTimeout(() => setter('idle'), 3500)
+  }
+
+  function toggleEvent(id: string) {
+    setWebhookEvents(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--text-tertiary)' }} />
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
       <div>
-        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Intégrations</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Connectez D-pot à vos outils métier pour automatiser votre workflow.
+        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
+          Intégrations
+        </h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+          Connectez D-pot à vos outils pour automatiser votre workflow.
         </p>
       </div>
 
-      {/* ── Coming soon notice ───────────────────────────────────────── */}
-      <div className="flex items-start gap-3 rounded-xl px-4 py-3.5" style={{ border: '0.5px solid var(--accent)', backgroundColor: 'var(--accent-light)' }}>
-        <Plug className="h-4 w-4 mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
-        <div>
-          <p className="text-[13px] font-medium" style={{ color: 'var(--accent)' }}>Intégrations — bientôt disponibles</p>
-          <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-            Ces connecteurs sont en cours de développement. Ils seront disponibles dans une prochaine mise à jour.
-          </p>
-        </div>
-      </div>
-
-      {/* ── Integration cards ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {INTEGRATIONS.map(integration => (
-          <Card
-            key={integration.id}
-            className="relative overflow-hidden border border-border bg-card opacity-80 transition-opacity hover:opacity-100"
-          >
-            {/* Coming soon badge */}
-            <div className="absolute top-3 right-3">
-              <span className="dp-badge-warning inline-flex items-center gap-1">
-                <Lock className="h-2.5 w-2.5" />
-                Bientôt
-              </span>
+      {/* ── Webhook sortant ──────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+              <Plug className="h-4 w-4" style={{ color: 'var(--accent)' }} />
             </div>
-
-            <CardContent className="pt-5 pb-4 px-4">
-              {/* Logo + name */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--bg-page)', border: '0.5px solid var(--border)' }}>
-                  {integration.logo}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground leading-tight">{integration.name}</p>
-                  <span className="inline-block mt-0.5 text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wide">
-                    {integration.category}
-                  </span>
-                </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Webhook sortant</CardTitle>
+                <Toggle enabled={webhookEnabled} onToggle={() => setWebhookEnabled(v => !v)} />
               </div>
+              <CardDescription>Compatible Zapier, Make, n8n et tout outil no-code.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-secondary)' }}>
+              URL de destination
+            </p>
+            <Input
+              type="url"
+              value={webhookUrl}
+              onChange={e => setWebhookUrl(e.target.value)}
+              placeholder="https://hooks.zapier.com/hooks/catch/..."
+              disabled={!webhookEnabled}
+            />
+          </div>
 
-              {/* Description */}
-              <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-                {integration.description}
-              </p>
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-secondary)' }}>
+              Événements déclencheurs
+            </p>
+            <div className="space-y-2">
+              {WEBHOOK_EVENTS.map(ev => (
+                <label
+                  key={ev.id}
+                  className="flex items-start gap-3 rounded-lg px-3 py-2.5 cursor-pointer"
+                  style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={webhookEvents[ev.id] ?? false}
+                    onChange={() => toggleEvent(ev.id)}
+                    disabled={!webhookEnabled}
+                    className="mt-0.5 accent-[var(--accent)]"
+                  />
+                  <div>
+                    <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{ev.label}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{ev.description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
 
-              {/* Action */}
-              <Button
-                size="sm"
-                variant="outline"
-                disabled
-                className="w-full text-xs h-8 border-dashed text-muted-foreground cursor-not-allowed"
-              >
-                Connexion indisponible
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+          <div className="flex gap-2 justify-end">
+            <TestButton
+              state={testWebhook}
+              disabled={!webhookUrl}
+              onTest={() => runTest('webhook')}
+              label="Tester"
+            />
+            <SaveButton saving={savingWebhook} saved={savedWebhook} onSave={saveWebhook} />
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* ── Enterprise note ───────────────────────────────────────────── */}
-      <p className="text-center text-xs text-muted-foreground pt-2">
-        Les intégrations seront disponibles sur tous les plans.{' '}
-        <span className="text-foreground font-medium">Restez connectés pour les nouveautés.</span>
-      </p>
+      {/* ── Slack ─────────────────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: '#F9F0FF', border: '0.5px solid #E9D5FF' }}>
+              <SlackLogo />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Slack</CardTitle>
+                <Toggle enabled={slackEnabled} onToggle={() => setSlackEnabled(v => !v)} />
+              </div>
+              <CardDescription>Recevez les alertes RH directement dans un canal Slack.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-xl px-4 py-3 space-y-1" style={{ backgroundColor: 'var(--bg-page)', border: '0.5px solid var(--border)' }}>
+            <p className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>Comment obtenir l&apos;URL</p>
+            <ol className="text-[12px] space-y-0.5 list-decimal list-inside" style={{ color: 'var(--text-secondary)' }}>
+              <li>Dans Slack : <strong>Apps</strong> → chercher <strong>Incoming WebHooks</strong></li>
+              <li>Choisir un canal → <strong>Add Incoming Webhooks integration</strong></li>
+              <li>Copier l&apos;URL <code className="text-[11px] font-mono px-1 rounded" style={{ backgroundColor: 'var(--border)' }}>https://hooks.slack.com/services/…</code></li>
+            </ol>
+          </div>
+
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-secondary)' }}>
+              Incoming Webhook URL
+            </p>
+            <Input
+              type="url"
+              value={slackUrl}
+              onChange={e => setSlackUrl(e.target.value)}
+              placeholder="https://hooks.slack.com/services/T.../B.../..."
+              disabled={!slackEnabled}
+            />
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <TestButton
+              state={testSlack}
+              disabled={!slackUrl}
+              onTest={() => runTest('slack')}
+              label="Tester"
+            />
+            <SaveButton saving={savingSlack} saved={savedSlack} onSave={saveSlack} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── iCal ──────────────────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+              <Calendar className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+            </div>
+            <div>
+              <CardTitle className="text-base">Abonnement Calendrier (iCal)</CardTitle>
+              <CardDescription>Permet à chaque employé de synchroniser ses shifts avec son calendrier.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="rounded-xl px-4 py-3.5 space-y-2" style={{ backgroundColor: 'var(--bg-page)', border: '0.5px solid var(--border)' }}>
+            <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>Comment ça marche</p>
+            <ul className="text-[12px] space-y-1" style={{ color: 'var(--text-secondary)' }}>
+              <li className="flex items-start gap-2">
+                <span style={{ color: 'var(--accent)' }}>→</span>
+                Chaque employé dispose d&apos;un lien iCal <strong>personnel</strong> sur sa page planning.
+              </li>
+              <li className="flex items-start gap-2">
+                <span style={{ color: 'var(--accent)' }}>→</span>
+                Il peut l&apos;ajouter à <strong>Google Calendar, Outlook ou Apple Calendrier</strong> — aucune connexion requise.
+              </li>
+              <li className="flex items-start gap-2">
+                <span style={{ color: 'var(--accent)' }}>→</span>
+                Le calendrier se <strong>synchronise automatiquement</strong> à chaque mise à jour du planning.
+              </li>
+            </ul>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--accent-light)', border: '0.5px solid var(--accent)' }}>
+            <Hash className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--accent)' }} />
+            <p className="text-[12px]" style={{ color: 'var(--accent)' }}>
+              Dirigez vos employés vers <strong>Mon espace → Planning</strong> pour trouver leur lien.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
+  )
+}
+
+function SaveButton({ saving, saved, onSave }: { saving: boolean; saved: boolean; onSave: () => void }) {
+  return (
+    <button
+      onClick={onSave}
+      disabled={saving}
+      className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-medium transition-colors duration-150 disabled:opacity-50"
+      style={saved
+        ? { backgroundColor: '#F0FDF4', border: '0.5px solid #BBF7D0', color: '#15803D' }
+        : { backgroundColor: 'var(--accent-light)', border: '0.5px solid var(--accent)', color: 'var(--accent)' }
+      }
+    >
+      {saving
+        ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Enregistrement…</>
+        : saved
+        ? <><Check className="h-3.5 w-3.5" />Enregistré</>
+        : 'Enregistrer'
+      }
+    </button>
+  )
+}
+
+function TestButton({ state, disabled, onTest, label }: { state: TestState; disabled: boolean; onTest: () => void; label: string }) {
+  const styles: Record<TestState, React.CSSProperties> = {
+    idle:    { border: '0.5px solid var(--border)', backgroundColor: 'transparent', color: 'var(--text-secondary)' },
+    loading: { border: '0.5px solid var(--border)', backgroundColor: 'transparent', color: 'var(--text-tertiary)' },
+    success: { border: '0.5px solid var(--success)', backgroundColor: '#F0FDF4', color: 'var(--success)' },
+    error:   { border: '0.5px solid var(--danger)', backgroundColor: '#FEE2E2', color: 'var(--danger)' },
+  }
+  const labels: Record<TestState, string> = {
+    idle: label, loading: 'Test…', success: 'Succès ✓', error: 'Erreur ✗',
+  }
+  return (
+    <button
+      onClick={onTest}
+      disabled={disabled || state === 'loading'}
+      className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-medium transition-colors duration-150 disabled:opacity-40"
+      style={styles[state]}
+    >
+      {state === 'loading'
+        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        : <Send className="h-3.5 w-3.5" />
+      }
+      {labels[state]}
+    </button>
   )
 }
