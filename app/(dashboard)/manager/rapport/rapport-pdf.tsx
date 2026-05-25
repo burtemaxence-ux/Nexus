@@ -178,7 +178,7 @@ export function RapportDocument({ rows, periodLabel, establishmentName }: Props)
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text>D-pot — {establishmentName}</Text>
+          <Text>Nexus — {establishmentName}</Text>
           <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages}`} />
         </View>
       </Page>

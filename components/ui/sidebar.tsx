@@ -214,7 +214,7 @@ export function Sidebar({
         {!collapsed && (
           <div className="overflow-hidden">
             <p className="font-semibold text-sidebar-foreground-active text-sm leading-tight truncate">
-              D-pot
+              Nexus
             </p>
             <p className="text-[10px] text-sidebar-foreground/60 leading-tight">Gestion RH & Planning</p>
           </div>

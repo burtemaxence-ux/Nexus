@@ -292,7 +292,7 @@ export function Topbar({
         href={role === 'employee' ? '/employee' : '/manager'}
         className="text-[15px] font-medium tracking-[-0.03em] text-[var(--text-primary)] flex-shrink-0"
       >
-        D-pot
+        Nexus
       </Link>
 
       {/* Separator */}

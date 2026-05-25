@@ -38,7 +38,7 @@ export default async function EmployeeDashboard() {
         <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
           Bonjour {firstName}
         </h1>
-        <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>Mon espace — D-pot</p>
+        <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>Mon espace — Nexus</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

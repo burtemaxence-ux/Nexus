@@ -1,7 +1,7 @@
 import { createHmac } from 'crypto'
 import type { Shift } from '@/types'
 
-const SECRET = process.env.CALENDAR_SECRET ?? 'dpot-calendar-2024'
+const SECRET = process.env.CALENDAR_SECRET ?? 'nexus-calendar-2024'
 
 export function generateCalendarToken(employeeId: string): string {
   const hmac = createHmac('sha256', SECRET).update(employeeId).digest('hex').slice(0, 16)
@@ -44,7 +44,7 @@ export function generateICS(
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//D-pot//Planning//FR',
+    'PRODID:-//Nexus//Planning//FR',
     `X-WR-CALNAME:${icsEscape(`Planning ${employeeName} — ${orgName}`)}`,
     'X-WR-TIMEZONE:Europe/Paris',
     'CALSCALE:GREGORIAN',
@@ -53,7 +53,7 @@ export function generateICS(
 
   for (const shift of shifts) {
     lines.push('BEGIN:VEVENT')
-    lines.push(`UID:dpot-${shift.id}@dpot`)
+    lines.push(`UID:nexus-${shift.id}@nexus`)
     lines.push(`DTSTAMP:${icsNow()}`)
     lines.push(`DTSTART;TZID=Europe/Paris:${icsDateTime(shift.date, shift.start_time)}`)
     lines.push(`DTEND;TZID=Europe/Paris:${icsDateTime(shift.date, shift.end_time)}`)

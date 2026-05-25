@@ -45,7 +45,7 @@ function useLogin() {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function DpotLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
+function NexusLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
   const s = size === 'md'
   return (
     <div className={cn('flex items-center', s ? 'gap-2.5' : 'gap-2')}>
@@ -56,7 +56,7 @@ function DpotLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
         D
       </div>
       <span className={cn('font-semibold tracking-tight text-[#18181B]', s ? 'text-[17px]' : 'text-[15px]')}>
-        D-pot
+        Nexus
       </span>
     </div>
   )
@@ -203,7 +203,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-col justify-between px-16 py-14 relative z-10">
 
         {/* Logo */}
-        <DpotLogo size="md" />
+        <NexusLogo size="md" />
 
         {/* Pitch central */}
         <div className="space-y-10">
@@ -253,7 +253,7 @@ export default function LoginPage() {
 
         {/* Logo mobile uniquement */}
         <div className="lg:hidden mb-10">
-          <DpotLogo size="sm" />
+          <NexusLogo size="sm" />
         </div>
 
         {/* Card */}
@@ -406,7 +406,7 @@ export default function LoginPage() {
 
           {/* Pied de carte */}
           <p className="mt-8 text-center text-[11px] text-[#C4C9D4]">
-            D-pot — Gestion planning &amp; équipe
+            Nexus — Gestion planning &amp; équipe
           </p>
         </div>
       </div>

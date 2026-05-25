@@ -42,7 +42,7 @@ function buildHtml(firstName: string, weekLabel: string, shifts: Shift[]): strin
         <!-- Header -->
         <tr>
           <td style="background:#111827;padding:28px 32px;">
-            <p style="margin:0 0 4px;color:#9ca3af;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">D-pot Planning</p>
+            <p style="margin:0 0 4px;color:#9ca3af;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Nexus Planning</p>
             <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Planning publié</h1>
             <p style="margin:8px 0 0;color:#d1d5db;font-size:15px;">${weekLabel}</p>
           </td>
@@ -107,7 +107,7 @@ export async function sendPlanningPublishedEmails({
   }
 
   const resend = new Resend(apiKey)
-  const from = process.env.RESEND_FROM_EMAIL ?? 'D-pot Planning <onboarding@resend.dev>'
+  const from = process.env.RESEND_FROM_EMAIL ?? 'Nexus Planning <onboarding@resend.dev>'
 
   // Regrouper les créneaux par employé
   const shiftsByEmployee = new Map<string, Shift[]>()

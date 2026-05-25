@@ -14,11 +14,11 @@ function buildSlackMessage(event: WebhookEvent, payload: WebhookPayload): object
     'leave.requested':    `📋 *Nouvelle demande de congé* — ${payload.employeeName}\n${payload.leaveType} · ${payload.startDate} → ${payload.endDate}`,
   }
   return {
-    text: templates[event] ?? `D-pot — ${event}`,
+    text: templates[event] ?? `Nexus — ${event}`,
     blocks: [
       {
         type: 'section',
-        text: { type: 'mrkdwn', text: templates[event] ?? `D-pot — ${event}` },
+        text: { type: 'mrkdwn', text: templates[event] ?? `Nexus — ${event}` },
       },
     ],
   }
@@ -43,7 +43,7 @@ export async function fireWebhook(
     promises.push(
       fetch(webhookUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Dpot-Event': event },
+        headers: { 'Content-Type': 'application/json', 'X-Nexus-Event': event },
         body: JSON.stringify(body),
       }).catch(() => {}),
     )
@@ -65,12 +65,12 @@ export async function fireWebhook(
 export async function testWebhook(url: string, type: 'generic' | 'slack'): Promise<{ ok: boolean; status?: number }> {
   try {
     const body = type === 'slack'
-      ? { text: '✅ *Test D-pot* — connexion Slack opérationnelle', blocks: [{ type: 'section', text: { type: 'mrkdwn', text: '✅ *Test D-pot* — connexion Slack opérationnelle' } }] }
-      : { event: 'test', timestamp: new Date().toISOString(), message: 'Connexion webhook D-pot opérationnelle' }
+      ? { text: '✅ *Test Nexus* — connexion Slack opérationnelle', blocks: [{ type: 'section', text: { type: 'mrkdwn', text: '✅ *Test Nexus* — connexion Slack opérationnelle' } }] }
+      : { event: 'test', timestamp: new Date().toISOString(), message: 'Connexion webhook Nexus opérationnelle' }
 
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Dpot-Event': 'test' },
+      headers: { 'Content-Type': 'application/json', 'X-Nexus-Event': 'test' },
       body: JSON.stringify(body),
     })
     return { ok: res.ok, status: res.status }

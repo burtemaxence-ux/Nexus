@@ -35,7 +35,7 @@ export function AiAssistant({ establishmentName, userName }: Props) {
     if (open && messages.length === 0) {
       setMessages([{
         role: 'assistant',
-        content: `Bonjour ${userName.split(' ')[0]} 👋 Je suis votre assistant D-pot pour **${establishmentName}**.\n\nJe peux vous aider avec le planning, les employés, les rapports, les congés et plus encore. Que puis-je faire pour vous ?`,
+        content: `Bonjour ${userName.split(' ')[0]} 👋 Je suis votre assistant Nexus pour **${establishmentName}**.\n\nJe peux vous aider avec le planning, les employés, les rapports, les congés et plus encore. Que puis-je faire pour vous ?`,
       }])
     }
   }, [open, messages.length, userName, establishmentName])
@@ -163,7 +163,7 @@ export function AiAssistant({ establishmentName, userName }: Props) {
               <Bot className="h-4 w-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-white">Assistant D-pot</p>
+              <p className="text-sm font-semibold text-white">Assistant Nexus</p>
               <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.7)' }}>Propulsé par Claude</p>
             </div>
           </div>

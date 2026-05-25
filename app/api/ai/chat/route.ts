@@ -44,7 +44,7 @@ export async function POST(req: Request) {
 
   const settingsMap = Object.fromEntries((settings ?? []).map(s => [s.key, s.value]))
 
-  const systemPrompt = `Tu es l'assistant IA intégré à D-pot, un logiciel de planning pour la restauration.
+  const systemPrompt = `Tu es l'assistant IA intégré à Nexus, un logiciel de planning pour la restauration.
 Tu aides le manager de l'établissement **${establishmentName}** à gérer son planning, ses employés et son activité.
 
 ## Données actuelles de l'établissement

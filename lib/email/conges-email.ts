@@ -46,7 +46,7 @@ function buildHtml({
 
         <tr>
           <td style="background:#111827;padding:28px 32px;">
-            <p style="margin:0 0 4px;color:#9ca3af;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">D-pot</p>
+            <p style="margin:0 0 4px;color:#9ca3af;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Nexus</p>
             <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">${statusLabel}</h1>
           </td>
         </tr>
@@ -127,7 +127,7 @@ export async function sendLeaveDecisionEmail({
   }
 
   const resend = new Resend(apiKey)
-  const from = process.env.RESEND_FROM_EMAIL ?? 'D-pot <onboarding@resend.dev>'
+  const from = process.env.RESEND_FROM_EMAIL ?? 'Nexus <onboarding@resend.dev>'
   const subject = status === 'approved'
     ? `✅ Votre congé a été validé — ${LEAVE_LABELS[type]}`
     : `❌ Votre congé a été refusé — ${LEAVE_LABELS[type]}`

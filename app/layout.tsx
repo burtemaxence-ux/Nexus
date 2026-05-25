@@ -6,7 +6,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'D-pot - Gestion de planning',
+  title: 'Nexus - Gestion de planning',
   description: 'Application de gestion de planning pour la restauration',
 }
 

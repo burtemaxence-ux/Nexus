@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
   ])
 
   const employeeName = profileData?.full_name ?? profileData?.email ?? 'Employé'
-  const orgName = orgData?.value ?? 'D-pot'
+  const orgName = orgData?.value ?? 'Nexus'
   const shifts = (shiftsData ?? []) as Shift[]
 
   const ics = generateICS(shifts, employeeName, orgName)
@@ -32,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
   return new NextResponse(ics, {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': `attachment; filename="planning-dpot.ics"`,
+      'Content-Disposition': `attachment; filename="planning-nexus.ics"`,
       'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
   })
