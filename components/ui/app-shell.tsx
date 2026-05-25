@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 import { Topbar } from './topbar'
 import { AiAssistant } from './ai-assistant'
 import { BreadcrumbNav } from './breadcrumb-nav'
@@ -49,6 +50,21 @@ export function AppShell({
       {(role === 'manager' || role === 'supervisor') && (
         <AiAssistant establishmentName={establishmentName} userName={userName} />
       )}
+
+      {/* Legal footer */}
+      <footer className="px-6 py-4 flex items-center justify-center gap-4 flex-wrap" style={{ borderTop: '0.5px solid var(--border)' }}>
+        {[
+          { href: '/legal/mentions-legales', label: 'Mentions légales' },
+          { href: '/legal/confidentialite',  label: 'Confidentialité' },
+          { href: '/legal/cgu',              label: 'CGU' },
+          { href: '/legal/cookies',          label: 'Cookies' },
+        ].map(l => (
+          <Link key={l.href} href={l.href} className="text-[11px] transition-colors duration-150" style={{ color: 'var(--text-tertiary)' }}>
+            {l.label}
+          </Link>
+        ))}
+        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>© {new Date().getFullYear()} Quartz</span>
+      </footer>
     </div>
   )
 }
