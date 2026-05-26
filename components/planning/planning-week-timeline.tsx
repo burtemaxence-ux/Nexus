@@ -13,6 +13,7 @@ import {
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
+import { AiPlanModal } from '@/components/planning/ai-plan-modal'
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent,
   PointerSensor, useSensor, useSensors, useDraggable, useDroppable,
@@ -534,6 +535,7 @@ export function PlanningWeekTimeline({
   const [emailFeedback, setEmailFeedback] = useState<string | null>(null)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [filterPoste, setFilterPoste] = useState('')
+  const [showAiPlanModal, setShowAiPlanModal] = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -740,15 +742,8 @@ export function PlanningWeekTimeline({
             <button
               className="btn-secondary"
               style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', borderColor: 'var(--accent)', color: 'var(--accent)' }}
-              onClick={() => {
-                const weekLabel = weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) + ' au ' + weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
-                window.dispatchEvent(new CustomEvent('ai:open', {
-                  detail: {
-                    message: `Analyse le planning de la semaine du ${weekLabel} et suggère des optimisations. Prends en compte les employés disponibles, les congés en attente et les règles légales de la convention collective.`,
-                  },
-                }))
-              }}
-              title="Analyser et optimiser le planning avec l'IA"
+              onClick={() => setShowAiPlanModal(true)}
+              title="Générer le planning automatiquement avec l'IA"
             >
               <Sparkles size={13} />
               Générer
@@ -1101,6 +1096,18 @@ export function PlanningWeekTimeline({
         weekDates={weekDates}
         shifts={shifts}
       />
+
+      {/* ── AI Plan modal ──────────────────────────────────────────────────── */}
+      {showAiPlanModal && (
+        <AiPlanModal
+          weekMonday={mondayStr}
+          weekLabel={weekLabel}
+          employees={employees}
+          postes={postes}
+          onSuccess={() => router.refresh()}
+          onClose={() => setShowAiPlanModal(false)}
+        />
+      )}
 
       {/* ── Drag overlay ───────────────────────────────────────────────────── */}
       <DragOverlay>
