@@ -52,7 +52,22 @@ export function AppShell({
         </main>
       </div>
       {(role === 'manager' || role === 'supervisor') && (
-        <AiAssistant establishmentName={establishmentName} userName={userName} />
+        <AiAssistant
+          establishmentName={establishmentName}
+          userName={userName}
+          chatEndpoint="/api/ai/chat"
+          contextEndpoint="/api/ai/context"
+          mode="manager"
+        />
+      )}
+      {role === 'employee' && (
+        <AiAssistant
+          establishmentName={establishmentName}
+          userName={userName}
+          chatEndpoint="/api/ai/employee-chat"
+          contextEndpoint="/api/ai/employee-context"
+          mode="employee"
+        />
       )}
       <OnboardingWizard role={role} />
 

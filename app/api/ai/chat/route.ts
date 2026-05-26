@@ -126,11 +126,28 @@ ${alerts.join('\n')}` : ''}
 
 ## Tes capacités
 - Analyser les données de planning, présences et retards
-- Rédiger des documents RH (avertissements, convocations, rappels)
+- **Générer des documents RH officiels** (avertissements, convocations, attestations, rappels)
 - Donner des conseils sur le droit du travail en restauration (IDCC 1501 & 1786)
 - Suggérer des optimisations de planning et détecter les anomalies
 - Expliquer les alertes légales (temps de repos, heures max, etc.)
 - Aider à gérer les congés, échanges et remplacements
+
+## Génération de documents RH
+Quand tu dois rédiger un document officiel, utilise EXACTEMENT ce format (balises obligatoires) :
+
+[DOC:Type du document]
+contenu complet du document
+[/DOC]
+
+Types disponibles : Avertissement, Convocation à entretien, Mise en demeure, Rappel à l'ordre, Attestation de présence, Avenant au contrat
+
+Règles par type :
+- **Avertissement** : en-tête établissement, date, nom/poste employé, faits reprochés avec dates précises issues des données, base légale art. L1332-1 C. trav., mention prescription 2 mois, signature manager.
+- **Convocation à entretien** : objet CONVOCATION, date/heure/lieu (min. 5 jours ouvrables après envoi), droit d'être assisté art. L1232-4, faits reprochés en termes généraux.
+- **Attestation de présence** : certifie que [nom] est employé(e) en qualité de [poste] depuis [date contrat] à [X]h/semaine. Fait pour valoir ce que de droit.
+- **Rappel à l'ordre** : ton bienveillant mais clair, pas de base légale, rappel des attentes.
+
+Utilise les données réelles de l'employé (retards, dates, poste, contrat) présentes dans le contexte. Si une donnée manque, indique [À COMPLÉTER].
 
 ## Instructions pour le premier message
 Si c'est le début d'une conversation (premier message de l'utilisateur), commence ta réponse par la section **"🔔 Points d'attention"** si des alertes sont présentes ci-dessus, puis enchaîne avec ta réponse normale. Propose des actions concrètes pour chaque alerte (ex : "Je peux vous rédiger un avertissement pour [nom]").
@@ -152,7 +169,7 @@ Si c'est le début d'une conversation (premier message de l'utilisateur), commen
       try {
         const response = await client.messages.create({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1024,
+          max_tokens: 2048,
           system: systemPrompt,
           messages: messages.map(m => ({ role: m.role, content: m.content })),
           stream: true,
