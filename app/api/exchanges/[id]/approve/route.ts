@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendPushToUser } from '@/lib/push'
+import { fireWebhook } from '@/lib/integrations/webhook'
 
 // POST — manager approves the exchange (transfers the shift)
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -8,7 +9,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  const { data: profile } = await supabase.from('profiles').select('role, establishment_id, active_establishment_id').eq('id', user.id).single()
   if (!['manager', 'supervisor'].includes(profile?.role ?? '')) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
@@ -60,6 +61,27 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     body:  `Le shift du ${dateFmt} vous a été attribué.`,
     url:   '/employee/planning',
   }).catch(() => {})
+
+  // Fire exchange.approved webhook (non-blocking)
+  const establishmentId = profile?.active_establishment_id ?? profile?.establishment_id
+  if (establishmentId) {
+    const shiftRow = Array.isArray(exchange.shift) ? exchange.shift[0] : exchange.shift as { date: string; start_time: string; end_time: string } | null
+    supabase.from('settings').select('key, value').then(({ data: settings }) => {
+      const settingsMap = Object.fromEntries((settings ?? []).map((s: { key: string; value: string }) => [s.key, s.value]))
+      Promise.all([
+        supabase.from('profiles').select('full_name').eq('id', exchange.proposer_id).single(),
+        supabase.from('profiles').select('full_name').eq('id', exchange.acceptor_id!).single(),
+      ]).then(([{ data: proposer }, { data: acceptor }]) => {
+        void fireWebhook(settingsMap, 'exchange.approved', {
+          proposerName: proposer?.full_name ?? exchange.proposer_id,
+          acceptorName: acceptor?.full_name ?? exchange.acceptor_id,
+          date: shiftRow?.date ?? '',
+          startTime: shiftRow?.start_time ?? '',
+          endTime: shiftRow?.end_time ?? '',
+        }, { establishmentId })
+      })
+    })
+  }
 
   return NextResponse.json(data)
 }

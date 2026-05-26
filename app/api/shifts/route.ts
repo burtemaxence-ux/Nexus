@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { ShiftSchema, validationError } from '@/lib/validations'
+import { fireWebhook } from '@/lib/integrations/webhook'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Verify the user is a manager
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, establishment_id, active_establishment_id')
       .eq('id', user.id)
       .single()
 
@@ -83,6 +84,24 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('[shifts POST] error:', error)
       return NextResponse.json({ error: 'Erreur lors de la création du shift' }, { status: 500 })
+    }
+
+    // Fire webhook (non-blocking)
+    const establishmentId = profile.active_establishment_id ?? profile.establishment_id
+    if (establishmentId) {
+      supabase.from('settings').select('key, value').then(({ data: settings }) => {
+        const settingsMap = Object.fromEntries((settings ?? []).map(s => [s.key, s.value]))
+        const empName = supabase.from('profiles').select('full_name').eq('id', employee_id).single()
+          .then(({ data: emp }) => {
+            void fireWebhook(settingsMap, 'shift.created', {
+              employeeName: emp?.full_name ?? employee_id,
+              date,
+              startTime: start_time,
+              endTime: end_time,
+            }, { establishmentId })
+          })
+        void empName
+      })
     }
 
     return NextResponse.json({ shift: data }, { status: 201 })
