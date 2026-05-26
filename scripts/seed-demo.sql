@@ -145,6 +145,8 @@ BEGIN
     WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr'));
   DELETE FROM public.profiles
     WHERE id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr');
+  DELETE FROM public.audit_log
+    WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr'));
   DELETE FROM public.establishments
     WHERE owner_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr');
   DELETE FROM auth.identities
