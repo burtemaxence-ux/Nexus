@@ -126,7 +126,8 @@ BEGIN
   DELETE FROM auth.users WHERE email LIKE '%@nexus-demo.fr';
 
   -- ── 1. Manager (le trigger crée l'établissement automatiquement) ──────────
-  v_pwd := crypt('Demo2024!', gen_salt('bf', 10));
+  -- Hash bcrypt $2b$ généré côté Node.js — compatible GoTrue/Supabase Auth
+  v_pwd := '$2b$10$DRYzhLWjG85vcB8scfXZNOYkYgbfboz57JtzTNMgi1bZzMHP46Hxu';
 
   INSERT INTO auth.users (
     id, aud, role, email, encrypted_password,
@@ -143,7 +144,7 @@ BEGIN
   INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, created_at, updated_at)
   VALUES (
     gen_random_uuid(), v_mgr_id, 'manager@nexus-demo.fr',
-    jsonb_build_object('sub', v_mgr_id::text, 'email', 'manager@nexus-demo.fr'),
+    jsonb_build_object('sub', v_mgr_id::text, 'email', 'manager@nexus-demo.fr', 'email_verified', true, 'phone_verified', false),
     'email', now(), now()
   );
 
@@ -175,12 +176,12 @@ BEGIN
 
   INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, created_at, updated_at)
   VALUES
-    (gen_random_uuid(), v_marie_id,  'marie.dupont@nexus-demo.fr',   jsonb_build_object('sub',v_marie_id::text,  'email','marie.dupont@nexus-demo.fr'),   'email', now(), now()),
-    (gen_random_uuid(), v_thomas_id, 'thomas.martin@nexus-demo.fr',  jsonb_build_object('sub',v_thomas_id::text, 'email','thomas.martin@nexus-demo.fr'),  'email', now(), now()),
-    (gen_random_uuid(), v_sophie_id, 'sophie.bernard@nexus-demo.fr', jsonb_build_object('sub',v_sophie_id::text, 'email','sophie.bernard@nexus-demo.fr'), 'email', now(), now()),
-    (gen_random_uuid(), v_lucas_id,  'lucas.petit@nexus-demo.fr',    jsonb_build_object('sub',v_lucas_id::text,  'email','lucas.petit@nexus-demo.fr'),    'email', now(), now()),
-    (gen_random_uuid(), v_emma_id,   'emma.rousseau@nexus-demo.fr',  jsonb_build_object('sub',v_emma_id::text,   'email','emma.rousseau@nexus-demo.fr'),  'email', now(), now()),
-    (gen_random_uuid(), v_ant_id,    'antoine.moreau@nexus-demo.fr', jsonb_build_object('sub',v_ant_id::text,    'email','antoine.moreau@nexus-demo.fr'), 'email', now(), now());
+    (gen_random_uuid(), v_marie_id,  'marie.dupont@nexus-demo.fr',   jsonb_build_object('sub',v_marie_id::text,  'email','marie.dupont@nexus-demo.fr',   'email_verified',true,'phone_verified',false), 'email', now(), now()),
+    (gen_random_uuid(), v_thomas_id, 'thomas.martin@nexus-demo.fr',  jsonb_build_object('sub',v_thomas_id::text, 'email','thomas.martin@nexus-demo.fr',  'email_verified',true,'phone_verified',false), 'email', now(), now()),
+    (gen_random_uuid(), v_sophie_id, 'sophie.bernard@nexus-demo.fr', jsonb_build_object('sub',v_sophie_id::text, 'email','sophie.bernard@nexus-demo.fr', 'email_verified',true,'phone_verified',false), 'email', now(), now()),
+    (gen_random_uuid(), v_lucas_id,  'lucas.petit@nexus-demo.fr',    jsonb_build_object('sub',v_lucas_id::text,  'email','lucas.petit@nexus-demo.fr',    'email_verified',true,'phone_verified',false), 'email', now(), now()),
+    (gen_random_uuid(), v_emma_id,   'emma.rousseau@nexus-demo.fr',  jsonb_build_object('sub',v_emma_id::text,   'email','emma.rousseau@nexus-demo.fr',  'email_verified',true,'phone_verified',false), 'email', now(), now()),
+    (gen_random_uuid(), v_ant_id,    'antoine.moreau@nexus-demo.fr', jsonb_build_object('sub',v_ant_id::text,    'email','antoine.moreau@nexus-demo.fr', 'email_verified',true,'phone_verified',false), 'email', now(), now());
 
   -- Mettre à jour les profils employés (le trigger les a créés, on complète)
   UPDATE public.profiles SET full_name='Marie Dupont',   first_name='Marie',   last_name='Dupont',   phone='06 23 45 67 89', position='Serveur/Serveuse', contract_type='CDI 35h', weekly_hours=35, establishment_id=v_est_id WHERE id=v_marie_id;
