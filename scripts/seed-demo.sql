@@ -50,7 +50,7 @@ DECLARE
   r RECORD;
 BEGIN
 
-  -- ── 0. Colonnes optionnelles (migrations 010 / 012 / …) ──────────────────
+  -- ── 0. Colonnes optionnelles (migrations non encore appliquées) ──────────
   ALTER TABLE public.profiles
     ADD COLUMN IF NOT EXISTS phone         TEXT,
     ADD COLUMN IF NOT EXISTS pay_ref       TEXT,
@@ -61,6 +61,21 @@ BEGIN
     ADD COLUMN IF NOT EXISTS last_name     TEXT,
     ADD COLUMN IF NOT EXISTS contract_type TEXT,
     ADD COLUMN IF NOT EXISTS weekly_hours  NUMERIC;
+
+  ALTER TABLE public.postes
+    ADD COLUMN IF NOT EXISTS hourly_cost        NUMERIC,
+    ADD COLUMN IF NOT EXISTS max_hours_per_day  NUMERIC,
+    ADD COLUMN IF NOT EXISTS max_hours_per_week NUMERIC;
+
+  ALTER TABLE public.contracts
+    ADD COLUMN IF NOT EXISTS job_title           TEXT,
+    ADD COLUMN IF NOT EXISTS work_location       TEXT,
+    ADD COLUMN IF NOT EXISTS cdd_reason          TEXT,
+    ADD COLUMN IF NOT EXISTS trial_period_days   INTEGER,
+    ADD COLUMN IF NOT EXISTS notice_period_days  INTEGER,
+    ADD COLUMN IF NOT EXISTS paid_leave_days     INTEGER DEFAULT 25,
+    ADD COLUMN IF NOT EXISTS has_confidentiality BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS has_non_compete     BOOLEAN NOT NULL DEFAULT FALSE;
 
   -- ── 1. Nettoyage ──────────────────────────────────────────────────────────
   DELETE FROM auth.identities WHERE user_id IN (
