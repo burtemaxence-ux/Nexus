@@ -1,12 +1,12 @@
-# Configuration Supabase pour D-pot
+# Configuration Supabase pour Nexus
 
-Ce guide vous explique comment configurer votre projet Supabase pour l'application D-pot.
+Ce guide vous explique comment configurer votre projet Supabase pour l'application Nexus.
 
 ## 1. Créer un compte et un projet Supabase
 
 1. Rendez-vous sur [supabase.com](https://supabase.com) et créez un compte
 2. Cliquez sur **"New project"**
-3. Choisissez votre organisation, donnez un nom à votre projet (ex: `d-pot`) et choisissez un mot de passe pour la base de données
+3. Choisissez votre organisation, donnez un nom à votre projet (ex: `nexus`) et choisissez un mot de passe pour la base de données
 4. Sélectionnez la région la plus proche (ex: `West EU (Paris)`)
 5. Attendez que le projet soit créé (environ 1-2 minutes)
 

@@ -42,7 +42,7 @@ function buildHtml(firstName: string, weekLabel: string, shifts: Shift[]): strin
         <!-- Header -->
         <tr>
           <td style="background:#111827;padding:28px 32px;">
-            <p style="margin:0 0 4px;color:#9ca3af;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Nexus Planning</p>
+            <p style="margin:0 0 4px;color:#9ca3af;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Nexus by Quartz</p>
             <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Planning publié</h1>
             <p style="margin:8px 0 0;color:#d1d5db;font-size:15px;">${weekLabel}</p>
           </td>
@@ -79,7 +79,8 @@ function buildHtml(firstName: string, weekLabel: string, shifts: Shift[]): strin
           <td style="padding:0 32px 28px;border-top:1px solid #f3f4f6;">
             <p style="margin:20px 0 0;color:#9ca3af;font-size:12px;line-height:1.5;">
               Pour toute question, contactez votre responsable directement.<br>
-              Cet email a été envoyé automatiquement — merci de ne pas y répondre.
+              Cet email a été envoyé automatiquement — merci de ne pas y répondre.<br>
+              <span style="color:#d1d5db;">Nexus by Quartz</span>
             </p>
           </td>
         </tr>
@@ -107,9 +108,8 @@ export async function sendPlanningPublishedEmails({
   }
 
   const resend = new Resend(apiKey)
-  const from = process.env.RESEND_FROM_EMAIL ?? 'Nexus Planning <onboarding@resend.dev>'
+  const from = process.env.RESEND_FROM_EMAIL ?? 'Nexus by Quartz <onboarding@resend.dev>'
 
-  // Regrouper les créneaux par employé
   const shiftsByEmployee = new Map<string, Shift[]>()
   for (const shift of shifts) {
     const existing = shiftsByEmployee.get(shift.employee_id) ?? []
