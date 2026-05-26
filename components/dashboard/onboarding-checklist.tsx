@@ -59,7 +59,7 @@ export function OnboardingChecklist({ steps }: OnboardingChecklistProps) {
           </div>
           <div>
             <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-              Commencer avec D-pot
+              Commencer avec Nexus
             </p>
             <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
               {doneCount} sur {steps.length} étapes complétées

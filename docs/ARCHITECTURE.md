@@ -1,4 +1,4 @@
-# Architecture Technique — D-pot / Nexus
+# Architecture Technique — Nexus by Quartz
 
 > Application SaaS de gestion de planning pour la restauration. Nom de code interne : **Nexus**.
 
@@ -33,7 +33,7 @@
 ## 2. Structure du projet
 
 ```
-D-pot/
+Nexus/
 ├── app/                        # Next.js App Router
 │   ├── (auth)/                 # Route group : pages publiques (login)
 │   │   └── login/page.tsx
