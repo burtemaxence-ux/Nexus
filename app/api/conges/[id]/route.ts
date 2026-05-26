@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendLeaveDecisionEmail } from '@/lib/email/conges-email'
 import { fireWebhook } from '@/lib/integrations/webhook'
+import { sendPushToUser } from '@/lib/push'
+import { sendSms } from '@/lib/sms'
 import type { LeaveType } from '@/types'
 
 // PATCH — manager approuve / refuse  OU  employé annule
@@ -25,7 +27,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       .eq('id', params.id)
       .select(`
         *,
-        profiles:employee_id ( id, full_name, email )
+        profiles:employee_id ( id, full_name, email, phone )
       `)
       .single()
 
@@ -43,7 +45,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     // Notification email à l'employé (silencieuse si domaine non configuré)
-    const emp = data.profiles as { id: string; full_name: string | null; email: string } | null
+    const emp = data.profiles as { id: string; full_name: string | null; email: string; phone?: string | null } | null
     if (emp?.email) {
       const firstName = emp.full_name?.split(' ')[0] ?? emp.email.split('@')[0]
       sendLeaveDecisionEmail({
@@ -55,6 +57,22 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         endDate: data.end_date,
         managerComment: manager_comment || null,
       }).catch(() => {})
+    }
+
+    // Push notification to the employee
+    const dateFmt = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+    sendPushToUser(supabase, data.employee_id, {
+      title: status === 'approved' ? 'Congé approuvé ✅' : 'Congé refusé',
+      body:  `Demande du ${dateFmt(data.start_date)} au ${dateFmt(data.end_date)} ${status === 'approved' ? 'approuvée' : 'refusée'}`,
+      url:   '/employee/conges',
+    }).catch(() => {})
+
+    // SMS if phone number available
+    if (emp?.phone) {
+      const smsBody = status === 'approved'
+        ? `Nexus : votre congé du ${dateFmt(data.start_date)} au ${dateFmt(data.end_date)} a été approuvé.`
+        : `Nexus : votre demande de congé du ${dateFmt(data.start_date)} au ${dateFmt(data.end_date)} a été refusée.`
+      sendSms(emp.phone, smsBody).catch(() => {})
     }
 
     // Webhook notification

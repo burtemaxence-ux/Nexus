@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { fireWebhook } from '@/lib/integrations/webhook'
 import { getWeekLabel, getWeekDates } from '@/lib/utils/dates'
 import { sendPlanningPublishedEmails } from '@/lib/email/planning-email'
+import { sendPushToMany } from '@/lib/push'
+import { sendSms } from '@/lib/sms'
 import type { Profile, Shift } from '@/types'
 
 async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -161,6 +163,30 @@ export async function POST(request: NextRequest) {
         shifts: (weekShifts ?? []) as unknown as Shift[],
         weekLabel,
       }).catch(() => {})
+
+      // Push notifications to employees with shifts this week
+      const employeeIds = Array.from(new Set((weekShifts ?? []).map((s: { employee_id: string }) => s.employee_id)))
+      sendPushToMany(supabase, employeeIds, {
+        title: 'Planning publié',
+        body:  `Votre planning de la semaine du ${weekLabel} est disponible`,
+        url:   '/employee/planning',
+      }).catch(() => {})
+
+      // SMS to employees who have a phone number
+      if (employeeIds.length) {
+        void supabase
+          .from('profiles')
+          .select('phone')
+          .in('id', employeeIds)
+          .not('phone', 'is', null)
+          .then(({ data: phonesData }) => {
+            for (const row of phonesData ?? []) {
+              if (row.phone) {
+                sendSms(row.phone, `Nexus : votre planning de la semaine du ${weekLabel} est disponible. Ouvrez l'app pour consulter vos horaires.`).catch(() => {})
+              }
+            }
+          })
+      }
     }
 
     return NextResponse.json(data)

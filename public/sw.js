@@ -1,4 +1,4 @@
-/* Nexus PWA — Service Worker */
+/* Nexus PWA — Service Worker (cache + push notifications) */
 const CACHE = 'nexus-v1'
 const OFFLINE = '/offline'
 
@@ -60,4 +60,32 @@ self.addEventListener('fetch', e => {
         )
     )
   }
+})
+
+// ── Push notifications ────────────────────────────────────────────────────────
+
+self.addEventListener('push', e => {
+  let data = {}
+  try { data = e.data?.json() ?? {} } catch {}
+  const title = data.title ?? 'Nexus'
+  const options = {
+    body:    data.body  ?? '',
+    icon:    data.icon  ?? '/api/pwa/icon?size=192',
+    badge:   data.badge ?? '/api/pwa/icon?size=96',
+    data:    { url: (data.data && data.data.url) ? data.data.url : '/employee' },
+    vibrate: [100, 50, 100],
+  }
+  e.waitUntil(self.registration.showNotification(title, options))
+})
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close()
+  const url = (e.notification.data && e.notification.data.url) ? e.notification.data.url : '/employee'
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cls => {
+      const match = cls.find(c => c.url.includes(url))
+      if (match) return match.focus()
+      return self.clients.openWindow(url)
+    })
+  )
 })
