@@ -26,10 +26,11 @@ interface NavItem {
 
 function buildManagerNav(pendingLeavesCount: number, alertsCount: number): NavItem[] {
   return [
-    { label: 'Planning',   href: '/manager/planning' },
-    { label: 'Employés',   href: '/manager/employees' },
-    { label: 'Rapport',    href: '/manager/rapport' },
-    { label: 'Congés',     href: '/manager/conges',  badge: pendingLeavesCount },
+    { label: 'Planning',     href: '/manager/planning' },
+    { label: 'Employés',     href: '/manager/employees' },
+    { label: 'Rapport',      href: '/manager/rapport' },
+    { label: 'Analytiques',  href: '/manager/analytics' },
+    { label: 'Congés',       href: '/manager/conges',  badge: pendingLeavesCount },
     { label: 'Échanges',   href: '/manager/echanges' },
     { label: 'Alertes',    href: '/manager/alertes', badge: alertsCount },
     { label: 'Présences',  href: '/manager/presences' },
