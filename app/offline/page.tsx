@@ -1,3 +1,5 @@
+'use client'
+
 export default function OfflinePage() {
   return (
     <html lang="fr">
@@ -72,7 +74,6 @@ export default function OfflinePage() {
             Réessayer
           </button>
         </div>
-        <script dangerouslySetInnerHTML={{ __html: `document.querySelector('button').addEventListener('click',()=>location.reload())` }} />
       </body>
     </html>
   )
