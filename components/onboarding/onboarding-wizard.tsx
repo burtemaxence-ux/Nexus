@@ -316,7 +316,7 @@ export function OnboardingWizard({ role }: OnboardingWizardProps) {
                 onClick={handleHelp}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               >
-                <BookOpen className="h-4 w-4" /> Centre d'aide
+                <BookOpen className="h-4 w-4" /> Centre d&apos;aide
               </button>
               <button
                 onClick={finish}

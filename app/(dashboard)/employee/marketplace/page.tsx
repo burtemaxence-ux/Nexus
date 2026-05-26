@@ -260,7 +260,7 @@ export default function EmployeeMarketplacePage() {
               <CheckCircle2 className="h-8 w-8 text-[var(--text-tertiary)] mx-auto mb-3" />
               <p className="text-[14px] font-medium text-[var(--text-primary)]">Aucun shift disponible</p>
               <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-                Vous serez notifié dès qu'un shift est ouvert.
+                Vous serez notifié dès qu&apos;un shift est ouvert.
               </p>
             </div>
           ) : (
@@ -271,7 +271,7 @@ export default function EmployeeMarketplacePage() {
         {!loading && tab === 'mine' && (
           myApps.length === 0 ? (
             <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl px-6 py-12 text-center">
-              <p className="text-[13px] text-[var(--text-secondary)]">Vous n'avez pas encore postulé.</p>
+              <p className="text-[13px] text-[var(--text-secondary)]">Vous n&apos;avez pas encore postulé.</p>
             </div>
           ) : (
             myApps.map(slot => <SlotCard key={slot.id} slot={slot} onRefresh={fetchSlots} />)

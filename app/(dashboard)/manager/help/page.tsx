@@ -571,7 +571,7 @@ export default function HelpPage() {
           </div>
           <div>
             <h1 className="text-[22px] font-semibold text-[var(--text-primary)] tracking-[-0.02em]">
-              Centre d'aide
+              Centre d&apos;aide
             </h1>
             <p className="text-[13px] text-[var(--text-secondary)]">
               Guides et tutoriels pour maîtriser Nexus.
@@ -635,9 +635,9 @@ export default function HelpPage() {
       <div className="mt-8 px-5 py-4 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl flex items-center gap-3">
         <ShieldCheck className="h-5 w-5 text-[var(--accent)] flex-shrink-0" />
         <div>
-          <p className="text-[13px] font-medium text-[var(--text-primary)]">Besoin d'aide supplémentaire ?</p>
+          <p className="text-[13px] font-medium text-[var(--text-primary)]">Besoin d&apos;aide supplémentaire ?</p>
           <p className="text-[12px] text-[var(--text-secondary)]">
-            Utilisez l'assistant IA (bulle en bas à droite) ou contactez le support depuis{' '}
+            Utilisez l&apos;assistant IA (bulle en bas à droite) ou contactez le support depuis{' '}
             <Link href="/manager/settings" className="text-[var(--accent)] underline underline-offset-2">
               Paramètres
             </Link>.
