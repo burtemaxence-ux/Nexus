@@ -8,7 +8,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Calendar, Users, BarChart3, Clock, LineChart, Scale,
+  Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap,
   Palmtree, AlertTriangle, Upload, FileText,
   Settings, ChevronLeft, ChevronRight, LogOut,
   UtensilsCrossed, ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight,
@@ -65,6 +65,11 @@ function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
           href: '/manager/echanges',
         },
         {
+          label: 'Marketplace',
+          icon: Zap,
+          href: '/manager/marketplace',
+        },
+        {
           label: 'Alertes',
           icon: AlertTriangle,
           href: '/manager/alertes',
@@ -94,9 +99,10 @@ const employeeNav: NavGroup[] = [
   {
     group: 'Navigation',
     items: [
-      { label: 'Mon planning', icon: Calendar,  href: '/employee/planning' },
-      { label: 'Mes congés',   icon: Palmtree,  href: '/employee/conges' },
-      { label: 'Badgeuse',     icon: Clock,     href: '/employee/badgeuse' },
+      { label: 'Mon planning', icon: Calendar,      href: '/employee/planning' },
+      { label: 'Mes congés',   icon: Palmtree,      href: '/employee/conges' },
+      { label: 'Badgeuse',     icon: Clock,         href: '/employee/badgeuse' },
+      { label: 'Marketplace',  icon: Zap,           href: '/employee/marketplace' },
     ],
   },
 ]

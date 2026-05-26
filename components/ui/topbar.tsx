@@ -32,7 +32,8 @@ function buildManagerNav(pendingLeavesCount: number, alertsCount: number): NavIt
     { label: 'Analytiques',  href: '/manager/analytics' },
     { label: 'Conformité',   href: '/manager/compliance' },
     { label: 'Congés',       href: '/manager/conges',  badge: pendingLeavesCount },
-    { label: 'Échanges',   href: '/manager/echanges' },
+    { label: 'Échanges',    href: '/manager/echanges' },
+    { label: 'Marketplace', href: '/manager/marketplace' },
     { label: 'Alertes',    href: '/manager/alertes', badge: alertsCount },
     { label: 'Présences',  href: '/manager/presences' },
     { label: 'Paramètres', href: '/manager/settings' },
@@ -44,6 +45,7 @@ const employeeNav: NavItem[] = [
   { label: 'Mes congés',   href: '/employee/conges' },
   { label: 'Badgeuse',     href: '/employee/badgeuse' },
   { label: 'Échanges',     href: '/employee/echanges' },
+  { label: 'Marketplace',  href: '/employee/marketplace' },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
