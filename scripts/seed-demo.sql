@@ -50,7 +50,19 @@ DECLARE
   r RECORD;
 BEGIN
 
-  -- ── 0. Nettoyage ──────────────────────────────────────────────────────────
+  -- ── 0. Colonnes optionnelles (migrations 010 / 012 / …) ──────────────────
+  ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS phone         TEXT,
+    ADD COLUMN IF NOT EXISTS pay_ref       TEXT,
+    ADD COLUMN IF NOT EXISTS pin           VARCHAR(4),
+    ADD COLUMN IF NOT EXISTS disability    BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS archived      BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS first_name    TEXT,
+    ADD COLUMN IF NOT EXISTS last_name     TEXT,
+    ADD COLUMN IF NOT EXISTS contract_type TEXT,
+    ADD COLUMN IF NOT EXISTS weekly_hours  NUMERIC;
+
+  -- ── 1. Nettoyage ──────────────────────────────────────────────────────────
   DELETE FROM auth.identities WHERE user_id IN (
     SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr'
   );
