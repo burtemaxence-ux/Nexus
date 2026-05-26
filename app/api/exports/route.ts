@@ -192,5 +192,95 @@ export async function GET(request: NextRequest) {
     return csvResponse(toCsv(headers, rows), `absences_${slug}.csv`)
   }
 
+  // ── variables de paie ────────────────────────────────────────────────────────
+  if (type === 'paie') {
+    const format = searchParams.get('format') ?? 'generique'
+
+    const [empRes, shiftRes, leaveRes] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, weekly_hours').eq('role', 'employee').eq('archived', false).order('full_name'),
+      supabase.from('shifts').select('employee_id, date, start_time, end_time, break_minutes').gte('date', from).lte('date', to).is('deleted_at', null),
+      supabase.from('leave_requests').select('employee_id, type, start_date, end_date').eq('status', 'approved').lte('start_date', to).gte('end_date', from),
+    ])
+
+    const employees = empRes.data ?? []
+    const allShifts = shiftRes.data ?? []
+    const allLeaves = leaveRes.data ?? []
+    const fromDate  = new Date(from)
+    const toDate    = new Date(to)
+    const periodLabel = `${fromDate.toLocaleDateString('fr-FR')} - ${toDate.toLocaleDateString('fr-FR')}`
+
+    const isoWeek = (d: Date): string => {
+      const dt = new Date(d)
+      dt.setHours(0, 0, 0, 0)
+      dt.setDate(dt.getDate() + 3 - (dt.getDay() + 6) % 7)
+      const w1 = new Date(dt.getFullYear(), 0, 4)
+      return `${dt.getFullYear()}-W${String(1 + Math.round(((dt.getTime() - w1.getTime()) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7)).padStart(2, '0')}`
+    }
+
+    const overlapDays2 = (s1: Date, e1: Date, s2: Date, e2: Date): number => {
+      const s = Math.max(s1.getTime(), s2.getTime())
+      const e = Math.min(e1.getTime(), e2.getTime())
+      return e < s ? 0 : Math.round((e - s) / 86400000) + 1
+    }
+
+    const CODES = format === 'payfit'
+      ? { norm: '1000', sup25: '1010', sup50: '1020', cp: '4000', rtt: '4010', mal: '4020', ss: '4030', autre: '4040' }
+      : format === 'adp'
+      ? { norm: 'HNO', sup25: 'HS25', sup50: 'HS50', cp: 'CP', rtt: 'RTT', mal: 'MAL', ss: 'SS', autre: 'ABS' }
+      : format === 'silae'
+      ? { norm: '100', sup25: '110', sup50: '120', cp: '200', rtt: '210', mal: '220', ss: '230', autre: '240' }
+      : { norm: '100', sup25: '101', sup50: '102', cp: '200', rtt: '201', mal: '202', ss: '203', autre: '204' }
+
+    const csvRows: (string | number | null)[][] = []
+    employees.forEach((emp, idx) => {
+      const matricule = `EMP${String(idx + 1).padStart(3, '0')}`
+      const nameParts = (emp.full_name ?? '').split(' ')
+      const prenom    = nameParts[0] ?? ''
+      const nom       = nameParts.slice(1).join(' ') || prenom
+      const refWeekH  = emp.weekly_hours ?? 35
+
+      const empShifts = allShifts.filter(s => s.employee_id === emp.id)
+      const byWeek = new Map<string, typeof empShifts>()
+      for (const s of empShifts) {
+        const wk = isoWeek(new Date(s.date))
+        if (!byWeek.has(wk)) byWeek.set(wk, [])
+        byWeek.get(wk)!.push(s)
+      }
+      let totalNorm = 0, total25 = 0, total50 = 0
+      Array.from(byWeek.values()).forEach(wkShifts => {
+        const weekH = wkShifts.reduce((s: number, sh: { start_time: string; end_time: string; break_minutes: number }) => s + shiftHours(sh.start_time, sh.end_time, sh.break_minutes), 0)
+        const norm  = Math.min(weekH, refWeekH)
+        const sup   = Math.max(0, weekH - refWeekH)
+        totalNorm  += norm
+        total25    += Math.min(sup, 8)
+        total50    += Math.max(0, sup - 8)
+      })
+
+      const empLeaves = allLeaves.filter(l => l.employee_id === emp.id)
+      const countDays = (type: string) =>
+        empLeaves.filter(l => l.type === type).reduce((s, l) => s + overlapDays2(fromDate, toDate, new Date(l.start_date), new Date(l.end_date)), 0)
+      const cpDays    = countDays('CP')
+      const rttDays   = countDays('RTT')
+      const malDays   = countDays('maladie')
+      const ssDays    = countDays('sans_solde')
+      const autreDays = countDays('autre')
+
+      const push = (code: string, label: string, valeur: number, unite: string) => {
+        if (valeur > 0.01) csvRows.push([matricule, nom, prenom, periodLabel, code, label, Math.round(valeur * 100) / 100, unite])
+      }
+      push(CODES.norm,  'Heures normales',   totalNorm, 'H')
+      push(CODES.sup25, 'Heures sup. 25%',   total25,   'H')
+      push(CODES.sup50, 'Heures sup. 50%',   total50,   'H')
+      push(CODES.cp,    'Congés payés',       cpDays,    'J')
+      push(CODES.rtt,   'RTT',                rttDays,   'J')
+      push(CODES.mal,   'Maladie',            malDays,   'J')
+      push(CODES.ss,    'Sans solde',         ssDays,    'J')
+      push(CODES.autre, 'Autre absence',      autreDays, 'J')
+    })
+
+    const headers = ['Matricule', 'Nom', 'Prénom', 'Période', 'Code_Rubrique', 'Libellé', 'Valeur', 'Unité']
+    return csvResponse(toCsv(headers, csvRows), `variables_paie_${slug}.csv`)
+  }
+
   return NextResponse.json({ error: 'Type de rapport inconnu' }, { status: 400 })
 }

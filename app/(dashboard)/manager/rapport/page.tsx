@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { getWeekDates, toISODate, getWeekLabel } from '@/lib/utils/dates'
 import type { Profile, Shift, LeaveRequest } from '@/types'
-import { ChevronLeft, ChevronRight, Loader2, Users, Clock, TrendingUp, CalendarOff, AlarmClock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Users, Clock, TrendingUp, CalendarOff, AlarmClock, Download, Banknote } from 'lucide-react'
 import type { EmployeeReportRow } from './rapport-pdf'
 
 type LatenessRecord = {
@@ -21,7 +21,7 @@ type LatenessRecord = {
   profiles: { id: string; full_name: string | null; email: string | null; position: string | null } | null
 }
 
-type RapportTab = 'heures' | 'retards'
+type RapportTab = 'heures' | 'retards' | 'paie'
 
 const PDFButton = dynamic(() => import('./pdf-button'), { ssr: false })
 
@@ -75,6 +75,31 @@ function fh(h: number): string {
   return `${sign}${hh}h${mm > 0 ? mm.toString().padStart(2, '0') : ''}`
 }
 
+function isoWeekKey(d: Date): string {
+  const dt = new Date(d)
+  dt.setHours(0, 0, 0, 0)
+  dt.setDate(dt.getDate() + 3 - (dt.getDay() + 6) % 7)
+  const w1 = new Date(dt.getFullYear(), 0, 4)
+  return `${dt.getFullYear()}-W${String(1 + Math.round(((dt.getTime() - w1.getTime()) / 86400000 - 3 + (w1.getDay() + 6) % 7) / 7)).padStart(2, '0')}`
+}
+
+type PayeRow = {
+  id: string
+  name: string | null
+  position: string | null
+  matricule: string
+  normalHours: number
+  sup25Hours: number
+  sup50Hours: number
+  cpDays: number
+  rttDays: number
+  maladieDays: number
+  ssDays: number
+  autreDays: number
+}
+
+type PayFormat = 'generique' | 'payfit' | 'adp' | 'silae'
+
 function getPeriod(mode: Mode, ref: Date): { start: Date; end: Date; label: string } {
   if (mode === 'day') {
     const label = ref.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
@@ -113,6 +138,7 @@ export default function RapportPage() {
   const [latenessRecords, setLatenessRecords] = useState<LatenessRecord[]>([])
   const [latenessLoading, setLatenessLoading] = useState(false)
   const [latenessFilter, setLatenessFilter] = useState<'all' | 'justified' | 'unjustified'>('all')
+  const [payFormat, setPayFormat] = useState<PayFormat>('generique')
 
   const period = useMemo(() => getPeriod(mode, refDate), [mode, refDate])
 
@@ -239,6 +265,51 @@ export default function RapportPage() {
     return latenessRecords
   }, [latenessRecords, latenessFilter])
 
+  const paieRows: PayeRow[] = useMemo(() => {
+    const filtered = employees
+      .filter(e => selectedEmployee === 'all' || e.id === selectedEmployee)
+      .filter(e => selectedPoste === 'all' || e.position === selectedPoste)
+    return filtered.map((emp, idx) => {
+      const refWeekH  = emp.weekly_hours ?? 35
+      const empShifts = shifts.filter(s => s.employee_id === emp.id)
+      const empLeaves = leaves.filter(l => l.employee_id === emp.id)
+
+      const byWeek = new Map<string, Shift[]>()
+      for (const s of empShifts) {
+        const wk = isoWeekKey(new Date(s.date))
+        if (!byWeek.has(wk)) byWeek.set(wk, [])
+        byWeek.get(wk)!.push(s)
+      }
+      let normalHours = 0, sup25Hours = 0, sup50Hours = 0
+      Array.from(byWeek.values()).forEach(wkShifts => {
+        const weekH = wkShifts.reduce((s: number, sh: Shift) => s + shiftHours(sh), 0)
+        const norm  = Math.min(weekH, refWeekH)
+        const sup   = Math.max(0, weekH - refWeekH)
+        normalHours  += norm
+        sup25Hours   += Math.min(sup, 8)
+        sup50Hours   += Math.max(0, sup - 8)
+      })
+
+      const countDays = (type: string) =>
+        empLeaves.filter(l => l.type === type).reduce((s, l) => s + overlapDays(period.start, period.end, new Date(l.start_date), new Date(l.end_date)), 0)
+
+      return {
+        id:           emp.id,
+        name:         emp.full_name ?? (emp as Profile & { email?: string }).email ?? null,
+        position:     emp.position ?? null,
+        matricule:    `EMP${String(idx + 1).padStart(3, '0')}`,
+        normalHours,
+        sup25Hours,
+        sup50Hours,
+        cpDays:       countDays('CP'),
+        rttDays:      countDays('RTT'),
+        maladieDays:  countDays('maladie'),
+        ssDays:       countDays('sans_solde'),
+        autreDays:    countDays('autre'),
+      }
+    })
+  }, [employees, shifts, leaves, selectedEmployee, selectedPoste, period])
+
   const toggleJustified = useCallback(async (record: LatenessRecord) => {
     const res = await fetch(`/api/lateness/${record.id}`, {
       method: 'PATCH',
@@ -260,7 +331,7 @@ export default function RapportPage() {
 
             {/* Report type tabs */}
             <div className="flex overflow-hidden" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
-              {(['heures', 'retards'] as RapportTab[]).map((t, i) => (
+              {(['heures', 'retards', 'paie'] as RapportTab[]).map((t, i) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
@@ -272,7 +343,8 @@ export default function RapportPage() {
                   }}
                 >
                   {t === 'retards' && <AlarmClock className="h-3.5 w-3.5" />}
-                  {t === 'heures' ? 'Heures' : 'Retards'}
+                  {t === 'paie' && <Banknote className="h-3.5 w-3.5" />}
+                  {t === 'heures' ? 'Heures' : t === 'retards' ? 'Retards' : 'Paie'}
                 </button>
               ))}
             </div>
@@ -438,6 +510,124 @@ export default function RapportPage() {
                         </tr>
                       ))}
                     </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {tab === 'paie' && (
+          <>
+            {/* Export controls */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Format :</span>
+              {(['generique', 'payfit', 'adp', 'silae'] as PayFormat[]).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setPayFormat(f)}
+                  className="px-3 py-1 text-[13px] rounded-full transition-colors duration-150"
+                  style={{
+                    border: payFormat === f ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                    backgroundColor: payFormat === f ? 'var(--accent-light)' : 'transparent',
+                    color: payFormat === f ? 'var(--accent)' : 'var(--text-secondary)',
+                  }}
+                >
+                  {f === 'generique' ? 'Générique' : f === 'payfit' ? 'PayFit' : f === 'adp' ? 'ADP Decidium' : 'Silae'}
+                </button>
+              ))}
+              <a
+                href={`/api/exports?type=paie&from=${toISODate(period.start)}&to=${toISODate(period.end)}&format=${payFormat}`}
+                download
+                className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-colors duration-150"
+                style={{ backgroundColor: 'var(--accent)', color: 'white' }}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Exporter CSV
+              </a>
+            </div>
+
+            {/* Paie summary cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: 'H. normales', value: fh(paieRows.reduce((s, r) => s + r.normalHours, 0)) },
+                { label: 'H. sup. 25%', value: fh(paieRows.reduce((s, r) => s + r.sup25Hours, 0)) },
+                { label: 'H. sup. 50%', value: fh(paieRows.reduce((s, r) => s + r.sup50Hours, 0)) },
+                { label: 'J. d\'absence', value: String(paieRows.reduce((s, r) => s + r.cpDays + r.rttDays + r.maladieDays + r.ssDays + r.autreDays, 0)) },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-card border border-border rounded-xl p-4">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground mb-2">{label}</p>
+                  <p className="text-[20px] font-normal" style={{ color: 'var(--text-primary)' }}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Paie table */}
+            {loading ? (
+              <div className="flex justify-center py-16">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : paieRows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-xl bg-card">
+                <Banknote className="h-8 w-8 text-muted-foreground/40 mb-3" />
+                <p className="text-sm font-medium text-foreground">Aucune donnée pour cette période</p>
+              </div>
+            ) : (
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted/60 border-b border-border">
+                        {['Matricule', 'Employé', 'H. normales', 'H. sup 25%', 'H. sup 50%', 'CP', 'RTT', 'Maladie', 'Sans solde', 'Autre'].map((h, i) => (
+                          <th key={h} className={cn(
+                            'px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide',
+                            i >= 2 ? 'text-right' : 'text-left',
+                          )}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paieRows.map((row, i) => (
+                        <tr key={row.id} className={cn('border-b border-border/60 hover:bg-muted/30 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
+                          <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{row.matricule}</td>
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-foreground leading-tight">{row.name}</p>
+                            {row.position && <p className="text-xs text-muted-foreground">{row.position}</p>}
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium text-foreground">{row.normalHours > 0 ? fh(row.normalHours) : '—'}</td>
+                          <td className="px-4 py-3 text-right">
+                            {row.sup25Hours > 0
+                              ? <span className="font-medium" style={{ color: 'var(--warning)' }}>{fh(row.sup25Hours)}</span>
+                              : <span className="text-muted-foreground">—</span>}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {row.sup50Hours > 0
+                              ? <span className="font-medium" style={{ color: 'var(--danger)' }}>{fh(row.sup50Hours)}</span>
+                              : <span className="text-muted-foreground">—</span>}
+                          </td>
+                          <td className="px-4 py-3 text-right text-muted-foreground">{row.cpDays > 0 ? `${row.cpDays}j` : '—'}</td>
+                          <td className="px-4 py-3 text-right text-muted-foreground">{row.rttDays > 0 ? `${row.rttDays}j` : '—'}</td>
+                          <td className="px-4 py-3 text-right text-muted-foreground">{row.maladieDays > 0 ? `${row.maladieDays}j` : '—'}</td>
+                          <td className="px-4 py-3 text-right text-muted-foreground">{row.ssDays > 0 ? `${row.ssDays}j` : '—'}</td>
+                          <td className="px-4 py-3 text-right text-muted-foreground">{row.autreDays > 0 ? `${row.autreDays}j` : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    {paieRows.length > 1 && (
+                      <tfoot>
+                        <tr className="bg-muted/60 border-t-2 border-border">
+                          <td colSpan={2} className="px-4 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wide">Total</td>
+                          <td className="px-4 py-3 text-right font-bold text-foreground">{fh(paieRows.reduce((s, r) => s + r.normalHours, 0))}</td>
+                          <td className="px-4 py-3 text-right font-bold" style={{ color: 'var(--warning)' }}>{fh(paieRows.reduce((s, r) => s + r.sup25Hours, 0))}</td>
+                          <td className="px-4 py-3 text-right font-bold" style={{ color: 'var(--danger)' }}>{fh(paieRows.reduce((s, r) => s + r.sup50Hours, 0))}</td>
+                          <td className="px-4 py-3 text-right font-medium text-muted-foreground">{paieRows.reduce((s, r) => s + r.cpDays, 0) || '—'}</td>
+                          <td className="px-4 py-3 text-right font-medium text-muted-foreground">{paieRows.reduce((s, r) => s + r.rttDays, 0) || '—'}</td>
+                          <td className="px-4 py-3 text-right font-medium text-muted-foreground">{paieRows.reduce((s, r) => s + r.maladieDays, 0) || '—'}</td>
+                          <td className="px-4 py-3 text-right font-medium text-muted-foreground">{paieRows.reduce((s, r) => s + r.ssDays, 0) || '—'}</td>
+                          <td className="px-4 py-3 text-right font-medium text-muted-foreground">{paieRows.reduce((s, r) => s + r.autreDays, 0) || '—'}</td>
+                        </tr>
+                      </tfoot>
+                    )}
                   </table>
                 </div>
               </div>
