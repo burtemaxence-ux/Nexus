@@ -77,6 +77,48 @@ BEGIN
     ADD COLUMN IF NOT EXISTS has_confidentiality BOOLEAN NOT NULL DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS has_non_compete     BOOLEAN NOT NULL DEFAULT FALSE;
 
+  -- Tables optionnelles (migrations 026 / 028)
+  CREATE TABLE IF NOT EXISTS public.shift_exchanges (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shift_id      UUID NOT NULL REFERENCES public.shifts(id) ON DELETE CASCADE,
+    proposer_id   UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    acceptor_id   UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    status        TEXT NOT NULL DEFAULT 'open'
+                  CHECK (status IN ('open','pending_approval','approved','rejected','cancelled')),
+    proposer_note TEXT,
+    manager_note  TEXT,
+    created_at    TIMESTAMPTZ DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ DEFAULT NOW()
+  );
+
+  CREATE TABLE IF NOT EXISTS public.marketplace_slots (
+    id               UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    shift_id         UUID REFERENCES public.shifts(id) ON DELETE CASCADE NOT NULL,
+    establishment_id UUID NOT NULL,
+    created_by       UUID REFERENCES public.profiles(id) NOT NULL,
+    reason           TEXT,
+    expires_at       TIMESTAMPTZ NOT NULL,
+    status           TEXT NOT NULL DEFAULT 'open'
+                     CHECK (status IN ('open','filled','expired','cancelled')),
+    filled_by        UUID REFERENCES public.profiles(id),
+    filled_at        TIMESTAMPTZ,
+    created_at       TIMESTAMPTZ DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ DEFAULT NOW()
+  );
+
+  CREATE UNIQUE INDEX IF NOT EXISTS marketplace_slot_open_unique
+    ON public.marketplace_slots(shift_id) WHERE (status = 'open');
+
+  CREATE TABLE IF NOT EXISTS public.marketplace_applications (
+    id          UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    slot_id     UUID REFERENCES public.marketplace_slots(id) ON DELETE CASCADE NOT NULL,
+    employee_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending','accepted','rejected')),
+    created_at  TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(slot_id, employee_id)
+  );
+
   -- ── 1. Nettoyage ──────────────────────────────────────────────────────────
   DELETE FROM auth.identities WHERE user_id IN (
     SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr'
