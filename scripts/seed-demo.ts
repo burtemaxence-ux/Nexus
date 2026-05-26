@@ -422,7 +422,7 @@ async function main() {
     const { error } = await sb.from('lateness_records').insert(latenessRecords)
     if (error) console.warn(`   ⚠️  Lateness: ${error.message}`)
   }
-  console.log(`   ✅  ${latenessRecords.length} retards (Emma ×${[...emmaLateShifts].length}, Lucas ×${[...lucasLateShifts].length})`)
+  console.log(`   ✅  ${latenessRecords.length} retards (Emma ×${Array.from(emmaLateShifts).length}, Lucas ×${Array.from(lucasLateShifts).length})`)
 
   // ── 10. Congés, marketplace, échanges ──────────────────────────────────────
   console.log('10/10  Congés, marketplace, échange de shifts...')
