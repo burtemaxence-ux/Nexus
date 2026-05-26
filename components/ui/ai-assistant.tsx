@@ -8,16 +8,20 @@ interface Message {
   content: string
 }
 
+interface Suggestion {
+  label: string
+  message: string
+}
+
 interface Props {
   establishmentName: string
   userName: string
 }
 
-const SUGGESTIONS = [
-  "Génère le planning de la semaine prochaine",
-  "Qui a le plus d'heures ce mois-ci ?",
-  "Quelles alertes légales sont actives ?",
-  "Résume les congés en attente",
+const FALLBACK_SUGGESTIONS: Suggestion[] = [
+  { label: '📅 Générer le planning de la semaine', message: 'Génère le planning optimisé pour la semaine prochaine.' },
+  { label: "📊 Résumé RH de la semaine", message: "Fais-moi un résumé RH de cette semaine : présences, retards, heures." },
+  { label: '⚖️ Vérifier les alertes légales', message: 'Y a-t-il des alertes légales à traiter cette semaine ?' },
 ]
 
 export function AiAssistant({ establishmentName, userName }: Props) {
@@ -27,10 +31,24 @@ export function AiAssistant({ establishmentName, userName }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [inputFocused, setInputFocused] = useState(false)
+  const [suggestions, setSuggestions] = useState<Suggestion[]>(FALLBACK_SUGGESTIONS)
+  const [suggestionsLoaded, setSuggestionsLoaded] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const sendRef = useRef<((text: string) => void) | null>(null)
+
+  // Fetch proactive suggestions once on first open
+  useEffect(() => {
+    if (!open || suggestionsLoaded) return
+    setSuggestionsLoaded(true)
+    fetch('/api/ai/context')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.suggestions?.length) setSuggestions(data.suggestions)
+      })
+      .catch(() => {/* keep fallback */})
+  }, [open, suggestionsLoaded])
 
   // Listen for external open requests (e.g. "Générer le planning" button)
   useEffect(() => {
@@ -258,11 +276,11 @@ export function AiAssistant({ establishmentName, userName }: Props) {
             </div>
           )}
 
-          {/* Suggestions (only at start) */}
+          {/* Suggestions proactives (uniquement au démarrage) */}
           {messages.length === 1 && !loading && (
             <div className="space-y-2 pt-1">
-              {SUGGESTIONS.map((s) => (
-                <SuggestionBtn key={s} text={s} onPress={() => send(s)} />
+              {suggestions.map((s) => (
+                <SuggestionBtn key={s.label} label={s.label} onPress={() => send(s.message)} />
               ))}
             </div>
           )}
@@ -321,7 +339,7 @@ export function AiAssistant({ establishmentName, userName }: Props) {
   )
 }
 
-function SuggestionBtn({ text, onPress }: { text: string; onPress: () => void }) {
+function SuggestionBtn({ label, onPress }: { label: string; onPress: () => void }) {
   const [hovered, setHovered] = useState(false)
   return (
     <button
@@ -335,7 +353,7 @@ function SuggestionBtn({ text, onPress }: { text: string; onPress: () => void })
         color: hovered ? 'var(--accent)' : 'var(--text-secondary)',
       }}
     >
-      {text}
+      {label}
     </button>
   )
 }
