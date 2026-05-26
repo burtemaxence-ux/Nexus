@@ -30,6 +30,7 @@ function buildManagerNav(pendingLeavesCount: number, alertsCount: number): NavIt
     { label: 'Employés',     href: '/manager/employees' },
     { label: 'Rapport',      href: '/manager/rapport' },
     { label: 'Analytiques',  href: '/manager/analytics' },
+    { label: 'Conformité',   href: '/manager/compliance' },
     { label: 'Congés',       href: '/manager/conges',  badge: pendingLeavesCount },
     { label: 'Échanges',   href: '/manager/echanges' },
     { label: 'Alertes',    href: '/manager/alertes', badge: alertsCount },

@@ -8,7 +8,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Calendar, Users, BarChart3, Clock, LineChart,
+  Calendar, Users, BarChart3, Clock, LineChart, Scale,
   Palmtree, AlertTriangle, Upload, FileText,
   Settings, ChevronLeft, ChevronRight, LogOut,
   UtensilsCrossed, ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight,
@@ -75,9 +75,10 @@ function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
     {
       group: 'Outils',
       items: [
-        { label: 'Exports',   icon: Upload,       href: '/manager/settings/exports' },
-        { label: 'Journal',   icon: ShieldCheck,  href: '/manager/audit-log' },
-        { label: 'Documents', icon: FileText,      href: '#', comingSoon: true },
+        { label: 'Conformité', icon: Scale,        href: '/manager/compliance' },
+        { label: 'Exports',    icon: Upload,       href: '/manager/settings/exports' },
+        { label: 'Journal',    icon: ShieldCheck,  href: '/manager/audit-log' },
+        { label: 'Documents',  icon: FileText,      href: '#', comingSoon: true },
       ],
     },
     {
