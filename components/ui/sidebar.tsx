@@ -8,7 +8,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap,
+  Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap, BookOpen,
   Palmtree, AlertTriangle, Upload, FileText,
   Settings, ChevronLeft, ChevronRight, LogOut,
   UtensilsCrossed, ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight,
@@ -89,7 +89,8 @@ function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
     {
       group: 'Configuration',
       items: [
-        { label: 'Paramètres', icon: Settings, href: '/manager/settings' },
+        { label: 'Paramètres', icon: Settings,  href: '/manager/settings' },
+        { label: 'Aide',       icon: BookOpen,  href: '/manager/help' },
       ],
     },
   ]

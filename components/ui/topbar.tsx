@@ -37,6 +37,7 @@ function buildManagerNav(pendingLeavesCount: number, alertsCount: number): NavIt
     { label: 'Alertes',    href: '/manager/alertes', badge: alertsCount },
     { label: 'Présences',  href: '/manager/presences' },
     { label: 'Paramètres', href: '/manager/settings' },
+    { label: 'Aide',       href: '/manager/help' },
   ]
 }
 

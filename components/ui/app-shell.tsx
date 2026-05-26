@@ -6,6 +6,7 @@ import { Topbar } from './topbar'
 import { AiAssistant } from './ai-assistant'
 import { BreadcrumbNav } from './breadcrumb-nav'
 import { PageTransition } from './page-transition'
+import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
 
 interface EstablishmentEntry {
   id: string
@@ -53,6 +54,7 @@ export function AppShell({
       {(role === 'manager' || role === 'supervisor') && (
         <AiAssistant establishmentName={establishmentName} userName={userName} />
       )}
+      <OnboardingWizard role={role} />
 
       {/* Legal footer */}
       <footer className="px-6 py-4 flex items-center justify-center gap-4 flex-wrap" style={{ borderTop: '0.5px solid var(--border)' }}>
