@@ -1,6 +1,7 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
+import { PwaRegister } from '@/components/ui/pwa-register'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -8,6 +9,22 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Nexus - Gestion de planning',
   description: 'Application de gestion de planning pour la restauration',
+  applicationName: 'Nexus',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Nexus',
+  },
+  formatDetection: { telephone: false },
+  manifest: '/manifest.webmanifest',
+}
+
+export const viewport: Viewport = {
+  themeColor: '#2D3A8C',
+  width: 'device-width',
+  initialScale: 1,
+  minimumScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={inter.className}>
         {children}
+        <PwaRegister />
         <Toaster
           position="bottom-right"
           toastOptions={{
