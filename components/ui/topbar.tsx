@@ -30,6 +30,7 @@ function buildManagerNav(pendingLeavesCount: number, alertsCount: number): NavIt
     { label: 'Employés',   href: '/manager/employees' },
     { label: 'Rapport',    href: '/manager/rapport' },
     { label: 'Congés',     href: '/manager/conges',  badge: pendingLeavesCount },
+    { label: 'Échanges',   href: '/manager/echanges' },
     { label: 'Alertes',    href: '/manager/alertes', badge: alertsCount },
     { label: 'Présences',  href: '/manager/presences' },
     { label: 'Paramètres', href: '/manager/settings' },
@@ -40,6 +41,7 @@ const employeeNav: NavItem[] = [
   { label: 'Mon planning', href: '/employee/planning' },
   { label: 'Mes congés',   href: '/employee/conges' },
   { label: 'Badgeuse',     href: '/employee/badgeuse' },
+  { label: 'Échanges',     href: '/employee/echanges' },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

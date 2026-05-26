@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { Calendar, FileText, Clock } from 'lucide-react'
+import { Calendar, FileText, Clock, ArrowLeftRight } from 'lucide-react'
 
 const NAV_CARDS = [
   {
@@ -21,6 +21,12 @@ const NAV_CARDS = [
     description: 'Pointer votre arrivée et votre départ',
     icon: Clock,
     href: '/employee/badgeuse',
+  },
+  {
+    title: 'Échanges',
+    description: 'Proposer ou reprendre des shifts avec vos collègues',
+    icon: ArrowLeftRight,
+    href: '/employee/echanges',
   },
 ]
 

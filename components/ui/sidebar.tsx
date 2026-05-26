@@ -11,7 +11,7 @@ import {
   Calendar, Users, BarChart3, Clock,
   Palmtree, AlertTriangle, Upload, FileText,
   Settings, ChevronLeft, ChevronRight, LogOut,
-  UtensilsCrossed, ShieldCheck, ChevronsUpDown, Plus, Check,
+  UtensilsCrossed, ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -57,6 +57,11 @@ function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
           href: '/manager/conges',
           badge: pendingLeavesCount,
           badgeColor: 'orange',
+        },
+        {
+          label: 'Échanges',
+          icon: ArrowLeftRight,
+          href: '/manager/echanges',
         },
         {
           label: 'Alertes',

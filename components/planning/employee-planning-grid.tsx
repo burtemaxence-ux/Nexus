@@ -1,7 +1,8 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowLeftRight, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
@@ -44,6 +45,10 @@ function getDayLabel(date: Date): { weekday: string; dayMonth: string } {
 function isToday(date: Date): boolean {
   const today = new Date()
   return date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()
+}
+
+function isFutureOrToday(dateStr: string): boolean {
+  return dateStr >= new Date().toISOString().slice(0, 10)
 }
 
 function formatTime(time: string): string { return time.slice(0, 5) }
@@ -94,6 +99,44 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
     (sum, s) => sum + calcShiftHours(s.start_time, s.end_time, s.break_minutes),
     0
   )
+
+  // Exchange state — map of shift_id → exchange id (if open)
+  const [exchangeMap, setExchangeMap] = useState<Record<string, string>>({})
+  const [exchangeBusy, setExchangeBusy] = useState<string | null>(null)
+
+  const fetchExchanges = useCallback(async () => {
+    const res = await fetch('/api/exchanges?view=mine')
+    if (!res.ok) return
+    const data = await res.json() as Array<{ id: string; shift_id: string; status: string }>
+    const map: Record<string, string> = {}
+    for (const ex of data) {
+      if (ex.status === 'open') map[ex.shift_id] = ex.id
+    }
+    setExchangeMap(map)
+  }, [])
+
+  useEffect(() => { fetchExchanges() }, [fetchExchanges])
+
+  async function proposeExchange(shiftId: string) {
+    setExchangeBusy(shiftId)
+    const res = await fetch('/api/exchanges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shift_id: shiftId }),
+    })
+    if (res.ok) {
+      const ex = await res.json() as { id: string; shift_id: string }
+      setExchangeMap(prev => ({ ...prev, [shiftId]: ex.id }))
+    }
+    setExchangeBusy(null)
+  }
+
+  async function cancelExchange(exchangeId: string, shiftId: string) {
+    setExchangeBusy(shiftId)
+    await fetch(`/api/exchanges/${exchangeId}`, { method: 'DELETE' })
+    setExchangeMap(prev => { const next = { ...prev }; delete next[shiftId]; return next })
+    setExchangeBusy(null)
+  }
 
   return (
     <div className="space-y-4">
@@ -170,6 +213,7 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
                 const dayShifts = shiftMap.get(dateStr) ?? []
                 const absenceType = absenceMap.get(dateStr)
                 const today = isToday(date)
+                const future = isFutureOrToday(dateStr)
 
                 return (
                   <td
@@ -193,6 +237,8 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
                           const bgColor = poste ? `${poste.color}20` : 'var(--accent-light)'
                           const borderColor = poste?.color ?? 'var(--accent)'
                           const textColor = poste?.color ?? 'var(--accent)'
+                          const offeredExchangeId = exchangeMap[shift.id]
+                          const busy = exchangeBusy === shift.id
                           return (
                             <div
                               key={shift.id}
@@ -212,6 +258,32 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
                                 <p className="truncate mt-0.5 italic" style={{ color: textColor, opacity: 0.7 }}>
                                   {shift.notes}
                                 </p>
+                              )}
+                              {/* Exchange action */}
+                              {future && (
+                                <div className="mt-1.5">
+                                  {offeredExchangeId ? (
+                                    <button
+                                      onClick={() => cancelExchange(offeredExchangeId, shift.id)}
+                                      disabled={busy}
+                                      className="flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded transition-opacity disabled:opacity-50"
+                                      style={{ backgroundColor: 'rgba(0,0,0,0.08)', color: textColor }}
+                                    >
+                                      {busy ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <X className="h-2.5 w-2.5" />}
+                                      Offert
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => proposeExchange(shift.id)}
+                                      disabled={busy}
+                                      className="flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded transition-opacity disabled:opacity-50"
+                                      style={{ backgroundColor: 'rgba(0,0,0,0.08)', color: textColor }}
+                                    >
+                                      {busy ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <ArrowLeftRight className="h-2.5 w-2.5" />}
+                                      Proposer
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )
