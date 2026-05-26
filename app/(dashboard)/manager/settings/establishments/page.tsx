@@ -41,6 +41,7 @@ export default async function EstablishmentsPage() {
       establishments={establishments}
       activeEstablishmentId={activeEstablishmentId}
       callerRole={callerRole}
+      currentUserId={user?.id ?? ''}
     />
   )
 }
