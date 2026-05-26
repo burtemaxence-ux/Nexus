@@ -119,10 +119,36 @@ BEGIN
     UNIQUE(slot_id, employee_id)
   );
 
-  -- ── 1. Nettoyage ──────────────────────────────────────────────────────────
-  DELETE FROM auth.identities WHERE user_id IN (
-    SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr'
-  );
+  -- ── 1. Nettoyage (ordre FK : enfants d'abord) ────────────────────────────
+  DELETE FROM public.marketplace_applications
+    WHERE slot_id IN (SELECT id FROM public.marketplace_slots WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr')));
+  DELETE FROM public.marketplace_slots
+    WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr'));
+  DELETE FROM public.shift_exchanges
+    WHERE proposer_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr')
+       OR acceptor_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr');
+  DELETE FROM public.lateness_records
+    WHERE employee_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr');
+  DELETE FROM public.presences
+    WHERE employee_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr');
+  DELETE FROM public.leave_requests
+    WHERE employee_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr');
+  DELETE FROM public.contracts
+    WHERE employee_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr');
+  DELETE FROM public.shifts
+    WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr'));
+  DELETE FROM public.postes
+    WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr'));
+  DELETE FROM public.week_status
+    WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr'));
+  DELETE FROM public.settings
+    WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr'));
+  DELETE FROM public.profiles
+    WHERE id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr');
+  DELETE FROM public.establishments
+    WHERE owner_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr');
+  DELETE FROM auth.identities
+    WHERE user_id IN (SELECT id FROM auth.users WHERE email LIKE '%@nexus-demo.fr');
   DELETE FROM auth.users WHERE email LIKE '%@nexus-demo.fr';
 
   -- ── 1. Manager (le trigger crée l'établissement automatiquement) ──────────
