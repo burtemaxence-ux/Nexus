@@ -94,8 +94,8 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="mb-6">
+    <div className="container mx-auto px-4 py-4 md:py-8 max-w-7xl">
+      <div className="hidden md:block mb-6">
         <Link
           href="/employee"
           className="inline-flex items-center gap-1 text-[13px] transition-colors duration-150"
@@ -107,15 +107,15 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
       </div>
 
       <div className="mb-4">
-        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
-          Bonjour {firstName} — Planning de la semaine
+        <h1 className="text-[18px] md:text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
+          Bonjour {firstName}
         </h1>
         <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-          Consultez vos horaires pour la semaine en cours
+          Planning de la semaine
         </p>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <ICalCopyButton url={calendarUrl} />
       </div>
 
