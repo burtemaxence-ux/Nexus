@@ -289,15 +289,15 @@ export default function EmployeeCongesPage() {
                 <button
                   onClick={() => handleDelete(req.id)}
                   disabled={deleteLoading === req.id}
-                  className="flex-shrink-0 flex items-center gap-1.5 rounded-lg transition-colors duration-150 disabled:opacity-50"
-                  style={{ color: 'var(--danger)', padding: '6px 10px', border: '0.5px solid var(--danger)' }}
+                  className="flex-shrink-0 flex items-center gap-1.5 rounded-lg transition-colors duration-150 disabled:opacity-50 p-1.5 md:p-1.5"
+                  style={{ color: 'var(--danger)' }}
                   title="Annuler la demande"
                 >
                   {deleteLoading === req.id
                     ? <Loader2 className="h-4 w-4 animate-spin" />
                     : <Trash2 className="h-4 w-4" />
                   }
-                  <span className="text-[12px] font-medium">Annuler</span>
+                  <span className="text-[12px] font-medium md:hidden">Annuler</span>
                 </button>
               )}
             </div>
