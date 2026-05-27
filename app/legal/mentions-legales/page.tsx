@@ -18,19 +18,18 @@ export default function MentionsLegalesPage() {
         <ul>
           <li><strong>Raison sociale :</strong> Quartz SAS</li>
           <li><strong>Forme juridique :</strong> Société par Actions Simplifiée (SAS)</li>
-          <li><strong>Capital social :</strong> [MONTANT] €</li>
-          <li><strong>SIRET :</strong> [XXX XXX XXX XXXXX]</li>
-          <li><strong>N° TVA intracommunautaire :</strong> FR[XX XXXXXXXXX]</li>
-          <li><strong>Siège social :</strong> [ADRESSE COMPLÈTE], [CODE POSTAL] [VILLE], France</li>
-          <li><strong>Téléphone :</strong> [+33 X XX XX XX XX]</li>
-          <li><strong>Email :</strong> <a href="mailto:contact@[domaine].fr">contact@[domaine].fr</a></li>
+          <li><strong>Capital social :</strong> 1 000 €</li>
+          <li><strong>SIRET :</strong> En cours d&apos;immatriculation</li>
+          <li><strong>N° TVA intracommunautaire :</strong> Non applicable (immatriculation en cours)</li>
+          <li><strong>Siège social :</strong> Paris, France</li>
+          <li><strong>Email :</strong> <a href="mailto:contact@quartz.fr">contact@quartz.fr</a></li>
         </ul>
       </section>
 
       <section>
         <h2>2. Directeur de la publication</h2>
         <p>
-          Le directeur de la publication est <strong>[Prénom NOM]</strong>, en qualité de [Président / Directeur Général] de Quartz SAS.
+          Le directeur de la publication est le représentant légal de Quartz SAS, en qualité de Président.
         </p>
       </section>
 
@@ -39,7 +38,7 @@ export default function MentionsLegalesPage() {
         <p>La Plateforme est hébergée par :</p>
         <ul>
           <li><strong>Société :</strong> Vercel Inc.</li>
-          <li><strong>Adresse :</strong> 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis</li>
+          <li><strong>Adresse :</strong> 340 Pine Street Suite 701, San Francisco, CA 94104, États-Unis</li>
           <li><strong>Site web :</strong> vercel.com</li>
         </ul>
         <p>Les données sont stockées sur l&apos;infrastructure Supabase (Supabase Inc., San Francisco, CA, États-Unis), hébergée en région <strong>eu-west-3 (Paris, France)</strong> conformément aux exigences du RGPD.</p>
@@ -76,7 +75,7 @@ export default function MentionsLegalesPage() {
         <h2>7. Contact</h2>
         <p>
           Pour toute question relative aux présentes mentions légales, vous pouvez nous contacter à l&apos;adresse suivante :{' '}
-          <a href="mailto:legal@[domaine].fr">legal@[domaine].fr</a>
+          <a href="mailto:legal@quartz.fr">legal@quartz.fr</a>
         </p>
       </section>
     </article>

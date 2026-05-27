@@ -12,6 +12,7 @@ import {
   Download,
   Plug,
   Store,
+  ShieldCheck,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { label: 'Notifications',     href: '/manager/settings/alertes',       icon: Bell },
   { label: 'Exports & paie',   href: '/manager/settings/exports',        icon: Download },
   { label: 'Intégrations',     href: '/manager/settings/integrations',   icon: Plug },
+  { label: 'Données & RGPD',   href: '/manager/settings/rgpd',           icon: ShieldCheck },
 ]
 
 export default function SettingsSidebar() {

@@ -69,6 +69,12 @@ export default function CookiesPage() {
               <td>Mémorisation du thème choisi (clair / sombre)</td>
               <td>Persistant (localStorage)</td>
             </tr>
+            <tr>
+              <td><code>nexus-onboarding-step</code></td>
+              <td>Nexus (localStorage)</td>
+              <td>Progression du tutoriel de démarrage</td>
+              <td>Jusqu&apos;à la fin du tutoriel (suppression automatique)</td>
+            </tr>
           </tbody>
         </table>
 
@@ -116,7 +122,7 @@ export default function CookiesPage() {
         <h2>5. Contact</h2>
         <p>
           Pour toute question relative à notre utilisation des cookies, vous pouvez contacter notre DPO à l&apos;adresse :{' '}
-          <a href="mailto:dpo@[domaine].fr">dpo@[domaine].fr</a>
+          <a href="mailto:dpo@quartz.fr">dpo@quartz.fr</a>
         </p>
         <p>
           Vous avez également le droit de déposer une réclamation auprès de la <strong>CNIL</strong> sur{' '}

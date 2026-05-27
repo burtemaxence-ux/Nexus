@@ -16,8 +16,8 @@ export default function ConfidentialitePage() {
           Le responsable du traitement des données personnelles collectées via la Plateforme Nexus est :
         </p>
         <ul>
-          <li><strong>Quartz SAS</strong>, [ADRESSE], [CP] [VILLE]</li>
-          <li><strong>Email DPO :</strong> <a href="mailto:dpo@[domaine].fr">dpo@[domaine].fr</a></li>
+          <li><strong>Quartz SAS</strong>, Paris, France</li>
+          <li><strong>Email DPO :</strong> <a href="mailto:dpo@quartz.fr">dpo@quartz.fr</a></li>
         </ul>
       </section>
 
@@ -84,8 +84,9 @@ export default function ConfidentialitePage() {
         <h2>4. Durée de conservation</h2>
         <ul>
           <li><strong>Données RH actives :</strong> durée de la relation contractuelle + 5 ans (prescription de droit commun)</li>
-          <li><strong>Données de présence et pointages :</strong> 3 ans</li>
-          <li><strong>Logs techniques :</strong> 12 mois glissants</li>
+          <li><strong>Bulletins de salaire et documents de paie :</strong> 5 ans</li>
+          <li><strong>Données de présence et pointages (badgeuse) :</strong> 3 ans</li>
+          <li><strong>Logs techniques et journal d&apos;audit :</strong> 12 mois glissants</li>
           <li><strong>Données d&apos;un employé archivé :</strong> 3 ans après archivage, puis suppression automatique</li>
         </ul>
       </section>
@@ -100,8 +101,9 @@ export default function ConfidentialitePage() {
         </ul>
         <p>Nous faisons appel aux sous-traitants suivants :</p>
         <ul>
-          <li><strong>Supabase Inc.</strong> — stockage des données (serveurs en région UE)</li>
-          <li><strong>Vercel Inc.</strong> — hébergement de l&apos;application</li>
+          <li><strong>Supabase Inc.</strong> — stockage des données (serveurs en région UE, eu-west-3 Paris)</li>
+          <li><strong>Vercel Inc.</strong> — hébergement de l&apos;application (340 Pine Street, San Francisco)</li>
+          <li><strong>Anthropic PBC</strong> — traitement IA (génération de planning, assistant RH) — données anonymisées, non stockées</li>
           <li><strong>Resend Inc.</strong> — envoi des emails transactionnels</li>
         </ul>
         <p>Aucune donnée n&apos;est vendue ni cédée à des tiers à des fins commerciales.</p>
@@ -110,7 +112,7 @@ export default function ConfidentialitePage() {
       <section>
         <h2>6. Transferts hors UE</h2>
         <p>
-          Certains sous-traitants (Vercel, Resend) sont établis aux États-Unis. Ces transferts sont encadrés par des clauses contractuelles types (CCT) approuvées par la Commission européenne, conformément à l&apos;article 46 du RGPD.
+          Certains sous-traitants (Vercel, Resend, Anthropic) sont établis aux États-Unis. Ces transferts sont encadrés par des clauses contractuelles types (CCT) approuvées par la Commission européenne, conformément à l&apos;article 46 du RGPD. Les données transmises à Anthropic pour les fonctions IA sont limitées au strict nécessaire et ne sont pas conservées à des fins d&apos;entraînement.
         </p>
       </section>
 
@@ -126,7 +128,7 @@ export default function ConfidentialitePage() {
           <li><strong>Droit à la limitation</strong> (Art. 18) — restreindre temporairement un traitement</li>
         </ul>
         <p>
-          Pour exercer ces droits, contactez notre DPO à <a href="mailto:dpo@[domaine].fr">dpo@[domaine].fr</a>. Nous répondons dans un délai maximum de <strong>30 jours</strong>.
+          Pour exercer ces droits, contactez notre DPO à <a href="mailto:dpo@quartz.fr">dpo@quartz.fr</a>. Nous répondons dans un délai maximum de <strong>30 jours</strong>.
         </p>
         <p>
           En cas de réponse insatisfaisante, vous pouvez introduire une réclamation auprès de la <strong>CNIL</strong> (<a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer">www.cnil.fr</a>).
