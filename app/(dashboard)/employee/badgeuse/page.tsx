@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { LogIn, LogOut, Coffee, PlayCircle, CalendarX, ChevronUp, ChevronDown } from 'lucide-react'
+import { LogIn, LogOut, Coffee, PlayCircle, CalendarX, ChevronUp, ChevronDown, Check } from 'lucide-react'
 
 type Presence = {
   id: string
@@ -82,6 +82,7 @@ export default function BadgeusePage() {
   const [now, setNow] = useState(new Date())
 
   const [hm, setHm] = useState(nowHM())
+  const [confirmed, setConfirmed] = useState(false)
 
   const fetchData = useCallback(async () => {
     const today = new Date().toISOString().slice(0, 10)
@@ -113,8 +114,12 @@ export default function BadgeusePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ time: hmToISO(hm.hour, hm.minute) }),
     })
-    if (res.ok) { setPresence(await res.json()); setHm(nowHM()) }
-    else { const b = await res.json().catch(() => ({})); setError(b.error ?? 'Erreur de pointage') }
+    if (res.ok) {
+      setPresence(await res.json())
+      setHm(nowHM())
+      setConfirmed(true)
+      setTimeout(() => setConfirmed(false), 1800)
+    } else { const b = await res.json().catch(() => ({})); setError(b.error ?? 'Erreur de pointage') }
     setLoading(null)
   }
 
@@ -133,6 +138,14 @@ export default function BadgeusePage() {
     : 0
 
   const dateLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+
+  const latenessMinutes = (state !== 'idle' && p?.clock_in && shifts.length > 0)
+    ? (() => {
+        const [sh, sm] = shifts[0].start_time.split(':').map(Number)
+        const ci = new Date(p.clock_in)
+        return ci.getHours() * 60 + ci.getMinutes() - sh * 60 - sm
+      })()
+    : 0
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-start px-4 pt-8 pb-16">
@@ -166,6 +179,23 @@ export default function BadgeusePage() {
           </div>
         ) : (
           <>
+            {/* Confirmation flash */}
+            {confirmed && (
+              <div className="rounded-xl px-4 py-2.5 flex items-center gap-2" style={{ background: '#F0FDF4', border: '0.5px solid #BBF7D0' }}>
+                <Check className="h-4 w-4 flex-shrink-0 text-emerald-600" />
+                <span className="text-[13px] font-medium text-emerald-700">Pointage enregistré</span>
+              </div>
+            )}
+
+            {/* Lateness warning */}
+            {latenessMinutes > 2 && state !== 'done' && (
+              <div className="rounded-xl px-4 py-2.5 flex items-center gap-2" style={{ background: '#FEF3C7', border: '0.5px solid var(--warning)' }}>
+                <span className="text-[13px] font-medium" style={{ color: 'var(--warning)' }}>
+                  En retard de {fmt(latenessMinutes)}
+                </span>
+              </div>
+            )}
+
             {/* Service prévu */}
             {shifts.length > 0 && (
               <div className="rounded-xl px-4 py-2.5 flex items-center justify-between text-sm" style={{ backgroundColor: 'var(--accent-light)', border: '0.5px solid var(--accent)' }}>
@@ -279,7 +309,10 @@ function ActionBtn({ color, icon, label, action, loading, onPress }: {
 
   return (
     <button
-      onClick={() => onPress(action)}
+      onClick={() => {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(25)
+        onPress(action)
+      }}
       disabled={loading !== null}
       className={`w-full h-13 flex items-center justify-center gap-2.5 rounded-2xl text-white font-semibold text-sm transition-all active:scale-[0.98] disabled:opacity-50 ${cls}`}
       style={{ height: '52px' }}
