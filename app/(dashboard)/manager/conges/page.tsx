@@ -71,7 +71,7 @@ export default function ManagerCongesPage() {
   ]
 
   return (
-    <div className="px-6 py-6 max-w-4xl mx-auto">
+    <div className="px-4 py-4 md:px-6 md:py-6 max-w-4xl mx-auto">
 
       {/* Header */}
       <div className="mb-6">
@@ -84,14 +84,14 @@ export default function ManagerCongesPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex overflow-hidden w-fit mb-6" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
+      <div className="flex overflow-hidden w-full md:w-fit mb-6" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
         {FILTERS.map(({ key, label, icon: Icon }) => {
           const active = filter === key
           return (
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-[13px] transition-colors duration-150"
+              className="flex flex-1 md:flex-none items-center justify-center gap-1.5 px-3 md:px-4 py-2 text-[13px] transition-colors duration-150"
               style={{
                 backgroundColor: active ? 'var(--text-primary)' : 'transparent',
                 color: active ? 'var(--bg-card)' : 'var(--text-tertiary)',
@@ -126,7 +126,7 @@ export default function ManagerCongesPage() {
             const isOpen = actionId === req.id
             return (
               <div key={req.id} className="overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '0.5px solid var(--border)', borderRadius: '12px' }}>
-                <div className="p-4 flex items-start justify-between gap-4">
+                <div className="p-4 flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     {/* Employee */}
                     <div className="flex items-center gap-2 mb-2">
@@ -168,31 +168,31 @@ export default function ManagerCongesPage() {
                   {filter === 'pending' && !isOpen && (
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
-                        className="flex items-center gap-1.5 text-[13px] transition-colors duration-150"
+                        className="flex flex-1 md:flex-none items-center justify-center gap-1.5 text-[13px] transition-colors duration-150"
                         style={{
                           border: '0.5px solid var(--success)',
                           color: 'var(--success)',
                           borderRadius: '8px',
-                          padding: '6px 12px',
+                          padding: '10px 16px',
                           backgroundColor: 'transparent',
                         }}
                         onClick={() => { setActionId(req.id); setManagerComment(''); setActionError(null) }}
                       >
-                        <CheckCircle className="h-3.5 w-3.5" /> Valider
+                        <CheckCircle className="h-4 w-4" /> Valider
                       </button>
                       <button
-                        className="flex items-center gap-1.5 text-[13px] transition-colors duration-150"
+                        className="flex flex-1 md:flex-none items-center justify-center gap-1.5 text-[13px] transition-colors duration-150"
                         style={{
                           border: '0.5px solid var(--danger)',
                           color: 'var(--danger)',
                           borderRadius: '8px',
-                          padding: '6px 12px',
+                          padding: '10px 16px',
                           backgroundColor: 'transparent',
                         }}
                         onClick={() => handleAction(req.id, 'rejected')}
                         disabled={actionLoading}
                       >
-                        <XCircle className="h-3.5 w-3.5" /> Refuser
+                        <XCircle className="h-4 w-4" /> Refuser
                       </button>
                     </div>
                   )}
