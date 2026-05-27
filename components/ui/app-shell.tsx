@@ -60,9 +60,9 @@ export function AppShell({
       />
 
       {/* Contenu principal */}
-      {/* pt-14 = hauteur header mobile (56px) / md:pt-11 = hauteur topbar desktop (44px) */}
+      {/* content-safe-pt = 56px + env(safe-area-inset-top) on mobile, 44px on desktop */}
       {/* pb mobile = bottom nav (60px) + safe area */}
-      <div className="pt-14 md:pt-11 flex flex-col min-h-screen pb-[calc(60px+env(safe-area-inset-bottom,0px))] md:pb-0">
+      <div className="content-safe-pt flex flex-col min-h-screen pb-[calc(60px+env(safe-area-inset-bottom,0px))] md:pb-0">
         <BreadcrumbNav />
         <main className="flex-1">
           <PageTransition>{children}</PageTransition>

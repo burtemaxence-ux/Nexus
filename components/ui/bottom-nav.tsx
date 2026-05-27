@@ -232,54 +232,59 @@ export function MobileHeader({ userName, userEmail, establishmentName, role }: M
     establishmentName && establishmentName !== 'Mon établissement'
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-[var(--bg-card)] flex items-center px-4 gap-3 md:hidden" style={{ borderBottom: '0.5px solid var(--border)' }}>
-      <Link
-        href={role === 'employee' ? '/employee' : '/manager'}
-        className="text-[16px] font-medium tracking-[-0.03em] text-[var(--text-primary)] flex-shrink-0"
-      >
-        Nexus
-      </Link>
-
-      {showEstablishment && (
-        <span className="text-[11px] text-[var(--text-tertiary)] truncate flex-1 min-w-0">
-          {establishmentName}
-        </span>
-      )}
-
-      <div className={cn('flex-shrink-0 relative', !showEstablishment && 'ml-auto')} ref={ref}>
-        <button
-          onClick={() => setMenuOpen(o => !o)}
-          className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent-light)]"
+    <header className="fixed top-0 left-0 right-0 z-30 bg-[var(--bg-card)] flex flex-col md:hidden" style={{ borderBottom: '0.5px solid var(--border)' }}>
+      {/* Safe area spacer for notched iPhones in PWA standalone mode */}
+      <div style={{ height: 'env(safe-area-inset-top, 0px)' }} />
+      {/* Content row */}
+      <div className="flex items-center h-14 px-4 gap-3">
+        <Link
+          href={role === 'employee' ? '/employee' : '/manager'}
+          className="text-[16px] font-medium tracking-[-0.03em] text-[var(--text-primary)] flex-shrink-0"
         >
-          <span className="text-[11px] font-semibold text-[var(--accent)]">
-            {getInitials(userName || userEmail)}
-          </span>
-        </button>
+          Nexus
+        </Link>
 
-        {menuOpen && (
-          <div className="absolute right-0 top-full mt-2 w-52 bg-[var(--bg-card)] rounded-xl overflow-hidden z-50 shadow-lg" style={{ border: '0.5px solid var(--border)' }}>
-            <div className="px-3 py-2.5" style={{ borderBottom: '0.5px solid var(--border)' }}>
-              <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{userName || userEmail}</p>
-              {userName && <p className="text-[11px] text-[var(--text-tertiary)] truncate mt-0.5">{userEmail}</p>}
-            </div>
-            <button
-              onClick={toggleTheme}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-[var(--text-primary)] transition-colors"
-            >
-              {dark
-                ? <Sun className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
-                : <Moon className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />}
-              {dark ? 'Mode clair' : 'Mode sombre'}
-            </button>
-            <button
-              onClick={() => { setMenuOpen(false); handleSignOut() }}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-[var(--danger)] transition-colors"
-            >
-              <LogOut className="h-4 w-4 flex-shrink-0" />
-              Se déconnecter
-            </button>
-          </div>
+        {showEstablishment && (
+          <span className="text-[11px] text-[var(--text-tertiary)] truncate flex-1 min-w-0">
+            {establishmentName}
+          </span>
         )}
+
+        <div className={cn('flex-shrink-0 relative', !showEstablishment && 'ml-auto')} ref={ref}>
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent-light)]"
+          >
+            <span className="text-[11px] font-semibold text-[var(--accent)]">
+              {getInitials(userName || userEmail)}
+            </span>
+          </button>
+
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-52 bg-[var(--bg-card)] rounded-xl overflow-hidden z-50 shadow-lg" style={{ border: '0.5px solid var(--border)' }}>
+              <div className="px-3 py-2.5" style={{ borderBottom: '0.5px solid var(--border)' }}>
+                <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{userName || userEmail}</p>
+                {userName && <p className="text-[11px] text-[var(--text-tertiary)] truncate mt-0.5">{userEmail}</p>}
+              </div>
+              <button
+                onClick={toggleTheme}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-[var(--text-primary)] transition-colors"
+              >
+                {dark
+                  ? <Sun className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />
+                  : <Moon className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0" />}
+                {dark ? 'Mode clair' : 'Mode sombre'}
+              </button>
+              <button
+                onClick={() => { setMenuOpen(false); handleSignOut() }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] text-[var(--danger)] transition-colors"
+              >
+                <LogOut className="h-4 w-4 flex-shrink-0" />
+                Se déconnecter
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )

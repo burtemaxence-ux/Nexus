@@ -232,6 +232,39 @@
   .dp-status-dot.danger::after  { background-color: var(--danger); }
 }
 
+/* ── Safe area & mobile polish ───────────────────────────────────────────────── */
+
+/* Content area padding that accounts for notch safe area on iOS PWA */
+.content-safe-pt {
+  padding-top: 56px;
+  padding-top: calc(56px + env(safe-area-inset-top, 0px));
+}
+@media (min-width: 768px) {
+  .content-safe-pt {
+    padding-top: 44px; /* desktop topbar height */
+  }
+}
+
+/* Minimum 44px tap targets on mobile (Apple HIG) */
+@media (max-width: 767px) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    min-height: 44px;
+  }
+  .dp-input {
+    min-height: 44px;
+    font-size: 16px; /* prevent iOS zoom on focus */
+  }
+}
+
+/* Dialog bottom sheet safe area — mobile only */
+@media (max-width: 639px) {
+  [role="dialog"] {
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* ── Keyframes ──────────────────────────────────────────────────────────────── */
 @keyframes dp-fade-up {
   from { opacity: 0; transform: translateY(8px); }
