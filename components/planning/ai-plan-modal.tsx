@@ -34,9 +34,11 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
   const [phase, setPhase] = useState<ModalPhase>('idle')
   const [instructions, setInstructions] = useState('')
   const [proposedShifts, setProposedShifts] = useState<ProposedShift[]>([])
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
   const [summary, setSummary] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [applied, setApplied] = useState(0)
+  const [applyTotal, setApplyTotal] = useState(0)
 
   async function generate() {
     setPhase('generating')
@@ -53,7 +55,9 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
         setPhase('idle')
         return
       }
-      setProposedShifts(data.shifts ?? [])
+      const shifted = data.shifts ?? []
+      setProposedShifts(shifted)
+      setSelectedIndices(new Set(shifted.map((_, i) => i)))
       setSummary(data.summary ?? '')
       setPhase('preview')
     } catch {
@@ -62,11 +66,28 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
     }
   }
 
-  async function applyShifts() {
+  function toggleShift(i: number) {
+    setSelectedIndices(prev => {
+      const next = new Set(prev)
+      next.has(i) ? next.delete(i) : next.add(i)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    if (selectedIndices.size === proposedShifts.length) {
+      setSelectedIndices(new Set())
+    } else {
+      setSelectedIndices(new Set(proposedShifts.map((_, i) => i)))
+    }
+  }
+
+  async function applyShifts(toApply: ProposedShift[]) {
     setPhase('applying')
     setApplied(0)
+    setApplyTotal(toApply.length)
     let count = 0
-    for (const shift of proposedShifts) {
+    for (const shift of toApply) {
       await fetch('/api/shifts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -205,41 +226,70 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
                 </div>
               )}
 
-              <p className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
-                {proposedShifts.length} shift{proposedShifts.length > 1 ? 's' : ''} proposé{proposedShifts.length > 1 ? 's' : ''}
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+                  {proposedShifts.length} shift{proposedShifts.length > 1 ? 's' : ''} proposé{proposedShifts.length > 1 ? 's' : ''}
+                </p>
+                <button
+                  onClick={toggleAll}
+                  className="text-[11px]"
+                  style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  {selectedIndices.size === proposedShifts.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+                </button>
+              </div>
 
               <div className="space-y-1.5">
-                {proposedShifts.map((shift, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-                    style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}
-                  >
+                {proposedShifts.map((shift, i) => {
+                  const checked = selectedIndices.has(i)
+                  return (
                     <div
-                      className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold uppercase"
-                      style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}
+                      key={i}
+                      onClick={() => toggleShift(i)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors"
+                      style={{
+                        border: `0.5px solid ${checked ? 'var(--accent)' : 'var(--border)'}`,
+                        backgroundColor: checked ? 'var(--accent-light)' : 'var(--bg-page)',
+                      }}
                     >
-                      {getDayLabel(shift.date).slice(0, 3)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {shift.employee_name}
-                      </p>
-                      <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                        {getDayLabel(shift.date)} · {fmtTime(shift.start_time)}–{fmtTime(shift.end_time)}
-                        {shift.position && (
-                          <span className="ml-2" style={{ color: 'var(--text-tertiary)' }}>{shift.position}</span>
+                      <div
+                        className="h-4 w-4 rounded flex-shrink-0 flex items-center justify-center"
+                        style={{
+                          border: `1.5px solid ${checked ? 'var(--accent)' : 'var(--border)'}`,
+                          backgroundColor: checked ? 'var(--accent)' : 'transparent',
+                        }}
+                      >
+                        {checked && (
+                          <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                            <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
                         )}
-                      </p>
+                      </div>
+                      <div
+                        className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold uppercase"
+                        style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}
+                      >
+                        {getDayLabel(shift.date).slice(0, 3)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {shift.employee_name}
+                        </p>
+                        <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                          {getDayLabel(shift.date)} · {fmtTime(shift.start_time)}–{fmtTime(shift.end_time)}
+                          {shift.position && (
+                            <span className="ml-2" style={{ color: 'var(--text-tertiary)' }}>{shift.position}</span>
+                          )}
+                        </p>
+                      </div>
+                      {shift.break_minutes > 0 && (
+                        <span className="text-[11px] flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>
+                          pause {shift.break_minutes}min
+                        </span>
+                      )}
                     </div>
-                    {shift.break_minutes > 0 && (
-                      <span className="text-[11px] flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>
-                        pause {shift.break_minutes}min
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
@@ -255,13 +305,13 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
                   Création des shifts…
                 </p>
                 <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  {applied} / {proposedShifts.length} créés
+                  {applied} / {applyTotal} créés
                 </p>
                 <div className="mt-3 h-1.5 w-48 rounded-full overflow-hidden mx-auto" style={{ backgroundColor: 'var(--border)' }}>
                   <div
                     className="h-full rounded-full transition-all duration-300"
                     style={{
-                      width: `${proposedShifts.length > 0 ? (applied / proposedShifts.length) * 100 : 0}%`,
+                      width: `${applyTotal > 0 ? (applied / applyTotal) * 100 : 0}%`,
                       backgroundColor: 'var(--accent)',
                     }}
                   />
@@ -281,7 +331,7 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
                   Planning créé !
                 </p>
                 <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  {proposedShifts.length} shift{proposedShifts.length > 1 ? 's' : ''} ajouté{proposedShifts.length > 1 ? 's' : ''} en mode brouillon.
+                  {applied} shift{applied > 1 ? 's' : ''} ajouté{applied > 1 ? 's' : ''} en mode brouillon.
                 </p>
                 <p className="text-[12px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
                   Vérifiez et publiez quand vous êtes prêt.
@@ -324,14 +374,24 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
                 <RefreshCw className="h-3.5 w-3.5" />
                 Recommencer
               </button>
-              <button
-                onClick={applyShifts}
-                disabled={proposedShifts.length === 0}
-                className="btn-primary flex items-center gap-2 text-[13px]"
-              >
-                <CheckCircle className="h-3.5 w-3.5" />
-                Confirmer ({proposedShifts.length} shifts)
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => applyShifts(proposedShifts.filter((_, i) => selectedIndices.has(i)))}
+                  disabled={selectedIndices.size === 0}
+                  className="btn-secondary flex items-center gap-2 text-[13px] disabled:opacity-50"
+                >
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Importer sélection ({selectedIndices.size})
+                </button>
+                <button
+                  onClick={() => applyShifts(proposedShifts)}
+                  disabled={proposedShifts.length === 0}
+                  className="btn-primary flex items-center gap-2 text-[13px]"
+                >
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Importer tous ({proposedShifts.length})
+                </button>
+              </div>
             </>
           )}
 

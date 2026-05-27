@@ -3,10 +3,11 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Printer, Mail, Share2, Check, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Printer, Mail, Share2, Check, AlertTriangle, Sparkles } from 'lucide-react'
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
+import { AiPlanModal } from '@/components/planning/ai-plan-modal'
 import {
   DndContext,
   DragEndEvent,
@@ -270,6 +271,7 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
   const [emailLoading, setEmailLoading] = useState(false)
   const [emailFeedback, setEmailFeedback] = useState<string | null>(null)
   const [activeDragShiftId, setActiveDragShiftId] = useState<string | null>(null)
+  const [showAiModal, setShowAiModal] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -566,6 +568,18 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
                 PDF
               </button>
             </Link>
+
+            {/* AI generate */}
+            <button
+              onClick={() => setShowAiModal(true)}
+              disabled={weekLocked || employees.length === 0}
+              className="flex items-center gap-1.5 text-[13px] font-medium rounded-lg px-3 py-1.5 transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: '#2D3A8C', color: '#ffffff', border: 'none', cursor: weekLocked || employees.length === 0 ? 'not-allowed' : 'pointer' }}
+              title="Générer le planning avec l'IA"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Générer avec l&apos;IA
+            </button>
 
             {emailFeedback && (
               <span className="text-[12px]" style={{ color: emailFeedback.startsWith('✓') ? 'var(--success)' : 'var(--danger)' }}>
@@ -865,6 +879,17 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
               </tfoot>
             </table>
           </div>
+        )}
+
+        {showAiModal && (
+          <AiPlanModal
+            weekMonday={toISODate(weekDates[0])}
+            weekLabel={weekLabel}
+            employees={employees}
+            postes={postes}
+            onSuccess={() => { setShowAiModal(false); router.refresh() }}
+            onClose={() => setShowAiModal(false)}
+          />
         )}
 
         <ShiftModal
