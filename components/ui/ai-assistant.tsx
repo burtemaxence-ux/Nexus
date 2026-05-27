@@ -166,11 +166,11 @@ export function AiAssistant({
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating button — remonté au-dessus de la bottom nav sur mobile */}
       <button
         onClick={() => setOpen(v => !v)}
         aria-label="Assistant IA"
-        className="fixed bottom-6 right-6 z-50 flex items-center justify-center rounded-full transition-all duration-300 focus:outline-none"
+        className="fixed right-4 z-50 flex items-center justify-center rounded-full transition-all duration-300 focus:outline-none bottom-[80px] md:bottom-6"
         style={{
           height: '52px',
           width: '52px',
@@ -185,11 +185,11 @@ export function AiAssistant({
 
       {/* Chat panel */}
       <div
-        className={`fixed bottom-24 right-6 z-50 flex w-[380px] flex-col rounded-2xl transition-all duration-300 ${
+        className={`fixed right-4 z-50 flex flex-col rounded-2xl transition-all duration-300 w-[calc(100vw-32px)] md:w-[380px] bottom-[144px] md:bottom-24 ${
           open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
         style={{
-          maxHeight: 'calc(100vh - 140px)',
+          maxHeight: 'calc(100vh - 180px)',
           minHeight: '460px',
           border: '0.5px solid var(--border)',
           backgroundColor: 'var(--bg-card)',
