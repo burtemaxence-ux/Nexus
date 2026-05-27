@@ -50,20 +50,20 @@ export async function GET() {
       ] = await Promise.all([
         supabaseAdmin
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('establishment_id', eid)
           .eq('role', 'employee')
           .eq('archived', false),
         supabaseAdmin
           .from('shifts')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('establishment_id', eid)
           .gte('date', weekStart)
           .lte('date', weekEnd)
           .is('deleted_at', null),
         supabaseAdmin
           .from('leave_requests')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .eq('establishment_id', eid)
           .eq('status', 'pending'),
       ])

@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     { data: postes },
     { data: settings },
   ] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false),
+    supabase.from('profiles').select('id, full_name, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false).limit(200),
     supabase.from('leave_requests')
       .select('employee_id, type, start_date, end_date, profiles(full_name)')
       .lte('start_date', weekEndStr)

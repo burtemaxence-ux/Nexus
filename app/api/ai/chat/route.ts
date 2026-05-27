@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     { data: marketplaceSlots },
     { data: shiftExchanges },
   ] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false),
+    supabase.from('profiles').select('id, full_name, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false).limit(200),
     supabase.from('leave_requests').select('id, type, start_date, end_date, status, profiles(full_name)').order('created_at', { ascending: false }).limit(20),
     supabase.from('shifts').select('id, date, start_time, end_time, position, profiles(full_name)').gte('date', day30ago).lte('date', today).order('date', { ascending: false }).limit(60),
     supabase.from('shifts').select('id, date, start_time, end_time, position, profiles(full_name)').gt('date', today).lte('date', day7ahead).order('date', { ascending: true }).limit(40),
