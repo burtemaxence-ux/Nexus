@@ -324,9 +324,9 @@ export default function RapportPage() {
   return (
     <div className="min-h-full">
       {/* Sticky header */}
-      <div className="border-b border-border bg-card sticky top-11 z-10">
-        <div className="px-6 max-w-6xl mx-auto">
-          <div className="flex items-center gap-3 h-14 flex-wrap">
+      <div className="border-b border-border bg-card sticky top-14 md:top-11 z-10">
+        <div className="px-4 md:px-6 max-w-6xl mx-auto">
+          <div className="flex items-center gap-2 md:gap-3 flex-wrap min-h-[56px] py-2">
             <h1 className="text-[20px] font-medium tracking-[-0.02em] shrink-0" style={{ color: 'var(--text-primary)' }}>Rapport</h1>
 
             {/* Report type tabs */}
@@ -413,7 +413,7 @@ export default function RapportPage() {
         </div>
       </div>
 
-      <div className="px-6 py-6 max-w-6xl mx-auto space-y-6">
+      <div className="px-4 py-4 md:px-6 md:py-6 max-w-6xl mx-auto space-y-6">
         {tab === 'retards' && (
           <>
             {/* Retards summary cards */}

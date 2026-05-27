@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import {
   UserPlus, Users, Pencil, Search, Download,
-  ArrowUpDown, ArrowUp, ArrowDown, ChevronDown,
+  ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight,
 } from 'lucide-react'
 import DeleteEmployeeButton from './delete-employee-button'
 import ResendLinkButton from './resend-link-button'
@@ -155,9 +155,9 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
   return (
     <div className="min-h-full">
       {/* Header */}
-      <div className="sticky top-11 z-20" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '0.5px solid var(--border)' }}>
-        <div className="px-6 max-w-6xl mx-auto">
-          <div className="flex items-center gap-3 h-14 flex-wrap">
+      <div className="sticky top-14 md:top-11 z-20" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '0.5px solid var(--border)' }}>
+        <div className="px-4 md:px-6 max-w-6xl mx-auto">
+          <div className="flex items-center gap-2 md:gap-3 flex-wrap min-h-[56px] py-2">
             <h1 className="text-[20px] font-medium tracking-[-0.02em] shrink-0" style={{ color: 'var(--text-primary)' }}>Équipe</h1>
 
             {/* Search */}
@@ -173,7 +173,7 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
             </div>
 
             {/* Contract filter */}
-            <div className="relative">
+            <div className="relative hidden md:block">
               <select
                 value={filterContract}
                 onChange={e => setFilterContract(e.target.value)}
@@ -191,7 +191,7 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
 
             {/* Position filter */}
             {positions.length > 0 && (
-              <div className="relative">
+              <div className="relative hidden md:block">
                 <select
                   value={filterPosition}
                   onChange={e => setFilterPosition(e.target.value)}
@@ -221,7 +221,7 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
 
             <div className="ml-auto flex items-center gap-2">
               {/* Archived toggle */}
-              <label className="flex items-center gap-1.5 text-[12px] cursor-pointer select-none" style={{ color: 'var(--text-secondary)' }}>
+              <label className="hidden md:flex items-center gap-1.5 text-[12px] cursor-pointer select-none" style={{ color: 'var(--text-secondary)' }}>
                 <input
                   type="checkbox"
                   checked={showArchived}
@@ -235,7 +235,7 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
               <button
                 onClick={() => exportCSV(filtered)}
                 disabled={filtered.length === 0}
-                className="btn-secondary flex items-center gap-1.5 disabled:opacity-40"
+                className="hidden md:flex btn-secondary items-center gap-1.5 disabled:opacity-40"
               >
                 <Download className="h-3.5 w-3.5" />
                 CSV
@@ -253,7 +253,7 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
         </div>
       </div>
 
-      <div className="px-6 py-6 max-w-6xl mx-auto">
+      <div className="px-4 py-4 md:px-6 md:py-6 max-w-6xl mx-auto">
         {/* Stats bar */}
         <div className="flex items-center gap-3 mb-4 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
           {loading ? (
@@ -288,7 +288,39 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
             )}
           </div>
         ) : (
-          <div className="rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+          <>
+          {/* Mobile: card list */}
+          <div className="block md:hidden space-y-2">
+            {filtered.map(emp => (
+              <Link
+                key={emp.id}
+                href={`/manager/employees/${emp.id}`}
+                className="flex items-center gap-3 p-4 rounded-xl"
+                style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)', opacity: emp.archived ? 0.5 : 1 }}
+              >
+                <div className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+                  <span className="text-[11px] font-medium" style={{ color: 'var(--accent)' }}>
+                    {getInitials(emp.full_name ?? emp.email ?? '?')}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium leading-tight truncate" style={{ color: 'var(--text-primary)' }}>
+                    {emp.full_name ?? '—'}
+                    {emp.archived && <span className="ml-2 dp-badge-info">Archivé</span>}
+                  </p>
+                  <p className="text-[12px] truncate" style={{ color: 'var(--text-secondary)' }}>{emp.email}</p>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    {emp.position && <span className="dp-badge-info">{emp.position}</span>}
+                    {emp.contract_type && <span className="dp-badge-info">{emp.contract_type}</span>}
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+              </Link>
+            ))}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden md:block rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -393,6 +425,7 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
               </table>
             </div>
           </div>
+          </>
         )}
       </div>
     </div>

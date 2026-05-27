@@ -167,7 +167,7 @@ export default function AlertesPage() {
   return (
     <div className="min-h-full">
       {/* Header */}
-      <div className="border-b border-border bg-card sticky top-11 z-10">
+      <div className="border-b border-border bg-card sticky top-14 md:top-11 z-10">
         <div className="px-6 max-w-5xl mx-auto">
           <div className="flex items-center gap-3 h-14">
             <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Alertes</h1>
@@ -187,7 +187,7 @@ export default function AlertesPage() {
         </div>
       </div>
 
-      <div className="px-6 py-6 max-w-5xl mx-auto space-y-6">
+      <div className="px-4 py-4 md:px-6 md:py-6 max-w-5xl mx-auto space-y-6">
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -213,7 +213,8 @@ export default function AlertesPage() {
                   </h2>
                 </div>
                 <div className="bg-card border border-border rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[500px]">
                     <thead>
                       <tr className="bg-muted/60 border-b border-border">
                         {['Employé', 'Date', 'Règle légale', 'Sévérité'].map(h => (
@@ -251,6 +252,7 @@ export default function AlertesPage() {
                       })}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </section>
             )}
@@ -266,7 +268,8 @@ export default function AlertesPage() {
                   </h2>
                 </div>
                 <div className="bg-card border border-border rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[400px]">
                     <thead>
                       <tr className="bg-muted/60 border-b border-border">
                         {['Employé', 'Type contrat', 'Fin le', 'Délai'].map(h => (
@@ -302,6 +305,7 @@ export default function AlertesPage() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </section>
             )}
@@ -317,7 +321,8 @@ export default function AlertesPage() {
                   </h2>
                 </div>
                 <div className="bg-card border border-border rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[360px]">
                     <thead>
                       <tr className="bg-muted/60 border-b border-border">
                         {['Employé', 'Date', 'Retard'].map(h => (
@@ -345,6 +350,7 @@ export default function AlertesPage() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </section>
             )}
@@ -360,7 +366,8 @@ export default function AlertesPage() {
                   </h2>
                 </div>
                 <div className="bg-card border border-border rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[320px]">
                     <thead>
                       <tr className="bg-muted/60 border-b border-border">
                         {['Employé', 'Shift prévu'].map(h => (
@@ -383,6 +390,7 @@ export default function AlertesPage() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </section>
             )}

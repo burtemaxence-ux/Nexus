@@ -274,7 +274,7 @@ export default function PresencesDashboardPage() {
   })
 
   return (
-    <div className="px-6 py-6 max-w-5xl mx-auto">
+    <div className="px-4 py-4 md:px-6 md:py-6 max-w-5xl mx-auto">
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
@@ -316,7 +316,7 @@ export default function PresencesDashboardPage() {
 
       {/* Stats (today only) */}
       {period === 'today' && (
-        <div className="grid grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {([
             { key: 'present'  as const, icon: LogIn,  label: 'En service', color: '#16A34A', bg: '#DCFCE7' },
             { key: 'on_break' as const, icon: Coffee, label: 'En pause',   color: '#D97706', bg: '#FEF3C7' },
@@ -351,7 +351,8 @@ export default function PresencesDashboardPage() {
         </div>
       ) : (
         <div className="rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[580px]">
             <thead>
               <tr style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
                 {period !== 'today' && (
@@ -382,6 +383,7 @@ export default function PresencesDashboardPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

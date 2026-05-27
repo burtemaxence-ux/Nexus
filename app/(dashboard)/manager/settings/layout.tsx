@@ -12,7 +12,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   }
 
   return (
-    <div className="flex" style={{ minHeight: 'calc(100vh - 44px)' }}>
+    <div className="flex flex-col md:flex-row" style={{ minHeight: 'calc(100vh - 44px)' }}>
       <SettingsSidebar />
       <main className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--bg-page)' }}>
         {isSupervisor && (
