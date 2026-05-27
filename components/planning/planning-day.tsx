@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -47,24 +47,31 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
   const dayLabel = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   const isTodayDate = toISODate(new Date()) === dateStr
 
-  const posteMap = new Map(postes.map(p => [p.id, p]))
-  const dayShiftMap = new Map<string, Shift[]>()
-  for (const s of shifts) {
-    const existing = dayShiftMap.get(s.employee_id) ?? []
-    existing.push(s)
-    dayShiftMap.set(s.employee_id, existing)
-  }
+  const posteMap = useMemo(() => new Map(postes.map(p => [p.id, p])), [postes])
 
-  const absenceMap = new Map<string, LeaveType>()
-  for (const req of leaveRequests) {
-    const start = new Date(req.start_date + 'T00:00:00')
-    const end = new Date(req.end_date + 'T00:00:00')
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      if (toISODate(d) === dateStr) absenceMap.set(req.employee_id, req.type)
+  const dayShiftMap = useMemo(() => {
+    const m = new Map<string, Shift[]>()
+    for (const s of shifts) {
+      const existing = m.get(s.employee_id) ?? []
+      existing.push(s)
+      m.set(s.employee_id, existing)
     }
-  }
+    return m
+  }, [shifts])
 
-  const sorted = [...employees].sort((a, b) => {
+  const absenceMap = useMemo(() => {
+    const m = new Map<string, LeaveType>()
+    for (const req of leaveRequests) {
+      const start = new Date(req.start_date + 'T00:00:00')
+      const end = new Date(req.end_date + 'T00:00:00')
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        if (toISODate(d) === dateStr) m.set(req.employee_id, req.type)
+      }
+    }
+    return m
+  }, [leaveRequests, dateStr])
+
+  const sorted = useMemo(() => [...employees].sort((a, b) => {
     const aShifts = dayShiftMap.get(a.id) ?? []
     const bShifts = dayShiftMap.get(b.id) ?? []
     const aAbs = absenceMap.has(a.id)
@@ -75,9 +82,12 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
     if (aAbs && !bAbs) return -1
     if (bAbs && !aAbs) return 1
     return (a.full_name ?? '').localeCompare(b.full_name ?? '')
-  })
+  }), [employees, dayShiftMap, absenceMap])
 
-  const totalDayHours = shifts.reduce((s, sh) => s + calcHours(sh.start_time, sh.end_time, sh.break_minutes), 0)
+  const totalDayHours = useMemo(
+    () => shifts.reduce((s, sh) => s + calcHours(sh.start_time, sh.end_time, sh.break_minutes), 0),
+    [shifts]
+  )
 
   async function handleWeekStatus(payload: { published?: boolean; locked?: boolean }) {
     setStatusLoading(true)

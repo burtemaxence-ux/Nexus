@@ -1,6 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import AnalyticsClient from './analytics-client'
+import dynamic from 'next/dynamic'
+
+const AnalyticsClient = dynamic(() => import('./analytics-client'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse h-96 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]" />,
+})
 
 export const metadata = { title: 'Analytiques RH — Nexus' }
 

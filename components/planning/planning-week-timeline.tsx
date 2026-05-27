@@ -484,7 +484,7 @@ export function PlanningWeekTimeline({
   const prevMonday = toISODate(addDays(weekDates[0], -7))
   const nextMonday = toISODate(addDays(weekDates[0], 7))
   const weekLabel = getWeekLabel(weekDates)
-  const posteMap = new Map<string, Poste>(postes.map(p => [p.id, p]))
+  const posteMap = useMemo(() => new Map<string, Poste>(postes.map(p => [p.id, p])), [postes])
 
   const [modal, setModal] = useState<ModalState>({ type: 'closed' })
   const [ctx, setCtx] = useState<CtxMenu | null>(null)
@@ -525,18 +525,30 @@ export function PlanningWeekTimeline({
     return m
   }, [leaveRequests])
 
-  const positions = Array.from(new Set(employees.map(e => e.position).filter(Boolean) as string[])).sort()
-  const filteredEmps = filterPoste ? employees.filter(e => e.position === filterPoste) : employees
-  const activeDragShift = activeDragId ? shifts.find(s => `shift-${s.id}` === activeDragId) : null
+  const positions = useMemo(
+    () => Array.from(new Set(employees.map(e => e.position).filter(Boolean) as string[])).sort(),
+    [employees]
+  )
+  const filteredEmps = useMemo(
+    () => filterPoste ? employees.filter(e => e.position === filterPoste) : employees,
+    [filterPoste, employees]
+  )
+  const activeDragShift = useMemo(
+    () => activeDragId ? shifts.find(s => `shift-${s.id}` === activeDragId) : null,
+    [activeDragId, shifts]
+  )
 
   // ── Metric computations ────────────────────────────────────────────────────
-  const totalPlanned = shifts.reduce((sum, s) => sum + calcHours(s.start_time, s.end_time, s.break_minutes), 0)
-  const employeesWithShift = new Set(shifts.map(s => s.employee_id)).size
-  const coverage = employees.length > 0 ? Math.round((employeesWithShift / employees.length) * 100) : 0
-  const hasWeeklyHours = employees.some(e => e.weekly_hours != null)
-  const overtime = hasWeeklyHours
-    ? Math.max(0, totalPlanned - employees.reduce((sum, e) => sum + (e.weekly_hours ?? 35), 0))
-    : null
+  const { totalPlanned, coverage, overtime } = useMemo(() => {
+    const total = shifts.reduce((sum, s) => sum + calcHours(s.start_time, s.end_time, s.break_minutes), 0)
+    const withShift = new Set(shifts.map(s => s.employee_id)).size
+    const cov = employees.length > 0 ? Math.round((withShift / employees.length) * 100) : 0
+    const hasHours = employees.some(e => e.weekly_hours != null)
+    const ot = hasHours
+      ? Math.max(0, total - employees.reduce((sum, e) => sum + (e.weekly_hours ?? 35), 0))
+      : null
+    return { totalPlanned: total, coverage: cov, overtime: ot }
+  }, [shifts, employees])
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   async function handleWeekStatus(payload: { published?: boolean; locked?: boolean }) {
