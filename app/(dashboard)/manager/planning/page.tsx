@@ -166,8 +166,8 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
   }
 
   return (
-    <div className="px-6 py-6">
-      <h1 className="text-[20px] font-medium tracking-[-0.02em] mb-5" style={{ color: 'var(--text-primary)' }}>
+    <div className="px-4 py-4 md:px-6 md:py-6">
+      <h1 className="text-[18px] md:text-[20px] font-medium tracking-[-0.02em] mb-4 md:mb-5" style={{ color: 'var(--text-primary)' }}>
         Planning
       </h1>
       <PlanningWeekTimeline
