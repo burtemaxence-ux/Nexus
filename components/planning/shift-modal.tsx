@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { type Profile, type Shift, type Poste } from '@/types'
 import { toISODate } from '@/lib/utils/dates'
+import { checkCompliance, type ShiftRecord, type Violation, RULES } from '@/lib/compliance/rules'
 
 // ── Planning rules ────────────────────────────────────────────────────────────
 
@@ -111,6 +112,45 @@ function computeWarnings(
   }
 
   return warnings
+}
+
+function computeComplianceViolations(
+  startTime: string,
+  endTime: string,
+  breakMins: number,
+  employeeId: string,
+  date: Date,
+  allShifts: Shift[],
+  excludeShiftId?: string,
+): Violation[] {
+  const dateStr = toISODate(date)
+
+  const existing: ShiftRecord[] = allShifts
+    .filter(s => s.employee_id === employeeId && s.id !== (excludeShiftId ?? ''))
+    .map(s => ({
+      id: s.id,
+      employeeId: s.employee_id,
+      date: s.date,
+      startTime: s.start_time.slice(0, 5),
+      endTime: s.end_time.slice(0, 5),
+      breakMinutes: s.break_minutes,
+    }))
+
+  const proposed: ShiftRecord = {
+    id: 'proposed',
+    employeeId,
+    date: dateStr,
+    startTime,
+    endTime,
+    breakMinutes: breakMins,
+  }
+
+  const baseline = checkCompliance(existing)
+  const withProposed = checkCompliance([...existing, proposed])
+
+  return withProposed.filter(v =>
+    !baseline.some(b => b.ruleId === v.ruleId && b.employeeId === v.employeeId && b.date === v.date)
+  )
 }
 
 const BREAK_OPTIONS = [
@@ -412,6 +452,14 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
     )
   }, [startTime, endTime, breakMinutes, rules, modalState, shifts])
 
+  const createComplianceViolations = useMemo<Violation[]>(() => {
+    if (modalState.type !== 'create') return []
+    return computeComplianceViolations(
+      startTime, endTime, parseInt(breakMinutes, 10),
+      modalState.employee.id, modalState.date, shifts,
+    )
+  }, [startTime, endTime, breakMinutes, modalState, shifts])
+
   // Reactive warnings for edit mode
   const editWarnings = useMemo(() => {
     if (modalState.type !== 'view' || !isEditing) return []
@@ -420,6 +468,15 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
       rules, modalState.employee.id, modalState.date, shifts
     )
   }, [editStartTime, editEndTime, editBreakMinutes, rules, modalState, isEditing, shifts])
+
+  const editComplianceViolations = useMemo<Violation[]>(() => {
+    if (modalState.type !== 'view' || !isEditing) return []
+    return computeComplianceViolations(
+      editStartTime, editEndTime, parseInt(editBreakMinutes, 10),
+      modalState.employee.id, modalState.date, shifts,
+      modalState.shift.id,
+    )
+  }, [editStartTime, editEndTime, editBreakMinutes, modalState, isEditing, shifts])
 
   if (modalState.type === 'closed') {
     return null
@@ -535,6 +592,33 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
                     <p className="text-[12px] leading-snug" style={{ color: '#92400E' }}>{w}</p>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Alertes légales Code du travail */}
+            {createComplianceViolations.length > 0 && (
+              <div className="space-y-1.5">
+                {createComplianceViolations.map((v, i) => {
+                  const rule = RULES[v.ruleId]
+                  const isCritical = rule.severity === 'critical'
+                  return (
+                    <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
+                      style={{
+                        backgroundColor: isCritical ? '#FEE2E2' : '#FEF3C7',
+                        border: `0.5px solid ${isCritical ? '#dc2626' : '#D97706'}`,
+                      }}>
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: isCritical ? '#dc2626' : '#D97706' }} />
+                      <div>
+                        <p className="text-[12px] font-medium leading-snug" style={{ color: isCritical ? '#991b1b' : '#92400E' }}>
+                          {rule.name}
+                        </p>
+                        <p className="text-[11px] leading-snug mt-0.5" style={{ color: isCritical ? '#b91c1c' : '#a16207' }}>
+                          {v.description} — <span className="font-medium">{rule.legalRef}</span>
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
 
@@ -670,6 +754,33 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
                     <p className="text-[12px] leading-snug" style={{ color: '#92400E' }}>{w}</p>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Alertes légales Code du travail */}
+            {editComplianceViolations.length > 0 && (
+              <div className="space-y-1.5">
+                {editComplianceViolations.map((v, i) => {
+                  const rule = RULES[v.ruleId]
+                  const isCritical = rule.severity === 'critical'
+                  return (
+                    <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
+                      style={{
+                        backgroundColor: isCritical ? '#FEE2E2' : '#FEF3C7',
+                        border: `0.5px solid ${isCritical ? '#dc2626' : '#D97706'}`,
+                      }}>
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: isCritical ? '#dc2626' : '#D97706' }} />
+                      <div>
+                        <p className="text-[12px] font-medium leading-snug" style={{ color: isCritical ? '#991b1b' : '#92400E' }}>
+                          {rule.name}
+                        </p>
+                        <p className="text-[11px] leading-snug mt-0.5" style={{ color: isCritical ? '#b91c1c' : '#a16207' }}>
+                          {v.description} — <span className="font-medium">{rule.legalRef}</span>
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
 

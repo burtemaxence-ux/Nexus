@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Printer, Mail, Share2, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Lock, Unlock, Printer, Mail, Share2, Check, AlertTriangle } from 'lucide-react'
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/core'
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
+import { checkCompliance, type ShiftRecord, type Violation, RULES } from '@/lib/compliance/rules'
 
 interface PlanningGridProps {
   weekDates: Date[]
@@ -109,33 +110,41 @@ interface DraggableShiftProps {
   employee: Profile
   onClick: () => void
   disabled: boolean
+  violations: Violation[]
 }
 
-function DraggableShift({ shift, poste, employee, onClick, disabled }: DraggableShiftProps) {
+function DraggableShift({ shift, poste, employee, onClick, disabled, violations }: DraggableShiftProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: shift.id,
     disabled,
   })
 
+  const hasCritical = violations.some(v => RULES[v.ruleId].severity === 'critical')
+  const hasWarning = !hasCritical && violations.some(v => RULES[v.ruleId].severity === 'warning')
+
   const bgColor = poste ? `${poste.color}20` : 'var(--accent-light)'
-  const borderColor = poste?.color ?? 'var(--accent)'
+  const borderColor = hasCritical ? '#dc2626' : hasWarning ? '#d97706' : (poste?.color ?? 'var(--accent)')
   const textColor = poste?.color ?? 'var(--accent)'
+
+  const violationTitle = violations
+    .map(v => `${RULES[v.ruleId].name} — ${RULES[v.ruleId].legalRef}`)
+    .join('\n')
 
   const style = {
     backgroundColor: bgColor,
-    borderColor: borderColor,
+    borderColor,
     color: textColor,
-    border: '0.5px solid',
+    border: (hasCritical || hasWarning) ? '1.5px solid' : '0.5px solid',
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.4 : 1,
     cursor: disabled ? 'pointer' : 'grab',
     height: '24px',
     borderRadius: '6px',
     fontSize: '12px',
-    padding: '0 10px',
+    padding: '0 8px',
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
+    gap: '5px',
     overflow: 'hidden',
     flexShrink: 0,
   }
@@ -146,6 +155,7 @@ function DraggableShift({ shift, poste, employee, onClick, disabled }: Draggable
       style={style}
       className="hover:opacity-80 transition-opacity duration-150"
       onClick={onClick}
+      title={violationTitle || undefined}
       {...(disabled ? {} : { ...listeners, ...attributes })}
     >
       <span className="font-medium whitespace-nowrap">
@@ -154,6 +164,12 @@ function DraggableShift({ shift, poste, employee, onClick, disabled }: Draggable
       <span className="truncate opacity-75 text-[11px]">
         {shift.position ?? employee.position}
       </span>
+      {violations.length > 0 && (
+        <AlertTriangle
+          size={9}
+          style={{ color: hasCritical ? '#dc2626' : '#d97706', flexShrink: 0, marginLeft: 'auto' }}
+        />
+      )}
     </div>
   )
 }
@@ -168,15 +184,21 @@ interface DroppableCellProps {
   isLocked: boolean
   onEmptyCellClick: () => void
   hasShifts: boolean
+  violations?: Violation[]
 }
 
-function DroppableCell({ id, children, className, style, isLocked, onEmptyCellClick, hasShifts }: DroppableCellProps) {
+function DroppableCell({ id, children, className, style, isLocked, onEmptyCellClick, hasShifts, violations = [] }: DroppableCellProps) {
   const { setNodeRef, isOver } = useDroppable({ id })
+
+  const cellHasCritical = violations.some(v => RULES[v.ruleId].severity === 'critical')
+  const cellHasWarning = !cellHasCritical && violations.some(v => RULES[v.ruleId].severity === 'warning')
+  const cellTitle = violations.map(v => `${RULES[v.ruleId].name} — ${RULES[v.ruleId].legalRef}`).join('\n')
 
   return (
     <td
       ref={setNodeRef}
       className={className ?? ''}
+      title={cellTitle || undefined}
       style={{
         borderBottom: '0.5px solid var(--border)',
         borderRight: '0.5px solid var(--border)',
@@ -184,6 +206,7 @@ function DroppableCell({ id, children, className, style, isLocked, onEmptyCellCl
         verticalAlign: 'top',
         minHeight: '72px',
         backgroundColor: isOver && !isLocked ? 'var(--accent-light)' : undefined,
+        boxShadow: cellHasCritical ? 'inset 3px 0 0 #dc2626' : cellHasWarning ? 'inset 3px 0 0 #d97706' : undefined,
         transition: 'background-color 150ms ease',
         ...style,
       }}
@@ -362,6 +385,26 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
       console.error('Erreur lors du déplacement du créneau:', err)
     }
   }
+
+  const violationMap = useMemo<Map<string, Violation[]>>(() => {
+    const records: ShiftRecord[] = shifts.map(s => ({
+      id: s.id,
+      employeeId: s.employee_id,
+      date: s.date,
+      startTime: s.start_time.slice(0, 5),
+      endTime: s.end_time.slice(0, 5),
+      breakMinutes: s.break_minutes,
+    }))
+    const allViolations = checkCompliance(records)
+    const map = new Map<string, Violation[]>()
+    for (const v of allViolations) {
+      const key = `${v.employeeId}__${v.date}`
+      const list = map.get(key) ?? []
+      list.push(v)
+      map.set(key, list)
+    }
+    return map
+  }, [shifts])
 
   const shiftMap = new Map<string, Shift[]>()
   for (const shift of shifts) {
@@ -671,6 +714,7 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
                       const today = isToday(date)
                       const droppableId = `${employee.id}__${dateStr}`
 
+                      const cellViolations = violationMap.get(droppableId) ?? []
                       return (
                         <DroppableCell
                           key={dateStr}
@@ -679,6 +723,7 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
                           onEmptyCellClick={() => openCreateModal(employee, date)}
                           hasShifts={dayShifts.length > 0 || absenceType !== undefined}
                           style={today ? { backgroundColor: 'rgba(var(--accent-light-rgb, 238 240 250) / 0.4)' } : undefined}
+                          violations={cellViolations}
                         >
                           <div className="space-y-1" style={{ minHeight: '60px' }}>
                             {absenceType && <AbsenceBadge type={absenceType} />}
@@ -707,6 +752,7 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
                                   employee={employee}
                                   onClick={() => openViewModal(shift, employee, date)}
                                   disabled={weekLocked}
+                                  violations={cellViolations}
                                 />
                               )
                             })}
@@ -827,6 +873,7 @@ export function PlanningGrid({ weekDates, employees, shifts, leaveRequests, week
           postes={postes}
           employees={employees}
           weekDates={weekDates}
+          shifts={shifts}
         />
       </div>
 

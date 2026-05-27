@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { AlertTriangle, AlarmClock, FileText, Calendar, Loader2, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import type { CddAlert, LatenessAlert, AbsenceAlert } from '@/types'
+import { checkCompliance, type ShiftRecord, type Violation, RULES } from '@/lib/compliance/rules'
 
 function daysLeft(endDate: string): number {
   const today = new Date()
@@ -27,6 +28,7 @@ export default function AlertesPage() {
   const [cddAlerts, setCddAlerts] = useState<CddAlert[]>([])
   const [latenessAlerts, setLatenessAlerts] = useState<LatenessAlert[]>([])
   const [absenceAlerts, setAbsenceAlerts] = useState<AbsenceAlert[]>([])
+  const [complianceViolations, setComplianceViolations] = useState<(Violation & { employeeName: string | null })[]>([])
   const [cddEnabled, setCddEnabled] = useState(true)
 
   const load = useCallback(async () => {
@@ -37,7 +39,7 @@ export default function AlertesPage() {
     const ago7 = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
 
-    const [settingsRes, cddRes, latenessRes, shiftsRes, presencesRes] = await Promise.all([
+    const [settingsRes, cddRes, latenessRes, shiftsRes, presencesRes, complianceShiftsRes] = await Promise.all([
       supabase.from('settings').select('key, value').in('key', ['automation_rules']),
       supabase
         .from('contracts')
@@ -63,6 +65,11 @@ export default function AlertesPage() {
         .gte('date', ago7)
         .lt('date', today)
         .not('clock_in', 'is', null),
+      supabase
+        .from('shifts')
+        .select('id, employee_id, date, start_time, end_time, break_minutes, profiles:employee_id(full_name)')
+        .gte('date', ago7)
+        .lte('date', today),
     ])
 
     // Parse automation rules for cdd_expiry flag
@@ -125,12 +132,37 @@ export default function AlertesPage() {
       }))
     setAbsenceAlerts(absences)
 
+    // Compliance violations (Code du travail)
+    if (complianceShiftsRes.data) {
+      const empNames = new Map<string, string | null>()
+      const records: ShiftRecord[] = (complianceShiftsRes.data as unknown as {
+        id: string; employee_id: string; date: string; start_time: string; end_time: string;
+        break_minutes: number; profiles: { full_name: string | null } | null
+      }[]).map(s => {
+        if (!empNames.has(s.employee_id)) empNames.set(s.employee_id, s.profiles?.full_name ?? null)
+        return {
+          id: s.id,
+          employeeId: s.employee_id,
+          date: s.date,
+          startTime: s.start_time.slice(0, 5),
+          endTime: s.end_time.slice(0, 5),
+          breakMinutes: s.break_minutes,
+        }
+      })
+      const violations = checkCompliance(records)
+      setComplianceViolations(violations.map(v => ({
+        ...v,
+        employeeName: empNames.get(v.employeeId) ?? null,
+      })))
+    }
+
     setLoading(false)
   }, [])
 
   useEffect(() => { load() }, [load])
 
-  const totalAlerts = (cddEnabled ? cddAlerts.length : 0) + latenessAlerts.length + absenceAlerts.length
+  const criticalCompliance = complianceViolations.filter(v => RULES[v.ruleId].severity === 'critical')
+  const totalAlerts = (cddEnabled ? cddAlerts.length : 0) + latenessAlerts.length + absenceAlerts.length + criticalCompliance.length
 
   return (
     <div className="min-h-full">
@@ -170,6 +202,59 @@ export default function AlertesPage() {
           </div>
         ) : (
           <>
+            {/* Violations Code du travail */}
+            {complianceViolations.length > 0 && (
+              <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <h2 className="text-sm font-semibold text-foreground">
+                    Violations Code du travail (7 derniers jours)
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">({complianceViolations.length})</span>
+                  </h2>
+                </div>
+                <div className="bg-card border border-border rounded-xl overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted/60 border-b border-border">
+                        {['Employé', 'Date', 'Règle légale', 'Sévérité'].map(h => (
+                          <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {complianceViolations.map((v, i) => {
+                        const rule = RULES[v.ruleId]
+                        const isCritical = rule.severity === 'critical'
+                        return (
+                          <tr key={i} className={cn('border-b border-border/60 hover:bg-muted/30 transition-colors', i % 2 === 1 && 'bg-muted/10')}>
+                            <td className="px-4 py-3 font-medium text-foreground">{v.employeeName ?? '—'}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{formatDate(v.date)}</td>
+                            <td className="px-4 py-3">
+                              <p className="font-medium text-foreground">{rule.name}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{v.description}</p>
+                              <p className="text-xs text-muted-foreground font-mono mt-0.5">{rule.legalRef}</p>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                                style={
+                                  isCritical
+                                    ? { backgroundColor: '#FEE2E2', color: 'var(--danger)' }
+                                    : { backgroundColor: '#FFEDD5', color: 'var(--warning)' }
+                                }
+                              >
+                                {isCritical ? 'Critique' : 'Avertissement'}
+                              </span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
             {/* CDDs expirant bientôt */}
             {cddEnabled && cddAlerts.length > 0 && (
               <section className="space-y-3">
