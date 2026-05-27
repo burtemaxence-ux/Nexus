@@ -47,7 +47,20 @@ function UploadPanel({ employeeId, onUploaded, onCancel }: UploadPanelProps) {
   const [customName, setCustomName] = useState('')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  function pickFile(f: File | null) {
+    if (!f) return
+    setFile(f)
+    if (!customName) setCustomName(f.name.replace(/\.[^.]+$/, ''))
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setIsDragOver(false)
+    pickFile(e.dataTransfer.files[0] ?? null)
+  }
 
   async function handleUpload() {
     if (!file) return
@@ -89,17 +102,20 @@ function UploadPanel({ employeeId, onUploaded, onCancel }: UploadPanelProps) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* File picker */}
+        {/* File picker with drag & drop */}
         <div
           onClick={() => inputRef.current?.click()}
+          onDragOver={e => { e.preventDefault(); setIsDragOver(true) }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={handleDrop}
           style={{
             borderRadius: '8px',
-            border: `1.5px dashed ${file ? 'var(--accent)' : 'var(--border)'}`,
-            backgroundColor: file ? 'rgba(45,58,140,0.04)' : 'var(--bg-card)',
+            border: `1.5px dashed ${isDragOver ? 'var(--accent)' : file ? 'var(--accent)' : 'var(--border)'}`,
+            backgroundColor: isDragOver ? 'var(--accent-light)' : file ? 'rgba(45,58,140,0.04)' : 'var(--bg-card)',
             padding: '20px',
             textAlign: 'center',
             cursor: 'pointer',
-            transition: 'border-color 150ms',
+            transition: 'border-color 150ms, background-color 150ms',
           }}
         >
           <input
@@ -107,11 +123,7 @@ function UploadPanel({ employeeId, onUploaded, onCancel }: UploadPanelProps) {
             type="file"
             className="hidden"
             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
-            onChange={e => {
-              const f = e.target.files?.[0] ?? null
-              setFile(f)
-              if (f && !customName) setCustomName(f.name.replace(/\.[^.]+$/, ''))
-            }}
+            onChange={e => pickFile(e.target.files?.[0] ?? null)}
           />
           {file ? (
             <div>
@@ -121,8 +133,10 @@ function UploadPanel({ employeeId, onUploaded, onCancel }: UploadPanelProps) {
             </div>
           ) : (
             <div>
-              <Upload size={20} style={{ color: 'var(--text-tertiary)', margin: '0 auto 8px' }} />
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Cliquez pour choisir un fichier</p>
+              <Upload size={20} style={{ color: isDragOver ? 'var(--accent)' : 'var(--text-tertiary)', margin: '0 auto 8px' }} />
+              <p style={{ fontSize: '13px', color: isDragOver ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                {isDragOver ? 'Déposez le fichier ici' : 'Glissez un fichier ou cliquez pour parcourir'}
+              </p>
               <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '2px' }}>PDF, Word, image — max 20 Mo</p>
             </div>
           )}
@@ -201,6 +215,7 @@ export function DocumentsTab({ employeeId }: DocumentsTabProps) {
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [filterType, setFilterType] = useState<DocumentType | 'all'>('all')
 
   const loadDocs = useCallback(async () => {
@@ -354,21 +369,49 @@ export function DocumentsTab({ employeeId }: DocumentsTabProps) {
                     <Download size={13} />
                   </a>
                 )}
-                <button
-                  onClick={() => handleDelete(doc.id)}
-                  disabled={deleting === doc.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: '32px', height: '32px', borderRadius: '6px',
-                    border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)',
-                    color: deleting === doc.id ? 'var(--text-tertiary)' : 'var(--danger)',
-                    cursor: deleting === doc.id ? 'not-allowed' : 'pointer',
-                    transition: 'all 150ms',
-                  }}
-                  title="Supprimer"
-                >
-                  {deleting === doc.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                </button>
+
+                {confirmDelete === doc.id ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Supprimer ?</span>
+                    <button
+                      onClick={() => { setConfirmDelete(null); handleDelete(doc.id) }}
+                      disabled={deleting === doc.id}
+                      style={{
+                        padding: '3px 8px', borderRadius: '5px', fontSize: '11px', fontWeight: 600,
+                        backgroundColor: 'var(--danger)', color: '#fff',
+                        border: 'none', cursor: 'pointer',
+                      }}
+                    >
+                      {deleting === doc.id ? <Loader2 size={11} className="animate-spin" /> : 'Oui'}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(null)}
+                      style={{
+                        padding: '3px 8px', borderRadius: '5px', fontSize: '11px',
+                        border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)',
+                        color: 'var(--text-secondary)', cursor: 'pointer',
+                      }}
+                    >
+                      Non
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDelete(doc.id)}
+                    disabled={deleting === doc.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: '32px', height: '32px', borderRadius: '6px',
+                      border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)',
+                      color: 'var(--danger)',
+                      cursor: 'pointer',
+                      transition: 'all 150ms',
+                    }}
+                    title="Supprimer"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
