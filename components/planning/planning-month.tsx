@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Calendar, ChevronDown } from 'lucide-react'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
 import { toISODate } from '@/lib/utils/dates'
 import type { Profile, Shift, Poste } from '@/types'
+import { isToday } from '@/lib/planning-utils'
 
 interface PlanningMonthProps {
   month: Date
@@ -43,10 +44,7 @@ function getInitials(name: string | null): string {
 
 const WEEKDAY_ABBR = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
 
-function isToday(d: Date): boolean {
-  const now = new Date()
-  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-}
+
 
 function formatMinutes(mins: number): string {
   if (mins === 0) return '—'

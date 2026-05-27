@@ -11,6 +11,7 @@ import {
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { toISODate, addDays } from '@/lib/utils/dates'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
+import { calcHours, formatHours, formatTime, getInitials } from '@/lib/planning-utils'
 
 interface PlanningDayProps {
   date: Date
@@ -30,26 +31,7 @@ const LEAVE_LABELS: Record<LeaveType, { label: string; style: React.CSSPropertie
   autre:      { label: 'Absence',     style: { backgroundColor: '#FEF3C7', color: 'var(--warning)', border: '0.5px solid var(--warning)' } },
 }
 
-function getInitials(name: string | null): string {
-  if (!name) return '?'
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-}
 
-function formatTime(t: string): string { return t.slice(0, 5) }
-
-function calcHours(start: string, end: string, brk: number): number {
-  const [sh, sm] = start.split(':').map(Number)
-  const [eh, em] = end.split(':').map(Number)
-  let m = (eh * 60 + em) - (sh * 60 + sm)
-  if (m < 0) m += 1440
-  return Math.max(0, (m - brk) / 60)
-}
-
-function formatHours(h: number): string {
-  const hh = Math.floor(h)
-  const mm = Math.round((h - hh) * 60)
-  return mm > 0 ? `${hh}h${String(mm).padStart(2, '0')}` : `${hh}h`
-}
 
 export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked, weekPublished, postes }: PlanningDayProps) {
   const router = useRouter()

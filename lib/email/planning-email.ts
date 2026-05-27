@@ -139,6 +139,5 @@ export async function sendPlanningPublishedEmails({
     else { errors++; console.error('[email] Erreur envoi:', result.reason) }
   }
 
-  console.log(`[email] ${sent} email(s) envoyé(s), ${errors} erreur(s)`)
   return { sent, errors }
 }

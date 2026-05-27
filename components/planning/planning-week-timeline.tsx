@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
+import { calcHours, formatHours, formatTime, isToday, getInitials, LEAVE_STYLES } from '@/lib/planning-utils'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
 import { AiPlanModal } from '@/components/planning/ai-plan-modal'
 import {
@@ -22,14 +23,6 @@ import { CSS } from '@dnd-kit/utilities'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const TICK_HOURS = [0, 6, 12, 18, 24]
-
-const LEAVE_STYLES: Record<LeaveType, { bg: string; color: string; label: string }> = {
-  CP:         { bg: 'var(--accent-light)', color: 'var(--accent)',         label: 'CP' },
-  RTT:        { bg: 'var(--accent-light)', color: 'var(--accent)',         label: 'RTT' },
-  maladie:    { bg: '#FEE2E2',            color: 'var(--danger)',          label: 'Maladie' },
-  sans_solde: { bg: 'var(--bg-page)',      color: 'var(--text-secondary)', label: 'Sans solde' },
-  autre:      { bg: '#FEF3C7',            color: 'var(--warning)',         label: 'Absence' },
-}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function timeToMinutes(t: string): number {
@@ -44,39 +37,6 @@ function shiftBarStyle(start: string, end: string): { left: string; width: strin
   const left = (startMin / 1440) * 100
   const width = Math.max(((endMin - startMin) / 1440) * 100, 2.5)
   return { left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }
-}
-
-function formatTime(t: string): string { return t.slice(0, 5) }
-
-function calcHours(start: string, end: string, brk: number): number {
-  const [sh, sm] = start.split(':').map(Number)
-  const [eh, em] = end.split(':').map(Number)
-  let m = (eh * 60 + em) - (sh * 60 + sm)
-  if (m < 0) m += 1440
-  return Math.max(0, (m - brk) / 60)
-}
-
-function formatHours(h: number): string {
-  const hh = Math.floor(h)
-  const mm = Math.round((h - hh) * 60)
-  return mm ? `${hh}h${String(mm).padStart(2, '0')}` : `${hh}h`
-}
-
-function getInitials(name: string | null): string {
-  if (!name) return '?'
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-}
-
-function isToday(date: Date): boolean {
-  const t = new Date()
-  return date.getDate() === t.getDate() && date.getMonth() === t.getMonth() && date.getFullYear() === t.getFullYear()
-}
-
-function getWeekMonday(date: Date): string {
-  const d = new Date(date)
-  const day = d.getDay()
-  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1))
-  return toISODate(d)
 }
 
 // ── Context menu ───────────────────────────────────────────────────────────────
@@ -540,24 +500,30 @@ export function PlanningWeekTimeline({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   // ── Data maps ────────────────────────────────────────────────────────────────
-  const shiftMap = new Map<string, Shift[]>()
-  for (const s of shifts) {
-    const key = `${s.employee_id}__${s.date}`
-    const arr = shiftMap.get(key) ?? []
-    arr.push(s)
-    shiftMap.set(key, arr)
-  }
-
-  const absMap = new Map<string, LeaveType>()
-  for (const req of leaveRequests) {
-    for (
-      let d = new Date(req.start_date + 'T00:00:00');
-      d <= new Date(req.end_date + 'T00:00:00');
-      d.setDate(d.getDate() + 1)
-    ) {
-      absMap.set(`${req.employee_id}__${toISODate(d)}`, req.type)
+  const shiftMap = useMemo(() => {
+    const m = new Map<string, Shift[]>()
+    for (const s of shifts) {
+      const key = `${s.employee_id}__${s.date}`
+      const arr = m.get(key) ?? []
+      arr.push(s)
+      m.set(key, arr)
     }
-  }
+    return m
+  }, [shifts])
+
+  const absMap = useMemo(() => {
+    const m = new Map<string, LeaveType>()
+    for (const req of leaveRequests) {
+      for (
+        let d = new Date(req.start_date + 'T00:00:00');
+        d <= new Date(req.end_date + 'T00:00:00');
+        d.setDate(d.getDate() + 1)
+      ) {
+        m.set(`${req.employee_id}__${toISODate(d)}`, req.type)
+      }
+    }
+    return m
+  }, [leaveRequests])
 
   const positions = Array.from(new Set(employees.map(e => e.position).filter(Boolean) as string[])).sort()
   const filteredEmps = filterPoste ? employees.filter(e => e.position === filterPoste) : employees

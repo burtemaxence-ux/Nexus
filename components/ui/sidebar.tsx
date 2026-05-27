@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { getInitials, getEstablishmentInitials } from '@/lib/planning-utils'
 import {
   Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap, BookOpen,
   Palmtree, AlertTriangle, Upload, FileText,
@@ -109,18 +110,6 @@ const employeeNav: NavGroup[] = [
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getInitials(name: string): string {
-  if (!name) return '?'
-  return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
-}
-
-function getEstablishmentInitials(name: string): string {
-  if (!name) return 'E'
-  const words = name.split(' ').filter(Boolean)
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
-  return (words[0][0] + words[1][0]).toUpperCase()
-}
 
 // ── Badge ─────────────────────────────────────────────────────────────────────
 

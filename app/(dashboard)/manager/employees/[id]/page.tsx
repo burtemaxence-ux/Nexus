@@ -65,7 +65,6 @@ export default function EmployeeDetailPage() {
   const [employee, setEmployee] = useState<Profile | null>(null)
   const [invitedByName, setInvitedByName] = useState<string | null>(null)
   const [contracts, setContracts] = useState<Contract[]>([])
-  const [availabilities, setAvailabilities] = useState<Availability[]>([])
   const [showArchiveDialog, setShowArchiveDialog] = useState(false)
   const [showContractDialog, setShowContractDialog] = useState(false)
   const [pinVisible, setPinVisible] = useState(false)
@@ -148,7 +147,6 @@ export default function EmployeeDetailPage() {
     setContracts(Array.isArray(contractsRes) ? contractsRes : [])
 
     const avails: Availability[] = Array.isArray(availRes) ? availRes : []
-    setAvailabilities(avails)
     const days = new Set(avails.map(a => a.day_of_week))
     setActiveDays(days)
     const times: Record<number, { start: string; end: string }> = {}
@@ -280,9 +278,6 @@ export default function EmployeeDetailPage() {
       setDayTimes(prev => ({ ...prev, [day]: { start: '09:00', end: '17:00' } }))
     }
   }
-
-  // suppress unused variable warning
-  void availabilities
 
   if (loading) {
     return (

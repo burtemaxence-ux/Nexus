@@ -140,7 +140,6 @@ export async function sendLeaveDecisionEmail({
       subject,
       html: buildHtml({ firstName, status, type, startDate, endDate, managerComment }),
     })
-    console.log(`[email] Notification congé envoyée à ${toEmail}`)
   } catch (err) {
     console.error('[email] Erreur notification congé:', err)
   }
