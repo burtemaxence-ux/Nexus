@@ -9,6 +9,7 @@ import { getInitials, getEstablishmentInitials } from '@/lib/planning-utils'
 import {
   LogOut, Sun, Moon, ChevronsUpDown, Check, Plus,
 } from 'lucide-react'
+import { NotificationsBell } from './notifications-bell'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -311,6 +312,9 @@ export function Topbar({
           establishmentName={establishmentName}
           role={role}
         />
+
+        {/* Notifications */}
+        <NotificationsBell />
 
         {/* Dark mode toggle */}
         <ThemeToggle />

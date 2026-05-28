@@ -4,6 +4,7 @@ import { sendLeaveDecisionEmail } from '@/lib/email/conges-email'
 import { fireWebhook } from '@/lib/integrations/webhook'
 import { sendPushToUser } from '@/lib/push'
 import { sendSms } from '@/lib/sms'
+import { createNotification } from '@/lib/notifications/create'
 import type { LeaveType } from '@/types'
 
 // PATCH — manager approuve / refuse  OU  employé annule
@@ -66,6 +67,19 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       body:  `Demande du ${dateFmt(data.start_date)} au ${dateFmt(data.end_date)} ${status === 'approved' ? 'approuvée' : 'refusée'}`,
       url:   '/employee/conges',
     }).catch(() => {})
+
+    // In-app notification to the employee
+    {
+      const dates = `${dateFmt(data.start_date)} → ${dateFmt(data.end_date)}`
+      const comment = manager_comment ? ` — ${manager_comment}` : ''
+      createNotification({
+        user_ids: [data.employee_id],
+        type: status === 'approved' ? 'leave_approved' : 'leave_rejected',
+        title: status === 'approved' ? 'Congé accepté ✅' : 'Congé refusé ❌',
+        body: `${dates}${comment}`,
+        action_url: '/employee/conges',
+      }).catch(() => {})
+    }
 
     // SMS if phone number available
     if (emp?.phone) {

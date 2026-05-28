@@ -5,6 +5,7 @@ import { getWeekLabel, getWeekDates } from '@/lib/utils/dates'
 import { sendPlanningPublishedEmails } from '@/lib/email/planning-email'
 import { sendPushToMany } from '@/lib/push'
 import { sendSms } from '@/lib/sms'
+import { createNotification } from '@/lib/notifications/create'
 import type { Profile, Shift } from '@/types'
 
 async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -171,6 +172,20 @@ export async function POST(request: NextRequest) {
         body:  `Votre planning de la semaine du ${weekLabel} est disponible`,
         url:   '/employee/planning',
       }).catch(() => {})
+
+      // In-app notifications to employees with shifts this week
+      if (employeeIds.length) {
+        const weekDates = getWeekDates(new Date(week_monday + 'T00:00:00'))
+        const fmt = (d: Date) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+        createNotification({
+          user_ids: employeeIds as string[],
+          establishment_id: profile!.establishment_id,
+          type: 'planning_published',
+          title: `Planning semaine ${weekLabel} disponible`,
+          body: `Du ${fmt(weekDates[0])} au ${fmt(weekDates[6])} — Consultez vos horaires`,
+          action_url: '/employee/planning',
+        }).catch(() => {})
+      }
 
       // SMS to employees who have a phone number
       if (employeeIds.length) {

@@ -8,6 +8,7 @@ import {
   Clock, User, X, BarChart3, Bell, Settings, LogOut, Sun, Moon,
   AlertTriangle,
 } from 'lucide-react'
+import { NotificationsBell } from './notifications-bell'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
@@ -250,7 +251,12 @@ export function MobileHeader({ userName, userEmail, establishmentName, role }: M
           </span>
         )}
 
-        <div className={cn('flex-shrink-0 relative', !showEstablishment && 'ml-auto')} ref={ref}>
+        {/* Notifications cloche — mobile (ml-auto quand pas d'établissement pour aligner à droite) */}
+        <div className={cn(!showEstablishment && 'ml-auto')}>
+          <NotificationsBell isMobile />
+        </div>
+
+        <div className={cn('flex-shrink-0 relative')} ref={ref}>
           <button
             onClick={() => setMenuOpen(o => !o)}
             className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent-light)]"

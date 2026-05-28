@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 import { InviteSchema, validationError } from '@/lib/validations'
+import { createNotification } from '@/lib/notifications/create'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -105,6 +106,18 @@ export async function POST(request: NextRequest) {
           created_by: user?.id ?? null,
         })
       }
+    }
+
+    // In-app notification to the manager who sent the invite
+    if (user) {
+      const firstName = first_name.trim()
+      createNotification({
+        user_ids: [user.id],
+        establishment_id: managerProfile?.establishment_id ?? null,
+        type: 'employee_invited',
+        title: `${firstName} a été invité`,
+        body: 'Le lien d\'invitation a été envoyé',
+      }).catch(() => {})
     }
 
     return NextResponse.json({ success: true, inviteLink, full_name })

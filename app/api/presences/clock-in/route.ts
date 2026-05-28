@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { createNotification } from '@/lib/notifications/create'
 import { NextRequest, NextResponse } from 'next/server'
 
 const LATE_GRACE_MINUTES = 2
@@ -85,6 +86,62 @@ export async function POST(request: NextRequest) {
     }
   } catch {
     // Best-effort — don't block the clock-in response
+  }
+
+  // In-app notification to manager(s) if notify_manager_clockin setting is enabled
+  try {
+    const { data: notifSetting } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'notify_manager_clockin')
+      .maybeSingle()
+
+    if (notifSetting?.value === 'true') {
+      const { data: emp } = await supabase
+        .from('profiles')
+        .select('full_name, establishment_id')
+        .eq('id', user.id)
+        .single()
+
+      if (emp?.establishment_id) {
+        const { data: managers } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('establishment_id', emp.establishment_id)
+          .in('role', ['manager', 'supervisor'])
+          .eq('archived', false)
+
+        const managerIds = (managers ?? []).map((m: { id: string }) => m.id)
+        if (managerIds.length) {
+          const clockInDate = new Date(clockInTime)
+          const timeLabel = clockInDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          const empName = emp.full_name ?? 'Un employé'
+
+          // Compute lateness message from previously-computed lateMinutes (best-effort)
+          const { data: latenessRow } = await supabase
+            .from('lateness_records')
+            .select('late_minutes')
+            .eq('employee_id', user.id)
+            .eq('date', today)
+            .maybeSingle()
+
+          const lateMin = latenessRow?.late_minutes ?? 0
+          const bodyMsg = lateMin >= LATE_GRACE_MINUTES
+            ? `À ${timeLabel} — ${lateMin} min de retard`
+            : `À ${timeLabel} — À l'heure`
+
+          createNotification({
+            user_ids: managerIds,
+            establishment_id: emp.establishment_id,
+            type: 'employee_clocked_in',
+            title: `${empName} a pointé son arrivée`,
+            body: bodyMsg,
+          }).catch(() => {})
+        }
+      }
+    }
+  } catch {
+    // Best-effort — don't block the response
   }
 
   return NextResponse.json(data)
