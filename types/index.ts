@@ -145,3 +145,73 @@ export type EmployeeDocument = {
   url?: string
 }
 
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export type Notification = {
+  id: string
+  user_id: string
+  establishment_id: string | null
+  type: string
+  title: string
+  body: string
+  data: Record<string, unknown>
+  action_url: string | null
+  read: boolean
+  read_at: string | null
+  created_at: string
+}
+
+// ─── Compliance Alerts ────────────────────────────────────────────────────────
+
+export type ComplianceAlertType =
+  | 'hours_exceeded'
+  | 'trial_ending'
+  | 'cdd_ending'
+  | 'requalification_risk'
+
+export type ComplianceAlertLevel = 'INFO' | 'WARNING' | 'CRITICAL'
+
+export type ComplianceAlertStatus = 'active' | 'in_progress' | 'resolved' | 'ignored'
+
+export type ComplianceAlert = {
+  id: string
+  establishment_id: string
+  employee_id: string
+  type: ComplianceAlertType
+  level: ComplianceAlertLevel
+  title: string
+  message: string
+  options: Record<string, unknown>
+  status: ComplianceAlertStatus
+  resolved_at: string | null
+  resolved_by: string | null
+  ignored_until: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ─── Replacement Requests ─────────────────────────────────────────────────────
+
+export type ReplacementCandidate = {
+  employee_id: string
+  score: number
+  explanation: string
+  notified_at: string | null
+  response: 'accepted' | 'declined' | null
+}
+
+export type ReplacementRequestStatus = 'pending' | 'confirmed' | 'expired' | 'cancelled'
+
+export type ReplacementRequest = {
+  id: string
+  establishment_id: string
+  absent_employee_id: string | null
+  shift_id: string
+  status: ReplacementRequestStatus
+  candidates: ReplacementCandidate[]
+  confirmed_employee_id: string | null
+  confirmed_at: string | null
+  created_at: string
+  expires_at: string
+}
+
