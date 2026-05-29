@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get employees who already clocked out today
-    const employeeIds = [...new Set(shifts.map((s: { employee_id: string }) => s.employee_id))]
+    const employeeIds = Array.from(new Set(shifts.map((s: { employee_id: string }) => s.employee_id)))
     const { data: presences } = await supabaseAdmin
       .from('presences')
       .select('employee_id, clock_out')
