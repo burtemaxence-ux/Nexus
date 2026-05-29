@@ -8,9 +8,10 @@ import {
   Mail, Share2, Check, Plus, AlertTriangle, Filter,
   Edit2, Trash2, CopyPlus, Printer,
   Calendar, ChevronDown, SlidersHorizontal,
-  Users, UserCheck, Clock, TrendingUp, MoreHorizontal, Sparkles,
+  Users, UserCheck, Clock, TrendingUp, MoreHorizontal, Sparkles, Zap,
 } from 'lucide-react'
 import { type Profile, type Shift, type Poste, type LeaveRequest, type LeaveType } from '@/types'
+import { SosReplacementModal } from '@/components/planning/sos-replacement-modal'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 import { calcHours, formatHours, formatTime, isToday, getInitials, LEAVE_STYLES } from '@/lib/planning-utils'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
@@ -206,11 +207,12 @@ function AbsenceBadge({ type }: { type: LeaveType }) {
 }
 
 // ── Shift card (draggable) ────────────────────────────────────────────────────
-function ShiftCard({ shift, poste, onClick, onContextMenu, disabled, hasConflict }: {
+function ShiftCard({ shift, poste, onClick, onContextMenu, onSos, disabled, hasConflict }: {
   shift: Shift
   poste: Poste | null | undefined
   onClick: () => void
   onContextMenu: (e: React.MouseEvent) => void
+  onSos: () => void
   disabled: boolean
   hasConflict: boolean
 }) {
@@ -218,6 +220,7 @@ function ShiftCard({ shift, poste, onClick, onContextMenu, disabled, hasConflict
     id: `shift-${shift.id}`,
     disabled,
   })
+  const [hovered, setHovered] = useState(false)
 
   const bg = poste ? `${poste.color}15` : 'var(--accent-light)'
   const borderColor = poste?.color ?? 'var(--accent)'
@@ -229,6 +232,8 @@ function ShiftCard({ shift, poste, onClick, onContextMenu, disabled, hasConflict
       {...(disabled ? {} : { ...listeners, ...attributes })}
       onClick={e => { e.stopPropagation(); onClick() }}
       onContextMenu={e => { e.preventDefault(); e.stopPropagation(); onContextMenu(e) }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         backgroundColor: bg,
         borderLeft: `3px solid ${borderColor}`,
@@ -241,6 +246,7 @@ function ShiftCard({ shift, poste, onClick, onContextMenu, disabled, hasConflict
         transition: 'opacity 150ms, filter 150ms',
         userSelect: 'none',
         marginBottom: '4px',
+        position: 'relative',
       }}
       className="hover:brightness-[0.96]"
     >
@@ -253,12 +259,37 @@ function ShiftCard({ shift, poste, onClick, onContextMenu, disabled, hasConflict
           {shift.position}
         </p>
       )}
+
+      {/* Bouton SOS ⚡ visible au hover */}
+      {hovered && !disabled && (
+        <button
+          onClick={e => { e.stopPropagation(); onSos() }}
+          title="Signaler une absence imprévue"
+          style={{
+            position: 'absolute',
+            top: '4px',
+            right: '4px',
+            width: '20px',
+            height: '20px',
+            borderRadius: '4px',
+            backgroundColor: '#FEF3C7',
+            border: '0.5px solid #F59E0B',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 10,
+          }}
+        >
+          <Zap size={11} style={{ color: '#D97706' }} />
+        </button>
+      )}
     </div>
   )
 }
 
 // ── Droppable grid cell ────────────────────────────────────────────────────────
-function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, onAdd, onClickShift, onContextMenu, isToday: isTodayCol }: {
+function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, onAdd, onClickShift, onContextMenu, onSos, isToday: isTodayCol }: {
   droppableId: string
   shifts: Shift[]
   leaveType: LeaveType | undefined
@@ -267,6 +298,7 @@ function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, onAdd, o
   onAdd: () => void
   onClickShift: (s: Shift) => void
   onContextMenu: (e: React.MouseEvent, s: Shift) => void
+  onSos: (s: Shift) => void
   isToday: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: droppableId })
@@ -303,6 +335,7 @@ function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, onAdd, o
           poste={shift.poste_id ? postes.get(shift.poste_id) : null}
           onClick={() => onClickShift(shift)}
           onContextMenu={(e) => onContextMenu(e, shift)}
+          onSos={() => onSos(shift)}
           disabled={weekLocked}
           hasConflict={!!leaveType && shifts.length > 0}
         />
@@ -481,17 +514,20 @@ interface MobileManagerPlanningProps {
   weekLabel: string
   onWeekStatus: (payload: { published?: boolean; locked?: boolean }) => void
   onOpenModal: (state: ModalState) => void
+  onSos: (shift: Shift, employee: Profile) => void
 }
 
 function MobileManagerPlanning({
   weekDates, employees, shiftMap, absMap, posteMap,
   weekLocked, weekPublished, statusLoading,
   prevMonday, nextMonday, weekLabel,
-  onWeekStatus, onOpenModal,
+  onWeekStatus, onOpenModal, onSos,
 }: MobileManagerPlanningProps) {
   const todayIndex = weekDates.findIndex(d => isToday(d))
   const [selectedDayIndex, setSelectedDayIndex] = useState(todayIndex >= 0 ? todayIndex : 0)
   const [showEmpPicker, setShowEmpPicker] = useState(false)
+  const [longPressMenu, setLongPressMenu] = useState<{ shift: Shift; employee: Profile } | null>(null)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const selectedDate = weekDates[selectedDayIndex]
   const selectedDateStr = toISODate(selectedDate)
@@ -689,6 +725,17 @@ function MobileManagerPlanning({
                         <button
                           key={shift.id}
                           onClick={() => onOpenModal({ type: 'view', shift, employee: emp, date: selectedDate, readOnly: weekLocked })}
+                          onTouchStart={() => {
+                            longPressTimer.current = setTimeout(() => {
+                              setLongPressMenu({ shift, employee: emp })
+                            }, 500)
+                          }}
+                          onTouchEnd={() => {
+                            if (longPressTimer.current) clearTimeout(longPressTimer.current)
+                          }}
+                          onTouchMove={() => {
+                            if (longPressTimer.current) clearTimeout(longPressTimer.current)
+                          }}
                           className="w-full text-left rounded-lg px-3 py-2"
                           style={{ background: bgColor, border: `0.5px solid ${borderColor}` }}
                         >
@@ -767,6 +814,59 @@ function MobileManagerPlanning({
           </div>
         </>
       )}
+
+      {/* Long press context menu — bottom sheet */}
+      {longPressMenu && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setLongPressMenu(null)} />
+          <div
+            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl overflow-hidden"
+            style={{ background: 'var(--bg-card)', paddingBottom: 'max(20px, env(safe-area-inset-bottom, 0px))' }}
+          >
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
+            </div>
+            {/* Header */}
+            <div className="px-4 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+              <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {formatTime(longPressMenu.shift.start_time)} – {formatTime(longPressMenu.shift.end_time)}
+              </p>
+              <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                {longPressMenu.employee.full_name ?? longPressMenu.employee.email}
+              </p>
+            </div>
+            {/* Actions */}
+            <div className="px-3 py-2">
+              <button
+                onClick={() => {
+                  const { shift, employee } = longPressMenu
+                  setLongPressMenu(null)
+                  onSos(shift, employee)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left"
+                style={{ background: '#FEF3C7', border: '0.5px solid #F59E0B' }}
+              >
+                <Zap size={18} style={{ color: '#D97706', flexShrink: 0 }} />
+                <div>
+                  <p className="text-[14px] font-semibold" style={{ color: '#92400E' }}>Absence imprévue</p>
+                  <p className="text-[12px]" style={{ color: '#B45309' }}>Rechercher un remplaçant</p>
+                </div>
+              </button>
+              <button
+                onClick={() => {
+                  const { shift, employee } = longPressMenu
+                  setLongPressMenu(null)
+                  onOpenModal({ type: 'view', shift, employee, date: selectedDate, readOnly: weekLocked })
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left mt-1"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <span className="text-[14px]">Modifier le shift</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -794,6 +894,7 @@ export function PlanningWeekTimeline({
 
   const [modal, setModal] = useState<ModalState>({ type: 'closed' })
   const [ctx, setCtx] = useState<CtxMenu | null>(null)
+  const [sosState, setSosState] = useState<{ shift: Shift; employee: Profile } | null>(null)
   const [shareCopied, setShareCopied] = useState(false)
   const [statusLoading, setStatusLoading] = useState(false)
   const [copyLoading, setCopyLoading] = useState(false)
@@ -955,6 +1056,7 @@ export function PlanningWeekTimeline({
           weekLabel={weekLabel}
           onWeekStatus={handleWeekStatus}
           onOpenModal={setModal}
+          onSos={(shift, employee) => setSosState({ shift, employee })}
         />
       </div>
 
@@ -1243,6 +1345,7 @@ export function PlanningWeekTimeline({
                               onAdd={() => !weekLocked && setModal({ type: 'create', employee: emp, date })}
                               onClickShift={s => setModal({ type: 'view', shift: s, employee: emp, date, readOnly: weekLocked })}
                               onContextMenu={(e, s) => setCtx({ x: e.clientX, y: e.clientY, shift: s, employee: emp, date })}
+                              onSos={s => setSosState({ shift: s, employee: emp })}
                             />
                           )
                         })}
@@ -1403,6 +1506,16 @@ export function PlanningWeekTimeline({
         weekDates={weekDates}
         shifts={shifts}
       />
+
+      {/* ── SOS Replacement modal ─────────────────────────────────────────── */}
+      {sosState && (
+        <SosReplacementModal
+          shift={sosState.shift}
+          employee={sosState.employee}
+          poste={sosState.shift.poste_id ? posteMap.get(sosState.shift.poste_id) : null}
+          onClose={() => setSosState(null)}
+        />
+      )}
 
       {/* ── AI Plan modal ──────────────────────────────────────────────────── */}
       {showAiPlanModal && (
