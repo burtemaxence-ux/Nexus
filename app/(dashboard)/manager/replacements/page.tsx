@@ -36,19 +36,17 @@ export default async function ReplacementsPage() {
   }
 
   // Récupérer les shifts associés
-  const shiftIds = [...new Set(requests.map(r => r.shift_id))]
+  const shiftIds = Array.from(new Set(requests.map(r => r.shift_id)))
   const { data: shifts } = await supabaseAdmin
     .from('shifts')
     .select('id, date, start_time, end_time, position, poste_id')
     .in('id', shiftIds)
 
   // Récupérer les profils (absents + remplaçants)
-  const profileIds = [
-    ...new Set([
-      ...requests.map(r => r.absent_employee_id).filter(Boolean),
-      ...requests.map(r => r.confirmed_employee_id).filter(Boolean),
-    ])
-  ] as string[]
+  const profileIds = Array.from(new Set([
+    ...requests.map(r => r.absent_employee_id).filter(Boolean),
+    ...requests.map(r => r.confirmed_employee_id).filter(Boolean),
+  ])) as string[]
 
   const { data: profiles } = profileIds.length > 0
     ? await supabaseAdmin.from('profiles').select('id, full_name').in('id', profileIds)
