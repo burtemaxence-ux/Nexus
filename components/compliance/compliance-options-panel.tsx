@@ -7,6 +7,7 @@ import {
   X, FileText, Calendar, Mail, Users, AlertTriangle,
   Loader2, Download, Save, Copy, ExternalLink, Check, ChevronRight,
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import type { ComplianceAlert } from '@/types'
 import type { DocumentType } from '@/app/api/compliance/generate-document/route'
 
@@ -127,6 +128,7 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
     PDFDownloadLink: typeof import('@react-pdf/renderer').PDFDownloadLink
     AvenantDocument: typeof import('@/components/compliance/avenant-pdf').AvenantDocument
   } | null>(null)
+  const [establishmentName, setEstablishmentName] = useState('')
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)')
@@ -134,6 +136,15 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
     const h = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     mq.addEventListener('change', h)
     return () => mq.removeEventListener('change', h)
+  }, [])
+
+  useEffect(() => {
+    createClient()
+      .from('settings')
+      .select('value')
+      .eq('key', 'establishment_name')
+      .maybeSingle()
+      .then(({ data }) => { if (data?.value) setEstablishmentName(data.value as string) })
   }, [])
 
   // Lazy-load react-pdf on client only
@@ -267,7 +278,7 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
         PDFComponents.AvenantDocument({
           documentText,
           employeeName,
-          establishmentName: '',
+          establishmentName,
           documentType,
           generatedDate: new Date().toLocaleDateString('fr-FR'),
         })
@@ -472,7 +483,7 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
                           <PDFComponents.AvenantDocument
                             documentText={documentText}
                             employeeName={employeeName}
-                            establishmentName=""
+                            establishmentName={establishmentName}
                             documentType={documentType}
                             generatedDate={new Date().toLocaleDateString('fr-FR')}
                           />
