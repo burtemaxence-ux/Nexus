@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/compliance-check",
       "schedule": "0 22 * * 0"
+    },
+    {
+      "path": "/api/cron/weekly-brief-manager",
+      "schedule": "0 7 * * 1"
     }
   ]
 }
