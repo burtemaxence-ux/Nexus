@@ -13,17 +13,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const unreadOnly = searchParams.get('unread_only') === 'true'
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '20', 10), 100)
+    const offset = Math.max(0, parseInt(searchParams.get('offset') ?? '0', 10))
 
     let query = supabase
       .from('notifications')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(limit)
+      .range(offset, offset + limit - 1)
 
     if (unreadOnly) query = query.eq('read', false)
 
-    const { data: notifications, error } = await query
+    const { data: notifications, error, count: totalCount } = await query
 
     if (error) {
       console.error('[notifications GET]', error)
@@ -40,9 +41,13 @@ export async function GET(request: NextRequest) {
       console.error('[notifications GET count]', countError)
     }
 
+    const hasMore = (offset + limit) < (totalCount ?? 0)
+
     return NextResponse.json({
       notifications: notifications ?? [],
       unread_count: unreadCount ?? 0,
+      total_count: totalCount ?? 0,
+      has_more: hasMore,
     })
   } catch (err) {
     console.error('[notifications GET] unexpected', err)

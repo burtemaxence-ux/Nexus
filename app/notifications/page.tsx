@@ -58,12 +58,12 @@ export default function NotificationsPage() {
   const fetchPage = useCallback(async (offset: number, currentFilter: 'all' | 'unread') => {
     const params = new URLSearchParams({
       limit: String(LIMIT),
+      offset: String(offset),
       ...(currentFilter === 'unread' ? { unread_only: 'true' } : {}),
     })
-    // Supabase pagination: use range via offset param (we handle offset client-side by appending)
     const res = await fetch(`/api/notifications?${params}`)
     if (!res.ok) return null
-    return res.json() as Promise<{ notifications: Notification[]; unread_count: number }>
+    return res.json() as Promise<{ notifications: Notification[]; unread_count: number; total_count: number; has_more: boolean }>
   }, [])
 
   const load = useCallback(async (reset = false, nextFilter?: 'all' | 'unread') => {
@@ -87,7 +87,7 @@ export default function NotificationsPage() {
           return [...prev, ...newItems.filter((n: Notification) => !ids.has(n.id))]
         })
       }
-      setHasMore(newItems.length === LIMIT)
+      setHasMore(data.has_more)
       offsetRef.current += newItems.length
     } finally {
       setLoading(false)
