@@ -57,7 +57,7 @@ export function AiAssistant({
         if (data?.suggestions?.length) setSuggestions(data.suggestions)
       })
       .catch(() => {/* keep fallback */})
-  }, [open, suggestionsLoaded])
+  }, [open, suggestionsLoaded, contextEndpoint])
 
   // Listen for external open requests (e.g. "Générer le planning" button)
   useEffect(() => {
@@ -140,7 +140,7 @@ export function AiAssistant({
     } finally {
       setLoading(false)
     }
-  }, [messages, loading, establishmentName])
+  }, [messages, loading, establishmentName, chatEndpoint])
 
   // Keep sendRef current so the external event handler can call it
   useEffect(() => { sendRef.current = send }, [send])
