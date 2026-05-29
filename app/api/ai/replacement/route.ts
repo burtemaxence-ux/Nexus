@@ -281,7 +281,7 @@ export async function POST(req: NextRequest) {
     if (!contractHours) {
       availability_score = 5
     } else {
-      availability_score = Math.max(0, 10 - (weeklyPlanned / contractHours) * 10)
+      availability_score = Math.min(10, Math.max(0, 10 - (weeklyPlanned / contractHours) * 10))
     }
 
     // Response score
@@ -293,8 +293,9 @@ export async function POST(req: NextRequest) {
       response_score = (apps.confirmed / apps.total) * 10
     }
 
-    // Score final
-    const score_final = experience_score * 0.4 + availability_score * 0.3 + response_score * 0.3
+    // Score final — guard against NaN in any sub-score
+    const safe = (s: number) => Number.isFinite(s) ? s : 5
+    const score_final = safe(experience_score) * 0.4 + safe(availability_score) * 0.3 + safe(response_score) * 0.3
 
     // Compliance check
     const compliance_details: string[] = []
