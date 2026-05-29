@@ -8,6 +8,7 @@ import { AlertTriangle, AlarmClock, FileText, Calendar, Loader2, RefreshCw, Chev
 import Link from 'next/link'
 import type { CddAlert, LatenessAlert, AbsenceAlert, ComplianceAlert } from '@/types'
 import { checkCompliance, type ShiftRecord, type Violation, RULES } from '@/lib/compliance/rules'
+import { ComplianceOptionsPanel } from '@/components/compliance/compliance-options-panel'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -256,6 +257,8 @@ export default function AlertesPage() {
   const [complianceViolations, setComplianceViolations] = useState<(Violation & { employeeName: string | null })[]>([])
   const [cddEnabled, setCddEnabled] = useState(true)
   const [complianceAlerts, setComplianceAlerts] = useState<ComplianceAlertWithProfile[]>([])
+  const [selectedAlert, setSelectedAlert] = useState<ComplianceAlertWithProfile | null>(null)
+  const [userRole, setUserRole] = useState<'manager' | 'supervisor'>('manager')
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)')
@@ -333,6 +336,14 @@ export default function AlertesPage() {
   useEffect(() => { loadOperationnel() }, [loadOperationnel])
   useEffect(() => { loadConformite() }, [loadConformite])
 
+  // Fetch user role for panel permissions
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('profiles').select('role').single().then(({ data }) => {
+      if (data?.role === 'supervisor') setUserRole('supervisor')
+    })
+  }, [])
+
   async function handleIgnore(id: string) {
     await fetch('/api/compliance/alerts', {
       method: 'PATCH',
@@ -342,8 +353,12 @@ export default function AlertesPage() {
     setComplianceAlerts(prev => prev.filter(a => a.id !== id))
   }
 
-  function handleOptionsClick(_alert: ComplianceAlertWithProfile) {
-    // Étape 3 — panel options
+  function handleOptionsClick(alert: ComplianceAlertWithProfile) {
+    setSelectedAlert(alert)
+  }
+
+  function handleAlertUpdated(id: string) {
+    setComplianceAlerts(prev => prev.filter(a => a.id !== id))
   }
 
   const criticalCompliance = complianceViolations.filter(v => RULES[v.ruleId].severity === 'critical')
@@ -648,6 +663,16 @@ export default function AlertesPage() {
           )
         )}
       </div>
+
+      {/* Panel options conformité */}
+      {selectedAlert && (
+        <ComplianceOptionsPanel
+          alert={selectedAlert}
+          role={userRole}
+          onClose={() => setSelectedAlert(null)}
+          onAlertUpdated={(id) => { handleAlertUpdated(id); setSelectedAlert(null) }}
+        />
+      )}
     </div>
   )
 }
