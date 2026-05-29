@@ -133,7 +133,7 @@ async function analyseHoursExceeded(
     weekMap.set(week, (weekMap.get(week) ?? 0) + presenceHours(p))
   }
 
-  const weeks = [...weekMap.keys()].sort()
+  const weeks = Array.from(weekMap.keys()).sort()
   if (weeks.length < 6) return null
 
   const threshold = contract.weekly_hours * 1.1
@@ -150,7 +150,7 @@ async function analyseHoursExceeded(
 
   if (consecutive < 6) return null
 
-  const totalHours = [...weekMap.values()].reduce((a, b) => a + b, 0)
+  const totalHours = Array.from(weekMap.values()).reduce((a, b) => a + b, 0)
   const avgHours = totalHours / weeks.length
   const semRestantes = Math.max(0, 12 - consecutive)
   const level: AlertLevel = consecutive >= 10 ? 'CRITICAL' : 'WARNING'
@@ -303,7 +303,7 @@ async function analyseRequalificationRisk(
     const day = new Date(s.date).getDay()
     dayCount.set(day, (dayCount.get(day) ?? 0) + 1)
   }
-  const hasPattern = [...dayCount.values()].some(c => c >= 3)
+  const hasPattern = Array.from(dayCount.values()).some(c => c >= 3)
   if (!hasPattern) return null
 
   const firstName = employee.full_name.split(' ')[0]
