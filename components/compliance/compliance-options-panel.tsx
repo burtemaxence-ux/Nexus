@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   X, FileText, Calendar, Mail, Users, AlertTriangle,
-  Loader2, Download, Save, Copy, ExternalLink, Check, ChevronRight,
+  Loader2, Download, Save, Copy, ExternalLink, Check, ChevronRight, Star,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { ComplianceAlert } from '@/types'
@@ -100,12 +100,25 @@ interface Props {
   onAlertUpdated: (id: string) => void
 }
 
+type ScoredCandidate = {
+  employee_id: string
+  full_name: string
+  position: string | null
+  contract_type: string | null
+  score_final: number
+  weekly_hours_planned: number
+  compliance_warning: boolean
+  explanation: string
+}
+
 type View =
   | 'menu'
   | 'avenant'
   | 'planning'
   | 'email'
   | 'sos'
+  | 'sos_results'
+  | 'sos_notified'
   | 'trial_choice'
   | 'trial_doc'
 
@@ -124,6 +137,12 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
   const [savingDoc, setSavingDoc] = useState(false)
   const [savedDoc, setSavedDoc] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [sosCandidates, setSosCandidates] = useState<ScoredCandidate[]>([])
+  const [sosRequestId, setSosRequestId] = useState<string | null>(null)
+  const [sosLoading, setSosLoading] = useState(false)
+  const [sosNotifyLoading, setSosNotifyLoading] = useState(false)
+  const [sosError, setSosError] = useState<string | null>(null)
+  const [sosNotifiedCandidates, setSosNotifiedCandidates] = useState<ScoredCandidate[]>([])
   const [PDFComponents, setPDFComponents] = useState<{
     PDFDownloadLink: typeof import('@react-pdf/renderer').PDFDownloadLink
     AvenantDocument: typeof import('@/components/compliance/avenant-pdf').AvenantDocument
@@ -243,13 +262,45 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
   // ── SOS replacement ────────────────────────────────────────────────────────
 
   async function triggerSOS(shiftId: string) {
-    await fetch('/api/ai/replacement', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shift_id: shiftId }),
-    })
-    onClose()
-    router.push('/manager/planning')
+    setSosLoading(true)
+    setSosError(null)
+    setView('sos_results')
+    try {
+      const res = await fetch('/api/ai/replacement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shift_id: shiftId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erreur serveur')
+      setSosCandidates(data.candidates ?? [])
+      setSosRequestId(data.replacement_request_id ?? null)
+    } catch (e) {
+      setSosError(e instanceof Error ? e.message : 'Erreur inconnue')
+    } finally {
+      setSosLoading(false)
+    }
+  }
+
+  async function notifySosCandidates() {
+    if (!sosRequestId) return
+    setSosNotifyLoading(true)
+    setSosError(null)
+    try {
+      const res = await fetch('/api/replacement/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ replacement_request_id: sosRequestId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erreur serveur')
+      setSosNotifiedCandidates(sosCandidates)
+      setView('sos_notified')
+    } catch (e) {
+      setSosError(e instanceof Error ? e.message : 'Erreur inconnue')
+    } finally {
+      setSosNotifyLoading(false)
+    }
   }
 
   // ── Planning redirect ──────────────────────────────────────────────────────
@@ -347,7 +398,12 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
             <p className="text-[12px] text-[var(--text-tertiary)]">{alert.title}</p>
           </div>
           <button
-            onClick={() => view === 'menu' ? onClose() : setView('menu')}
+            onClick={() => {
+              if (view === 'menu') onClose()
+              else if (view === 'sos_results') setView('sos')
+              else if (view === 'sos_notified') onClose()
+              else setView('menu')
+            }}
             className="flex-shrink-0 p-2 rounded-lg hover:bg-[var(--accent-light)] transition-colors"
           >
             {view === 'menu'
@@ -625,6 +681,158 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── SOS RESULTS ──────────────────────────────────────────────── */}
+          {view === 'sos_results' && (
+            <div className="p-5 space-y-3 pb-4">
+              {sosLoading ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
+                  <p className="text-[13px] text-[var(--text-secondary)]">Recherche des candidats disponibles…</p>
+                </div>
+              ) : sosError ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <p className="text-[13px] text-[#DC2626] text-center">{sosError}</p>
+                  <button
+                    onClick={() => setView('sos')}
+                    className="px-4 py-2 rounded-lg border border-[var(--border)] text-[13px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] transition-colors"
+                  >
+                    ← Réessayer
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-[13px] text-[var(--text-secondary)] pb-1">
+                    {sosCandidates.length === 0
+                      ? 'Aucun candidat disponible pour ce shift.'
+                      : `${sosCandidates.length} candidat${sosCandidates.length > 1 ? 's' : ''} disponible${sosCandidates.length > 1 ? 's' : ''} trouvé${sosCandidates.length > 1 ? 's' : ''}`}
+                  </p>
+                  <div className="space-y-3">
+                    {sosCandidates.map((c, i) => {
+                      const initials = c.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                      const avatarColors = ['#4F46E5', '#059669', '#DC2626']
+                      const avatarBg = avatarColors[i] ?? '#6B7280'
+                      const filled = c.score_final >= 7 ? 3 : c.score_final >= 4 ? 2 : 1
+                      return (
+                        <div
+                          key={c.employee_id}
+                          style={{
+                            backgroundColor: 'var(--bg-page)',
+                            border: i === 0 ? '1px solid var(--accent)' : '0.5px solid var(--border)',
+                            borderRadius: '12px',
+                            padding: '14px',
+                            position: 'relative',
+                          }}
+                        >
+                          {i === 0 && (
+                            <div style={{
+                              position: 'absolute', top: '-1px', right: '12px',
+                              backgroundColor: 'var(--accent)', color: '#fff',
+                              fontSize: '9px', fontWeight: 700,
+                              padding: '2px 8px', borderRadius: '0 0 6px 6px',
+                              textTransform: 'uppercase', letterSpacing: '0.06em',
+                            }}>
+                              Recommandé
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                            <div style={{
+                              width: '38px', height: '38px', borderRadius: '50%',
+                              backgroundColor: avatarBg, flexShrink: 0,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{initials}</span>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>{c.full_name}</p>
+                              {c.position && <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '1px' }}>{c.position}</p>}
+                            </div>
+                            <div style={{ display: 'flex', gap: '2px' }}>
+                              {[1, 2, 3].map(j => (
+                                <Star key={j} size={13} style={{ color: j <= filled ? '#F59E0B' : 'var(--border)', fill: j <= filled ? '#F59E0B' : 'transparent' }} />
+                              ))}
+                            </div>
+                          </div>
+                          {c.explanation && (
+                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: '8px', lineHeight: 1.4 }}>
+                              {c.explanation}
+                            </p>
+                          )}
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {c.compliance_warning && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#FEF3C7', color: '#92400E', fontSize: '11px', fontWeight: 500, padding: '2px 7px', borderRadius: '6px', border: '0.5px solid #F59E0B' }}>
+                                <AlertTriangle size={10} />
+                                {c.weekly_hours_planned > 0 ? `${c.weekly_hours_planned}h cette sem.` : 'Alerte compliance'}
+                              </span>
+                            )}
+                            {c.contract_type === 'Extra' && (
+                              <span style={{ backgroundColor: '#F3F4F6', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 500, padding: '2px 7px', borderRadius: '6px', border: '0.5px solid var(--border)' }}>
+                                Extra
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {sosError && <p className="text-[12px] text-[#DC2626] text-center">{sosError}</p>}
+                  <div className="pt-2 flex flex-col gap-2 sticky bottom-0 bg-[var(--bg-card)] pb-2">
+                    <button
+                      onClick={notifySosCandidates}
+                      disabled={sosNotifyLoading || sosCandidates.length === 0}
+                      className="flex items-center justify-center gap-2 w-full h-11 rounded-xl text-[13px] font-medium text-white transition-colors disabled:opacity-60"
+                      style={{ backgroundColor: '#16A34A' }}
+                    >
+                      {sosNotifyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                      {sosNotifyLoading ? 'Envoi…' : `📲 Notifier les ${sosCandidates.length} candidats`}
+                    </button>
+                    <button
+                      onClick={() => window.open('/manager/planning', '_blank')}
+                      className="flex items-center justify-center gap-2 w-full h-10 rounded-xl border border-[var(--border)] text-[13px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] transition-colors"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Voir le planning
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── SOS NOTIFIED ─────────────────────────────────────────────── */}
+          {view === 'sos_notified' && (
+            <div className="p-5 space-y-4">
+              <div className="flex flex-col items-center gap-2 py-4">
+                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                  <Check className="h-5 w-5 text-green-600" />
+                </div>
+                <p className="text-[15px] font-semibold text-[var(--text-primary)]">Les candidats ont été notifiés ✓</p>
+              </div>
+              <div className="space-y-2">
+                {sosNotifiedCandidates.map(c => (
+                  <div key={c.employee_id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-page)] border border-[var(--border)]">
+                    <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                    <span className="text-[13px] text-[var(--text-primary)]">{c.full_name}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  onClick={() => router.push('/manager/planning')}
+                  className="flex items-center justify-center gap-2 w-full h-11 rounded-xl text-[13px] font-medium text-white"
+                  style={{ backgroundColor: '#2D3A8C' }}
+                >
+                  Voir le planning
+                </button>
+                <button
+                  onClick={onClose}
+                  className="flex items-center justify-center w-full h-10 rounded-xl border border-[var(--border)] text-[13px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
             </div>
           )}
 
