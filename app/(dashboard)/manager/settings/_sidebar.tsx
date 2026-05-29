@@ -22,7 +22,7 @@ const NAV_ITEMS = [
   { label: 'Planning',          href: '/manager/settings/regles',         icon: CalendarDays },
   { label: 'Contrats & RH',    href: '/manager/settings/contrats',       icon: FileText },
   { label: 'Congés & absences', href: '/manager/settings/conges',        icon: Umbrella },
-  { label: 'Notifications',     href: '/manager/settings/alertes',       icon: Bell },
+  { label: 'Notifications',     href: '/manager/settings/notifications', icon: Bell },
   { label: 'Exports & paie',   href: '/manager/settings/exports',        icon: Download },
   { label: 'Intégrations',     href: '/manager/settings/integrations',   icon: Plug },
   { label: 'Données & RGPD',   href: '/manager/settings/rgpd',           icon: ShieldCheck },
