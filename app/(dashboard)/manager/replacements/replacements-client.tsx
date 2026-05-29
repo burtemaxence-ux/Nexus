@@ -37,7 +37,7 @@ function formatResolution(minutes: number): string {
   return m > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; Icon: React.ComponentType<{ size: number }> }> = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
   confirmed: { label: 'Confirmé', color: '#16A34A', bg: '#DCFCE7', Icon: CheckCircle },
   expired:   { label: 'Expiré',   color: '#D97706', bg: '#FEF3C7', Icon: Timer },
   pending:   { label: 'En cours', color: 'var(--accent)', bg: 'var(--accent-light)', Icon: Clock },
