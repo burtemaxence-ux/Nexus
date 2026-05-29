@@ -38,6 +38,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     { count: latenessCount },
     { data: yesterdayShifts },
     { data: yesterdayPresences },
+    { count: complianceCount },
   ] = await Promise.all([
     supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
     supabase.from('settings').select('value').eq('key', 'org_logo_url').maybeSingle(),
@@ -59,6 +60,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     isManagerOrSupervisor
       ? supabase.from('presences').select('employee_id').eq('date', yesterday).not('clock_in', 'is', null)
       : Promise.resolve({ data: [], error: null, count: null, status: 200, statusText: 'OK' }),
+    isManagerOrSupervisor && activeEstablishmentId
+      ? supabase.from('compliance_alerts').select('id', { count: 'exact', head: true }).eq('establishment_id', activeEstablishmentId).eq('status', 'active').or(`ignored_until.is.null,ignored_until.lt.${new Date().toISOString()}`)
+      : Promise.resolve({ count: 0, data: null, error: null, status: 200, statusText: 'OK' }),
   ])
 
   const establishmentName = nameRow?.value ?? 'Mon établissement'
@@ -68,6 +72,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const presentSet = new Set((yesterdayPresences ?? []).map(p => (p as { employee_id: string }).employee_id))
   const absenceCount = (yesterdayShifts ?? []).filter(s => !presentSet.has((s as { employee_id: string }).employee_id)).length
   const alertsCount = (cddCount ?? 0) + (latenessCount ?? 0) + absenceCount
+  const complianceAlertsCount = complianceCount ?? 0
 
   const establishments = (userEstablishments ?? []).map(row => {
     const est = (Array.isArray(row.establishments) ? row.establishments[0] : row.establishments) as
@@ -84,6 +89,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       orgLogoUrl={orgLogoUrl}
       pendingLeavesCount={pendingLeavesCount}
       alertsCount={alertsCount}
+      complianceAlertsCount={complianceAlertsCount}
       establishments={establishments}
       activeEstablishmentId={activeEstablishmentId}
     >

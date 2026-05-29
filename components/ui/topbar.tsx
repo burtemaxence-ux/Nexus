@@ -230,6 +230,7 @@ interface TopbarProps {
   establishmentName: string
   pendingLeavesCount?: number
   alertsCount?: number
+  complianceAlertsCount?: number
   establishments?: EstablishmentEntry[]
   activeEstablishmentId?: string
 }
@@ -238,17 +239,19 @@ export function Topbar({
   role, userName, userEmail, establishmentName,
   pendingLeavesCount = 0,
   alertsCount = 0,
+  complianceAlertsCount = 0,
   establishments = [],
   activeEstablishmentId = '',
 }: TopbarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [livePendingLeaves, setLivePendingLeaves] = useState(pendingLeavesCount)
+  const [liveComplianceCount, setLiveComplianceCount] = useState(complianceAlertsCount)
 
-  // Sync initial server value when it changes (navigation)
   useEffect(() => { setLivePendingLeaves(pendingLeavesCount) }, [pendingLeavesCount])
+  useEffect(() => { setLiveComplianceCount(complianceAlertsCount) }, [complianceAlertsCount])
 
-  // Supabase Realtime — badge congés en temps réel
+  // Realtime — badge congés
   useEffect(() => {
     if (role !== 'manager' && role !== 'supervisor') return
     const supabase = createClient()
@@ -264,8 +267,24 @@ export function Topbar({
     return () => { active = false; supabase.removeChannel(channel) }
   }, [role])
 
+  // Polling toutes les 5 min — badge conformité
+  useEffect(() => {
+    if (role !== 'manager' && role !== 'supervisor') return
+    let active = true
+    const fetchCount = () => {
+      fetch('/api/compliance/alerts')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (active && d) setLiveComplianceCount(d.count ?? 0) })
+        .catch(() => {})
+    }
+    const timer = setInterval(fetchCount, 5 * 60 * 1000)
+    return () => { active = false; clearInterval(timer) }
+  }, [role])
+
+  const liveAlertsCount = alertsCount + liveComplianceCount
+
   const navItems = (role === 'manager' || role === 'supervisor')
-    ? buildManagerNav(livePendingLeaves, alertsCount)
+    ? buildManagerNav(livePendingLeaves, liveAlertsCount)
     : employeeNav
 
   function isActive(href: string) {

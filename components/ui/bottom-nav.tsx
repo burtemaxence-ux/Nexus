@@ -302,14 +302,17 @@ interface BottomNavProps {
   role: 'manager' | 'employee' | 'supervisor'
   pendingLeavesCount?: number
   alertsCount?: number
+  complianceAlertsCount?: number
 }
 
-export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0 }: BottomNavProps) {
+export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0, complianceAlertsCount = 0 }: BottomNavProps) {
   const pathname = usePathname()
   const [livePendingLeaves, setLivePendingLeaves] = useState(pendingLeavesCount)
+  const [liveComplianceCount, setLiveComplianceCount] = useState(complianceAlertsCount)
   const [showMore, setShowMore] = useState(false)
 
   useEffect(() => { setLivePendingLeaves(pendingLeavesCount) }, [pendingLeavesCount])
+  useEffect(() => { setLiveComplianceCount(complianceAlertsCount) }, [complianceAlertsCount])
 
   // Realtime badge congés
   useEffect(() => {
@@ -369,7 +372,7 @@ export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0 }: Bot
         {showMore && (
           <ManagerMoreDrawer
             onClose={() => setShowMore(false)}
-            alertsCount={alertsCount}
+            alertsCount={alertsCount + liveComplianceCount}
             pathname={pathname}
           />
         )}

@@ -22,6 +22,7 @@ interface AppShellProps {
   orgLogoUrl?: string
   pendingLeavesCount?: number
   alertsCount?: number
+  complianceAlertsCount?: number
   establishments?: EstablishmentEntry[]
   activeEstablishmentId?: string
   children: ReactNode
@@ -31,6 +32,7 @@ export function AppShell({
   role, userName, userEmail, establishmentName,
   pendingLeavesCount = 0,
   alertsCount = 0,
+  complianceAlertsCount = 0,
   establishments = [], activeEstablishmentId = '',
   children,
 }: AppShellProps) {
@@ -46,6 +48,7 @@ export function AppShell({
           establishmentName={establishmentName}
           pendingLeavesCount={pendingLeavesCount}
           alertsCount={alertsCount}
+          complianceAlertsCount={complianceAlertsCount}
           establishments={establishments}
           activeEstablishmentId={activeEstablishmentId}
         />
@@ -110,6 +113,7 @@ export function AppShell({
         role={role}
         pendingLeavesCount={pendingLeavesCount}
         alertsCount={alertsCount}
+        complianceAlertsCount={complianceAlertsCount}
       />
     </div>
   )
