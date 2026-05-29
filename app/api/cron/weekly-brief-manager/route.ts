@@ -56,7 +56,7 @@ function thisWeekBounds(now: Date): { monday: string; sunday: string } {
 async function generateBrief(contextData: string): Promise<string> {
   try {
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 280,
       messages: [{
         role: 'user',
