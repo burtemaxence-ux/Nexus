@@ -97,7 +97,7 @@ Retourne UNIQUEMENT un JSON valide avec ce format exact :
 
   try {
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 700,
       messages: [{ role: 'user', content: prompt }],
     })

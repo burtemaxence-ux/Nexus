@@ -41,7 +41,7 @@ function estimatedLeaveBalance(startDate: string): number {
 async function generateSummary(ctx: string): Promise<string> {
   try {
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 160,
       messages: [{
         role: 'user',
