@@ -72,7 +72,7 @@ export async function PATCH(req: NextRequest) {
     const ignoredUntil = new Date(Date.now() + 7 * 86400000).toISOString()
     const { error } = await supabase
       .from('compliance_alerts')
-      .update({ status: 'ignored', ignored_until: ignoredUntil })
+      .update({ ignored_until: ignoredUntil })
       .eq('id', id)
       .eq('establishment_id', establishmentId)
 
