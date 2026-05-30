@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
   const friday = addDays(weekStart, 4).toISOString().slice(0, 10)
   const results = { establishments: 0, summaries_sent: 0, errors: 0 }
 
+  try {
   const { data: establishments } = await supabaseAdmin
     .from('establishments')
     .select('id, name')
@@ -219,7 +220,7 @@ export async function GET(request: NextRequest) {
             title: '📊 Ta semaine en chiffres',
             body: summaryText.split('.')[0].slice(0, 100) + '.',
             url: '/employee',
-          }).catch(() => {})
+          }).catch(console.error)
 
           results.summaries_sent++
         })
@@ -234,4 +235,8 @@ export async function GET(request: NextRequest) {
 
   console.log('[weekly-summary-employee] done:', results)
   return NextResponse.json(results)
+  } catch (err) {
+    console.error('[weekly-summary-employee] unexpected error:', err)
+    return NextResponse.json({ error: 'Erreur serveur', ...results }, { status: 500 })
+  }
 }

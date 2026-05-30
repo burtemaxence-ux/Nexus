@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
             title: '⏰ Shift toujours disponible — Dernier appel !',
             body: `${fmtTime} · Réponds avant expiration !`,
             url: actionUrl,
-          }).catch(() => {})
+          }).catch(console.error)
         }
 
         relanceCount += toRelance.length
@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
               title: '⏰ Aucun remplaçant trouvé',
               body: `Le shift ${fmtTime} n'a pas été pourvu. Action requise.`,
               url: '/manager/planning',
-            }).catch(() => {})
+            }).catch(console.error)
           }
         }
 

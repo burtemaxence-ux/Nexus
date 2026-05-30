@@ -64,8 +64,9 @@ export async function sendPushToUser(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           body
         )
-      } catch {
-        // Subscription expired — remove it
+      } catch (err) {
+        console.error('[push] sendNotification error:', err)
+        // Subscription expired or invalid — remove it
         await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
       }
     })

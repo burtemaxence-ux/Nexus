@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
           title: "⏰ N'oublie pas de pointer ta sortie !",
           body: `Ton shift s'est terminé à ${endLabel}`,
           url: '/employee/badgeuse',
-        }).catch(() => {})
+        }).catch(console.error)
 
         notified++
       })

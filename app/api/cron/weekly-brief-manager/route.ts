@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
 
   const results = { establishments: 0, briefs_sent: 0, errors: 0 }
 
+  try {
   // Récupérer tous les établissements actifs
   const { data: establishments } = await supabaseAdmin
     .from('establishments')
@@ -237,4 +238,8 @@ export async function GET(request: NextRequest) {
 
   console.log('[weekly-brief-manager] done:', results)
   return NextResponse.json(results)
+  } catch (err) {
+    console.error('[weekly-brief-manager] unexpected error:', err)
+    return NextResponse.json({ error: 'Erreur serveur', ...results }, { status: 500 })
+  }
 }
