@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { notifyManagers, notifyUser } from '@/lib/notifications/notify'
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
+import { sendSlackMessage } from '@/lib/integrations/slack'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -207,6 +208,18 @@ export async function POST(req: NextRequest) {
       actionUrl: '/manager/planning',
       pushBody: `${confirmedName} prend le créneau ${fmtTime}`,
     })
+  }
+
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL
+  if (webhookUrl) {
+    const { data: estData } = await supabaseAdmin
+      .from('establishments')
+      .select('name')
+      .eq('id', rr.establishment_id)
+      .single()
+    const estName = estData?.name ?? rr.establishment_id
+    const slackMsg = `✅ Remplacement confirmé — ${estName} : ${confirmedName} remplace le shift ${fmtTime}`
+    await sendSlackMessage(webhookUrl, slackMsg).catch(e => console.error('Slack:', e))
   }
 
   // Notifier les 2 autres candidats que le créneau est attribué

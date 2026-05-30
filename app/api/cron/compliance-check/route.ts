@@ -5,6 +5,7 @@ import { getISOWeekString } from '@/lib/utils/dates'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
 import { captureError } from '@/lib/logger'
+import { sendSlackMessage } from '@/lib/integrations/slack'
 
 const anthropic = new Anthropic()
 
@@ -463,6 +464,14 @@ export async function GET(request: NextRequest) {
                 pushTitle: `⚠️ Alerte conformité${firstName ? ` — ${firstName}` : ''}`,
                 pushBody: message.slice(0, 80),
               })
+            }
+
+            if (alert.level === 'CRITICAL') {
+              const webhookUrl = process.env.SLACK_WEBHOOK_URL
+              if (webhookUrl) {
+                const slackMsg = `🔴 Alerte contractuelle — ${est.name} : ${message} (Employé : ${emp.full_name})`
+                await sendSlackMessage(webhookUrl, slackMsg).catch(e => console.error('Slack:', e))
+              }
             }
           }
         }

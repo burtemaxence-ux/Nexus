@@ -6,6 +6,7 @@ import { sendWeeklyBriefEmail } from '@/lib/email/weekly-brief-email'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
 import { captureError } from '@/lib/logger'
+import { sendSlackMessage } from '@/lib/integrations/slack'
 
 // Vercel Cron : tous les lundis à 07h00 UTC  →  "0 7 * * 1"
 
@@ -228,6 +229,14 @@ export async function GET(request: NextRequest) {
         pushTitle: `📊 Brief semaine disponible`,
         pushBody: briefText.split('\n')[0].slice(0, 100),
       })
+
+      const webhookUrl = process.env.SLACK_WEBHOOK_URL
+      if (webhookUrl) {
+        const weekNum = getISOWeekNumber(lastMonDate)
+        const firstSentence = briefText.split('\n')[0]
+        const slackMsg = `📊 Brief semaine ${weekNum} — ${est.name} : ${firstSentence}`
+        await sendSlackMessage(webhookUrl, slackMsg).catch(e => console.error('Slack:', e))
+      }
 
       results.briefs_sent++
       console.log(`[weekly-brief] ${est.name} → brief envoyé à ${managers.length} manager(s)`)

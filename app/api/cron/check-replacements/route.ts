@@ -4,6 +4,7 @@ import { sendPushToUser } from '@/lib/push'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
 import { captureError } from '@/lib/logger'
+import { sendSlackMessage } from '@/lib/integrations/slack'
 
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCron(request)) {
@@ -157,6 +158,18 @@ export async function GET(request: NextRequest) {
               url: '/manager/planning',
             }).catch(console.error)
           }
+        }
+
+        const webhookUrl = process.env.SLACK_WEBHOOK_URL
+        if (webhookUrl) {
+          const { data: estData } = await supabaseAdmin
+            .from('establishments')
+            .select('name')
+            .eq('id', rr.establishment_id)
+            .single()
+          const estName = estData?.name ?? rr.establishment_id
+          const slackMsg = `⚡ Remplacement expiré — ${estName} : Shift ${fmtTime} non couvert. Aucun candidat n'a répondu.`
+          await sendSlackMessage(webhookUrl, slackMsg).catch(e => console.error('Slack:', e))
         }
 
         expiredCount++
