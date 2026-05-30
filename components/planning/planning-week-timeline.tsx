@@ -15,12 +15,17 @@ import { SosReplacementModal } from '@/components/planning/sos-replacement-modal
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 import { calcHours, formatHours, formatTime, isToday, getInitials, LEAVE_STYLES } from '@/lib/planning-utils'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
-import { AiPlanModal } from '@/components/planning/ai-plan-modal'
+import dynamic from 'next/dynamic'
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent,
   PointerSensor, useSensor, useSensors, useDraggable, useDroppable,
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
+
+const AiPlanModal = dynamic(
+  () => import('@/components/planning/ai-plan-modal').then(m => ({ default: m.AiPlanModal })),
+  { ssr: false }
+)
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const TICK_HOURS = [0, 6, 12, 18, 24]
