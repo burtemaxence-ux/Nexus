@@ -449,6 +449,7 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
                   title="Créer un avenant de contrat"
                   description="Générer un avenant pour régulariser les heures de travail"
                   accent="#2563EB"
+                  disabled={generating}
                   onClick={() => generateDocument('avenant_heures')}
                 />
               )}
@@ -458,6 +459,7 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
                   title="Créer un avenant de renouvellement"
                   description="Générer un avenant de renouvellement ou de transformation en CDI"
                   accent="#2563EB"
+                  disabled={generating}
                   onClick={() => generateDocument('avenant_cdd')}
                 />
               )}
@@ -479,6 +481,7 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
                 title="Envoyer un résumé à mon expert-comptable"
                 description="Générer un email professionnel factuel à partager avec votre conseil"
                 accent="#7C3AED"
+                disabled={generating}
                 onClick={generateEmail}
               />
 

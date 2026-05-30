@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
-import { CheckCircle, XCircle, Clock } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import type { LeaveRequestWithEmployee } from '@/types'
 
@@ -190,7 +190,10 @@ export default function ManagerCongesPage() {
                         onClick={() => handleAction(req.id, 'rejected')}
                         disabled={actionLoading}
                       >
-                        <XCircle className="h-4 w-4 md:h-3.5 md:w-3.5" /> Refuser
+                        {actionLoading
+                          ? <Loader2 className="h-4 w-4 md:h-3.5 md:w-3.5 animate-spin" />
+                          : <XCircle className="h-4 w-4 md:h-3.5 md:w-3.5" />}
+                        {actionLoading ? 'Envoi...' : 'Refuser'}
                       </button>
                     </div>
                   )}
