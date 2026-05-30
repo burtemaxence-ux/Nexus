@@ -1,63 +1,50 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth, requireManager } from '@/lib/api-auth'
 import { ShiftSchema, validationError } from '@/lib/validations'
 import { fireWebhook } from '@/lib/integrations/webhook'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  try {
+    const supabase = await createClient()
+    const { user } = await requireAuth(supabase)
 
-  const { searchParams } = new URL(request.url)
-  const employeeParam = searchParams.get('employee')
-  const date = searchParams.get('date')
-  const from = searchParams.get('from')
-  const to = searchParams.get('to')
+    const { searchParams } = new URL(request.url)
+    const employeeParam = searchParams.get('employee')
+    const date = searchParams.get('date')
+    const from = searchParams.get('from')
+    const to = searchParams.get('to')
 
-  let query = supabase
-    .from('shifts')
-    .select('id, start_time, end_time, position, date, employee_id, break_minutes, notes, poste_id, status')
-    .is('deleted_at', null)
+    let query = supabase
+      .from('shifts')
+      .select('id, start_time, end_time, position, date, employee_id, break_minutes, notes, poste_id, status')
+      .is('deleted_at', null)
 
-  if (employeeParam === 'me') {
-    query = query.eq('employee_id', user.id)
-  } else if (employeeParam) {
-    query = query.eq('employee_id', employeeParam)
+    if (employeeParam === 'me') {
+      query = query.eq('employee_id', user.id)
+    } else if (employeeParam) {
+      query = query.eq('employee_id', employeeParam)
+    }
+
+    if (from && to) {
+      query = query.gte('date', from).lte('date', to)
+    } else if (date) {
+      query = query.eq('date', date)
+    }
+
+    const { data, error } = await query
+    if (error) return NextResponse.json({ error: 'Erreur lors de la récupération des shifts' }, { status: 500 })
+    return NextResponse.json(data)
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
   }
-
-  if (from && to) {
-    query = query.gte('date', from).lte('date', to)
-  } else if (date) {
-    query = query.eq('date', date)
-  }
-
-  const { data, error } = await query
-  if (error) return NextResponse.json({ error: 'Erreur lors de la récupération des shifts' }, { status: 500 })
-  return NextResponse.json(data)
 }
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-    }
-
-    // Verify the user is a manager
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role, establishment_id, active_establishment_id')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile || !['manager', 'supervisor'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-    }
+    const { profile } = await requireManager(supabase)
 
     const raw = await request.json().catch(() => null)
     const parsed = ShiftSchema.safeParse(raw)
@@ -105,8 +92,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ shift: data }, { status: 201 })
-  } catch (err) {
-    console.error('[shifts POST] exception:', err instanceof Error ? err.message : err)
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    console.error('[shifts POST] exception:', e instanceof Error ? e.message : e)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
