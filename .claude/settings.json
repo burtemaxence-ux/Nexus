@@ -1,0 +1,6 @@
+{
+  "git": {
+    "defaultBranch": "main",
+    "createBranch": false
+  }
+}
