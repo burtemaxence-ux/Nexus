@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { createNotification } from '@/lib/notifications/create'
-import { sendPushToUser } from '@/lib/push'
+import { notifyManagers, notifyUser } from '@/lib/notifications/notify'
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 
@@ -99,14 +98,15 @@ export async function POST(req: NextRequest) {
           ? `${shift.start_time.slice(0, 5)}→${shift.end_time.slice(0, 5)}`
           : 'ce créneau'
 
-        await createNotification({
-          user_ids: managerIds,
-          establishment_id: rr.establishment_id,
+        await notifyManagers({
+          managerIds,
+          establishmentId: rr.establishment_id,
           type: 'replacement_all_declined',
           title: '⚠ Aucun remplaçant disponible',
           body: `Tous les candidats ont refusé le shift ${fmtTime}. Voir les autres options.`,
           data: { replacement_request_id: rr.id },
-          action_url: '/manager/planning',
+          actionUrl: '/manager/planning',
+          pushEnabled: false,
         })
       }
     }
@@ -197,24 +197,16 @@ export async function POST(req: NextRequest) {
 
   if (managers && managers.length > 0) {
     const managerIds = managers.map((m: { id: string }) => m.id)
-    await createNotification({
-      user_ids: managerIds,
-      establishment_id: rr.establishment_id,
+    await notifyManagers({
+      managerIds,
+      establishmentId: rr.establishment_id,
       type: 'replacement_confirmed',
       title: `✅ Remplacement confirmé`,
       body: `${confirmedName} a confirmé le remplacement de ${fmtTime}.`,
       data: { replacement_request_id: rr.id, new_shift_id: newShift.id },
-      action_url: '/manager/planning',
+      actionUrl: '/manager/planning',
+      pushBody: `${confirmedName} prend le créneau ${fmtTime}`,
     })
-
-    // Push aux managers
-    for (const manager of managers as { id: string }[]) {
-      sendPushToUser(supabase, manager.id, {
-        title: '✅ Remplacement confirmé',
-        body: `${confirmedName} prend le créneau ${fmtTime}`,
-        url: '/manager/planning',
-      }).catch(() => {})
-    }
   }
 
   // Notifier les 2 autres candidats que le créneau est attribué
@@ -222,17 +214,20 @@ export async function POST(req: NextRequest) {
     .filter(c => c.employee_id !== body.employee_id)
     .map(c => c.employee_id)
 
-  if (otherCandidateIds.length > 0) {
-    await createNotification({
-      user_ids: otherCandidateIds,
-      establishment_id: rr.establishment_id,
-      type: 'replacement_filled',
-      title: 'Créneau attribué',
-      body: `Ce créneau a été attribué à quelqu'un d'autre. Merci pour ta disponibilité !`,
-      data: { replacement_request_id: rr.id },
-      action_url: '/employee',
-    })
-  }
+  await Promise.all(
+    otherCandidateIds.map(uid =>
+      notifyUser({
+        userId: uid,
+        establishmentId: rr.establishment_id,
+        type: 'replacement_filled',
+        title: 'Créneau attribué',
+        body: `Ce créneau a été attribué à quelqu'un d'autre. Merci pour ta disponibilité !`,
+        data: { replacement_request_id: rr.id },
+        actionUrl: '/employee',
+        pushEnabled: false,
+      })
+    )
+  )
 
   // Invalider le cache du planning
   revalidatePath('/manager/planning')

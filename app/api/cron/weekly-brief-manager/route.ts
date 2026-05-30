@@ -1,7 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { createNotification } from '@/lib/notifications/create'
-import { sendPushToUser } from '@/lib/push'
+import { notifyManagers } from '@/lib/notifications/notify'
 import { sendWeeklyBriefEmail } from '@/lib/email/weekly-brief-email'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
@@ -239,26 +238,17 @@ export async function GET(request: NextRequest) {
         })
       )
 
-      // Notification in-app (groupée pour tous les managers)
-      await createNotification({
-        user_ids: managerIds,
-        establishment_id: est.id,
+      // Notification in-app + push (groupée pour tous les managers)
+      await notifyManagers({
+        managerIds,
+        establishmentId: est.id,
         type: 'weekly_brief',
         title: `📊 Brief ${weekLabel}`,
         body: briefText.split('\n')[0].slice(0, 160),
-        action_url: '/manager',
+        actionUrl: '/manager',
+        pushTitle: `📊 Brief semaine disponible`,
+        pushBody: briefText.split('\n')[0].slice(0, 100),
       })
-
-      // Push notifications (best-effort)
-      await Promise.allSettled(
-        managerIds.map((id: string) =>
-          sendPushToUser(supabaseAdmin, id, {
-            title: `📊 Brief semaine disponible`,
-            body: briefText.split('\n')[0].slice(0, 100),
-            url: '/manager',
-          }).catch(() => {})
-        )
-      )
 
       results.briefs_sent++
       console.log(`[weekly-brief] ${est.name} → brief envoyé à ${managers.length} manager(s)`)

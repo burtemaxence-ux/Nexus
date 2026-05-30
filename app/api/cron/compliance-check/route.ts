@@ -1,7 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { createNotification } from '@/lib/notifications/create'
-import { sendPushToUser } from '@/lib/push'
+import { notifyManagers } from '@/lib/notifications/notify'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
 
@@ -456,28 +455,19 @@ export async function GET(request: NextRequest) {
 
             results.alerts_created++
 
-            // Notifier les managers in-app
+            // Notifier les managers
             if (managerIds.length) {
-              await createNotification({
-                user_ids: managerIds,
-                establishment_id: alert.establishment_id,
+              const firstName = alert.title.split('—')[1]?.trim() ?? ''
+              await notifyManagers({
+                managerIds,
+                establishmentId: alert.establishment_id,
                 type: 'compliance_alert',
                 title: alert.title,
                 body: message.slice(0, 160),
                 data: { alert_type: alert.type, level: alert.level, employee_id: alert.employee_id },
-                action_url: '/manager/alertes',
-              })
-
-              // Push notification (non-bloquant)
-              const firstName = alert.title.split('—')[1]?.trim() ?? ''
-              const pushTitle = `⚠️ Alerte conformité${firstName ? ` — ${firstName}` : ''}`
-              const pushBody = message.slice(0, 80)
-              managerIds.forEach(id => {
-                sendPushToUser(supabaseAdmin, id, {
-                  title: pushTitle,
-                  body: pushBody,
-                  url: '/manager/alertes',
-                }).catch(() => {})
+                actionUrl: '/manager/alertes',
+                pushTitle: `⚠️ Alerte conformité${firstName ? ` — ${firstName}` : ''}`,
+                pushBody: message.slice(0, 80),
               })
             }
           }
