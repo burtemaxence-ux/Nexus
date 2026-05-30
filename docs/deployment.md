@@ -1,0 +1,98 @@
+# Déploiement sur Vercel
+
+## Prérequis
+
+- Compte [Vercel](https://vercel.com)
+- Projet Supabase créé ([supabase.com](https://supabase.com))
+- Compte [Resend](https://resend.com) pour les emails
+
+---
+
+## 1. Déployer le projet
+
+```bash
+# Via Vercel CLI
+npm i -g vercel
+vercel --prod
+
+# Ou importer depuis GitHub sur vercel.com/new
+```
+
+---
+
+## 2. Variables d'environnement
+
+À configurer dans **Vercel Dashboard > Settings > Environment Variables** :
+
+### Obligatoires
+
+| Variable                        | Description                                      |
+|---------------------------------|--------------------------------------------------|
+| `NEXT_PUBLIC_SUPABASE_URL`      | URL de votre projet Supabase                     |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé anon Supabase (Settings > API)               |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Clé service role Supabase (jamais exposée client)|
+| `RESEND_API_KEY`                | Clé API Resend pour l'envoi d'emails             |
+| `RESEND_FROM_EMAIL`             | Adresse expéditrice vérifiée dans Resend         |
+| `CRON_SECRET`                   | Secret partagé pour sécuriser les crons          |
+
+Générer `CRON_SECRET` :
+```bash
+openssl rand -hex 32
+```
+
+### Optionnelles
+
+| Variable                          | Description                                  |
+|-----------------------------------|----------------------------------------------|
+| `ANTHROPIC_API_KEY`               | Assistant IA + génération de briefs          |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`    | Push notifications Web — clé publique        |
+| `VAPID_PRIVATE_KEY`               | Push notifications Web — clé privée          |
+| `VAPID_EMAIL`                     | Email contact VAPID (ex: admin@nexus-app.fr) |
+| `KV_URL`                          | Vercel KV — rate limiting distribué          |
+| `KV_REST_API_URL`                 | Vercel KV REST URL                           |
+| `KV_REST_API_TOKEN`               | Vercel KV token                              |
+
+Générer les clés VAPID :
+```bash
+npx web-push generate-vapid-keys
+```
+
+---
+
+## 3. Crons Vercel
+
+Les crons sont définis dans `vercel.json` et s'activent automatiquement au déploiement. Ils nécessitent le plan **Hobby ou supérieur**.
+
+| Endpoint                              | Schedule          | Description                          |
+|---------------------------------------|-------------------|--------------------------------------|
+| `/api/cron/check-missing-clockout`    | `0 23 * * *`      | Rappel pointage sortie manquant      |
+| `/api/cron/check-replacements`        | `0 22 * * *`      | Relance + expiration remplacements   |
+| `/api/cron/compliance-check`          | `0 22 * * 0`      | Analyse contractuelle hebdomadaire   |
+| `/api/cron/weekly-brief-manager`      | `0 7 * * 1`       | Brief RH hebdo pour les managers     |
+| `/api/cron/weekly-summary-employee`   | `0 18 * * 5`      | Résumé de semaine pour les employés  |
+
+Le header `Authorization: Bearer <CRON_SECRET>` est vérifié sur chaque endpoint cron. Vercel l'envoie automatiquement depuis le Dashboard si `CRON_SECRET` est configuré.
+
+---
+
+## 4. Migrations Supabase
+
+Appliquer les migrations dans l'ordre depuis `supabase/migrations/` :
+
+```bash
+# Via Supabase CLI
+supabase db push
+
+# Ou manuellement dans Supabase Dashboard > SQL Editor
+# Exécuter chaque fichier 001_initial.sql → 033_performance_indexes.sql
+```
+
+---
+
+## 5. Vérifications post-déploiement
+
+- [ ] Connexion Supabase : créer un compte et accéder au dashboard
+- [ ] Emails : inviter un employé et vérifier la réception
+- [ ] Push notifications : activer depuis un navigateur mobile
+- [ ] Crons : déclencher manuellement depuis Vercel Dashboard > Crons
+- [ ] API v1 : créer un token dans Paramètres > Intégrations et tester un endpoint
