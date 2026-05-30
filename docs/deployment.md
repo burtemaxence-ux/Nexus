@@ -108,7 +108,39 @@ Sans cette variable, Sentry est silencieusement désactivé — l'app fonctionne
 
 ---
 
-## 6. Vérifications post-déploiement
+## 6. Healthcheck endpoint
+
+L'endpoint `GET /api/health` permet de monitorer l'app sans authentification.
+
+### Réponse type (HTTP 200 si tout va bien, 503 si la DB est en erreur)
+
+```json
+{
+  "status": "ok",
+  "version": "a1b2c3d",
+  "timestamp": "2025-05-30T10:00:00.000Z",
+  "uptime": 3600.5,
+  "services": {
+    "database": { "status": "ok", "latency_ms": 42 },
+    "ai":       { "status": "configured" },
+    "email":    { "status": "configured" },
+    "push":     { "status": "configured" },
+    "slack":    { "status": "not_configured" }
+  }
+}
+```
+
+### Utilisation
+
+- **Vercel** : configurer une alerte sur le statut HTTP dans Dashboard > Monitoring
+- **UptimeRobot / Better Stack** : surveiller `https://votre-domaine.fr/api/health` toutes les 5 minutes
+- **Scripts CI/CD** : `curl -f https://votre-domaine.fr/api/health` pour vérifier le déploiement
+
+> Note : `robots.ts` bloque déjà l'indexation de `/api/*` via `disallow: '/'`.
+
+---
+
+## 7. Vérifications post-déploiement
 
 - [ ] Connexion Supabase : créer un compte et accéder au dashboard
 - [ ] Emails : inviter un employé et vérifier la réception
@@ -116,3 +148,4 @@ Sans cette variable, Sentry est silencieusement désactivé — l'app fonctionne
 - [ ] Crons : déclencher manuellement depuis Vercel Dashboard > Crons
 - [ ] API v1 : créer un token dans Paramètres > Intégrations et tester un endpoint
 - [ ] Sentry : vérifier qu'une erreur test remonte sur sentry.io
+- [ ] Healthcheck : `curl https://votre-domaine.fr/api/health` retourne HTTP 200
