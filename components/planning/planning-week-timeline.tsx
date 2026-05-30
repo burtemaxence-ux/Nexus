@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -43,7 +43,7 @@ function shiftBarStyle(start: string, end: string): { left: string; width: strin
 // ── Context menu ───────────────────────────────────────────────────────────────
 type CtxMenu = { x: number; y: number; shift: Shift; employee: Profile; date: Date }
 
-function ContextMenu({ menu, weekDates, onEdit, onDelete, onCopyTo, onClose }: {
+const ContextMenu = memo(function ContextMenu({ menu, weekDates, onEdit, onDelete, onCopyTo, onClose }: {
   menu: CtxMenu
   weekDates: Date[]
   onEdit: () => void
@@ -117,9 +117,9 @@ function ContextMenu({ menu, weekDates, onEdit, onDelete, onCopyTo, onClose }: {
       </div>
     </div>
   )
-}
+})
 
-function CtxBtn({ icon, label, onClick, danger }: { icon: React.ReactNode; label: string; onClick: () => void; danger?: boolean }) {
+const CtxBtn = memo(function CtxBtn({ icon, label, onClick, danger }: { icon: React.ReactNode; label: string; onClick: () => void; danger?: boolean }) {
   const [hov, setHov] = useState(false)
   return (
     <button
@@ -138,10 +138,10 @@ function CtxBtn({ icon, label, onClick, danger }: { icon: React.ReactNode; label
       {icon}{label}
     </button>
   )
-}
+})
 
 // ── Metric card ───────────────────────────────────────────────────────────────
-function MetricCard({
+const MetricCard = memo(function MetricCard({
   icon, iconBg, iconColor, value, label, trend,
 }: {
   icon: React.ReactNode
@@ -188,10 +188,10 @@ function MetricCard({
       )}
     </div>
   )
-}
+})
 
 // ── Absence badge ──────────────────────────────────────────────────────────────
-function AbsenceBadge({ type }: { type: LeaveType }) {
+const AbsenceBadge = memo(function AbsenceBadge({ type }: { type: LeaveType }) {
   const s = LEAVE_STYLES[type]
   return (
     <div style={{
@@ -204,10 +204,10 @@ function AbsenceBadge({ type }: { type: LeaveType }) {
       {s.label}
     </div>
   )
-}
+})
 
 // ── Shift card (draggable) ────────────────────────────────────────────────────
-function ShiftCard({ shift, poste, onClick, onContextMenu, onSos, disabled, hasConflict }: {
+const ShiftCard = memo(function ShiftCard({ shift, poste, onClick, onContextMenu, onSos, disabled, hasConflict }: {
   shift: Shift
   poste: Poste | null | undefined
   onClick: () => void
@@ -286,10 +286,10 @@ function ShiftCard({ shift, poste, onClick, onContextMenu, onSos, disabled, hasC
       )}
     </div>
   )
-}
+})
 
 // ── Droppable grid cell ────────────────────────────────────────────────────────
-function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, onAdd, onClickShift, onContextMenu, onSos, isToday: isTodayCol }: {
+const GridCell = memo(function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, onAdd, onClickShift, onContextMenu, onSos, isToday: isTodayCol }: {
   droppableId: string
   shifts: Shift[]
   leaveType: LeaveType | undefined
@@ -384,10 +384,10 @@ function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, onAdd, o
       )}
     </td>
   )
-}
+})
 
 // ── Donut chart (SVG natif) ───────────────────────────────────────────────────
-function DonutChart({ shifts, postes }: { shifts: Shift[]; postes: Poste[] }) {
+const DonutChart = memo(function DonutChart({ shifts, postes }: { shifts: Shift[]; postes: Poste[] }) {
   const posteMap = new Map(postes.map(p => [p.id, p]))
   const hoursPerPoste = new Map<string, number>()
   let totalH = 0
@@ -456,10 +456,10 @@ function DonutChart({ shifts, postes }: { shifts: Shift[]; postes: Poste[] }) {
       </div>
     </div>
   )
-}
+})
 
 // ── Alert row ─────────────────────────────────────────────────────────────────
-function AlertRow({ iconBg, iconColor, icon, title, desc, badge }: {
+const AlertRow = memo(function AlertRow({ iconBg, iconColor, icon, title, desc, badge }: {
   iconBg: string; iconColor: string; icon: React.ReactNode
   title: string; desc: string
   badge: { label: string; color: string; bg: string }
@@ -478,10 +478,10 @@ function AlertRow({ iconBg, iconColor, icon, title, desc, badge }: {
       </div>
     </div>
   )
-}
+})
 
 // ── Activity row ──────────────────────────────────────────────────────────────
-function ActivityRow({ iconBg, iconColor, icon, desc, sub }: {
+const ActivityRow = memo(function ActivityRow({ iconBg, iconColor, icon, desc, sub }: {
   iconBg: string; iconColor: string; icon: React.ReactNode
   desc: string; sub: string
 }) {
@@ -496,7 +496,7 @@ function ActivityRow({ iconBg, iconColor, icon, desc, sub }: {
       </div>
     </div>
   )
-}
+})
 
 // ── Mobile manager planning ────────────────────────────────────────────────────
 
@@ -517,7 +517,7 @@ interface MobileManagerPlanningProps {
   onSos: (shift: Shift, employee: Profile) => void
 }
 
-function MobileManagerPlanning({
+const MobileManagerPlanning = memo(function MobileManagerPlanning({
   weekDates, employees, shiftMap, absMap, posteMap,
   weekLocked, weekPublished, statusLoading,
   prevMonday, nextMonday, weekLabel,
@@ -869,7 +869,7 @@ function MobileManagerPlanning({
       )}
     </div>
   )
-}
+})
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export interface PlanningWeekTimelineProps {
@@ -945,6 +945,23 @@ export function PlanningWeekTimeline({
     [activeDragId, shifts]
   )
 
+  // ── Precomputed per-date totals used in header and footer ─────────────────
+  const dailyShiftCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const s of shifts) {
+      m.set(s.date, (m.get(s.date) ?? 0) + 1)
+    }
+    return m
+  }, [shifts])
+
+  const dailyHourTotals = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const s of shifts) {
+      m.set(s.date, (m.get(s.date) ?? 0) + calcHours(s.start_time, s.end_time, s.break_minutes))
+    }
+    return m
+  }, [shifts])
+
   // ── Metric computations ────────────────────────────────────────────────────
   const { totalPlanned, coverage, overtime } = useMemo(() => {
     const total = shifts.reduce((sum, s) => sum + calcHours(s.start_time, s.end_time, s.break_minutes), 0)
@@ -958,7 +975,7 @@ export function PlanningWeekTimeline({
   }, [shifts, employees])
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-  async function handleWeekStatus(payload: { published?: boolean; locked?: boolean }) {
+  const handleWeekStatus = useCallback(async (payload: { published?: boolean; locked?: boolean }) => {
     setStatusLoading(true)
     try {
       await fetch('/api/week-status', {
@@ -968,9 +985,9 @@ export function PlanningWeekTimeline({
       })
       router.refresh()
     } finally { setStatusLoading(false) }
-  }
+  }, [mondayStr, router])
 
-  async function handleCopyWeek() {
+  const handleCopyWeek = useCallback(async () => {
     setCopyLoading(true)
     try {
       const res = await fetch('/api/shifts/copy-week', {
@@ -981,9 +998,9 @@ export function PlanningWeekTimeline({
       if (!res.ok) throw new Error()
       router.push(`?week=${nextMonday}`)
     } finally { setCopyLoading(false) }
-  }
+  }, [mondayStr, nextMonday, router])
 
-  async function handleResendEmails() {
+  const handleResendEmails = useCallback(async () => {
     setEmailLoading(true)
     try {
       const res = await fetch('/api/shifts/send-planning-email', {
@@ -995,9 +1012,9 @@ export function PlanningWeekTimeline({
       setEmailFeedback(`✓ ${data.sent} email${data.sent !== 1 ? 's' : ''} envoyé${data.sent !== 1 ? 's' : ''}`)
       setTimeout(() => setEmailFeedback(null), 4000)
     } finally { setEmailLoading(false) }
-  }
+  }, [mondayStr])
 
-  async function copyShift(shift: Shift, targetEmployeeId: string, targetDate: string) {
+  const copyShift = useCallback(async (shift: Shift, targetEmployeeId: string, targetDate: string) => {
     await fetch('/api/shifts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1012,20 +1029,20 @@ export function PlanningWeekTimeline({
       }),
     })
     router.refresh()
-  }
+  }, [router])
 
-  async function deleteShift(shiftId: string) {
+  const deleteShift = useCallback(async (shiftId: string) => {
     await fetch(`/api/shifts/${shiftId}`, { method: 'DELETE' })
     router.refresh()
     setCtx(null)
-  }
+  }, [router])
 
-  function handleDragStart(e: DragStartEvent) {
+  const handleDragStart = useCallback((e: DragStartEvent) => {
     setActiveDragId(String(e.active.id))
     setCtx(null)
-  }
+  }, [])
 
-  async function handleDragEnd(e: DragEndEvent) {
+  const handleDragEnd = useCallback(async (e: DragEndEvent) => {
     setActiveDragId(null)
     const { active, over } = e
     if (!over) return
@@ -1034,7 +1051,7 @@ export function PlanningWeekTimeline({
     const shift = shifts.find(s => s.id === shiftId)
     if (!shift || (shift.employee_id === targetEmpId && shift.date === targetDate)) return
     await copyShift(shift, targetEmpId, targetDate)
-  }
+  }, [shifts, copyShift])
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -1248,7 +1265,7 @@ export function PlanningWeekTimeline({
                     {weekDates.map(date => {
                       const today = isToday(date)
                       const dateStr = toISODate(date)
-                      const count = shifts.filter(s => s.date === dateStr).length
+                      const count = dailyShiftCounts.get(dateStr) ?? 0
                       const dayName = date.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')
                       const dayNum = date.getDate()
                       return (
@@ -1370,7 +1387,7 @@ export function PlanningWeekTimeline({
                     </td>
                     {weekDates.map(date => {
                       const dateStr = toISODate(date)
-                      const total = shifts.filter(s => s.date === dateStr).reduce((sum, s) => sum + calcHours(s.start_time, s.end_time, s.break_minutes), 0)
+                      const total = dailyHourTotals.get(dateStr) ?? 0
                       const today = isToday(date)
                       return (
                         <td key={dateStr} style={{ borderTop: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', backgroundColor: today ? 'rgba(45,58,140,0.04)' : 'var(--bg-page)', padding: '10px 8px', textAlign: 'center' }}>
