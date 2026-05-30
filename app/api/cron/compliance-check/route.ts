@@ -91,16 +91,8 @@ async function generateMessage(contextForClaude: string): Promise<string> {
   }
 }
 
-async function hasActiveAlert(establishment_id: string, employee_id: string, type: AlertType): Promise<boolean> {
-  const { data } = await supabaseAdmin
-    .from('compliance_alerts')
-    .select('id')
-    .eq('establishment_id', establishment_id)
-    .eq('employee_id', employee_id)
-    .eq('type', type)
-    .eq('status', 'active')
-    .limit(1)
-  return (data?.length ?? 0) > 0
+function buildActiveAlertSet(alerts: { employee_id: string; type: string }[]): Set<string> {
+  return new Set(alerts.map(a => `${a.employee_id}__${a.type}`))
 }
 
 async function getManagerIds(establishment_id: string): Promise<string[]> {
@@ -405,6 +397,16 @@ export async function GET(request: NextRequest) {
         // Managers à notifier
         const managerIds = await getManagerIds(est.id)
 
+        // Pré-fetch de toutes les alertes actives en un seul batch (évite N+1)
+        const { data: existingAlerts } = await supabaseAdmin
+          .from('compliance_alerts')
+          .select('employee_id, type')
+          .eq('establishment_id', est.id)
+          .eq('status', 'active')
+          .in('employee_id', employeeIds)
+
+        const activeAlertSet = buildActiveAlertSet(existingAlerts ?? [])
+
         // Analyser chaque employé
         for (const employee of employees as EmployeeRow[]) {
           // Forcer l'establishment_id de l'itération courante
@@ -425,8 +427,8 @@ export async function GET(request: NextRequest) {
           for (const alert of candidates) {
             if (!alert) continue
 
-            // Anti-doublon : skip si alerte active du même type déjà présente
-            const exists = await hasActiveAlert(alert.establishment_id, alert.employee_id, alert.type)
+            // Anti-doublon : check en mémoire depuis le batch pré-fetché
+            const exists = activeAlertSet.has(`${alert.employee_id}__${alert.type}`)
             if (exists) continue
 
             // Générer le message via Claude Haiku
