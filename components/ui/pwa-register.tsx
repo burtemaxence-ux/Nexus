@@ -7,7 +7,7 @@ export function PwaRegister() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/sw.js', { scope: '/' })
-        .catch(() => {})
+        .catch(err => console.error('[pwa] SW registration failed:', err))
     }
   }, [])
   return null
