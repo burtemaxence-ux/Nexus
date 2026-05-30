@@ -2,18 +2,10 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/notifications/create'
 import { sendPushToUser } from '@/lib/push'
 import { NextRequest, NextResponse } from 'next/server'
-
-// Vercel Cron invokes this route with Authorization: Bearer <CRON_SECRET>.
-// We verify it to prevent unauthorized calls.
-function isAuthorized(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return true // dev: no secret configured → allow
-  const auth = request.headers.get('authorization') ?? ''
-  return auth === `Bearer ${secret}`
-}
+import { isAuthorizedCron } from '@/lib/cron-auth'
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
