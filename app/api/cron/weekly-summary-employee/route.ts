@@ -2,23 +2,13 @@ import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/notifications/create'
 import { sendPushToUser } from '@/lib/push'
+import { getThisWeekBounds, addDays } from '@/lib/utils/dates'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
 
 // Vercel Cron : tous les vendredis à 18h00 UTC  →  "0 18 * * 5"
 
 const anthropic = new Anthropic()
-
-// ── Semaine courante (lundi–vendredi) ─────────────────────────────────────────
-
-function currentWeekBounds(now: Date): { monday: string; friday: string } {
-  const d = new Date(now)
-  const day = d.getDay() === 0 ? 7 : d.getDay() // 1=lun … 7=dim
-  d.setDate(d.getDate() - day + 1)
-  const monday = d.toISOString().slice(0, 10)
-  const friday = new Date(d.getTime() + 4 * 86400000).toISOString().slice(0, 10)
-  return { monday, friday }
-}
 
 // ── Congés acquis estimés (2,5j / mois × mois travaillés) ────────────────────
 
@@ -66,7 +56,9 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date()
-  const { monday, friday } = currentWeekBounds(now)
+  const { start: weekStart } = getThisWeekBounds(now)
+  const monday = weekStart.toISOString().slice(0, 10)
+  const friday = addDays(weekStart, 4).toISOString().slice(0, 10)
   const results = { establishments: 0, summaries_sent: 0, errors: 0 }
 
   const { data: establishments } = await supabaseAdmin

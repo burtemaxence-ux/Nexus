@@ -67,3 +67,65 @@ export function addDays(date: Date, days: number): Date {
   result.setDate(result.getDate() + days)
   return result
 }
+
+/**
+ * Retourne le lundi de la semaine contenant `date`
+ */
+export function getMondayOfWeek(date: Date): Date {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  const day = d.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + diff)
+  return d
+}
+
+/**
+ * Retourne le numéro de semaine ISO (1–53) d'une date
+ */
+export function getISOWeekNumber(date: Date): number {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
+  const week1 = new Date(d.getFullYear(), 0, 4)
+  return 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
+}
+
+/**
+ * Retourne la semaine ISO au format "YYYY-Wnn" (ex: "2026-W22")
+ */
+export function getISOWeekString(date: Date): string {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
+  const weekNum = getISOWeekNumber(d)
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
+}
+
+/**
+ * Retourne le lundi et le dimanche de la semaine contenant `date`
+ */
+export function getWeekBounds(date: Date): { start: Date; end: Date } {
+  const start = getMondayOfWeek(date)
+  const end = addDays(start, 6)
+  end.setHours(23, 59, 59, 999)
+  return { start, end }
+}
+
+/**
+ * Retourne le lundi et le dimanche de la semaine précédente
+ */
+export function getLastWeekBounds(now: Date = new Date()): { start: Date; end: Date } {
+  const monday = getMondayOfWeek(now)
+  const lastMonday = addDays(monday, -7)
+  const lastSunday = addDays(lastMonday, 6)
+  lastSunday.setHours(23, 59, 59, 999)
+  return { start: lastMonday, end: lastSunday }
+}
+
+/**
+ * Retourne le lundi et le dimanche de la semaine en cours
+ */
+export function getThisWeekBounds(now: Date = new Date()): { start: Date; end: Date } {
+  return getWeekBounds(now)
+}

@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { notifyManagers } from '@/lib/notifications/notify'
+import { getISOWeekString } from '@/lib/utils/dates'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
 
@@ -54,14 +55,6 @@ interface ShiftRow {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getISOWeek(dateStr: string): string {
-  const d = new Date(dateStr)
-  d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
-  const week1 = new Date(d.getFullYear(), 0, 4)
-  const weekNum = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
-  return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
-}
 
 function presenceHours(p: PresenceRow): number {
   if (!p.clock_in || !p.clock_out) return 0
@@ -114,7 +107,7 @@ async function analyseHoursExceeded(
   // Group presences by ISO week
   const weekMap = new Map<string, number>()
   for (const p of presences) {
-    const week = getISOWeek(p.date)
+    const week = getISOWeekString(new Date(p.date))
     weekMap.set(week, (weekMap.get(week) ?? 0) + presenceHours(p))
   }
 
@@ -279,7 +272,7 @@ async function analyseRequalificationRisk(
   if (!recentShifts.length) return null
 
   // Count distinct weeks with presence
-  const weeksPresent = new Set(recentShifts.map(s => getISOWeek(s.date)))
+  const weeksPresent = new Set(recentShifts.map(s => getISOWeekString(new Date(s.date))))
   if (weeksPresent.size < 6) return null
 
   // Check recurring day patterns (same weekday 3+ times)

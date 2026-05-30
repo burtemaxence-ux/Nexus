@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { notifyManagers } from '@/lib/notifications/notify'
+import { getISOWeekNumber, getLastWeekBounds, getThisWeekBounds, addDays } from '@/lib/utils/dates'
 import { sendWeeklyBriefEmail } from '@/lib/email/weekly-brief-email'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
@@ -14,35 +15,7 @@ const anthropic = new Anthropic()
 function isoWeekLabel(monday: Date): string {
   const weekNum = getISOWeekNumber(monday)
   const year = monday.getFullYear()
-  return `Semaine ${weekNum} (${monday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} – ${new Date(monday.getTime() + 6 * 86400000).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })})`
-}
-
-function getISOWeekNumber(date: Date): number {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
-  const week1 = new Date(d.getFullYear(), 0, 4)
-  return 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
-}
-
-// Lundi et dimanche de la semaine précédente
-function lastWeekBounds(now: Date): { monday: string; sunday: string } {
-  const d = new Date(now)
-  const day = d.getDay() === 0 ? 7 : d.getDay() // lundi=1 … dimanche=7
-  d.setDate(d.getDate() - day - 6) // lundi semaine précédente
-  const monday = d.toISOString().slice(0, 10)
-  const sunday = new Date(d.getTime() + 6 * 86400000).toISOString().slice(0, 10)
-  return { monday, sunday }
-}
-
-// Lundi et dimanche de la semaine en cours
-function thisWeekBounds(now: Date): { monday: string; sunday: string } {
-  const d = new Date(now)
-  const day = d.getDay() === 0 ? 7 : d.getDay()
-  d.setDate(d.getDate() - day + 1)
-  const monday = d.toISOString().slice(0, 10)
-  const sunday = new Date(d.getTime() + 6 * 86400000).toISOString().slice(0, 10)
-  return { monday, sunday }
+  return `Semaine ${weekNum} (${monday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} – ${addDays(monday, 6).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })})`
 }
 
 // ── Brief generation (Claude Haiku) ──────────────────────────────────────────
@@ -86,8 +59,12 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date()
-  const { monday: lastMon, sunday: lastSun } = lastWeekBounds(now)
-  const { monday: thisMon, sunday: thisSun } = thisWeekBounds(now)
+  const { start: lastStart, end: lastEnd } = getLastWeekBounds(now)
+  const { start: thisStart, end: thisEnd } = getThisWeekBounds(now)
+  const lastMon = lastStart.toISOString().slice(0, 10)
+  const lastSun = lastEnd.toISOString().slice(0, 10)
+  const thisMon = thisStart.toISOString().slice(0, 10)
+  const thisSun = thisEnd.toISOString().slice(0, 10)
   const lastMonDate = new Date(lastMon + 'T00:00:00')
   const weekLabel = isoWeekLabel(lastMonDate)
 
