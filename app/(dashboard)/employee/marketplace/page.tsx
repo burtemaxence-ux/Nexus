@@ -6,6 +6,7 @@ import {
   RefreshCw, Loader2, Timer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { calcHours, formatHours } from '@/lib/planning-utils'
 import type { MarketplaceSlot } from '@/app/api/marketplace/route'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -30,15 +31,6 @@ function fmtExpiry(expiresAt: string): { label: string; urgent: boolean } {
   return { label: `${h}h`, urgent: false }
 }
 
-function shiftDurationH(startTime: string, endTime: string, breakMin: number): string {
-  let s = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1])
-  let e = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1])
-  if (e <= s) e += 1440
-  const net = Math.max(0, e - s - breakMin)
-  const h = Math.floor(net / 60)
-  const m = net % 60
-  return m > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
-}
 
 // ── Slot card ─────────────────────────────────────────────────────────────────
 
@@ -103,7 +95,7 @@ function SlotCard({ slot, onRefresh }: { slot: MarketplaceSlot; onRefresh: () =>
             {fmtTime(slot.shift.startTime, slot.shift.endTime)}
           </span>
           <span className="text-[13px] text-[var(--text-secondary)]">
-            {shiftDurationH(slot.shift.startTime, slot.shift.endTime, slot.shift.breakMinutes)} net
+            {formatHours(calcHours(slot.shift.startTime, slot.shift.endTime, slot.shift.breakMinutes))} net
           </span>
           {slot.reason && (
             <span className="text-[12px] text-[var(--text-tertiary)]">· {slot.reason}</span>

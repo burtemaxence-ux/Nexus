@@ -1,36 +1,20 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { calcHours, timeToMinutes } from '@/lib/planning-utils'
+import { getMondayOfWeek, addDays, toISODate } from '@/lib/utils/dates'
 import { NextRequest, NextResponse } from 'next/server'
 
 const anthropic = new Anthropic()
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function timeToMin(t: string): number {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
-}
-
-function shiftDurationHours(start: string, end: string, breakMin: number): number {
-  let startM = timeToMin(start)
-  let endM = timeToMin(end)
-  if (endM <= startM) endM += 1440
-  return Math.max(0, (endM - startM - breakMin) / 60)
-}
-
 function mondayOfWeek(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  const day = d.getDay() // 0=Sun
-  const diff = day === 0 ? -6 : 1 - day
-  d.setDate(d.getDate() + diff)
-  return d.toISOString().split('T')[0]
+  return toISODate(getMondayOfWeek(new Date(dateStr + 'T00:00:00')))
 }
 
 function sundayOfWeek(monday: string): string {
-  const d = new Date(monday + 'T00:00:00')
-  d.setDate(d.getDate() + 6)
-  return d.toISOString().split('T')[0]
+  return toISODate(addDays(new Date(monday + 'T00:00:00'), 6))
 }
 
 function prevDayStr(dateStr: string): string {
@@ -107,7 +91,7 @@ export async function POST(req: NextRequest) {
   const monday = mondayOfWeek(shift.date)
   const sunday = sundayOfWeek(monday)
   const prevDay = prevDayStr(shift.date)
-  const shiftDuration = shiftDurationHours(shift.start_time, shift.end_time, shift.break_minutes ?? 0)
+  const shiftDuration = calcHours(shift.start_time, shift.end_time, shift.break_minutes ?? 0)
 
   // ── 2. Candidats disponibles ───────────────────────────────────────────────
 
@@ -231,7 +215,7 @@ export async function POST(req: NextRequest) {
 
   const weekHoursMap = new Map<string, number>()
   for (const s of (weekShifts ?? []) as ShiftRow[]) {
-    const h = shiftDurationHours(s.start_time, s.end_time, s.break_minutes ?? 0)
+    const h = calcHours(s.start_time, s.end_time, s.break_minutes ?? 0)
     weekHoursMap.set(s.employee_id, (weekHoursMap.get(s.employee_id) ?? 0) + h)
   }
 
@@ -259,7 +243,7 @@ export async function POST(req: NextRequest) {
 
   const dayHoursMap = new Map<string, number>()
   for (const s of (dayShiftsForCompliance ?? []) as ShiftRow[]) {
-    const h = shiftDurationHours(s.start_time, s.end_time, s.break_minutes ?? 0)
+    const h = calcHours(s.start_time, s.end_time, s.break_minutes ?? 0)
     dayHoursMap.set(s.employee_id, (dayHoursMap.get(s.employee_id) ?? 0) + h)
   }
 
@@ -315,8 +299,8 @@ export async function POST(req: NextRequest) {
     // 3. Repos 11h (vérifier shift de la veille)
     const prevShifts = prevDayShiftMap.get(emp.id) ?? []
     for (const ps of prevShifts) {
-      const prevEndMin = timeToMin(ps.end_time)
-      const newStartMin = timeToMin(shift.start_time)
+      const prevEndMin = timeToMinutes(ps.end_time)
+      const newStartMin = timeToMinutes(shift.start_time)
       // Repos entre fin du shift précédent (hier) et début du nouveau (aujourd'hui)
       const restMinutes = (newStartMin + 1440) - prevEndMin
       if (restMinutes < 11 * 60) {

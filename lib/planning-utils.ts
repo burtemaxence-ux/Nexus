@@ -1,5 +1,23 @@
 import type { LeaveType } from '@/types'
 
+/**
+ * Converts "HH:MM" to minutes since midnight.
+ */
+export function timeToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
+/**
+ * Returns the net shift duration in minutes (handles overnight shifts).
+ */
+export function calcShiftDuration(startTime: string, endTime: string, breakMinutes: number = 0): number {
+  let start = timeToMinutes(startTime)
+  let end = timeToMinutes(endTime)
+  if (end <= start) end += 1440
+  return Math.max(0, end - start - breakMinutes)
+}
+
 export function calcHours(start: string, end: string, breakMinutes: number = 0): number {
   const [sh, sm] = start.split(':').map(Number)
   const [eh, em] = end.split(':').map(Number)
