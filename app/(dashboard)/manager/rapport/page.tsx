@@ -139,6 +139,8 @@ export default function RapportPage() {
   const [latenessLoading, setLatenessLoading] = useState(false)
   const [latenessFilter, setLatenessFilter] = useState<'all' | 'justified' | 'unjustified'>('all')
   const [payFormat, setPayFormat] = useState<PayFormat>('generique')
+  const [exportLoading, setExportLoading] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   const period = useMemo(() => getPeriod(mode, refDate), [mode, refDate])
 
@@ -309,6 +311,33 @@ export default function RapportPage() {
       }
     })
   }, [employees, shifts, leaves, selectedEmployee, selectedPoste, period])
+
+  const handleExportCsv = useCallback(async () => {
+    setExportLoading(true)
+    setExportError(null)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 25000)
+    try {
+      const url = `/api/exports?type=paie&from=${toISODate(period.start)}&to=${toISODate(period.end)}&format=${payFormat}`
+      const res = await fetch(url, { signal: controller.signal })
+      if (!res.ok) throw new Error('server')
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `variables_paie_${toISODate(period.start)}_${toISODate(period.end)}.csv`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        setExportError("L'export prend trop de temps. Essayez avec une période plus courte.")
+      } else {
+        setExportError("Erreur lors de l'export. Veuillez réessayer.")
+      }
+    } finally {
+      clearTimeout(timer)
+      setExportLoading(false)
+    }
+  }, [period.start, period.end, payFormat])
 
   const toggleJustified = useCallback(async (record: LatenessRecord) => {
     const res = await fetch(`/api/lateness/${record.id}`, {
@@ -536,15 +565,23 @@ export default function RapportPage() {
                   {f === 'generique' ? 'Générique' : f === 'payfit' ? 'PayFit' : f === 'adp' ? 'ADP Decidium' : 'Silae'}
                 </button>
               ))}
-              <a
-                href={`/api/exports?type=paie&from=${toISODate(period.start)}&to=${toISODate(period.end)}&format=${payFormat}`}
-                download
-                className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-colors duration-150"
-                style={{ backgroundColor: 'var(--accent)', color: 'white' }}
-              >
-                <Download className="h-3.5 w-3.5" />
-                Exporter CSV
-              </a>
+              <div className="ml-auto flex flex-col items-end gap-1">
+                <button
+                  onClick={handleExportCsv}
+                  disabled={exportLoading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: 'var(--accent)', color: 'white' }}
+                >
+                  {exportLoading
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Download className="h-3.5 w-3.5" />
+                  }
+                  {exportLoading ? 'Export…' : 'Exporter CSV'}
+                </button>
+                {exportError && (
+                  <p className="text-[11px]" style={{ color: 'var(--danger)' }}>{exportError}</p>
+                )}
+              </div>
             </div>
 
             {/* Paie summary cards */}

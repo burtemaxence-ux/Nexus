@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Vercel Pro : 30s max. Vercel Hobby : 10s (exports larges peuvent dépasser).
+export const maxDuration = 30
+
 // ── CSV helpers ───────────────────────────────────────────────────────────────
 
 function escape(v: string | number | boolean | null | undefined): string {
