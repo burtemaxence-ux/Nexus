@@ -17,6 +17,27 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
+import type { Profile, Shift } from '../types/index'
+
+type EmployeeSeed = {
+  key: string; email: string; full: string; first: string; last: string
+  phone: string; position: string
+  contract: Profile['contract_type']
+  hours: number; rate: number
+}
+
+type ShiftInsert = Omit<Shift, 'id' | 'notes' | 'created_at'> & { establishment_id: string }
+
+type PresenceInsert = {
+  employee_id: string; establishment_id: string; date: string
+  clock_in: string; clock_out: string; break_minutes_used: number
+}
+
+type LatenessInsert = {
+  employee_id: string; establishment_id: string; date: string
+  scheduled_time: string; actual_time: string; late_minutes: number
+  justified: boolean; notes?: string | null
+}
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -187,13 +208,13 @@ async function main() {
   ]).select()
   if (postesErr) throw new Error(`Postes: ${postesErr.message}`)
   const posteMap: Record<string, string> = {}
-  postesRows?.forEach(p => { posteMap[p.name] = p.id })
+  postesRows?.forEach((p: { id: string; name: string }) => { posteMap[p.name] = p.id })
   console.log(`   ✅  ${postesRows?.length} postes créés`)
 
   // ── 4. Créer les employés ──────────────────────────────────────────────────
   console.log('4/10  Création des 6 employés...')
 
-  const EMPLOYEES = [
+  const EMPLOYEES: EmployeeSeed[] = [
     { key: 'MARIE',   email: 'marie.dupont@nexus-demo.fr',    full: 'Marie Dupont',
       first: 'Marie',    last: 'Dupont',   phone: '06 23 45 67 89',
       position: 'Serveur/Serveuse', contract: 'CDI 35h', hours: 35, rate: 12.50 },
@@ -238,7 +259,7 @@ async function main() {
       last_name:     emp.last,
       phone:         emp.phone,
       position:      emp.position,
-      contract_type: emp.contract as any,
+      contract_type: emp.contract,
       weekly_hours:  emp.hours,
       establishment_id: estId,
     }).eq('id', authData.user.id)
@@ -275,7 +296,7 @@ async function main() {
     { monday: MONDAY_P1, status: 'draft'     },
   ]
 
-  const allShifts: any[] = []
+  const allShifts: ShiftInsert[] = []
 
   for (const { monday, status } of weeks) {
     for (const [empKey, patterns] of Object.entries(PATTERNS)) {
@@ -332,17 +353,18 @@ async function main() {
     .order('date', { ascending: true })
   if (psErr) throw new Error(`PastShifts: ${psErr.message}`)
 
-  const presences: any[] = []
+  const presences: PresenceInsert[] = []
   const seen = new Set<string>()
 
   // Retards déterministes (Emma × 6, Lucas × 3)
-  const latenessRecords: any[] = []
+  const latenessRecords: LatenessInsert[] = []
   const emmaLateShifts  = new Set<string>()
   const lucasLateShifts = new Set<string>()
 
   // On choisit à l'avance quels shifts seront en retard
-  const emmaShifts  = pastShifts?.filter(s => s.employee_id === empIds.EMMA)  ?? []
-  const lucasShifts = pastShifts?.filter(s => s.employee_id === empIds.LUCAS) ?? []
+  type PastShiftRow = { id: string; employee_id: string; date: string; start_time: string; end_time: string; break_minutes: number }
+  const emmaShifts  = (pastShifts as PastShiftRow[])?.filter(s => s.employee_id === empIds.EMMA)  ?? []
+  const lucasShifts = (pastShifts as PastShiftRow[])?.filter(s => s.employee_id === empIds.LUCAS) ?? []
 
   for (let i = 0; i < Math.min(6, emmaShifts.length);  i++) emmaLateShifts.add(emmaShifts[i * 2 < emmaShifts.length ? i * 2 : i].id)
   for (let i = 0; i < Math.min(3, lucasShifts.length); i++) lucasLateShifts.add(lucasShifts[i * 3 < lucasShifts.length ? i * 3 : i].id)
