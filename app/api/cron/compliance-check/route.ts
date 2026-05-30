@@ -4,6 +4,7 @@ import { notifyManagers } from '@/lib/notifications/notify'
 import { getISOWeekString } from '@/lib/utils/dates'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
+import { captureError } from '@/lib/logger'
 
 const anthropic = new Anthropic()
 
@@ -466,7 +467,7 @@ export async function GET(request: NextRequest) {
           }
         }
       } catch (estErr) {
-        console.error(`[compliance-check] establishment ${est.id} error:`, estErr)
+        captureError(estErr, { cron: 'compliance-check', establishment_id: est.id })
         results.errors++
       }
     }
@@ -474,7 +475,7 @@ export async function GET(request: NextRequest) {
     console.log(`[compliance-check] done:`, results)
     return NextResponse.json(results)
   } catch (err) {
-    console.error('[compliance-check] fatal:', err)
+    captureError(err, { cron: 'compliance-check', fatal: true })
     return NextResponse.json({ error: 'Erreur serveur', ...results }, { status: 500 })
   }
 }

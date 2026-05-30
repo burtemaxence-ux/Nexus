@@ -5,6 +5,7 @@ import { getISOWeekNumber, getLastWeekBounds, getThisWeekBounds, addDays } from 
 import { sendWeeklyBriefEmail } from '@/lib/email/weekly-brief-email'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
+import { captureError } from '@/lib/logger'
 
 // Vercel Cron : tous les lundis à 07h00 UTC  →  "0 7 * * 1"
 
@@ -231,7 +232,7 @@ export async function GET(request: NextRequest) {
       results.briefs_sent++
       console.log(`[weekly-brief] ${est.name} → brief envoyé à ${managers.length} manager(s)`)
     } catch (err) {
-      console.error(`[weekly-brief] establishment ${est.id} error:`, err)
+      captureError(err, { cron: 'weekly-brief-manager', establishment_id: est.id })
       results.errors++
     }
   }
@@ -239,7 +240,7 @@ export async function GET(request: NextRequest) {
   console.log('[weekly-brief-manager] done:', results)
   return NextResponse.json(results)
   } catch (err) {
-    console.error('[weekly-brief-manager] unexpected error:', err)
+    captureError(err, { cron: 'weekly-brief-manager', fatal: true })
     return NextResponse.json({ error: 'Erreur serveur', ...results }, { status: 500 })
   }
 }

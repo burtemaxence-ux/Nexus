@@ -3,6 +3,7 @@ import { createNotification } from '@/lib/notifications/create'
 import { sendPushToUser } from '@/lib/push'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
+import { captureError } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCron(request)) {
@@ -171,7 +172,7 @@ export async function GET(request: NextRequest) {
       checked_at: nowIso,
     })
   } catch (err) {
-    console.error('[check-replacements] unexpected error:', err)
+    captureError(err, { cron: 'check-replacements' })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

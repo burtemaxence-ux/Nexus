@@ -5,6 +5,7 @@ import { sendPushToUser } from '@/lib/push'
 import { getThisWeekBounds, addDays } from '@/lib/utils/dates'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
+import { captureError } from '@/lib/logger'
 
 // Vercel Cron : tous les vendredis à 18h00 UTC  →  "0 18 * * 5"
 
@@ -228,7 +229,7 @@ export async function GET(request: NextRequest) {
 
       console.log(`[weekly-summary] ${est.name} → ${results.summaries_sent} résumés envoyés`)
     } catch (err) {
-      console.error(`[weekly-summary] establishment ${est.id} error:`, err)
+      captureError(err, { cron: 'weekly-summary-employee', establishment_id: est.id })
       results.errors++
     }
   }
@@ -236,7 +237,7 @@ export async function GET(request: NextRequest) {
   console.log('[weekly-summary-employee] done:', results)
   return NextResponse.json(results)
   } catch (err) {
-    console.error('[weekly-summary-employee] unexpected error:', err)
+    captureError(err, { cron: 'weekly-summary-employee', fatal: true })
     return NextResponse.json({ error: 'Erreur serveur', ...results }, { status: 500 })
   }
 }
