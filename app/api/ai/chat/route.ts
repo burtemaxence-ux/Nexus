@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
 
-  const rl = checkRateLimit({ key: `ai-chat:${user.id}`, limit: 30, windowMs: 60 * 60 * 1000 })
+  const rl = await checkRateLimit({ key: `ai-chat:${user.id}`, limit: 30, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const { messages, establishmentName } = await req.json() as {

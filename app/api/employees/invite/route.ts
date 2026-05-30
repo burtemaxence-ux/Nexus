@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request)
-  const rl = checkRateLimit({ key: `invite:${ip}`, limit: 10, windowMs: 60 * 60 * 1000 })
+  const rl = await checkRateLimit({ key: `invite:${ip}`, limit: 10, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   try {

@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Accès réservé aux managers' }, { status: 403 })
   }
 
-  const rl = checkRateLimit({ key: `ai-plan:${user.id}`, limit: 10, windowMs: 60 * 60 * 1000 })
+  const rl = await checkRateLimit({ key: `ai-plan:${user.id}`, limit: 10, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const { week_monday, context } = await req.json() as { week_monday: string; context?: string }

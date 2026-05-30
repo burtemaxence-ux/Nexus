@@ -1,9 +1,13 @@
 /**
- * In-memory sliding-window rate limiter.
- * Works well for a single-process deployment (Node.js server).
- * On serverless (Vercel), state resets on cold starts — still provides
- * per-warm-instance protection, which is effective for low-volume abuse.
+ * Rate limiter with Vercel KV backend (Redis) when available.
+ * Falls back to in-memory store when KV_REST_API_URL / KV_URL is absent
+ * (local dev, preview without KV attached).
+ *
+ * KV key schema : rate_limit:{key}
+ * Each key stores a JSON object { count, resetAt } with a TTL of windowMs/1000 seconds.
  */
+
+// ── In-memory fallback ────────────────────────────────────────────────────────
 
 interface Window {
   count: number
@@ -12,7 +16,6 @@ interface Window {
 
 const store = new Map<string, Window>()
 
-// Clean up stale entries every 10 minutes to avoid memory leaks
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
     const now = Date.now()
@@ -22,22 +25,7 @@ if (typeof setInterval !== 'undefined') {
   }, 10 * 60 * 1000)
 }
 
-interface RateLimitOptions {
-  /** Unique key: combine route + user identifier (userId or IP) */
-  key: string
-  /** Max requests allowed in the window */
-  limit: number
-  /** Window duration in milliseconds */
-  windowMs: number
-}
-
-interface RateLimitResult {
-  allowed: boolean
-  remaining: number
-  resetAt: number
-}
-
-export function checkRateLimit({ key, limit, windowMs }: RateLimitOptions): RateLimitResult {
+function checkInMemory(key: string, limit: number, windowMs: number): RateLimitResult {
   const now = Date.now()
   const existing = store.get(key)
 
@@ -55,6 +43,62 @@ export function checkRateLimit({ key, limit, windowMs }: RateLimitOptions): Rate
   return { allowed: true, remaining: limit - existing.count, resetAt: existing.resetAt }
 }
 
+// ── KV backend ────────────────────────────────────────────────────────────────
+
+function kvAvailable(): boolean {
+  return !!(process.env.KV_REST_API_URL || process.env.KV_URL)
+}
+
+async function checkKv(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
+  const { kv } = await import('@vercel/kv')
+  const redisKey = `rate_limit:${key}`
+  const ttlSeconds = Math.ceil(windowMs / 1000)
+
+  // Atomically increment; set TTL on first write
+  const count = await kv.incr(redisKey)
+  if (count === 1) {
+    await kv.expire(redisKey, ttlSeconds)
+  }
+
+  // Approximate resetAt from TTL
+  const ttlRemaining = await kv.ttl(redisKey)
+  const resetAt = Date.now() + (ttlRemaining > 0 ? ttlRemaining * 1000 : windowMs)
+
+  if (count > limit) {
+    return { allowed: false, remaining: 0, resetAt }
+  }
+
+  return { allowed: true, remaining: limit - count, resetAt }
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+export interface RateLimitOptions {
+  /** Unique key: combine route + user identifier (userId or IP) */
+  key: string
+  /** Max requests allowed in the window */
+  limit: number
+  /** Window duration in milliseconds */
+  windowMs: number
+}
+
+export interface RateLimitResult {
+  allowed: boolean
+  remaining: number
+  resetAt: number
+}
+
+export async function checkRateLimit({ key, limit, windowMs }: RateLimitOptions): Promise<RateLimitResult> {
+  if (kvAvailable()) {
+    try {
+      return await checkKv(key, limit, windowMs)
+    } catch (err) {
+      console.warn('[rate-limit] KV error, falling back to in-memory', err)
+    }
+  }
+  return checkInMemory(key, limit, windowMs)
+}
+
 export function rateLimitResponse(resetAt: number) {
   const retryAfter = Math.ceil((resetAt - Date.now()) / 1000)
   return Response.json(
@@ -69,7 +113,6 @@ export function rateLimitResponse(resetAt: number) {
   )
 }
 
-// Extracts a client IP from Next.js request headers (best-effort)
 export function getClientIp(request: Request): string {
   const h = request.headers
   return (

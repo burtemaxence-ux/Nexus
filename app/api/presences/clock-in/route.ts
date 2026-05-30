@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
   // 5 clock-ins per hour max per user — covers legit retries and blocks abuse
-  const rl = checkRateLimit({ key: `clock-in:${user.id}`, limit: 5, windowMs: 60 * 60 * 1000 })
+  const rl = await checkRateLimit({ key: `clock-in:${user.id}`, limit: 5, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const body = await request.json().catch(() => ({}))

@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request)
-  const rl = checkRateLimit({ key: `resend-link:${ip}`, limit: 5, windowMs: 60 * 60 * 1000 })
+  const rl = await checkRateLimit({ key: `resend-link:${ip}`, limit: 5, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const supabase = await createServerClient()
