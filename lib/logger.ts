@@ -23,7 +23,7 @@ export function log({ level, message, context }: LogEntry) {
   }
 }
 
-export function captureError(err: unknown, context?: Record<string, unknown>) {
+export async function captureError(err: unknown, context?: Record<string, unknown>) {
   const message = err instanceof Error ? err.message : String(err)
   const stack = err instanceof Error ? err.stack : undefined
   log({
@@ -31,4 +31,10 @@ export function captureError(err: unknown, context?: Record<string, unknown>) {
     message,
     context: { ...context, ...(stack && { stack }) },
   })
+  if (typeof window === 'undefined') {
+    try {
+      const Sentry = await import('@sentry/nextjs')
+      Sentry.captureException(err, { extra: context })
+    } catch {}
+  }
 }

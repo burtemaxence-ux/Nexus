@@ -89,10 +89,30 @@ supabase db push
 
 ---
 
-## 5. Vérifications post-déploiement
+## 5. Sentry (monitoring erreurs production)
+
+Sentry permet de capturer les erreurs serveur en production et de les remonter en temps réel.
+
+### Créer un projet Sentry gratuit
+
+1. Aller sur [sentry.io](https://sentry.io) → créer un compte (plan gratuit suffit)
+2. **Create Project** → choisir **Next.js** comme plateforme
+3. Copier le **DSN** affiché (format : `https://xxx@ooo.ingest.sentry.io/yyy`)
+4. Ajouter dans Vercel Dashboard > Settings > Environment Variables :
+
+| Variable                  | Valeur                          |
+|---------------------------|---------------------------------|
+| `NEXT_PUBLIC_SENTRY_DSN`  | Le DSN copié depuis sentry.io   |
+
+Sans cette variable, Sentry est silencieusement désactivé — l'app fonctionne normalement.
+
+---
+
+## 6. Vérifications post-déploiement
 
 - [ ] Connexion Supabase : créer un compte et accéder au dashboard
 - [ ] Emails : inviter un employé et vérifier la réception
 - [ ] Push notifications : activer depuis un navigateur mobile
 - [ ] Crons : déclencher manuellement depuis Vercel Dashboard > Crons
 - [ ] API v1 : créer un token dans Paramètres > Intégrations et tester un endpoint
+- [ ] Sentry : vérifier qu'une erreur test remonte sur sentry.io
