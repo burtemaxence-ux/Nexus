@@ -3,16 +3,11 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/notifications/create'
 import { sendPushToUser } from '@/lib/push'
 import { NextRequest, NextResponse } from 'next/server'
+import { isAuthorizedCron } from '@/lib/cron-auth'
 
 // Vercel Cron : tous les vendredis à 18h00 UTC  →  "0 18 * * 5"
 
 const anthropic = new Anthropic()
-
-function isAuthorized(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return true
-  return request.headers.get('authorization') === `Bearer ${secret}`
-}
 
 // ── Semaine courante (lundi–vendredi) ─────────────────────────────────────────
 
@@ -66,7 +61,7 @@ Réponds uniquement avec les 2-3 phrases, directement.`,
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

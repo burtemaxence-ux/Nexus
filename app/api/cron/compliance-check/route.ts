@@ -3,13 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/notifications/create'
 import { sendPushToUser } from '@/lib/push'
 import { NextRequest, NextResponse } from 'next/server'
-
-function isAuthorized(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return true
-  const auth = request.headers.get('authorization') ?? ''
-  return auth === `Bearer ${secret}`
-}
+import { isAuthorizedCron } from '@/lib/cron-auth'
 
 const anthropic = new Anthropic()
 
@@ -326,7 +320,7 @@ async function analyseRequalificationRisk(
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

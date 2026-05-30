@@ -4,16 +4,11 @@ import { createNotification } from '@/lib/notifications/create'
 import { sendPushToUser } from '@/lib/push'
 import { sendWeeklyBriefEmail } from '@/lib/email/weekly-brief-email'
 import { NextRequest, NextResponse } from 'next/server'
+import { isAuthorizedCron } from '@/lib/cron-auth'
 
 // Vercel Cron : tous les lundis à 07h00 UTC  →  "0 7 * * 1"
 
 const anthropic = new Anthropic()
-
-function isAuthorized(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return true
-  return request.headers.get('authorization') === `Bearer ${secret}`
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -87,7 +82,7 @@ Réponds uniquement avec les 5 phrases, séparées par un saut de ligne. Pas de 
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
+  if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -1,4 +1,5 @@
 {
+  "_requiredEnvVars": ["CRON_SECRET"],
   "crons": [
     {
       "path": "/api/cron/check-missing-clockout",
