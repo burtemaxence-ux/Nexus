@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { checkRateLimit, rateLimitResponse, getClientIp } from '@/lib/rate-limit'
 
 export async function GET(request: Request) {
+  const ip = getClientIp(request)
+  const { allowed, resetAt } = await checkRateLimit({ key: `auth:${ip}`, limit: 10, windowMs: 60_000 })
+  if (!allowed) return rateLimitResponse(resetAt)
+
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'

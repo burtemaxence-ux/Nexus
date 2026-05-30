@@ -140,7 +140,32 @@ L'endpoint `GET /api/health` permet de monitorer l'app sans authentification.
 
 ---
 
-## 7. Vérifications post-déploiement
+## 7. Sécurité — Protection brute force sur l'authentification
+
+### Architecture auth
+
+L'authentification utilise `supabase.auth.signInWithPassword()` appelé **côté client** (browser → Supabase Auth API directement). Il n'y a pas de route handler Next.js pour la connexion.
+
+### Protection native Supabase
+
+Supabase fournit une protection brute force intégrée sur son endpoint `/auth/v1/token` :
+- Limite le nombre de tentatives par IP et par email
+- Active par défaut, configurable dans **Supabase Dashboard > Authentication > Rate Limits**
+
+### Protection côté Next.js
+
+Le seul handler serveur lié à l'auth (`/auth/callback`) est rate-limité à **10 requêtes/minute/IP** via `lib/rate-limit.ts` (KV Redis en production, in-memory en dev).
+
+### Renforcement recommandé
+
+Pour un niveau de protection maximal, configurer dans **Supabase Dashboard > Authentication > Rate Limits** :
+- `Max sign-in attempts` : 5 par heure
+- `Max sign-up attempts` : 3 par heure
+- Activer la protection CAPTCHA si des abus sont détectés (Supabase × hCaptcha)
+
+---
+
+## 8. Vérifications post-déploiement
 
 - [ ] Connexion Supabase : créer un compte et accéder au dashboard
 - [ ] Emails : inviter un employé et vérifier la réception
@@ -149,3 +174,4 @@ L'endpoint `GET /api/health` permet de monitorer l'app sans authentification.
 - [ ] API v1 : créer un token dans Paramètres > Intégrations et tester un endpoint
 - [ ] Sentry : vérifier qu'une erreur test remonte sur sentry.io
 - [ ] Healthcheck : `curl https://votre-domaine.fr/api/health` retourne HTTP 200
+- [ ] Auth rate limits : configurer dans Supabase Dashboard > Authentication > Rate Limits
