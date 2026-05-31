@@ -97,14 +97,30 @@ Sentry permet de capturer les erreurs serveur en production et de les remonter e
 
 1. Aller sur [sentry.io](https://sentry.io) → créer un compte (plan gratuit suffit)
 2. **Create Project** → choisir **Next.js** comme plateforme
-3. Copier le **DSN** affiché (format : `https://xxx@ooo.ingest.sentry.io/yyy`)
+3. Récupérer les informations suivantes :
+
+| Information           | Où la trouver                                                    |
+|-----------------------|------------------------------------------------------------------|
+| **DSN**               | Project Settings → Client Keys (DSN)                            |
+| **SENTRY_ORG**        | URL de votre orga : `sentry.io/organizations/<org-slug>/`       |
+| **SENTRY_PROJECT**    | Project Settings → General → Project Slug                       |
+| **SENTRY_AUTH_TOKEN** | Settings → Auth Tokens → Create New Token (scopes : `project:releases`, `org:read`) |
+
 4. Ajouter dans Vercel Dashboard > Settings > Environment Variables :
 
-| Variable                  | Valeur                          |
-|---------------------------|---------------------------------|
-| `NEXT_PUBLIC_SENTRY_DSN`  | Le DSN copié depuis sentry.io   |
+| Variable                  | Valeur                               |
+|---------------------------|--------------------------------------|
+| `NEXT_PUBLIC_SENTRY_DSN`  | Le DSN copié depuis sentry.io        |
+| `SENTRY_ORG`              | Slug de votre organisation Sentry    |
+| `SENTRY_PROJECT`          | Slug de votre projet Sentry          |
+| `SENTRY_AUTH_TOKEN`       | Token pour l'upload des source maps  |
 
-Sans cette variable, Sentry est silencieusement désactivé — l'app fonctionne normalement.
+Sans `NEXT_PUBLIC_SENTRY_DSN`, Sentry est silencieusement désactivé — l'app fonctionne normalement.
+Sans `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`, les source maps ne sont pas uploadées et les stack traces en production restent minifiées (illisibles).
+
+### Vérifier le fonctionnement
+
+Après déploiement, vérifier qu'une erreur test remonte sur sentry.io avec une stack trace lisible (non minifiée).
 
 ---
 
