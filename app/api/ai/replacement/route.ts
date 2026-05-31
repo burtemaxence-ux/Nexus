@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { requireManager } from '@/lib/api-auth'
 import { calcHours, timeToMinutes } from '@/lib/planning-utils'
 import { getMondayOfWeek, addDays, toISODate } from '@/lib/utils/dates'
 import { NextRequest, NextResponse } from 'next/server'
@@ -45,17 +46,13 @@ type ScoredCandidate = {
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, establishment_id, active_establishment_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || !['manager', 'supervisor'].includes(profile.role)) {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+  let profile: { establishment_id: string | null; active_establishment_id: string | null }
+  try {
+    const result = await requireManager(supabase)
+    profile = result.profile
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
   }
 
   const establishmentId = profile.active_establishment_id ?? profile.establishment_id

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
+import { requireManager } from '@/lib/api-auth'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
 const client = new Anthropic()
@@ -25,15 +26,16 @@ export async function POST(req: Request) {
   }
 
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return Response.json({ error: 'Non autorisé' }, { status: 401 })
-
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'manager' && profile?.role !== 'supervisor') {
-    return Response.json({ error: 'Accès réservé aux managers' }, { status: 403 })
+  let authUser: { id: string }
+  try {
+    const { user } = await requireManager(supabase)
+    authUser = user
+  } catch (e) {
+    if (e instanceof Response) return e
+    throw e
   }
 
-  const rl = await checkRateLimit({ key: `ai-plan:${user.id}`, limit: 10, windowMs: 60 * 60 * 1000 })
+  const rl = await checkRateLimit({ key: `ai-plan:${authUser.id}`, limit: 10, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const { week_monday, context } = await req.json() as { week_monday: string; context?: string }

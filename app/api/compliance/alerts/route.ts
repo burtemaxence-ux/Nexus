@@ -1,25 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireManager } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET  — liste des alertes conformité actives de l'établissement
 // PATCH — ignore une alerte pendant 7 jours  { id, action: 'ignore' }
 
 export async function GET(_req: NextRequest) {
+  try {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  const { profile } = await requireManager(supabase)
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, establishment_id, active_establishment_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!['manager', 'supervisor'].includes(profile?.role ?? '')) {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-  }
-
-  const establishmentId = profile!.active_establishment_id ?? profile!.establishment_id
+  const establishmentId = profile.active_establishment_id ?? profile.establishment_id
   if (!establishmentId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 400 })
 
   const now = new Date().toISOString()
@@ -46,20 +37,17 @@ export async function GET(_req: NextRequest) {
   )
 
   return NextResponse.json({ alerts: sorted, count: sorted.length })
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
 }
 
 export async function PATCH(req: NextRequest) {
+  try {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, establishment_id, active_establishment_id')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'manager') {
+  const { user, profile } = await requireManager(supabase)
+  if (profile.role !== 'manager') {
     return NextResponse.json({ error: 'Managers uniquement' }, { status: 403 })
   }
 
@@ -92,4 +80,8 @@ export async function PATCH(req: NextRequest) {
   }
 
   return NextResponse.json({ error: 'action ou status requis' }, { status: 400 })
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
 }

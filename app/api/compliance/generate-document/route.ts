@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { requireManager } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
 const anthropic = new Anthropic()
@@ -12,17 +13,10 @@ export type DocumentType =
   | 'lettre_rupture_essai'
 
 export async function POST(req: NextRequest) {
+  try {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, establishment_id, active_establishment_id')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'manager') {
+  const { profile } = await requireManager(supabase)
+  if (profile.role !== 'manager') {
     return NextResponse.json({ error: 'Managers uniquement' }, { status: 403 })
   }
 
@@ -190,6 +184,7 @@ IMPORTANT : Ne pas motiver la rupture au-delà du strict nécessaire. Mets [ENTR
 
     return NextResponse.json({ text, document_type })
   } catch (err) {
+    if (err instanceof Response) return err as NextResponse
     console.error('[generate-document]', err)
     return NextResponse.json({ error: 'Erreur génération Claude' }, { status: 500 })
   }

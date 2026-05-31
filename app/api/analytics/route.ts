@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { requireManager } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -128,21 +129,11 @@ const PERIODS = {
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
+  try {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  const { profile } = await requireManager(supabase)
 
-  const { data: callerProfile } = await supabase
-    .from('profiles')
-    .select('role, establishment_id, active_establishment_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!['manager', 'supervisor'].includes(callerProfile?.role ?? '')) {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-  }
-
-  const establishmentId = callerProfile!.active_establishment_id ?? callerProfile!.establishment_id
+  const establishmentId = profile.active_establishment_id ?? profile.establishment_id
   if (!establishmentId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 400 })
 
   const periodKey = (new URL(req.url).searchParams.get('period') ?? '3m') as keyof typeof PERIODS
@@ -458,4 +449,8 @@ export async function GET(req: NextRequest) {
     turnover,
     absenceByType,
   } satisfies AnalyticsPayload)
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
 }

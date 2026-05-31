@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/api-auth'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 import { InviteSchema, validationError } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications/create'
@@ -19,21 +20,12 @@ export async function POST(request: NextRequest) {
     const full_name = `${first_name.trim()} ${last_name.trim()}`
 
     const supabase = await createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    const { user, profile: managerProfile } = await requireAuth(supabase)
 
     // Only managers can invite — supervisors have read-only access
-    const { data: callerProfile } = await supabase
-      .from('profiles')
-      .select('role, establishment_id')
-      .eq('id', user.id)
-      .single()
-
-    if (callerProfile?.role !== 'manager') {
+    if (managerProfile.role !== 'manager') {
       return NextResponse.json({ error: 'Seul un manager peut inviter des employés' }, { status: 403 })
     }
-
-    const managerProfile = callerProfile
 
     const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:3000'
     const proto = host.includes('localhost') ? 'http' : 'https'
@@ -122,6 +114,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, inviteLink, full_name })
   } catch (err) {
+    if (err instanceof Response) return err as NextResponse
     console.error('[invite] exception:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }

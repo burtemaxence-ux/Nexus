@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireManager } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
 // Vercel Pro : 30s max. Vercel Hobby : 10s (exports larges peuvent dépasser).
@@ -62,14 +63,9 @@ function contractRefHours(weeklyH: number, from: Date, to: Date): number {
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
+  try {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (!['manager', 'supervisor'].includes(profile?.role ?? '')) {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-  }
+  await requireManager(supabase)
 
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type') ?? 'hours_per_employee'
@@ -286,4 +282,8 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({ error: 'Type de rapport inconnu' }, { status: 400 })
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
 }

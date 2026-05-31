@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { requireManager } from '@/lib/api-auth'
 import { checkCompliance, RULES, type Violation, type RuleId, type Severity } from '@/lib/compliance/rules'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -27,21 +28,11 @@ export type CompliancePayload = {
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
+  try {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  const { profile } = await requireManager(supabase)
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, establishment_id, active_establishment_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!['manager', 'supervisor'].includes(profile?.role ?? '')) {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-  }
-
-  const establishmentId = profile!.active_establishment_id ?? profile!.establishment_id
+  const establishmentId = profile.active_establishment_id ?? profile.establishment_id
   if (!establishmentId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 400 })
 
   const { searchParams } = new URL(req.url)
@@ -138,6 +129,10 @@ export async function GET(req: NextRequest) {
     employeesAffected,
     complianceScore,
   } satisfies CompliancePayload)
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
 }
 
 // ── Helper ────────────────────────────────────────────────────────────────────

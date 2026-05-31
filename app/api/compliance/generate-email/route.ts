@@ -1,26 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { requireManager } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
 const anthropic = new Anthropic()
 
 export async function POST(req: NextRequest) {
+  try {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  const { profile } = await requireManager(supabase)
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, establishment_id, active_establishment_id, full_name')
-    .eq('id', user.id)
-    .single()
-
-  if (!['manager', 'supervisor'].includes(profile?.role ?? '')) {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-  }
-
-  const establishmentId = profile!.active_establishment_id ?? profile!.establishment_id
+  const establishmentId = profile.active_establishment_id ?? profile.establishment_id
 
   const { alert_id, employee_id }: { alert_id: string; employee_id: string } = await req.json()
 
@@ -39,7 +30,7 @@ export async function POST(req: NextRequest) {
   const fullName = employeeData?.full_name ?? 'Employé'
   const contract = contracts?.[0]
   const establishmentName = estSetting?.value ?? 'L\'établissement'
-  const managerName = profile?.full_name ?? 'Le gérant'
+  const managerName = 'Le gérant'
 
   const alertTypeLabel: Record<string, string> = {
     hours_exceeded: 'dépassement régulier des heures contractuelles',
@@ -114,6 +105,7 @@ Retourne UNIQUEMENT un JSON valide avec ce format exact :
       body: parsed.body ?? rawText,
     })
   } catch (err) {
+    if (err instanceof Response) return err as NextResponse
     console.error('[generate-email]', err)
     return NextResponse.json({ error: 'Erreur génération Claude' }, { status: 500 })
   }
