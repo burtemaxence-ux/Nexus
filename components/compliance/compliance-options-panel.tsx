@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import {
-  X, FileText, Calendar, Mail, Users, AlertTriangle,
-  Loader2, Download, Save, Copy, ExternalLink, Check, ChevronRight, Star,
-} from 'lucide-react'
+import { X, ExternalLink, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { ComplianceAlert } from '@/types'
 import type { DocumentType } from '@/app/api/compliance/generate-document/route'
+import { ComplianceMenuView } from './compliance-menu'
+import { ComplianceAvenantView, ComplianceTrialChoiceView } from './compliance-avenant'
+import { ComplianceEmailView } from './compliance-email'
+import { ComplianceSosView, ComplianceSosResultsView, ComplianceSosNotifiedView } from './compliance-sos'
+import type { ScoredCandidate, WeekShift } from './compliance-sos'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -17,14 +18,7 @@ type ComplianceAlertWithProfile = ComplianceAlert & {
   profiles?: { id: string; full_name: string | null; position: string | null } | null
 }
 
-interface WeekShift {
-  id: string
-  date: string
-  start_time: string
-  end_time: string
-}
-
-// ── Constants ─────────────────────────────────────────────────────────────────
+type View = 'menu' | 'avenant' | 'planning' | 'email' | 'sos' | 'sos_results' | 'sos_notified' | 'trial_choice' | 'trial_doc'
 
 const LEVEL_STYLES = {
   CRITICAL: { border: '#DC2626', bg: '#FEF2F2', badge: '#FEE2E2', badgeText: '#DC2626', label: 'CRITIQUE' },
@@ -39,59 +33,7 @@ const LEGAL_LINKS: Record<string, { url: string; label: string }> = {
   requalification_risk: { url: 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006900991', label: 'Art. L1245-1 — Requalification en CDI' },
 }
 
-const DOCTYPE_LABEL: Record<DocumentType, string> = {
-  avenant_heures:          'Avenant — modification durée de travail',
-  avenant_cdd:             'Avenant — renouvellement CDD',
-  lettre_confirmation_essai: 'Lettre de confirmation de fin d\'essai',
-  lettre_rupture_essai:    'Lettre de rupture de période d\'essai',
-}
-
-// ── Small utilities ───────────────────────────────────────────────────────────
-
-function OptionCard({ icon: Icon, title, description, onClick, disabled, accent }: {
-  icon: React.ElementType; title: string; description: string; onClick: () => void; disabled?: boolean; accent?: string
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        'w-full text-left p-4 rounded-xl border border-[var(--border)] hover:bg-[var(--accent-light)] transition-colors flex items-start gap-3 group',
-        disabled && 'opacity-50 cursor-not-allowed'
-      )}
-    >
-      <div className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center mt-0.5"
-        style={{ backgroundColor: accent ? `${accent}20` : 'var(--accent-light)' }}>
-        <Icon className="h-4 w-4" style={{ color: accent ?? 'var(--accent)' }} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-medium text-[var(--text-primary)]">{title}</p>
-        <p className="text-[12px] text-[var(--text-tertiary)] mt-0.5 leading-snug">{description}</p>
-      </div>
-      <ChevronRight className="h-4 w-4 text-[var(--text-tertiary)] flex-shrink-0 mt-0.5 group-hover:translate-x-0.5 transition-transform" />
-    </button>
-  )
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false)
-  async function handleCopy() {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-  return (
-    <button
-      onClick={handleCopy}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] transition-colors"
-    >
-      {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
-      {copied ? 'Copié !' : 'Copier'}
-    </button>
-  )
-}
-
-// ── Main panel ────────────────────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 interface Props {
   alert: ComplianceAlertWithProfile
@@ -100,27 +42,7 @@ interface Props {
   onAlertUpdated: (id: string) => void
 }
 
-type ScoredCandidate = {
-  employee_id: string
-  full_name: string
-  position: string | null
-  contract_type: string | null
-  score_final: number
-  weekly_hours_planned: number
-  compliance_warning: boolean
-  explanation: string
-}
-
-type View =
-  | 'menu'
-  | 'avenant'
-  | 'planning'
-  | 'email'
-  | 'sos'
-  | 'sos_results'
-  | 'sos_notified'
-  | 'trial_choice'
-  | 'trial_doc'
+// ── Panel ─────────────────────────────────────────────────────────────────────
 
 export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }: Props) {
   const router = useRouter()
@@ -166,7 +88,6 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
       .then(({ data }) => { if (data?.value) setEstablishmentName(data.value as string) })
   }, [])
 
-  // Lazy-load react-pdf on client only
   useEffect(() => {
     Promise.all([
       import('@react-pdf/renderer'),
@@ -180,8 +101,6 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
   const employeeId = alert.employee_id
   const styles = LEVEL_STYLES[alert.level] ?? LEVEL_STYLES.INFO
   const legal = LEGAL_LINKS[alert.type]
-
-  // ── Generate document ──────────────────────────────────────────────────────
 
   async function generateDocument(dtype: DocumentType, motif?: string) {
     setGenerating(true)
@@ -203,8 +122,6 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
     }
   }
 
-  // ── Generate email ─────────────────────────────────────────────────────────
-
   async function generateEmail() {
     setGenerating(true)
     try {
@@ -223,8 +140,6 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
       setGenerating(false)
     }
   }
-
-  // ── Load week shifts ───────────────────────────────────────────────────────
 
   const loadWeekShifts = useCallback(async () => {
     setWeekShiftsLoading(true)
@@ -258,8 +173,6 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
   useEffect(() => {
     if (view === 'sos') loadWeekShifts()
   }, [view, loadWeekShifts])
-
-  // ── SOS replacement ────────────────────────────────────────────────────────
 
   async function triggerSOS(shiftId: string) {
     setSosLoading(true)
@@ -303,8 +216,6 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
     }
   }
 
-  // ── Planning redirect ──────────────────────────────────────────────────────
-
   async function goToPlanning() {
     const opts = alert.options as Record<string, unknown>
     const targetHours = opts?.contract_hours ?? ''
@@ -318,13 +229,17 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
     router.push(`/manager/planning?highlight_employee=${employeeId}&target_hours=${targetHours}`)
   }
 
-  // ── Save document to storage ───────────────────────────────────────────────
-
   async function saveDocument() {
     if (!PDFComponents || !documentText) return
     setSavingDoc(true)
     try {
       const { pdf } = await import('@react-pdf/renderer')
+      const DOCTYPE_LABEL: Record<DocumentType, string> = {
+        avenant_heures:            'Avenant — modification durée de travail',
+        avenant_cdd:               'Avenant — renouvellement CDD',
+        lettre_confirmation_essai: 'Lettre de confirmation de fin d\'essai',
+        lettre_rupture_essai:      'Lettre de rupture de période d\'essai',
+      }
       const blob = await pdf(
         PDFComponents.AvenantDocument({
           documentText,
@@ -347,8 +262,6 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
     }
   }
 
-  // ── Share email ────────────────────────────────────────────────────────────
-
   function openMailto() {
     const subject = encodeURIComponent(emailSubject)
     const body = encodeURIComponent(emailBody)
@@ -363,22 +276,23 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
     }
   }
 
-  // ── Panel layout ───────────────────────────────────────────────────────────
-
   const panelClass = isMobile
     ? 'fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-[var(--bg-card)] flex flex-col max-h-[92vh]'
     : 'fixed top-0 right-0 bottom-0 z-50 w-[480px] bg-[var(--bg-card)] flex flex-col shadow-2xl border-l border-[var(--border)]'
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  function handleBack() {
+    if (view === 'menu') onClose()
+    else if (view === 'sos_results') setView('sos')
+    else if (view === 'sos_notified') onClose()
+    else setView('menu')
+  }
 
   return (
     <>
-      {/* Backdrop */}
       <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
 
       <div className={panelClass} style={{ borderTop: isMobile ? '0.5px solid var(--border)' : undefined }}>
 
-        {/* Drag handle — mobile only */}
         {isMobile && (
           <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
             <div className="w-10 h-1 rounded-full bg-[var(--border)]" />
@@ -397,15 +311,7 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
             </div>
             <p className="text-[12px] text-[var(--text-tertiary)]">{alert.title}</p>
           </div>
-          <button
-            onClick={() => {
-              if (view === 'menu') onClose()
-              else if (view === 'sos_results') setView('sos')
-              else if (view === 'sos_notified') onClose()
-              else setView('menu')
-            }}
-            className="flex-shrink-0 p-2 rounded-lg hover:bg-[var(--accent-light)] transition-colors"
-          >
+          <button onClick={handleBack} className="flex-shrink-0 p-2 rounded-lg hover:bg-[var(--accent-light)] transition-colors">
             {view === 'menu'
               ? <X className="h-4 w-4 text-[var(--text-tertiary)]" />
               : <span className="text-[12px] text-[var(--text-secondary)]">← Retour</span>
@@ -413,18 +319,13 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
           </button>
         </div>
 
-        {/* AI message + legal ref — only on menu view */}
+        {/* Legal message — menu only */}
         {view === 'menu' && (
-          <div className="px-5 py-3 border-b border-[var(--border)] flex-shrink-0"
-            style={{ backgroundColor: styles.bg }}>
+          <div className="px-5 py-3 border-b border-[var(--border)] flex-shrink-0" style={{ backgroundColor: styles.bg }}>
             <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{alert.message}</p>
             {legal && (
-              <a
-                href={legal.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 mt-2 text-[11px] text-[var(--accent)] underline"
-              >
+              <a href={legal.url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 mt-2 text-[11px] text-[var(--accent)] underline">
                 <ExternalLink className="h-3 w-3" />
                 Legifrance — {legal.label}
               </a>
@@ -437,460 +338,82 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
-
-          {/* ── MENU ─────────────────────────────────────────────────────── */}
           {view === 'menu' && (
-            <div className="p-5 space-y-3">
-
-              {/* Option A — Avenant (manager uniquement) */}
-              {role === 'manager' && (alert.type === 'hours_exceeded' || alert.type === 'requalification_risk') && (
-                <OptionCard
-                  icon={FileText}
-                  title="Créer un avenant de contrat"
-                  description="Générer un avenant pour régulariser les heures de travail"
-                  accent="#2563EB"
-                  disabled={generating}
-                  onClick={() => generateDocument('avenant_heures')}
-                />
-              )}
-              {role === 'manager' && alert.type === 'cdd_ending' && (
-                <OptionCard
-                  icon={FileText}
-                  title="Créer un avenant de renouvellement"
-                  description="Générer un avenant de renouvellement ou de transformation en CDI"
-                  accent="#2563EB"
-                  disabled={generating}
-                  onClick={() => generateDocument('avenant_cdd')}
-                />
-              )}
-
-              {/* Option B — Réduire les heures */}
-              {(alert.type === 'hours_exceeded' || alert.type === 'requalification_risk') && (
-                <OptionCard
-                  icon={Calendar}
-                  title="Réduire les heures planifiées"
-                  description="Ouvrir le planning de la semaine prochaine avec un objectif d'heures"
-                  accent="#16A34A"
-                  onClick={goToPlanning}
-                />
-              )}
-
-              {/* Option C — Email expert-comptable */}
-              <OptionCard
-                icon={Mail}
-                title="Envoyer un résumé à mon expert-comptable"
-                description="Générer un email professionnel factuel à partager avec votre conseil"
-                accent="#7C3AED"
-                disabled={generating}
-                onClick={generateEmail}
-              />
-
-              {/* Option D — SOS remplacement */}
-              {(alert.type === 'hours_exceeded' || alert.type === 'requalification_risk') && (
-                <OptionCard
-                  icon={Users}
-                  title="Retirer un shift et chercher un remplaçant"
-                  description="Sélectionner un shift cette semaine et déclencher le flow SOS Remplacement"
-                  accent="#D97706"
-                  onClick={() => setView('sos')}
-                />
-              )}
-
-              {/* Option E — Période d'essai */}
-              {role === 'manager' && alert.type === 'trial_ending' && (
-                <OptionCard
-                  icon={AlertTriangle}
-                  title="Générer la lettre de période d'essai"
-                  description="Confirmer l'embauche ou rompre la période d'essai — génération du courrier"
-                  accent="#DC2626"
-                  onClick={() => setView('trial_choice')}
-                />
-              )}
-            </div>
+            <ComplianceMenuView
+              alert={alert}
+              role={role}
+              generating={generating}
+              onGenerateDocument={generateDocument}
+              onGenerateEmail={generateEmail}
+              onGoToPlanning={goToPlanning}
+              onSos={() => setView('sos')}
+              onTrialChoice={() => setView('trial_choice')}
+            />
           )}
-
-          {/* ── AVENANT / LETTRE ─────────────────────────────────────────── */}
           {view === 'avenant' && (
-            <div className="p-5 space-y-4">
-              {generating ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
-                  <p className="text-[13px] text-[var(--text-secondary)]">Génération en cours avec Claude…</p>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <p className="text-[12px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide mb-2">
-                      {DOCTYPE_LABEL[documentType]}
-                    </p>
-                    <textarea
-                      value={documentText}
-                      onChange={e => setDocumentText(e.target.value)}
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] text-[12px] text-[var(--text-primary)] font-mono p-3 leading-relaxed resize-y min-h-[280px] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-30"
-                      spellCheck={false}
-                    />
-                    <p className="text-[11px] text-[var(--text-tertiary)] mt-1 italic">
-                      Modifiez les champs entre [crochets] avant de télécharger.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    {/* PDF Download */}
-                    {PDFComponents ? (
-                      <PDFComponents.PDFDownloadLink
-                        document={
-                          <PDFComponents.AvenantDocument
-                            documentText={documentText}
-                            employeeName={employeeName}
-                            establishmentName={establishmentName}
-                            documentType={documentType}
-                            generatedDate={new Date().toLocaleDateString('fr-FR')}
-                          />
-                        }
-                        fileName={`${DOCTYPE_LABEL[documentType].replace(/\s+/g, '_')}_${employeeName.replace(/\s+/g, '_')}.pdf`}
-                      >
-                        {({ loading }: { loading: boolean }) => (
-                          <button
-                            disabled={loading}
-                            className="flex items-center justify-center gap-2 h-10 rounded-xl text-[13px] font-medium text-white transition-colors disabled:opacity-60"
-                            style={{ backgroundColor: '#2563EB' }}
-                          >
-                            <Download className="h-4 w-4" />
-                            {loading ? 'Préparation PDF…' : 'Télécharger en PDF'}
-                          </button>
-                        )}
-                      </PDFComponents.PDFDownloadLink>
-                    ) : (
-                      <button disabled className="flex items-center justify-center gap-2 h-10 rounded-xl text-[13px] font-medium text-white opacity-60" style={{ backgroundColor: '#2563EB' }}>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Chargement PDF…
-                      </button>
-                    )}
-
-                    {/* Save to documents */}
-                    <button
-                      onClick={saveDocument}
-                      disabled={savingDoc || savedDoc}
-                      className="flex items-center justify-center gap-2 h-10 rounded-xl border border-[var(--border)] text-[13px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--accent-light)] disabled:opacity-60"
-                    >
-                      {savingDoc
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : savedDoc
-                        ? <Check className="h-4 w-4 text-green-600" />
-                        : <Save className="h-4 w-4" />}
-                      {savingDoc ? 'Enregistrement…' : savedDoc ? `Enregistré dans les documents de ${employeeName.split(' ')[0]}` : `Enregistrer dans les documents de ${employeeName.split(' ')[0]}`}
-                    </button>
-                  </div>
-
-                  <p className="text-[11px] text-[var(--text-tertiary)] italic text-center">
-                    💡 Ce document est généré à titre indicatif. Validez avec votre expert-comptable ou avocat RH.
-                  </p>
-                </>
-              )}
-            </div>
+            <ComplianceAvenantView
+              generating={generating}
+              documentText={documentText}
+              documentType={documentType}
+              employeeName={employeeName}
+              establishmentName={establishmentName}
+              savingDoc={savingDoc}
+              savedDoc={savedDoc}
+              PDFComponents={PDFComponents}
+              onChangeText={setDocumentText}
+              onSave={saveDocument}
+            />
           )}
-
-          {/* ── EMAIL EXPERT ─────────────────────────────────────────────── */}
-          {view === 'email' && (
-            <div className="p-5 space-y-4">
-              {generating ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
-                  <p className="text-[13px] text-[var(--text-secondary)]">Génération de l&apos;email en cours…</p>
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">Objet</label>
-                      <input
-                        value={emailSubject}
-                        onChange={e => setEmailSubject(e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] text-[13px] text-[var(--text-primary)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-30"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wide">Corps</label>
-                      <textarea
-                        value={emailBody}
-                        onChange={e => setEmailBody(e.target.value)}
-                        rows={10}
-                        className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] text-[13px] text-[var(--text-primary)] px-3 py-2 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-30"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 flex-wrap">
-                    <CopyButton text={`${emailSubject}\n\n${emailBody}`} />
-                    <button
-                      onClick={openMailto}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] transition-colors"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      Ouvrir dans ma messagerie
-                    </button>
-                    {'share' in navigator && (
-                      <button
-                        onClick={shareEmail}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] transition-colors"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        Partager
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* ── SOS SHIFTS ───────────────────────────────────────────────── */}
-          {view === 'sos' && (
-            <div className="p-5 space-y-3">
-              <p className="text-[13px] text-[var(--text-secondary)]">
-                Sélectionnez le shift de <strong>{employeeName.split(' ')[0]}</strong> à retirer cette semaine.
-                Le flow SOS Remplacement s&apos;ouvrira automatiquement.
-              </p>
-              {weekShiftsLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-5 w-5 animate-spin text-[var(--text-tertiary)]" />
-                </div>
-              ) : weekShifts.length === 0 ? (
-                <div className="py-8 text-center text-[13px] text-[var(--text-tertiary)]">
-                  Aucun shift publié cette semaine pour {employeeName.split(' ')[0]}.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {weekShifts.map(shift => (
-                    <button
-                      key={shift.id}
-                      onClick={() => triggerSOS(shift.id)}
-                      className="w-full text-left p-3.5 rounded-xl border border-[var(--border)] hover:bg-[#FEF2F2] hover:border-[#DC2626] transition-colors group"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-[13px] font-medium text-[var(--text-primary)] capitalize">
-                            {new Date(shift.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })}
-                          </p>
-                          <p className="text-[12px] text-[var(--text-tertiary)] mt-0.5">
-                            {shift.start_time.slice(0, 5)} → {shift.end_time.slice(0, 5)}
-                          </p>
-                        </div>
-                        <span className="text-[12px] text-[#DC2626] opacity-0 group-hover:opacity-100 transition-opacity font-medium">
-                          Déclencher SOS →
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── SOS RESULTS ──────────────────────────────────────────────── */}
-          {view === 'sos_results' && (
-            <div className="p-5 space-y-3 pb-4">
-              {sosLoading ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
-                  <p className="text-[13px] text-[var(--text-secondary)]">Recherche des candidats disponibles…</p>
-                </div>
-              ) : sosError ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-4">
-                  <p className="text-[13px] text-[#DC2626] text-center">{sosError}</p>
-                  <button
-                    onClick={() => setView('sos')}
-                    className="px-4 py-2 rounded-lg border border-[var(--border)] text-[13px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] transition-colors"
-                  >
-                    ← Réessayer
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <p className="text-[13px] text-[var(--text-secondary)] pb-1">
-                    {sosCandidates.length === 0
-                      ? 'Aucun candidat disponible pour ce shift.'
-                      : `${sosCandidates.length} candidat${sosCandidates.length > 1 ? 's' : ''} disponible${sosCandidates.length > 1 ? 's' : ''} trouvé${sosCandidates.length > 1 ? 's' : ''}`}
-                  </p>
-                  <div className="space-y-3">
-                    {sosCandidates.map((c, i) => {
-                      const initials = c.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                      const avatarColors = ['#4F46E5', '#059669', '#DC2626']
-                      const avatarBg = avatarColors[i] ?? '#6B7280'
-                      const filled = c.score_final >= 7 ? 3 : c.score_final >= 4 ? 2 : 1
-                      return (
-                        <div
-                          key={c.employee_id}
-                          style={{
-                            backgroundColor: 'var(--bg-page)',
-                            border: i === 0 ? '1px solid var(--accent)' : '0.5px solid var(--border)',
-                            borderRadius: '12px',
-                            padding: '14px',
-                            position: 'relative',
-                          }}
-                        >
-                          {i === 0 && (
-                            <div style={{
-                              position: 'absolute', top: '-1px', right: '12px',
-                              backgroundColor: 'var(--accent)', color: '#fff',
-                              fontSize: '9px', fontWeight: 700,
-                              padding: '2px 8px', borderRadius: '0 0 6px 6px',
-                              textTransform: 'uppercase', letterSpacing: '0.06em',
-                            }}>
-                              Recommandé
-                            </div>
-                          )}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                            <div style={{
-                              width: '38px', height: '38px', borderRadius: '50%',
-                              backgroundColor: avatarBg, flexShrink: 0,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                              <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{initials}</span>
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>{c.full_name}</p>
-                              {c.position && <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '1px' }}>{c.position}</p>}
-                            </div>
-                            <div style={{ display: 'flex', gap: '2px' }}>
-                              {[1, 2, 3].map(j => (
-                                <Star key={j} size={13} style={{ color: j <= filled ? '#F59E0B' : 'var(--border)', fill: j <= filled ? '#F59E0B' : 'transparent' }} />
-                              ))}
-                            </div>
-                          </div>
-                          {c.explanation && (
-                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: '8px', lineHeight: 1.4 }}>
-                              {c.explanation}
-                            </p>
-                          )}
-                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                            {c.compliance_warning && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#FEF3C7', color: '#92400E', fontSize: '11px', fontWeight: 500, padding: '2px 7px', borderRadius: '6px', border: '0.5px solid #F59E0B' }}>
-                                <AlertTriangle size={10} />
-                                {c.weekly_hours_planned > 0 ? `${c.weekly_hours_planned}h cette sem.` : 'Alerte compliance'}
-                              </span>
-                            )}
-                            {c.contract_type === 'Extra' && (
-                              <span style={{ backgroundColor: '#F3F4F6', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 500, padding: '2px 7px', borderRadius: '6px', border: '0.5px solid var(--border)' }}>
-                                Extra
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  {sosError && <p className="text-[12px] text-[#DC2626] text-center">{sosError}</p>}
-                  <div className="pt-2 flex flex-col gap-2 sticky bottom-0 bg-[var(--bg-card)] pb-2">
-                    <button
-                      onClick={notifySosCandidates}
-                      disabled={sosNotifyLoading || sosCandidates.length === 0}
-                      className="flex items-center justify-center gap-2 w-full h-11 rounded-xl text-[13px] font-medium text-white transition-colors disabled:opacity-60"
-                      style={{ backgroundColor: '#16A34A' }}
-                    >
-                      {sosNotifyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                      {sosNotifyLoading ? 'Envoi…' : `📲 Notifier les ${sosCandidates.length} candidats`}
-                    </button>
-                    <button
-                      onClick={() => window.open('/manager/planning', '_blank')}
-                      className="flex items-center justify-center gap-2 w-full h-10 rounded-xl border border-[var(--border)] text-[13px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] transition-colors"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      Voir le planning
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* ── SOS NOTIFIED ─────────────────────────────────────────────── */}
-          {view === 'sos_notified' && (
-            <div className="p-5 space-y-4">
-              <div className="flex flex-col items-center gap-2 py-4">
-                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                  <Check className="h-5 w-5 text-green-600" />
-                </div>
-                <p className="text-[15px] font-semibold text-[var(--text-primary)]">Les candidats ont été notifiés ✓</p>
-              </div>
-              <div className="space-y-2">
-                {sosNotifiedCandidates.map(c => (
-                  <div key={c.employee_id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-page)] border border-[var(--border)]">
-                    <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-[13px] text-[var(--text-primary)]">{c.full_name}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-col gap-2 pt-2">
-                <button
-                  onClick={() => router.push('/manager/planning')}
-                  className="flex items-center justify-center gap-2 w-full h-11 rounded-xl text-[13px] font-medium text-white"
-                  style={{ backgroundColor: '#2D3A8C' }}
-                >
-                  Voir le planning
-                </button>
-                <button
-                  onClick={onClose}
-                  className="flex items-center justify-center w-full h-10 rounded-xl border border-[var(--border)] text-[13px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] transition-colors"
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── TRIAL CHOICE ─────────────────────────────────────────────── */}
           {view === 'trial_choice' && (
-            <div className="p-5 space-y-4">
-              <p className="text-[13px] text-[var(--text-secondary)]">
-                Quelle décision prenez-vous concernant la période d&apos;essai de <strong>{employeeName.split(' ')[0]}</strong> ?
-              </p>
-              <div className="space-y-2">
-                <button
-                  onClick={() => { setTrialChoice('confirm'); generateDocument('lettre_confirmation_essai') }}
-                  className="w-full p-4 rounded-xl border-2 border-green-500 bg-green-50 text-left hover:bg-green-100 transition-colors"
-                >
-                  <p className="text-[13px] font-medium text-green-800">Confirmer l&apos;embauche</p>
-                  <p className="text-[12px] text-green-600 mt-0.5">Générer une lettre de confirmation de fin de période d&apos;essai</p>
-                </button>
-                <button
-                  onClick={() => setTrialChoice('rupture')}
-                  className="w-full p-4 rounded-xl border-2 border-[#DC2626] bg-[#FEF2F2] text-left hover:bg-[#FEE2E2] transition-colors"
-                >
-                  <p className="text-[13px] font-medium text-[#DC2626]">Rompre la période d&apos;essai</p>
-                  <p className="text-[12px] text-[#DC2626]/70 mt-0.5">Générer une lettre de rupture avec motif</p>
-                </button>
-              </div>
-
-              {trialChoice === 'rupture' && (
-                <div className="space-y-3 pt-2 border-t border-[var(--border)]">
-                  <label className="text-[12px] font-medium text-[var(--text-secondary)]">
-                    Motif de rupture (facultatif mais recommandé pour le dossier interne)
-                  </label>
-                  <textarea
-                    value={trialMotif}
-                    onChange={e => setTrialMotif(e.target.value)}
-                    placeholder="Ex : Insuffisance de résultats, difficultés d'adaptation au poste…"
-                    rows={3}
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] text-[13px] text-[var(--text-primary)] px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-30"
-                  />
-                  <button
-                    onClick={() => generateDocument('lettre_rupture_essai', trialMotif || undefined)}
-                    disabled={generating}
-                    className="w-full h-10 rounded-xl text-[13px] font-medium text-white flex items-center justify-center gap-2 disabled:opacity-60"
-                    style={{ backgroundColor: '#DC2626' }}
-                  >
-                    {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                    Générer la lettre de rupture
-                  </button>
-                </div>
-              )}
-            </div>
+            <ComplianceTrialChoiceView
+              employeeName={employeeName}
+              trialChoice={trialChoice}
+              trialMotif={trialMotif}
+              generating={generating}
+              onConfirm={() => { setTrialChoice('confirm'); generateDocument('lettre_confirmation_essai') }}
+              onSelectRupture={() => setTrialChoice('rupture')}
+              onChangeMotif={setTrialMotif}
+              onGenerateRupture={() => generateDocument('lettre_rupture_essai', trialMotif || undefined)}
+            />
           )}
-
+          {view === 'email' && (
+            <ComplianceEmailView
+              generating={generating}
+              emailSubject={emailSubject}
+              emailBody={emailBody}
+              onChangeSubject={setEmailSubject}
+              onChangeBody={setEmailBody}
+              onOpenMailto={openMailto}
+              onShare={shareEmail}
+            />
+          )}
+          {view === 'sos' && (
+            <ComplianceSosView
+              employeeName={employeeName}
+              weekShifts={weekShifts}
+              weekShiftsLoading={weekShiftsLoading}
+              onTrigger={triggerSOS}
+            />
+          )}
+          {view === 'sos_results' && (
+            <ComplianceSosResultsView
+              sosLoading={sosLoading}
+              sosError={sosError}
+              sosCandidates={sosCandidates}
+              sosNotifyLoading={sosNotifyLoading}
+              onNotify={notifySosCandidates}
+              onRetry={() => setView('sos')}
+            />
+          )}
+          {view === 'sos_notified' && (
+            <ComplianceSosNotifiedView
+              sosNotifiedCandidates={sosNotifiedCandidates}
+              onGoToPlanning={() => router.push('/manager/planning')}
+              onClose={onClose}
+            />
+          )}
         </div>
 
-        {/* Loader overlay pendant génération */}
         {generating && view === 'menu' && (
           <div className="absolute inset-0 bg-[var(--bg-card)]/80 flex flex-col items-center justify-center gap-3 z-10">
             <Loader2 className="h-7 w-7 animate-spin text-[var(--accent)]" />
