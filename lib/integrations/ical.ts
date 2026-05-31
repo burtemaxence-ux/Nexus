@@ -1,14 +1,14 @@
 import { createHmac } from 'crypto'
 import type { Shift } from '@/types'
 
-const SECRET = process.env.CALENDAR_SECRET
-if (!SECRET) {
-  throw new Error('CALENDAR_SECRET environment variable is required')
+function getSecret(): string {
+  const s = process.env.CALENDAR_SECRET
+  if (!s) throw new Error('CALENDAR_SECRET environment variable is required')
+  return s
 }
-const _SECRET: string = SECRET
 
 export function generateCalendarToken(employeeId: string): string {
-  const hmac = createHmac('sha256', _SECRET).update(employeeId).digest('hex').slice(0, 16)
+  const hmac = createHmac('sha256', getSecret()).update(employeeId).digest('hex').slice(0, 16)
   return employeeId.replace(/-/g, '') + hmac
 }
 
@@ -23,7 +23,7 @@ export function parseCalendarToken(token: string): string | null {
     idRaw.slice(16, 20),
     idRaw.slice(20),
   ].join('-')
-  const expected = createHmac('sha256', _SECRET).update(employeeId).digest('hex').slice(0, 16)
+  const expected = createHmac('sha256', getSecret()).update(employeeId).digest('hex').slice(0, 16)
   return sig === expected ? employeeId : null
 }
 
