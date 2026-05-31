@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 
 const AnalyticsClient = dynamic(() => import('./analytics-client'), {
   ssr: false,
@@ -34,7 +35,9 @@ export default async function AnalyticsPage() {
           Masse salariale, présence, absences et turnover sur la période sélectionnée.
         </p>
       </div>
-      <AnalyticsClient />
+      <ErrorBoundary>
+        <AnalyticsClient />
+      </ErrorBoundary>
     </div>
   )
 }

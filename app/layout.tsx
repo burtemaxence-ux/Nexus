@@ -4,6 +4,7 @@ import { Toaster } from 'sonner'
 import { PwaRegister } from '@/components/ui/pwa-register'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -40,7 +41,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={inter.className}>
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
         <PwaRegister />
         <Analytics />
         <SpeedInsights />

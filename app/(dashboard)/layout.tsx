@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { AppShell } from '@/components/ui/app-shell'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient()
@@ -93,7 +94,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       establishments={establishments}
       activeEstablishmentId={activeEstablishmentId}
     >
-      {children}
+      <ErrorBoundary>
+        {children}
+      </ErrorBoundary>
     </AppShell>
   )
 }

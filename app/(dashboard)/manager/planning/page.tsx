@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PlanningWeekTimeline } from '@/components/planning/planning-week-timeline'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { PlanningMonth } from '@/components/planning/planning-month'
 import { PlanningDay } from '@/components/planning/planning-day'
 import { getWeekDates, toISODate } from '@/lib/utils/dates'
@@ -170,15 +171,17 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
       <h1 className="text-[18px] md:text-[20px] font-medium tracking-[-0.02em] mb-4 md:mb-5" style={{ color: 'var(--text-primary)' }}>
         Planning
       </h1>
-      <PlanningWeekTimeline
-        weekDates={weekDates}
-        employees={employees}
-        shifts={shifts}
-        leaveRequests={leaveRequests}
-        weekLocked={weekStatus.locked}
-        weekPublished={weekStatus.published}
-        postes={postes}
-      />
+      <ErrorBoundary>
+        <PlanningWeekTimeline
+          weekDates={weekDates}
+          employees={employees}
+          shifts={shifts}
+          leaveRequests={leaveRequests}
+          weekLocked={weekStatus.locked}
+          weekPublished={weekStatus.published}
+          postes={postes}
+        />
+      </ErrorBoundary>
     </div>
   )
 }
