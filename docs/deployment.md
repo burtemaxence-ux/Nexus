@@ -34,8 +34,9 @@ vercel --prod
 | `RESEND_API_KEY`                | Clé API Resend pour l'envoi d'emails             |
 | `RESEND_FROM_EMAIL`             | Adresse expéditrice vérifiée dans Resend         |
 | `CRON_SECRET`                   | Secret partagé pour sécuriser les crons          |
+| `CALENDAR_SECRET`               | Secret de signature des tokens iCal (**REQUIS** — sans lui le service iCal est indisponible au démarrage) |
 
-Générer `CRON_SECRET` :
+Générer `CRON_SECRET` et `CALENDAR_SECRET` :
 ```bash
 openssl rand -hex 32
 ```

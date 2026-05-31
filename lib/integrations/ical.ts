@@ -1,7 +1,10 @@
 import { createHmac } from 'crypto'
 import type { Shift } from '@/types'
 
-const SECRET = process.env.CALENDAR_SECRET ?? 'nexus-calendar-2024'
+const SECRET = process.env.CALENDAR_SECRET
+if (!SECRET) {
+  throw new Error('CALENDAR_SECRET environment variable is required')
+}
 
 export function generateCalendarToken(employeeId: string): string {
   const hmac = createHmac('sha256', SECRET).update(employeeId).digest('hex').slice(0, 16)
