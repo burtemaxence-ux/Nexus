@@ -7,9 +7,14 @@ import { NextRequest, NextResponse } from 'next/server'
 const anthropic = new Anthropic()
 
 export async function POST(req: NextRequest) {
-  try {
   const supabase = await createClient()
-  const { profile } = await requireManager(supabase)
+  let profile: Awaited<ReturnType<typeof requireManager>>['profile']
+  try {
+    profile = (await requireManager(supabase)).profile
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
 
   const establishmentId = profile.active_establishment_id ?? profile.establishment_id
 
@@ -105,7 +110,6 @@ Retourne UNIQUEMENT un JSON valide avec ce format exact :
       body: parsed.body ?? rawText,
     })
   } catch (err) {
-    if (err instanceof Response) return err as NextResponse
     console.error('[generate-email]', err)
     return NextResponse.json({ error: 'Erreur génération Claude' }, { status: 500 })
   }

@@ -13,9 +13,14 @@ export type DocumentType =
   | 'lettre_rupture_essai'
 
 export async function POST(req: NextRequest) {
-  try {
   const supabase = await createClient()
-  const { profile } = await requireManager(supabase)
+  let profile: Awaited<ReturnType<typeof requireManager>>['profile']
+  try {
+    profile = (await requireManager(supabase)).profile
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
   if (profile.role !== 'manager') {
     return NextResponse.json({ error: 'Managers uniquement' }, { status: 403 })
   }
@@ -184,7 +189,6 @@ IMPORTANT : Ne pas motiver la rupture au-delà du strict nécessaire. Mets [ENTR
 
     return NextResponse.json({ text, document_type })
   } catch (err) {
-    if (err instanceof Response) return err as NextResponse
     console.error('[generate-document]', err)
     return NextResponse.json({ error: 'Erreur génération Claude' }, { status: 500 })
   }
