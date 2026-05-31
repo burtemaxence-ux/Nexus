@@ -77,12 +77,17 @@ export async function POST(req: NextRequest) {
   if (shiftErr || !shift) return NextResponse.json({ error: 'Shift introuvable' }, { status: 404 })
 
   // Vérifier qu'il n'y a pas déjà un replacement_request actif pour ce shift
-  const { data: existing } = await supabaseAdmin
+  const { data: existing, error: existingErr } = await supabaseAdmin
     .from('replacement_requests')
     .select('id, status, candidates, expires_at')
     .eq('shift_id', body.shift_id)
     .in('status', ['pending', 'confirmed'])
     .maybeSingle()
+
+  if (existingErr) {
+    console.error('[ai/replacement] pre-check error:', existingErr.code, existingErr.message)
+    return NextResponse.json({ error: `Erreur base de données : ${existingErr.message}` }, { status: 500 })
+  }
 
   if (existing) {
     return NextResponse.json({ error: 'Une demande de remplacement est déjà active pour ce shift', existing }, { status: 409 })
@@ -424,8 +429,34 @@ ${candidateDescriptions}`,
     .single()
 
   if (rrErr || !replacementRequest) {
-    console.error('[ai/replacement] DB insert error:', rrErr?.message)
-    return NextResponse.json({ error: 'Erreur lors de la création de la demande' }, { status: 500 })
+    console.error('[ai/replacement] DB insert error:', rrErr?.code, rrErr?.message)
+
+    // Contrainte unique violée : une demande active existe déjà (race condition ou retry)
+    if (rrErr?.code === '23505') {
+      const { data: existingRR } = await supabaseAdmin
+        .from('replacement_requests')
+        .select('id, candidates, expires_at')
+        .eq('shift_id', body.shift_id)
+        .in('status', ['pending', 'confirmed'])
+        .maybeSingle()
+
+      if (existingRR) {
+        const existingCandidateIds = (existingRR.candidates as { employee_id: string }[]).map(c => c.employee_id)
+        const finalCandidates = top3.filter(c => existingCandidateIds.includes(c.employee_id))
+
+        return NextResponse.json({
+          replacement_request_id: existingRR.id,
+          expires_at: existingRR.expires_at,
+          shift: { id: shift.id, date: shift.date, start_time: shift.start_time, end_time: shift.end_time, position: shift.position, poste_id: shift.poste_id },
+          candidates: finalCandidates.length > 0 ? finalCandidates : top3,
+        }, { status: 200 })
+      }
+    }
+
+    return NextResponse.json(
+      { error: `Erreur lors de la création de la demande${rrErr ? ` : ${rrErr.message}` : ''}` },
+      { status: 500 }
+    )
   }
 
   // ── 7. Retourner les résultats ─────────────────────────────────────────────
