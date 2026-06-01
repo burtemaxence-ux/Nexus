@@ -92,6 +92,8 @@ export default function OrganisationPage() {
     setLogoPreview(URL.createObjectURL(file))
 
     try {
+      await fetch('/api/storage/init', { method: 'POST' })
+
       const supabase = createClient()
       const ext = file.name.split('.').pop()
       const path = `org/logo-${Date.now()}.${ext}`
