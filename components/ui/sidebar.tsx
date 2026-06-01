@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslations } from 'next-intl'
 import { getInitials, getEstablishmentInitials } from '@/lib/planning-utils'
 import {
   Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap, BookOpen,
@@ -15,7 +16,7 @@ import {
   UtensilsCrossed, ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight,
 } from 'lucide-react'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────
 
 interface EstablishmentEntry {
   id: string
@@ -36,42 +37,42 @@ interface NavGroup {
   items: NavItem[]
 }
 
-// ── Nav definition ────────────────────────────────────────────────────────────
+// ── Nav definition ───────────────────────────────────────────────────────────────
 
-function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
+function buildManagerNav(pendingLeavesCount: number, t: ReturnType<typeof useTranslations<'nav'>>): NavGroup[] {
   return [
     {
       group: 'Gestion',
       items: [
-        { label: 'Planning',     icon: Calendar,   href: '/manager/planning' },
-        { label: 'Employés',     icon: Users,      href: '/manager/employees' },
-        { label: 'Rapport',      icon: BarChart3,  href: '/manager/rapport' },
-        { label: 'Analytiques',  icon: LineChart,  href: '/manager/analytics' },
-        { label: 'Badgeuse',     icon: Clock,      href: '/manager/presences' },
+        { label: t('planning'),    icon: Calendar,   href: '/manager/planning' },
+        { label: t('employees'),   icon: Users,      href: '/manager/employees' },
+        { label: t('report'),      icon: BarChart3,  href: '/manager/rapport' },
+        { label: t('analytics'),   icon: LineChart,  href: '/manager/analytics' },
+        { label: t('attendance'),  icon: Clock,      href: '/manager/presences' },
       ],
     },
     {
       group: 'Demandes',
       items: [
         {
-          label: 'Congés',
+          label: t('leaves'),
           icon: Palmtree,
           href: '/manager/conges',
           badge: pendingLeavesCount,
           badgeColor: 'orange',
         },
         {
-          label: 'Échanges',
+          label: t('exchanges'),
           icon: ArrowLeftRight,
           href: '/manager/echanges',
         },
         {
-          label: 'Marketplace',
+          label: t('marketplace'),
           icon: Zap,
           href: '/manager/marketplace',
         },
         {
-          label: 'Alertes',
+          label: t('alerts'),
           icon: AlertTriangle,
           href: '/manager/alertes',
           badgeColor: 'red',
@@ -81,37 +82,37 @@ function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
     {
       group: 'Outils',
       items: [
-        { label: 'Conformité', icon: Scale,        href: '/manager/compliance' },
-        { label: 'Exports',    icon: Upload,       href: '/manager/settings/exports' },
-        { label: 'Journal',    icon: ShieldCheck,  href: '/manager/audit-log' },
-        { label: 'Documents',  icon: FileText,      href: '#', comingSoon: true },
+        { label: t('compliance'), icon: Scale,       href: '/manager/compliance' },
+        { label: t('exports'),    icon: Upload,      href: '/manager/settings/exports' },
+        { label: t('audit_log'),  icon: ShieldCheck, href: '/manager/audit-log' },
+        { label: 'Documents',     icon: FileText,    href: '#', comingSoon: true },
       ],
     },
     {
       group: 'Configuration',
       items: [
-        { label: 'Paramètres', icon: Settings,  href: '/manager/settings' },
-        { label: 'Aide',       icon: BookOpen,  href: '/manager/help' },
+        { label: t('settings'), icon: Settings, href: '/manager/settings' },
+        { label: t('help'),     icon: BookOpen, href: '/manager/help' },
       ],
     },
   ]
 }
 
-const employeeNav: NavGroup[] = [
-  {
-    group: 'Navigation',
-    items: [
-      { label: 'Mon planning', icon: Calendar,      href: '/employee/planning' },
-      { label: 'Mes congés',   icon: Palmtree,      href: '/employee/conges' },
-      { label: 'Badgeuse',     icon: Clock,         href: '/employee/badgeuse' },
-      { label: 'Marketplace',  icon: Zap,           href: '/employee/marketplace' },
-    ],
-  },
-]
+function buildEmployeeNav(t: ReturnType<typeof useTranslations<'nav'>>): NavGroup[] {
+  return [
+    {
+      group: 'Navigation',
+      items: [
+        { label: t('my_planning'), icon: Calendar, href: '/employee/planning' },
+        { label: t('my_leaves'),   icon: Palmtree, href: '/employee/conges' },
+        { label: t('attendance'),  icon: Clock,    href: '/employee/badgeuse' },
+        { label: t('marketplace'), icon: Zap,      href: '/employee/marketplace' },
+      ],
+    },
+  ]
+}
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-// ── Badge ─────────────────────────────────────────────────────────────────────
+// ── Badge ───────────────────────────────────────────────────────────────────────
 
 function Badge({ count, color }: { count: number; color: 'orange' | 'red' }) {
   if (!count || count === 0) return null
@@ -128,7 +129,7 @@ function Badge({ count, color }: { count: number; color: 'orange' | 'red' }) {
   )
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
+// ── Sidebar ───────────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
   role: 'manager' | 'employee' | 'supervisor'
@@ -151,6 +152,7 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const t = useTranslations('nav')
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [switching, setSwitching] = useState(false)
   const switcherRef = useRef<HTMLDivElement>(null)
@@ -181,8 +183,8 @@ export function Sidebar({
     }
   }
   const navGroups = (role === 'manager' || role === 'supervisor')
-    ? buildManagerNav(pendingLeavesCount)
-    : employeeNav
+    ? buildManagerNav(pendingLeavesCount, t)
+    : buildEmployeeNav(t)
 
   function isActive(href: string) {
     if (href === '#') return false
@@ -206,7 +208,6 @@ export function Sidebar({
         collapsed ? 'w-16' : 'w-[220px]'
       )}
     >
-      {/* ── Brand / Logo ─────────────────────────────────────────────── */}
       <div className={cn(
         'flex items-center h-14 border-b border-sidebar-border px-3 flex-shrink-0',
         collapsed ? 'justify-center' : 'gap-2.5'
@@ -224,11 +225,9 @@ export function Sidebar({
         )}
       </div>
 
-      {/* ── Navigation ───────────────────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin">
         {navGroups.map((group, gi) => (
           <div key={gi} className={cn('mb-1', gi > 0 && 'mt-3')}>
-            {/* Group label */}
             {!collapsed ? (
               <p className="px-3 mb-1 text-[9px] font-bold tracking-[0.12em] text-sidebar-foreground/40 uppercase">
                 {group.group}
@@ -246,7 +245,6 @@ export function Sidebar({
                 return (
                   <li key={item.href}>
                     {disabled ? (
-                      /* Coming soon — not clickable */
                       <div
                         className={cn(
                           'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm opacity-40 cursor-not-allowed select-none',
@@ -290,7 +288,6 @@ export function Sidebar({
                             )}
                           </>
                         )}
-                        {/* Dot indicator on collapsed when badge > 0 */}
                         {collapsed && item.badge && item.badge > 0 ? (
                           <span className={cn(
                             'absolute top-1 right-1 h-2 w-2 rounded-full',
@@ -307,10 +304,8 @@ export function Sidebar({
         ))}
       </nav>
 
-      {/* ── Bottom section ────────────────────────────────────────────── */}
       <div className="flex-shrink-0 border-t border-sidebar-border">
 
-        {/* Establishment row — switcher when multi-site */}
         {establishments.length > 1 && !collapsed && (
           <p className="px-3 pt-2.5 pb-0.5 text-[9px] font-bold tracking-[0.12em] text-sidebar-foreground/35 uppercase">
             Établissement actif
@@ -413,7 +408,6 @@ export function Sidebar({
           </div>
         )}
 
-        {/* User row */}
         <div className={cn(
           'flex items-center px-3 py-3 gap-2.5',
           collapsed ? 'justify-center' : ''
@@ -454,7 +448,6 @@ export function Sidebar({
           )}
         </div>
 
-        {/* Collapse toggle */}
         <button
           onClick={onToggle}
           className="w-full flex items-center justify-center py-2 text-sidebar-foreground/40 hover:text-sidebar-foreground-active hover:bg-white/5 transition-colors border-t border-sidebar-border/40"
