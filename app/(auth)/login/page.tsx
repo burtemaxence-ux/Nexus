@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Mail, Lock, Eye, EyeOff, Calendar, Clock, Users, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { LanguageSwitcher } from '@/components/ui/language-switcher'
+// TODO: i18n — apply useTranslations('auth') to all hardcoded strings below
 
-// ── Supabase auth logic — NE PAS MODIFIER ─────────────────────────────────────
+// ── Supabase auth logic — NE PAS MODIFIER ─────────────────────────────────────────
 
 function useLogin() {
   const router = useRouter()
@@ -43,7 +45,7 @@ function useLogin() {
   return { email, setEmail, password, setPassword, error, loading, handleLogin }
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Sub-components ──────────────────────────────────────────────────────────────────
 
 function NexusLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
   const s = size === 'md'
@@ -80,19 +82,15 @@ const BENEFITS = [
   },
 ]
 
-// Faux aperçu de l'interface planning — décoration bas de page gauche
 function AppMockup() {
   return (
     <div className="relative w-full max-w-[360px]">
-      {/* Card mockup */}
       <div className="rounded-2xl border border-[#4F46E5]/10 bg-white/70 shadow-sm overflow-hidden">
-        {/* Header bar */}
         <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#4F46E5]/08 bg-white/50">
           <div className="w-2 h-2 rounded-full bg-[#4F46E5]/30" />
           <div className="h-1.5 w-20 rounded-full bg-[#4F46E5]/15" />
           <div className="ml-auto h-1.5 w-10 rounded-full bg-[#4F46E5]/10" />
         </div>
-        {/* Grid rows */}
         <div className="px-4 py-3 space-y-2">
           {[70, 50, 85, 60].map((w, i) => (
             <div key={i} className="flex items-center gap-2.5">
@@ -106,13 +104,11 @@ function AppMockup() {
         </div>
       </div>
 
-      {/* Floating stat chip */}
       <div className="absolute -right-4 top-6 bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 shadow-sm flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-green-400" />
         <span className="text-[11px] font-medium text-[#374151]">12 présents</span>
       </div>
 
-      {/* Floating badge */}
       <div className="absolute -left-2 -bottom-3 bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 shadow-sm">
         <span className="text-[11px] font-medium text-[#374151]">3 congés en attente</span>
       </div>
@@ -120,7 +116,6 @@ function AppMockup() {
   )
 }
 
-// Google logo SVG (inline — pas de dépendance)
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -132,12 +127,9 @@ function GoogleIcon() {
   )
 }
 
-// ── Orbes de lumière (gradient mesh blobs) ────────────────────────────────────
-
 function MeshBackground() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden>
-      {/* Orbe 1 — haut gauche, indigo doux */}
       <div
         className="absolute rounded-full"
         style={{
@@ -149,7 +141,6 @@ function MeshBackground() {
           filter: 'blur(40px)',
         }}
       />
-      {/* Orbe 2 — centre droit, violet */}
       <div
         className="absolute rounded-full"
         style={{
@@ -161,7 +152,6 @@ function MeshBackground() {
           filter: 'blur(50px)',
         }}
       />
-      {/* Orbe 3 — bas gauche, bleu-indigo */}
       <div
         className="absolute rounded-full"
         style={{
@@ -173,7 +163,6 @@ function MeshBackground() {
           filter: 'blur(60px)',
         }}
       />
-      {/* Orbe 4 — petit accent rose très subtil haut droit */}
       <div
         className="absolute rounded-full"
         style={{
@@ -189,7 +178,7 @@ function MeshBackground() {
   )
 }
 
-// ── Page principale ────────────────────────────────────────────────────────────
+// ── Page principale ───────────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
   const { email, setEmail, password, setPassword, error, loading, handleLogin } = useLogin()
@@ -199,22 +188,17 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#EDEEFF] lg:grid lg:grid-cols-2 relative">
       <MeshBackground />
 
-      {/* ── COLONNE GAUCHE — Branding ───────────────────────────────────────── */}
       <div className="hidden lg:flex flex-col justify-between px-16 py-14 relative z-10">
 
-        {/* Logo */}
         <NexusLogo size="md" />
 
-        {/* Pitch central */}
         <div className="space-y-10">
 
-          {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#4F46E5]/20 bg-white/60 text-[#4F46E5] text-[12px] font-medium tracking-wide">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5]" />
             Le logiciel de planning nouvelle génération
           </div>
 
-          {/* Headline */}
           <div className="space-y-4">
             <h1 className="text-[2.6rem] leading-[1.15] font-bold text-[#18181B] tracking-tight">
               Le planning d&apos;équipe,<br />
@@ -226,7 +210,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Bénéfices */}
           <div className="space-y-5">
             {BENEFITS.map(({ icon: Icon, label, desc }) => (
               <div key={label} className="flex items-center gap-4">
@@ -242,24 +225,22 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Décoration bas */}
         <div className="pt-4">
           <AppMockup />
         </div>
       </div>
 
-      {/* ── COLONNE DROITE — Formulaire ─────────────────────────────────────── */}
       <div className="flex flex-col items-center justify-center min-h-screen px-6 py-16 relative z-10">
+        <div className="absolute top-4 right-4 z-20">
+          <LanguageSwitcher />
+        </div>
 
-        {/* Logo mobile uniquement */}
         <div className="lg:hidden mb-10">
           <NexusLogo size="sm" />
         </div>
 
-        {/* Card */}
         <div className="w-full max-w-[420px] bg-white rounded-[20px] border border-[#E5E7EB] shadow-[0_4px_32px_0_rgba(79,70,229,0.08)] px-9 py-10">
 
-          {/* En-tête */}
           <div className="mb-8 text-center">
             <h2 className="text-[26px] font-bold text-[#18181B] tracking-tight">
               Connexion
@@ -269,10 +250,8 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Formulaire */}
           <form onSubmit={handleLogin} className="space-y-4">
 
-            {/* Email */}
             <div className="space-y-1.5">
               <label htmlFor="email" className="block text-[13px] font-medium text-[#374151]">
                 Adresse email
@@ -300,7 +279,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Mot de passe */}
             <div className="space-y-1.5">
               <label htmlFor="password" className="block text-[13px] font-medium text-[#374151]">
                 Mot de passe
@@ -348,7 +326,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Erreur */}
             {error && (
               <div className="flex gap-3 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
                 <span className="text-red-400 text-[13px] mt-px flex-shrink-0">✕</span>
@@ -356,7 +333,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Bouton principal */}
             <button
               type="submit"
               disabled={loading}
@@ -381,14 +357,12 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Séparateur */}
           <div className="flex items-center gap-3 my-5">
             <div className="flex-1 h-px bg-[#F3F4F6]" />
             <span className="text-[12px] text-[#9CA3AF]">ou</span>
             <div className="flex-1 h-px bg-[#F3F4F6]" />
           </div>
 
-          {/* Bouton Google — UI uniquement, OAuth à configurer dans Supabase */}
           <button
             type="button"
             disabled
@@ -404,7 +378,6 @@ export default function LoginPage() {
             <span>Se connecter avec Google</span>
           </button>
 
-          {/* Pied de carte */}
           <p className="mt-8 text-center text-[11px] text-[#C4C9D4]">
             Nexus — Gestion planning &amp; équipe
           </p>

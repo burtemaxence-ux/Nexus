@@ -6,12 +6,12 @@ import { Bell, X, CheckCheck, Calendar, AlertTriangle, CheckCircle2, RefreshCw, 
 import { cn } from '@/lib/utils'
 import type { Notification } from '@/types'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return "À l'instant"
+  if (mins < 1) return "A l'instant"
   if (mins < 60) return `Il y a ${mins} min`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `Il y a ${hours}h`
@@ -27,21 +27,21 @@ function relativeTime(dateStr: string): string {
 function NotifIcon({ type }: { type: string }) {
   const base = 'h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0'
   if (type === 'planning_published')
-    return <div className={cn(base, 'bg-blue-50')}><Calendar className="h-3.5 w-3.5 text-blue-500" /></div>
+    return <div className={cn(base, 'bg-blue-50 dark:bg-blue-950/30')}><Calendar className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" /></div>
   if (type === 'leave_approved')
-    return <div className={cn(base, 'bg-green-50')}><CheckCircle2 className="h-3.5 w-3.5 text-green-500" /></div>
+    return <div className={cn(base, 'bg-green-50 dark:bg-green-950/30')}><CheckCircle2 className="h-3.5 w-3.5 text-green-500 dark:text-green-400" /></div>
   if (type === 'leave_rejected')
-    return <div className={cn(base, 'bg-red-50')}><X className="h-3.5 w-3.5 text-red-500" /></div>
+    return <div className={cn(base, 'bg-red-50 dark:bg-red-950/30')}><X className="h-3.5 w-3.5 text-red-500 dark:text-red-400" /></div>
   if (type === 'reminder_clockout')
-    return <div className={cn(base, 'bg-orange-50')}><AlertTriangle className="h-3.5 w-3.5 text-orange-500" /></div>
+    return <div className={cn(base, 'bg-orange-50 dark:bg-orange-950/30')}><AlertTriangle className="h-3.5 w-3.5 text-orange-500 dark:text-orange-400" /></div>
   if (type === 'employee_invited' || type === 'employee_clocked_in')
-    return <div className={cn(base, 'bg-purple-50')}><Users className="h-3.5 w-3.5 text-purple-500" /></div>
+    return <div className={cn(base, 'bg-purple-50 dark:bg-purple-950/30')}><Users className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400" /></div>
   if (type.startsWith('replacement'))
     return <div className={cn(base, 'bg-[var(--accent-light)]')}><RefreshCw className="h-3.5 w-3.5 text-[var(--accent)]" /></div>
   return <div className={cn(base, 'bg-[var(--accent-light)]')}><Bell className="h-3.5 w-3.5 text-[var(--accent)]" /></div>
 }
 
-// ── Notification row ──────────────────────────────────────────────────────────
+// ── Notification row ────────────────────────────────────────────────────────────
 
 function NotifRow({
   notif,
@@ -55,7 +55,7 @@ function NotifRow({
       onClick={() => onClick(notif)}
       className={cn(
         'w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-[var(--accent-light)] transition-colors duration-150',
-        !notif.read && 'bg-[#EEF0FA]'
+        !notif.read && 'bg-[var(--accent-light)]'
       )}
     >
       <NotifIcon type={notif.type} />
@@ -74,10 +74,9 @@ function NotifRow({
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────────
 
 interface NotificationsBellProps {
-  /** Used for mobile: navigate instead of dropdown */
   isMobile?: boolean
 }
 
@@ -102,14 +101,12 @@ export function NotificationsBell({ isMobile = false }: NotificationsBellProps) 
     }
   }, [])
 
-  // Initial fetch + polling every 60s
   useEffect(() => {
     fetchNotifications()
     const id = setInterval(fetchNotifications, 60_000)
     return () => clearInterval(id)
   }, [fetchNotifications])
 
-  // Close on outside click (desktop only)
   useEffect(() => {
     if (!open || isMobile) return
     function handleOutside(e: MouseEvent) {
@@ -182,7 +179,6 @@ export function NotificationsBell({ isMobile = false }: NotificationsBellProps) 
 
   if (isMobile) return bell
 
-  // Desktop: bell + dropdown panel
   return (
     <div className="relative">
       {bell}
@@ -192,7 +188,6 @@ export function NotificationsBell({ isMobile = false }: NotificationsBellProps) 
           ref={panelRef}
           className="absolute right-0 top-full mt-2 w-[360px] bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden z-50"
         >
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
             <span className="text-[13px] font-semibold text-[var(--text-primary)]">Notifications</span>
             <div className="flex items-center gap-2">
@@ -215,7 +210,6 @@ export function NotificationsBell({ isMobile = false }: NotificationsBellProps) 
             </div>
           </div>
 
-          {/* List */}
           <div className="overflow-y-auto max-h-[360px] divide-y divide-[var(--border)]">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 gap-2">
@@ -229,7 +223,6 @@ export function NotificationsBell({ isMobile = false }: NotificationsBellProps) 
             )}
           </div>
 
-          {/* Footer */}
           <div className="border-t border-[var(--border)] px-4 py-2.5">
             <button
               onClick={() => { setOpen(false); router.push('/notifications') }}

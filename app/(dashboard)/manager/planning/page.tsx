@@ -1,7 +1,7 @@
+// TODO: i18n — apply useTranslations('planning') to labels in this page and planning-client.tsx
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { ErrorBoundary } from '@/components/ui/error-boundary'
-import { PlanningClientWrapper } from './planning-client'
+import { PlanningWeekTimeline } from '@/components/planning/planning-week-timeline'
 import { PlanningMonth } from '@/components/planning/planning-month'
 import { PlanningDay } from '@/components/planning/planning-day'
 import { getWeekDates, toISODate } from '@/lib/utils/dates'
@@ -22,11 +22,9 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
     redirect('/login')
   }
 
-  // Resolve searchParams
   const params = await searchParams
   const view = params.view === 'month' ? 'month' : params.view === 'day' ? 'day' : 'week'
 
-  // ── Shared: fetch employees & postes ─────────────────────────────────────
   const { data: employeesData } = await supabase
     .from('profiles')
     .select('id, email, full_name, role, position, created_at')
@@ -42,7 +40,6 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
 
   const postes: Poste[] = (postesData ?? []) as Poste[]
 
-  // ── MONTH VIEW ────────────────────────────────────────────────────────────
   if (view === 'month') {
     const monthParam = params.month
     let monthDate: Date
@@ -79,7 +76,6 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
     )
   }
 
-  // ── DAY VIEW ─────────────────────────────────────────────────────────────────
   if (view === 'day') {
     const dateParam = params.date
     let dayDate: Date
@@ -90,7 +86,6 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
     }
     const dayStr = toISODate(dayDate)
 
-    // Get monday of this week for week_status
     const d = new Date(dayDate)
     const day = d.getDay()
     const diff = d.getDate() - day + (day === 0 ? -6 : 1)
@@ -125,7 +120,6 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
     )
   }
 
-  // ── WEEK VIEW (default) ───────────────────────────────────────────────────
   const weekParam = params.week
   let referenceDate: Date
   if (weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam)) {
@@ -171,17 +165,15 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
       <h1 className="text-[18px] md:text-[20px] font-medium tracking-[-0.02em] mb-4 md:mb-5" style={{ color: 'var(--text-primary)' }}>
         Planning
       </h1>
-      <ErrorBoundary>
-        <PlanningClientWrapper
-          weekDates={weekDates}
-          employees={employees}
-          shifts={shifts}
-          leaveRequests={leaveRequests}
-          weekLocked={weekStatus.locked}
-          weekPublished={weekStatus.published}
-          postes={postes}
-        />
-      </ErrorBoundary>
+      <PlanningWeekTimeline
+        weekDates={weekDates}
+        employees={employees}
+        shifts={shifts}
+        leaveRequests={leaveRequests}
+        weekLocked={weekStatus.locked}
+        weekPublished={weekStatus.published}
+        postes={postes}
+      />
     </div>
   )
 }

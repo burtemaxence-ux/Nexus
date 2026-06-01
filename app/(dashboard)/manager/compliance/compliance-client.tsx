@@ -1,3 +1,4 @@
+// TODO: i18n — apply useTranslations('compliance') to labels in this file
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -10,7 +11,7 @@ import { cn } from '@/lib/utils'
 import type { CompliancePayload, ComplianceViolation } from '@/app/api/compliance/route'
 import type { RuleId, Severity } from '@/lib/compliance/rules'
 
-// ── Period presets ────────────────────────────────────────────────────────────
+// ── Period presets ────────────────────────────────────────────────────────────────
 
 function getWeekMonday(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
@@ -51,33 +52,33 @@ function buildPresets(): PeriodPreset[] {
   ]
 }
 
-// ── Severity config ───────────────────────────────────────────────────────────
+// ── Severity config ───────────────────────────────────────────────────────────────
 
 const SEV: Record<Severity, { icon: React.ElementType; color: string; bg: string; border: string; label: string }> = {
   critical: {
     icon:   XCircle,
-    color:  '#DC2626',
-    bg:     '#FEF2F2',
-    border: '#FECACA',
+    color:  'var(--color-critical-text)',
+    bg:     'var(--color-critical-bg)',
+    border: 'var(--color-critical-border)',
     label:  'Critique',
   },
   warning: {
     icon:   AlertTriangle,
-    color:  '#D97706',
-    bg:     '#FFFBEB',
-    border: '#FDE68A',
+    color:  'var(--color-warning-text)',
+    bg:     'var(--color-warning-bg)',
+    border: 'var(--color-warning-border)',
     label:  'Avertissement',
   },
   info: {
     icon:   Info,
-    color:  '#2563EB',
-    bg:     '#EFF6FF',
-    border: '#BFDBFE',
+    color:  'var(--color-info-text)',
+    bg:     'var(--color-info-bg)',
+    border: 'var(--color-info-border)',
     label:  'Information',
   },
 }
 
-// ── Rule label map ────────────────────────────────────────────────────────────
+// ── Rule label map ────────────────────────────────────────────────────────────────
 
 const RULE_LABELS: Record<RuleId, string> = {
   rest_daily:       'Repos quotidien',
@@ -89,7 +90,7 @@ const RULE_LABELS: Record<RuleId, string> = {
   night_work:       'Travail de nuit',
 }
 
-// ── Score gauge ───────────────────────────────────────────────────────────────
+// ── Score gauge ────────────────────────────────────────────────────────────────
 
 function ScoreGauge({ score }: { score: number }) {
   const color = score >= 90 ? '#16A34A' : score >= 70 ? '#D97706' : '#DC2626'
@@ -106,7 +107,6 @@ function ScoreGauge({ score }: { score: number }) {
           Score conformité
         </p>
       </div>
-      {/* Bar */}
       <div className="w-full h-1.5 bg-[var(--border)] rounded-full overflow-hidden mt-1">
         <div
           className="h-full rounded-full transition-all duration-500"
@@ -147,7 +147,7 @@ function SevCard({ severity, count, active, onClick }: {
   )
 }
 
-// ── Violation card ────────────────────────────────────────────────────────────
+// ── Violation card ────────────────────────────────────────────────────────────────
 
 function ViolationCard({ v }: { v: ComplianceViolation }) {
   const [open, setOpen] = useState(false)
@@ -162,7 +162,6 @@ function ViolationCard({ v }: { v: ComplianceViolation }) {
       className="border rounded-xl overflow-hidden"
       style={{ borderColor: s.border }}
     >
-      {/* Header row */}
       <div className="flex items-start gap-3 px-4 py-3" style={{ background: s.bg }}>
         <SevIcon className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: s.color }} />
         <div className="flex-1 min-w-0">
@@ -195,7 +194,6 @@ function ViolationCard({ v }: { v: ComplianceViolation }) {
         </button>
       </div>
 
-      {/* Expanded details */}
       {open && (
         <div className="px-4 py-3 bg-[var(--bg-card)] space-y-2.5">
           <div className="flex items-start gap-2">
@@ -221,7 +219,7 @@ function ViolationCard({ v }: { v: ComplianceViolation }) {
   )
 }
 
-// ── Rule summary bar ──────────────────────────────────────────────────────────
+// ── Rule summary bar ───────────────────────────────────────────────────────────────
 
 function RuleSummary({ byRule }: { byRule: Partial<Record<RuleId, number>> }) {
   const entries = Object.entries(byRule) as [RuleId, number][]
@@ -259,8 +257,8 @@ function RuleSummary({ byRule }: { byRule: Partial<Record<RuleId, number>> }) {
 function EmptyState() {
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl px-6 py-12 flex flex-col items-center gap-3 text-center">
-      <div className="w-14 h-14 rounded-full bg-[#DCFCE7] flex items-center justify-center">
-        <CheckCircle2 className="h-7 w-7 text-[#16A34A]" />
+      <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-success-bg)' }}>
+        <CheckCircle2 className="h-7 w-7" style={{ color: 'var(--color-success-text)' }} />
       </div>
       <p className="text-[15px] font-semibold text-[var(--text-primary)]">Planning conforme</p>
       <p className="text-[13px] text-[var(--text-secondary)] max-w-xs">
@@ -334,7 +332,7 @@ function LegalPanel() {
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────────
 
 type GroupBy = 'none' | 'employee' | 'rule'
 
@@ -367,12 +365,10 @@ export default function ComplianceClient() {
     fetchData(activePeriod.from, activePeriod.to)
   }, [activePeriod.from, activePeriod.to, fetchData])
 
-  // Filter violations
   const filtered = (data?.violations ?? []).filter(v =>
     sevFilter === null || v.severity === sevFilter
   )
 
-  // Group violations
   function groupViolations(list: ComplianceViolation[]) {
     if (groupBy === 'none') return { '': list }
     if (groupBy === 'employee') {
@@ -383,7 +379,6 @@ export default function ComplianceClient() {
       }
       return groups
     }
-    // by rule
     const groups: Record<string, ComplianceViolation[]> = {}
     for (const v of list) {
       if (!groups[v.ruleName]) groups[v.ruleName] = []
@@ -397,7 +392,6 @@ export default function ComplianceClient() {
   return (
     <div className="space-y-5">
 
-      {/* ── Period selector ────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-1 p-1 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl">
           {presets.map(p => (
@@ -426,9 +420,8 @@ export default function ComplianceClient() {
         )}
       </div>
 
-      {/* ── Error ─────────────────────────────────────────────────────────── */}
       {error && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-[13px]">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-[13px]" style={{ backgroundColor: 'var(--color-critical-bg)', border: '1px solid var(--color-critical-border)', color: 'var(--color-critical-text)' }}>
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
           <button
@@ -440,7 +433,6 @@ export default function ComplianceClient() {
         </div>
       )}
 
-      {/* ── Loading skeleton ───────────────────────────────────────────────── */}
       {loading && (
         <div className="space-y-4">
           <div className="flex gap-4">
@@ -453,10 +445,8 @@ export default function ComplianceClient() {
         </div>
       )}
 
-      {/* ── Content ────────────────────────────────────────────────────────── */}
       {!loading && data && (
         <>
-          {/* Top row: score + severity summary */}
           <div className="flex gap-4 items-stretch flex-wrap">
             <ScoreGauge score={data.complianceScore} />
             <div className="flex gap-3 flex-1 flex-wrap">
@@ -472,7 +462,6 @@ export default function ComplianceClient() {
             </div>
           </div>
 
-          {/* Stats strip */}
           {data.violations.length > 0 && (
             <div className="flex items-center gap-4 px-5 py-3 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl text-[13px] text-[var(--text-secondary)] flex-wrap">
               <span>{data.violations.length} anomalie{data.violations.length !== 1 ? 's' : ''} détectée{data.violations.length !== 1 ? 's' : ''}</span>
@@ -509,7 +498,6 @@ export default function ComplianceClient() {
             </div>
           )}
 
-          {/* Violations list / empty state */}
           {filtered.length === 0 ? (
             <EmptyState />
           ) : (
@@ -531,12 +519,10 @@ export default function ComplianceClient() {
             </div>
           )}
 
-          {/* Rule breakdown (only if violations exist) */}
           {data.violations.length > 0 && (
             <RuleSummary byRule={data.byRule} />
           )}
 
-          {/* Legal reference panel */}
           <LegalPanel />
         </>
       )}

@@ -10,8 +10,10 @@ import {
   LogOut, Sun, Moon, ChevronsUpDown, Check, Plus,
 } from 'lucide-react'
 import { NotificationsBell } from './notifications-bell'
+import { LanguageSwitcher } from './language-switcher'
+import { useTranslations } from 'next-intl'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────
 
 interface EstablishmentEntry {
   id: string
@@ -24,36 +26,36 @@ interface NavItem {
   badge?: number
 }
 
-// ── Nav definitions ───────────────────────────────────────────────────────────
+// ── Nav definitions ──────────────────────────────────────────────────────────────
 
-function buildManagerNav(pendingLeavesCount: number, alertsCount: number): NavItem[] {
+function buildManagerNav(pendingLeavesCount: number, alertsCount: number, t: ReturnType<typeof useTranslations<'nav'>>): NavItem[] {
   return [
-    { label: 'Planning',     href: '/manager/planning' },
-    { label: 'Employés',     href: '/manager/employees' },
-    { label: 'Rapport',      href: '/manager/rapport' },
-    { label: 'Analytiques',  href: '/manager/analytics' },
-    { label: 'Conformité',   href: '/manager/compliance' },
-    { label: 'Congés',       href: '/manager/conges',  badge: pendingLeavesCount },
-    { label: 'Échanges',    href: '/manager/echanges' },
-    { label: 'Marketplace', href: '/manager/marketplace' },
-    { label: 'Alertes',    href: '/manager/alertes', badge: alertsCount },
-    { label: 'Présences',  href: '/manager/presences' },
-    { label: 'Paramètres', href: '/manager/settings' },
-    { label: 'Aide',       href: '/manager/help' },
+    { label: t('planning'),    href: '/manager/planning' },
+    { label: t('employees'),   href: '/manager/employees' },
+    { label: t('report'),      href: '/manager/rapport' },
+    { label: t('analytics'),   href: '/manager/analytics' },
+    { label: t('compliance'),  href: '/manager/compliance' },
+    { label: t('leaves'),      href: '/manager/conges',  badge: pendingLeavesCount },
+    { label: t('exchanges'),   href: '/manager/echanges' },
+    { label: t('marketplace'), href: '/manager/marketplace' },
+    { label: t('alerts'),      href: '/manager/alertes', badge: alertsCount },
+    { label: t('attendance'),  href: '/manager/presences' },
+    { label: t('settings'),    href: '/manager/settings' },
+    { label: t('help'),        href: '/manager/help' },
   ]
 }
 
-const employeeNav: NavItem[] = [
-  { label: 'Mon planning', href: '/employee/planning' },
-  { label: 'Mes congés',   href: '/employee/conges' },
-  { label: 'Badgeuse',     href: '/employee/badgeuse' },
-  { label: 'Échanges',     href: '/employee/echanges' },
-  { label: 'Marketplace',  href: '/employee/marketplace' },
-]
+function buildEmployeeNav(t: ReturnType<typeof useTranslations<'nav'>>): NavItem[] {
+  return [
+    { label: t('my_planning'), href: '/employee/planning' },
+    { label: t('my_leaves'),   href: '/employee/conges' },
+    { label: t('attendance'),  href: '/employee/badgeuse' },
+    { label: t('exchanges'),   href: '/employee/echanges' },
+    { label: t('marketplace'), href: '/employee/marketplace' },
+  ]
+}
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-// ── Dark mode toggle ──────────────────────────────────────────────────────────
+// ── Dark mode toggle ──────────────────────────────────────────────────────────────
 
 function ThemeToggle() {
   const [dark, setDark] = useState(false)
@@ -88,7 +90,7 @@ function ThemeToggle() {
   )
 }
 
-// ── Nav link ──────────────────────────────────────────────────────────────────
+// ── Nav link ────────────────────────────────────────────────────────────────
 
 function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
   return (
@@ -117,7 +119,7 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
   )
 }
 
-// ── Establishment Switcher ────────────────────────────────────────────────────
+// ── Establishment Switcher ─────────────────────────────────────────────────────────────
 
 interface SwitcherProps {
   establishments: EstablishmentEntry[]
@@ -221,7 +223,7 @@ function EstablishmentSwitcher({ establishments, activeEstablishmentId, establis
   )
 }
 
-// ── Main Topbar ───────────────────────────────────────────────────────────────
+// ── Main Topbar ────────────────────────────────────────────────────────────────
 
 interface TopbarProps {
   role: 'manager' | 'employee' | 'supervisor'
@@ -245,13 +247,13 @@ export function Topbar({
 }: TopbarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const t = useTranslations('nav')
   const [livePendingLeaves, setLivePendingLeaves] = useState(pendingLeavesCount)
   const [liveComplianceCount, setLiveComplianceCount] = useState(complianceAlertsCount)
 
   useEffect(() => { setLivePendingLeaves(pendingLeavesCount) }, [pendingLeavesCount])
   useEffect(() => { setLiveComplianceCount(complianceAlertsCount) }, [complianceAlertsCount])
 
-  // Realtime — badge congés
   useEffect(() => {
     if (role !== 'manager' && role !== 'supervisor') return
     const supabase = createClient()
@@ -267,7 +269,6 @@ export function Topbar({
     return () => { active = false; supabase.removeChannel(channel) }
   }, [role])
 
-  // Polling toutes les 5 min — badge conformité
   useEffect(() => {
     if (role !== 'manager' && role !== 'supervisor') return
     let active = true
@@ -284,8 +285,8 @@ export function Topbar({
   const liveAlertsCount = alertsCount + liveComplianceCount
 
   const navItems = (role === 'manager' || role === 'supervisor')
-    ? buildManagerNav(livePendingLeaves, liveAlertsCount)
-    : employeeNav
+    ? buildManagerNav(livePendingLeaves, liveAlertsCount, t)
+    : buildEmployeeNav(t)
 
   function isActive(href: string) {
     if (href === '/manager/settings') {
@@ -303,7 +304,6 @@ export function Topbar({
   return (
     <header className="fixed top-0 left-0 right-0 z-30 h-11 bg-[var(--bg-card)] border-b border-[var(--border)] flex items-center px-5 gap-6">
 
-      {/* Logo */}
       <Link
         href={role === 'employee' ? '/employee' : '/manager'}
         className="text-[15px] font-medium tracking-[-0.03em] text-[var(--text-primary)] flex-shrink-0"
@@ -311,20 +311,16 @@ export function Topbar({
         Nexus
       </Link>
 
-      {/* Separator */}
       <div className="h-4 w-px bg-[var(--border)] flex-shrink-0" />
 
-      {/* Navigation links */}
       <nav className="flex items-stretch h-full gap-5 flex-1 min-w-0 overflow-x-auto scrollbar-thin">
         {navItems.map(item => (
           <NavLink key={item.href} item={item} isActive={isActive(item.href)} />
         ))}
       </nav>
 
-      {/* Right side */}
       <div className="flex items-center gap-3 flex-shrink-0">
 
-        {/* Establishment switcher */}
         <EstablishmentSwitcher
           establishments={establishments}
           activeEstablishmentId={activeEstablishmentId}
@@ -332,13 +328,12 @@ export function Topbar({
           role={role}
         />
 
-        {/* Notifications */}
         <NotificationsBell />
 
-        {/* Dark mode toggle */}
+        <LanguageSwitcher />
+
         <ThemeToggle />
 
-        {/* User avatar + name */}
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--accent-light)] flex-shrink-0">
             <span className="text-[10px] font-medium text-[var(--accent)]">
@@ -350,10 +345,9 @@ export function Topbar({
           </span>
         </div>
 
-        {/* Sign out */}
         <button
           onClick={handleSignOut}
-          className="flex items-center justify-center w-7 h-7 rounded-md text-[var(--text-tertiary)] hover:text-[var(--dp-danger,#DC2626)] hover:bg-[#FEE2E2] transition-colors duration-150"
+          className="flex items-center justify-center w-7 h-7 rounded-md text-[var(--text-tertiary)] hover:text-[var(--color-critical-text)] hover:bg-[var(--color-critical-bg)] transition-colors duration-150"
           title="Se déconnecter"
         >
           <LogOut className="h-3.5 w-3.5" />
