@@ -35,24 +35,24 @@ function timeAgo(iso: string): string {
 
 const LEVEL_STYLES: Record<string, { border: string; bg: string; badge: string; badgeText: string; label: string }> = {
   CRITICAL: {
-    border: '#DC2626',
-    bg: '#FEF2F2',
-    badge: '#FEE2E2',
-    badgeText: '#DC2626',
+    border: 'var(--color-critical-text)',
+    bg: 'var(--color-critical-bg)',
+    badge: 'var(--color-critical-bg)',
+    badgeText: 'var(--color-critical-text)',
     label: 'CRITIQUE',
   },
   WARNING: {
-    border: '#D97706',
-    bg: '#FFFBEB',
-    badge: '#FEF3C7',
-    badgeText: '#D97706',
+    border: 'var(--color-warning-text)',
+    bg: 'var(--color-warning-bg)',
+    badge: 'var(--color-warning-bg)',
+    badgeText: 'var(--color-warning-text)',
     label: 'AVERTISSEMENT',
   },
   INFO: {
-    border: '#2D3A8C',
-    bg: '#EEF0FA',
-    badge: '#E0E7FF',
-    badgeText: '#2D3A8C',
+    border: 'var(--color-info-text)',
+    bg: 'var(--color-info-bg)',
+    badge: 'var(--color-info-bg)',
+    badgeText: 'var(--color-info-text)',
     label: 'INFO',
   },
 }
@@ -89,11 +89,11 @@ function SwipeToIgnore({ onIgnore, children }: { onIgnore: () => void; children:
       {/* Fond rouge visible lors du swipe */}
       <div
         className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 rounded-xl"
-        style={{ backgroundColor: '#FEE2E2', width: '120px' }}
+        style={{ backgroundColor: 'var(--color-critical-bg)', width: '120px' }}
       >
         <div className="flex flex-col items-center gap-1">
-          <X className="h-4 w-4 text-[#DC2626]" />
-          <span className="text-[10px] text-[#DC2626] font-medium">Ignorer</span>
+          <X className="h-4 w-4" style={{ color: 'var(--color-critical-text)' }} />
+          <span className="text-[10px] font-medium" style={{ color: 'var(--color-critical-text)' }}>Ignorer</span>
         </div>
       </div>
       <div
@@ -394,7 +394,7 @@ export default function AlertesPage() {
             >
               Opérationnel
               {totalOperationnel > 0 && (
-                <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-medium flex items-center justify-center">
+                <span className="h-5 min-w-[20px] px-1.5 rounded-full text-[11px] font-medium flex items-center justify-center" style={{ backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning-text)' }}>
                   {totalOperationnel}
                 </span>
               )}
@@ -410,7 +410,7 @@ export default function AlertesPage() {
             >
               Conformité
               {totalConformite > 0 && (
-                <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[11px] font-bold flex items-center justify-center">
+                <span className="h-5 min-w-[20px] px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center" style={{ backgroundColor: 'var(--color-critical-bg)', color: 'var(--color-critical-text)' }}>
                   {totalConformite}
                 </span>
               )}
@@ -471,7 +471,9 @@ export default function AlertesPage() {
                                 </td>
                                 <td className="px-4 py-3">
                                   <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                                    style={isCritical ? { backgroundColor: '#FEE2E2', color: '#DC2626' } : { backgroundColor: '#FFEDD5', color: '#D97706' }}>
+                                    style={isCritical
+                                      ? { backgroundColor: 'var(--color-critical-bg)', color: 'var(--color-critical-text)' }
+                                      : { backgroundColor: 'var(--color-warning-bg)',  color: 'var(--color-warning-text)' }}>
                                     {isCritical ? 'Critique' : 'Avertissement'}
                                   </span>
                                 </td>
@@ -515,7 +517,11 @@ export default function AlertesPage() {
                               <td className="px-4 py-3 text-[var(--text-secondary)]">{formatDate(a.endDate)}</td>
                               <td className="px-4 py-3">
                                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                                  style={a.daysLeft <= 7 ? { backgroundColor: '#FEE2E2', color: '#DC2626' } : a.daysLeft <= 15 ? { backgroundColor: '#FFEDD5', color: '#D97706' } : { backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                                  style={a.daysLeft <= 7
+                                    ? { backgroundColor: 'var(--color-critical-bg)', color: 'var(--color-critical-text)' }
+                                    : a.daysLeft <= 15
+                                      ? { backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning-text)' }
+                                      : { backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning-text)' }}>
                                   {a.daysLeft === 0 ? 'Aujourd\'hui' : `J-${a.daysLeft}`}
                                 </span>
                               </td>
@@ -558,7 +564,7 @@ export default function AlertesPage() {
                                 {new Date(a.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
                               </td>
                               <td className="px-4 py-3">
-                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FFEDD5', color: '#D97706' }}>
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning-text)' }}>
                                   +{a.lateMinutes} min
                                 </span>
                               </td>
@@ -625,8 +631,8 @@ export default function AlertesPage() {
             </div>
           ) : complianceAlerts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-[var(--border)] rounded-xl bg-[var(--bg-card)]">
-              <div className="h-12 w-12 rounded-full flex items-center justify-center mb-4 bg-[#DCFCE7]">
-                <AlertTriangle className="h-6 w-6 text-[#16A34A]" />
+              <div className="h-12 w-12 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'var(--color-success-bg)' }}>
+                <AlertTriangle className="h-6 w-6" style={{ color: 'var(--color-success-text)' }} />
               </div>
               <p className="text-sm font-medium text-[var(--text-primary)]">Aucune alerte contractuelle active</p>
               <p className="text-xs text-[var(--text-tertiary)] mt-1">
