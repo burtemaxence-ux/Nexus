@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { PlanningWeekTimeline } from '@/components/planning/planning-week-timeline'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
+import { PlanningClientWrapper } from './planning-client'
 import { PlanningMonth } from '@/components/planning/planning-month'
 import { PlanningDay } from '@/components/planning/planning-day'
 import { getWeekDates, toISODate } from '@/lib/utils/dates'
@@ -172,7 +172,7 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
         Planning
       </h1>
       <ErrorBoundary>
-        <PlanningWeekTimeline
+        <PlanningClientWrapper
           weekDates={weekDates}
           employees={employees}
           shifts={shifts}
