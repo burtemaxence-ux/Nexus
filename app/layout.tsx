@@ -7,7 +7,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
 export const metadata: Metadata = {
   title: 'Nexus - Gestion de planning',
