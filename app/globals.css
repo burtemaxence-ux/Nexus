@@ -24,6 +24,23 @@
     --warning:        #D97706;
     --danger:         #DC2626;
 
+    /* ── Couleurs sémantiques alertes light mode ── */
+    --color-critical-bg:     #FEF2F2;
+    --color-critical-border: #FECACA;
+    --color-critical-text:   #DC2626;
+
+    --color-warning-bg:     #FFFBEB;
+    --color-warning-border: #FDE68A;
+    --color-warning-text:   #D97706;
+
+    --color-info-bg:     #EFF6FF;
+    --color-info-border: #BFDBFE;
+    --color-info-text:   #2563EB;
+
+    --color-success-bg:     #DCFCE7;
+    --color-success-border: #BBF7D0;
+    --color-success-text:   #16A34A;
+
     /* ── shadcn/ui tokens (mapped) ──────────────── */
     --background:     var(--bg-page);
     --foreground:     var(--text-primary);
@@ -75,6 +92,23 @@
     --destructive-foreground: #FFFFFF;
     --input:          var(--border);
     --ring:           var(--accent);
+
+    /* ── Couleurs sémantiques alertes dark mode ──── */
+    --color-critical-bg:     rgba(239, 68, 68, 0.1);
+    --color-critical-border: rgba(239, 68, 68, 0.3);
+    --color-critical-text:   #fca5a5;
+
+    --color-warning-bg:     rgba(245, 158, 11, 0.1);
+    --color-warning-border: rgba(245, 158, 11, 0.3);
+    --color-warning-text:   #fcd34d;
+
+    --color-info-bg:     rgba(59, 130, 246, 0.1);
+    --color-info-border: rgba(59, 130, 246, 0.3);
+    --color-info-text:   #93c5fd;
+
+    --color-success-bg:     rgba(16, 185, 129, 0.1);
+    --color-success-border: rgba(16, 185, 129, 0.3);
+    --color-success-text:   #6ee7b7;
   }
 }
 
@@ -127,7 +161,7 @@
     transition: background-color 150ms ease;
   }
   .btn-secondary:hover {
-    background-color: #F5F5F5;
+    background-color: var(--bg-page);
   }
 
   .btn-danger {
@@ -168,22 +202,22 @@
   }
 
   .dp-badge-warning {
-    background-color: #FEF3C7;
-    color: var(--warning);
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning-text);
     font-size: 11px;
     padding: 3px 8px;
     border-radius: 6px;
   }
   .dp-badge-success {
-    background-color: #DCFCE7;
-    color: var(--success);
+    background-color: var(--color-success-bg);
+    color: var(--color-success-text);
     font-size: 11px;
     padding: 3px 8px;
     border-radius: 6px;
   }
   .dp-badge-danger {
-    background-color: #FEE2E2;
-    color: var(--danger);
+    background-color: var(--color-critical-bg);
+    color: var(--color-critical-text);
     font-size: 11px;
     padding: 3px 8px;
     border-radius: 6px;
@@ -234,18 +268,16 @@
 
 /* ── Safe area & mobile polish ───────────────────────────────────────────────── */
 
-/* Content area padding that accounts for notch safe area on iOS PWA */
 .content-safe-pt {
   padding-top: 56px;
   padding-top: calc(56px + env(safe-area-inset-top, 0px));
 }
 @media (min-width: 768px) {
   .content-safe-pt {
-    padding-top: 44px; /* desktop topbar height */
+    padding-top: 44px;
   }
 }
 
-/* Minimum 44px tap targets on mobile (Apple HIG) */
 @media (max-width: 767px) {
   .btn-primary,
   .btn-secondary,
@@ -254,11 +286,10 @@
   }
   .dp-input {
     min-height: 44px;
-    font-size: 16px; /* prevent iOS zoom on focus */
+    font-size: 16px;
   }
 }
 
-/* Dialog bottom sheet safe area — mobile only */
 @media (max-width: 639px) {
   [role="dialog"] {
     padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
@@ -267,8 +298,8 @@
 
 /* ── Keyframes ──────────────────────────────────────────────────────────────── */
 @keyframes dp-fade-up {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
 }
 
 @keyframes dp-ping {

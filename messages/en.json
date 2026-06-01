@@ -1,0 +1,133 @@
+{
+  "nav": {
+    "planning": "Planning",
+    "employees": "Employees",
+    "report": "Report",
+    "analytics": "Analytics",
+    "attendance": "Attendance",
+    "leaves": "Leaves",
+    "exchanges": "Exchanges",
+    "marketplace": "Marketplace",
+    "alerts": "Alerts",
+    "compliance": "Compliance",
+    "exports": "Exports",
+    "audit_log": "Audit Log",
+    "settings": "Settings",
+    "help": "Help",
+    "my_planning": "My schedule",
+    "my_leaves": "My leaves"
+  },
+  "planning": {
+    "title": "Planning",
+    "publish": "Publish week",
+    "copy_week": "Copy week",
+    "add_shift": "Add shift",
+    "generate_ai": "Generate with AI",
+    "week": "Week",
+    "published": "Published",
+    "draft": "Draft",
+    "no_shifts": "No shifts this week"
+  },
+  "employees": {
+    "title": "Team",
+    "add": "Add employee",
+    "invite": "Invite",
+    "archive": "Archive",
+    "archived": "Archived",
+    "contract": "Contract",
+    "hours_per_week": "h/week",
+    "no_employees": "No employees"
+  },
+  "leaves": {
+    "title": "Leaves",
+    "request": "Request leave",
+    "approve": "Approve",
+    "reject": "Reject",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "types": {
+      "paid": "Paid leave",
+      "rtt": "RTT",
+      "sick": "Sick leave",
+      "unpaid": "Unpaid leave",
+      "other": "Other"
+    }
+  },
+  "attendance": {
+    "title": "Attendance",
+    "clock_in": "Clock in",
+    "clock_out": "Clock out",
+    "break_start": "Start break",
+    "break_end": "End break",
+    "late": "Late",
+    "on_time": "On time",
+    "minutes_late": "{minutes} min late"
+  },
+  "compliance": {
+    "title": "Legal compliance",
+    "subtitle": "Automatic detection of anomalies against the French Labour Code.",
+    "score": "Compliance score",
+    "compliant": "Compliant",
+    "non_compliant": "Non-compliant",
+    "critical": "Critical",
+    "warning": "Warning",
+    "info": "Info",
+    "anomalies_detected": "{count} anomalies detected",
+    "employees_concerned": "{count} employees affected",
+    "rules": {
+      "rest_daily": "Insufficient daily rest",
+      "hours_daily_max": "Excessive daily hours",
+      "hours_weekly_max": "Excessive weekly hours",
+      "break_missing": "Missing mandatory break",
+      "days_consecutive": "Too many consecutive days",
+      "sunday_work": "Sunday work",
+      "night_work": "Night work"
+    }
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "yes": "Yes",
+    "no": "No",
+    "today": "Today",
+    "this_week": "This week",
+    "monday_short": "Mon",
+    "tuesday_short": "Tue",
+    "wednesday_short": "Wed",
+    "thursday_short": "Thu",
+    "friday_short": "Fri",
+    "saturday_short": "Sat",
+    "sunday_short": "Sun"
+  },
+  "auth": {
+    "login": "Sign in",
+    "logout": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "forgot_password": "Forgot password?",
+    "no_account": "No account yet?"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "french": "Français",
+    "english": "English",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light"
+  }
+}

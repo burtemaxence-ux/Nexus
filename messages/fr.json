@@ -1,0 +1,133 @@
+{
+  "nav": {
+    "planning": "Planning",
+    "employees": "Employés",
+    "report": "Rapport",
+    "analytics": "Analytiques",
+    "attendance": "Badgeuse",
+    "leaves": "Congés",
+    "exchanges": "Échanges",
+    "marketplace": "Marketplace",
+    "alerts": "Alertes",
+    "compliance": "Conformité",
+    "exports": "Exports",
+    "audit_log": "Journal",
+    "settings": "Paramètres",
+    "help": "Aide",
+    "my_planning": "Mon planning",
+    "my_leaves": "Mes congés"
+  },
+  "planning": {
+    "title": "Planning",
+    "publish": "Publier la semaine",
+    "copy_week": "Copier la semaine",
+    "add_shift": "Ajouter un shift",
+    "generate_ai": "Générer avec l'IA",
+    "week": "Semaine",
+    "published": "Publié",
+    "draft": "Brouillon",
+    "no_shifts": "Aucun shift cette semaine"
+  },
+  "employees": {
+    "title": "Équipe",
+    "add": "Ajouter un employé",
+    "invite": "Inviter",
+    "archive": "Archiver",
+    "archived": "Archivé",
+    "contract": "Contrat",
+    "hours_per_week": "h/sem",
+    "no_employees": "Aucun employé"
+  },
+  "leaves": {
+    "title": "Congés",
+    "request": "Demander un congé",
+    "approve": "Approuver",
+    "reject": "Refuser",
+    "pending": "En attente",
+    "approved": "Approuvé",
+    "rejected": "Refusé",
+    "types": {
+      "paid": "Congés payés",
+      "rtt": "RTT",
+      "sick": "Maladie",
+      "unpaid": "Sans solde",
+      "other": "Autre"
+    }
+  },
+  "attendance": {
+    "title": "Présences",
+    "clock_in": "Pointer l'arrivée",
+    "clock_out": "Pointer le départ",
+    "break_start": "Début de pause",
+    "break_end": "Fin de pause",
+    "late": "En retard",
+    "on_time": "À l'heure",
+    "minutes_late": "{minutes} min de retard"
+  },
+  "compliance": {
+    "title": "Conformité légale",
+    "subtitle": "Détection automatique des anomalies par rapport au Code du travail français.",
+    "score": "Score conformité",
+    "compliant": "Conforme",
+    "non_compliant": "Non conforme",
+    "critical": "Critique",
+    "warning": "Avertissement",
+    "info": "Information",
+    "anomalies_detected": "{count} anomalies détectées",
+    "employees_concerned": "{count} employés concernés",
+    "rules": {
+      "rest_daily": "Repos quotidien insuffisant",
+      "hours_daily_max": "Durée quotidienne excessive",
+      "hours_weekly_max": "Durée hebdomadaire excessive",
+      "break_missing": "Pause réglementaire manquante",
+      "days_consecutive": "Jours consécutifs excessifs",
+      "sunday_work": "Travail du dimanche",
+      "night_work": "Travail de nuit"
+    }
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "loading": "Chargement...",
+    "error": "Une erreur est survenue",
+    "success": "Succès",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "export": "Exporter",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "yes": "Oui",
+    "no": "Non",
+    "today": "Aujourd'hui",
+    "this_week": "Cette semaine",
+    "monday_short": "Lun",
+    "tuesday_short": "Mar",
+    "wednesday_short": "Mer",
+    "thursday_short": "Jeu",
+    "friday_short": "Ven",
+    "saturday_short": "Sam",
+    "sunday_short": "Dim"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "email": "Email",
+    "password": "Mot de passe",
+    "forgot_password": "Mot de passe oublié ?",
+    "no_account": "Pas encore de compte ?"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "language": "Langue",
+    "french": "Français",
+    "english": "English",
+    "theme": "Thème",
+    "dark": "Sombre",
+    "light": "Clair"
+  }
+}
