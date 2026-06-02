@@ -134,13 +134,13 @@ function ChartTooltip({ active, payload, label, formatter }: {
 }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white border border-[#EBEBEB] rounded-xl px-3 py-2.5 shadow-sm text-[12px]">
-      {label && <p className="text-[#6B7280] font-medium mb-1.5">{label}</p>}
+    <div className="bg-white dark:bg-[#1A1D27] border border-[#EBEBEB] dark:border-[#2A2D3A] rounded-xl px-3 py-2.5 shadow-sm text-[12px]">
+      {label && <p className="text-[#6B7280] dark:text-[#8B90A7] font-medium mb-1.5">{label}</p>}
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-2 leading-snug">
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
-          <span className="text-[#6B7280]">{p.name}:</span>
-          <span className="font-semibold text-[#111111] ml-auto pl-3">
+          <span className="text-[#6B7280] dark:text-[#8B90A7]">{p.name}:</span>
+          <span className="font-semibold text-[#111111] dark:text-[#F0F2F8] ml-auto pl-3">
             {formatter ? formatter(p.value, p.name) : p.value}
           </span>
         </div>

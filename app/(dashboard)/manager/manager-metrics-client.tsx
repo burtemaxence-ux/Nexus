@@ -239,7 +239,7 @@ export function ManagerMetricsClient() {
           <p className="text-[10px] uppercase tracking-[0.06em] mb-4" style={{ color: 'var(--text-tertiary)' }}>
             Présence · Semaine S{getCurrentWeek()}
           </p>
-          <div className="rounded-[10px] p-3 mb-4 inline-block" style={{ backgroundColor: '#F5F6FA' }}>
+          <div className="rounded-[10px] p-3 mb-4 inline-block" style={{ backgroundColor: 'var(--muted)' }}>
             <span className="text-[20px] font-[400] leading-none" style={{ color: presence.color }}>
               {presenceRate === null ? '—' : `${presenceRate}%`}
             </span>
@@ -265,12 +265,12 @@ export function ManagerMetricsClient() {
             Votre équipe
           </p>
           <div className="space-y-3">
-            <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: '#F5F6FA' }}>
+            <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: 'var(--muted)' }}>
               <Users className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
               <span className="text-[20px] font-[400] leading-none" style={{ color: 'var(--text-primary)' }}>{employeeCount}</span>
               <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>employés actifs</span>
             </div>
-            <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: '#F5F6FA' }}>
+            <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: 'var(--muted)' }}>
               <Palmtree className="h-3.5 w-3.5 flex-shrink-0" style={{ color: pendingCount > 0 ? 'var(--warning)' : 'var(--text-tertiary)' }} />
               <span className="text-[20px] font-[400] leading-none" style={{ color: pendingCount > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>
                 {pendingCount}
@@ -279,7 +279,7 @@ export function ManagerMetricsClient() {
                 congé{pendingCount !== 1 ? 's' : ''} en attente
               </span>
             </div>
-            <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: '#F5F6FA' }}>
+            <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: 'var(--muted)' }}>
               <Clock className="h-3.5 w-3.5 flex-shrink-0" style={{ color: latenessCount > 0 ? 'var(--danger)' : 'var(--text-tertiary)' }} />
               <span className="text-[20px] font-[400] leading-none" style={{ color: latenessCount > 0 ? 'var(--danger)' : 'var(--text-primary)' }}>
                 {latenessCount}

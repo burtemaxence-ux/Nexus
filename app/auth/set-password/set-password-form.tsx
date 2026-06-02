@@ -103,20 +103,20 @@ export default function SetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0F1117] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 mb-4">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 dark:bg-[#1A1D27] mb-4">
             {pageState === 'loading' ? (
               <Loader2 className="h-7 w-7 text-white animate-spin" />
             ) : (
               <KeyRound className="h-7 w-7 text-white" />
             )}
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#F0F2F8]">
             {pageState === 'error' ? 'Lien invalide' : 'Créez votre mot de passe'}
           </h1>
-          <p className="text-gray-500 mt-2 text-sm">
+          <p className="text-gray-500 dark:text-[#8B90A7] mt-2 text-sm">
             {pageState === 'loading' && "Vérification de votre invitation…"}
             {pageState === 'ready' && 'Bienvenue ! Choisissez un mot de passe pour accéder à votre espace.'}
             {pageState === 'error' && sessionError}
@@ -147,7 +147,7 @@ export default function SetPasswordForm() {
                     <button
                       type="button"
                       onClick={() => setShowPwd(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-[#4A4F66] dark:hover:text-[#8B90A7]"
                       tabIndex={-1}
                     >
                       {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

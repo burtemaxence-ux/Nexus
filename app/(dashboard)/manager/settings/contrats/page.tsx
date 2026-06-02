@@ -176,7 +176,7 @@ export default function ContratsPage() {
             {CONTRACT_KEYS.map(key => (
               <div key={key} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                 <div className="flex items-center gap-3">
-                  <div className={`h-2 w-2 rounded-full ${config[key].enabled ? 'bg-emerald-400' : 'bg-gray-200'}`} />
+                  <div className={`h-2 w-2 rounded-full ${config[key].enabled ? 'bg-emerald-400' : 'bg-gray-200 dark:bg-[#2A2D3A]'}`} />
                   <span className={`text-sm font-medium ${config[key].enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {key}
                   </span>

@@ -55,7 +55,7 @@ function NexusLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
       )}>
         D
       </div>
-      <span className={cn('font-semibold tracking-tight text-[#18181B]', s ? 'text-[17px]' : 'text-[15px]')}>
+      <span className={cn('font-semibold tracking-tight text-[#18181B] dark:text-[#F0F2F8]', s ? 'text-[17px]' : 'text-[15px]')}>
         Nexus
       </span>
     </div>
@@ -107,14 +107,14 @@ function AppMockup() {
       </div>
 
       {/* Floating stat chip */}
-      <div className="absolute -right-4 top-6 bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 shadow-sm flex items-center gap-2">
+      <div className="absolute -right-4 top-6 bg-white dark:bg-[#1A1D27] border border-[#E5E7EB] dark:border-[#2A2D3A] rounded-xl px-3 py-2 shadow-sm flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-green-400" />
-        <span className="text-[11px] font-medium text-[#374151]">12 présents</span>
+        <span className="text-[11px] font-medium text-[#374151] dark:text-[#F0F2F8]">12 présents</span>
       </div>
 
       {/* Floating badge */}
-      <div className="absolute -left-2 -bottom-3 bg-white border border-[#E5E7EB] rounded-xl px-3 py-2 shadow-sm">
-        <span className="text-[11px] font-medium text-[#374151]">3 congés en attente</span>
+      <div className="absolute -left-2 -bottom-3 bg-white dark:bg-[#1A1D27] border border-[#E5E7EB] dark:border-[#2A2D3A] rounded-xl px-3 py-2 shadow-sm">
+        <span className="text-[11px] font-medium text-[#374151] dark:text-[#F0F2F8]">3 congés en attente</span>
       </div>
     </div>
   )
@@ -196,7 +196,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
-    <div className="min-h-screen bg-[#EDEEFF] lg:grid lg:grid-cols-2 relative">
+    <div className="min-h-screen bg-[#EDEEFF] dark:bg-[#0F1117] lg:grid lg:grid-cols-2 relative">
       <MeshBackground />
 
       {/* ── COLONNE GAUCHE — Branding ───────────────────────────────────────── */}
@@ -216,12 +216,12 @@ export default function LoginPage() {
 
           {/* Headline */}
           <div className="space-y-4">
-            <h1 className="text-[2.6rem] leading-[1.15] font-bold text-[#18181B] tracking-tight">
+            <h1 className="text-[2.6rem] leading-[1.15] font-bold text-[#18181B] dark:text-[#F0F2F8] tracking-tight">
               Le planning d&apos;équipe,<br />
               simplement{' '}
               <span className="text-[#4F46E5]">maîtrisé.</span>
             </h1>
-            <p className="text-[15px] leading-relaxed text-[#6B7280] max-w-[360px]">
+            <p className="text-[15px] leading-relaxed text-[#6B7280] dark:text-[#8B90A7] max-w-[360px]">
               Gérez les horaires, absences et présences de votre établissement depuis une interface claire, rapide et fiable.
             </p>
           </div>
@@ -234,8 +234,8 @@ export default function LoginPage() {
                   <Icon className="h-[18px] w-[18px] text-[#4F46E5]" />
                 </div>
                 <div>
-                  <p className="text-[14px] font-semibold text-[#18181B] leading-tight">{label}</p>
-                  <p className="text-[13px] text-[#6B7280] leading-tight mt-0.5">{desc}</p>
+                  <p className="text-[14px] font-semibold text-[#18181B] dark:text-[#F0F2F8] leading-tight">{label}</p>
+                  <p className="text-[13px] text-[#6B7280] dark:text-[#8B90A7] leading-tight mt-0.5">{desc}</p>
                 </div>
               </div>
             ))}
@@ -383,9 +383,9 @@ export default function LoginPage() {
 
           {/* Séparateur */}
           <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-[#F3F4F6]" />
-            <span className="text-[12px] text-[#9CA3AF]">ou</span>
-            <div className="flex-1 h-px bg-[#F3F4F6]" />
+            <div className="flex-1 h-px bg-[#F3F4F6] dark:bg-[#2A2D3A]" />
+            <span className="text-[12px] text-[#9CA3AF] dark:text-[#4A4F66]">ou</span>
+            <div className="flex-1 h-px bg-[#F3F4F6] dark:bg-[#2A2D3A]" />
           </div>
 
           {/* Bouton Google — UI uniquement, OAuth à configurer dans Supabase */}
@@ -394,9 +394,9 @@ export default function LoginPage() {
             disabled
             className={cn(
               'w-full flex items-center justify-center gap-2.5',
-              'px-4 py-3 rounded-xl text-[14px] font-medium text-[#374151]',
-              'bg-white border border-[#E5E7EB]',
-              'hover:bg-[#F9FAFB] transition-all duration-150',
+              'px-4 py-3 rounded-xl text-[14px] font-medium text-[#374151] dark:text-[#F0F2F8]',
+              'bg-white dark:bg-[#1A1D27] border border-[#E5E7EB] dark:border-[#2A2D3A]',
+              'hover:bg-[#F9FAFB] dark:hover:bg-[#0F1117] transition-all duration-150',
               'opacity-60 cursor-not-allowed'
             )}
           >

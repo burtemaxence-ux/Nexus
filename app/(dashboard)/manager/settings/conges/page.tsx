@@ -156,7 +156,7 @@ export default function CongesPage() {
             {LEAVE_KEYS.map(key => (
               <div key={key} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
                 <div className="flex items-center gap-3">
-                  <div className={`h-2 w-2 rounded-full shrink-0 ${config[key].enabled ? 'bg-emerald-400' : 'bg-gray-200'}`} />
+                  <div className={`h-2 w-2 rounded-full shrink-0 ${config[key].enabled ? 'bg-emerald-400' : 'bg-gray-200 dark:bg-[#2A2D3A]'}`} />
                   <div>
                     <p className={`text-sm font-medium ${config[key].enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {key}
