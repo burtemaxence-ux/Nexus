@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { getInitials, getEstablishmentInitials } from '@/lib/planning-utils'
 import {
-  LogOut, Sun, Moon, ChevronsUpDown, Check, Plus,
+  LogOut, Sun, Moon, ChevronsUpDown, Check, Plus, Settings, CreditCard,
 } from 'lucide-react'
 import { NotificationsBell } from './notifications-bell'
 
@@ -53,16 +53,31 @@ const employeeNav: NavItem[] = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// ── Dark mode toggle ──────────────────────────────────────────────────────────
+// ── Account dropdown ──────────────────────────────────────────────────────────
 
-function ThemeToggle() {
+function AccountDropdown({ userName, userEmail, role, onSignOut }: {
+  userName: string
+  userEmail: string
+  role: 'manager' | 'employee' | 'supervisor'
+  onSignOut: () => void
+}) {
+  const [open, setOpen] = useState(false)
   const [dark, setDark] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains('dark'))
   }, [])
 
-  function toggle() {
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [])
+
+  function toggleTheme() {
     const next = !dark
     setDark(next)
     if (next) {
@@ -75,16 +90,86 @@ function ThemeToggle() {
   }
 
   return (
-    <button
-      onClick={toggle}
-      className="flex items-center justify-center w-7 h-7 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-light)] transition-colors duration-150"
-      title={dark ? 'Mode clair' : 'Mode sombre'}
-    >
-      {dark
-        ? <Sun className="h-3.5 w-3.5" />
-        : <Moon className="h-3.5 w-3.5" />
-      }
-    </button>
+    <div className="relative" ref={ref}>
+      {/* Trigger */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[var(--accent-light)] transition-colors duration-150"
+      >
+        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--accent-light)] flex-shrink-0">
+          <span className="text-[10px] font-medium text-[var(--accent)]">
+            {getInitials(userName || userEmail)}
+          </span>
+        </div>
+        <span className="text-[13px] text-[var(--text-secondary)] truncate max-w-[100px]">
+          {userName || userEmail}
+        </span>
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1.5 w-52 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-lg overflow-hidden z-50"
+          style={{ animation: 'dropdownIn 0.15s ease' }}
+        >
+          {/* Header */}
+          <div className="px-3 py-2.5 border-b border-[var(--border)]">
+            <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{userName}</p>
+            <p className="text-[11px] text-[var(--text-tertiary)] truncate">{userEmail}</p>
+          </div>
+
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] hover:text-[var(--text-primary)] transition-colors duration-150"
+          >
+            {dark
+              ? <Sun className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+              : <Moon className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+            }
+            {dark ? 'Mode clair' : 'Mode sombre'}
+          </button>
+
+          {/* Settings */}
+          {(role === 'manager' || role === 'supervisor') && (
+            <Link
+              href="/manager/settings"
+              onClick={() => setOpen(false)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] hover:text-[var(--text-primary)] transition-colors duration-150"
+            >
+              <Settings className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+              Paramètres
+            </Link>
+          )}
+
+          {/* Plan */}
+          {(role === 'manager' || role === 'supervisor') && (
+            <button
+              onClick={() => setOpen(false)}
+              disabled
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-tertiary)] cursor-not-allowed opacity-60"
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              Changer de plan
+              <span className="ml-auto text-[10px] bg-[var(--accent-light)] text-[var(--accent)] px-1.5 py-0.5 rounded-full font-medium">
+                Bientôt
+              </span>
+            </button>
+          )}
+
+          <div className="mx-3 my-1 border-t border-[var(--border)]" />
+
+          {/* Sign out */}
+          <button
+            onClick={() => { setOpen(false); onSignOut() }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[#FEE2E2] hover:text-[#DC2626] transition-colors duration-150"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Se déconnecter
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -335,29 +420,13 @@ export function Topbar({
         {/* Notifications */}
         <NotificationsBell />
 
-        {/* Dark mode toggle */}
-        <ThemeToggle />
-
-        {/* User avatar + name */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--accent-light)] flex-shrink-0">
-            <span className="text-[10px] font-medium text-[var(--accent)]">
-              {getInitials(userName || userEmail)}
-            </span>
-          </div>
-          <span className="text-[13px] text-[var(--text-secondary)] truncate max-w-[100px]">
-            {userName || userEmail}
-          </span>
-        </div>
-
-        {/* Sign out */}
-        <button
-          onClick={handleSignOut}
-          className="flex items-center justify-center w-7 h-7 rounded-md text-[var(--text-tertiary)] hover:text-[var(--dp-danger,#DC2626)] hover:bg-[#FEE2E2] transition-colors duration-150"
-          title="Se déconnecter"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-        </button>
+        {/* Account dropdown */}
+        <AccountDropdown
+          userName={userName}
+          userEmail={userEmail}
+          role={role}
+          onSignOut={handleSignOut}
+        />
       </div>
     </header>
   )
