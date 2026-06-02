@@ -257,14 +257,14 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="w-full max-w-[420px] bg-white rounded-[20px] border border-[#E5E7EB] shadow-[0_4px_32px_0_rgba(79,70,229,0.08)] px-9 py-10">
+        <div className="w-full max-w-[420px] bg-white dark:bg-[#1A1D27] rounded-[20px] border border-[#E5E7EB] dark:border-[#2A2D3A] shadow-[0_4px_32px_0_rgba(79,70,229,0.08)] px-9 py-10">
 
           {/* En-tête */}
           <div className="mb-8 text-center">
-            <h2 className="text-[26px] font-bold text-[#18181B] tracking-tight">
+            <h2 className="text-[26px] font-bold text-[#18181B] dark:text-[#F0F2F8] tracking-tight">
               Connexion
             </h2>
-            <p className="text-[14px] text-[#6B7280] mt-1.5">
+            <p className="text-[14px] text-[#6B7280] dark:text-[#8B90A7] mt-1.5">
               Accédez à votre espace de gestion
             </p>
           </div>
@@ -274,7 +274,7 @@ export default function LoginPage() {
 
             {/* Email */}
             <div className="space-y-1.5">
-              <label htmlFor="email" className="block text-[13px] font-medium text-[#374151]">
+              <label htmlFor="email" className="block text-[13px] font-medium text-[#374151] dark:text-[#F0F2F8]">
                 Adresse email
               </label>
               <div className="relative">
@@ -289,10 +289,10 @@ export default function LoginPage() {
                   required
                   disabled={loading}
                   className={cn(
-                    'w-full pl-10 pr-4 py-3 text-[14px] text-[#18181B] placeholder:text-[#C4C9D4]',
-                    'bg-white border border-[#E5E7EB] rounded-xl outline-none',
+                    'w-full pl-10 pr-4 py-3 text-[14px] text-[#18181B] dark:text-[#F0F2F8] placeholder:text-[#C4C9D4]',
+                    'bg-white dark:bg-[#0F1117] border border-[#E5E7EB] dark:border-[#2A2D3A] rounded-xl outline-none',
                     'transition-all duration-150',
-                    'hover:border-[#C7C8F0]',
+                    'hover:border-[#C7C8F0] dark:hover:border-[#4A5FD4]',
                     'focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10',
                     'disabled:opacity-50 disabled:cursor-not-allowed'
                   )}
@@ -302,7 +302,7 @@ export default function LoginPage() {
 
             {/* Mot de passe */}
             <div className="space-y-1.5">
-              <label htmlFor="password" className="block text-[13px] font-medium text-[#374151]">
+              <label htmlFor="password" className="block text-[13px] font-medium text-[#374151] dark:text-[#F0F2F8]">
                 Mot de passe
               </label>
               <div className="relative">
@@ -317,8 +317,8 @@ export default function LoginPage() {
                   required
                   disabled={loading}
                   className={cn(
-                    'w-full pl-10 pr-11 py-3 text-[14px] text-[#18181B] placeholder:text-[#C4C9D4]',
-                    'bg-white border border-[#E5E7EB] rounded-xl outline-none',
+                    'w-full pl-10 pr-11 py-3 text-[14px] text-[#18181B] dark:text-[#F0F2F8] placeholder:text-[#C4C9D4]',
+                    'bg-white dark:bg-[#0F1117] border border-[#E5E7EB] dark:border-[#2A2D3A] rounded-xl outline-none',
                     'transition-all duration-150',
                     'hover:border-[#C7C8F0]',
                     'focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10',

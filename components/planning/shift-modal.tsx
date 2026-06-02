@@ -818,19 +818,19 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
           </DialogHeader>
 
           <div className="w-full grid gap-3 py-2 text-sm">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2 gap-4">
-              <span className="text-gray-500 shrink-0">Heure de début</span>
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#2A2D3A] pb-2 gap-4">
+              <span className="text-gray-500 dark:text-[#8B90A7] shrink-0">Heure de début</span>
               <span className="font-medium">{shift.start_time.slice(0, 5)}</span>
             </div>
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2 gap-4">
-              <span className="text-gray-500 shrink-0">Heure de fin</span>
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#2A2D3A] pb-2 gap-4">
+              <span className="text-gray-500 dark:text-[#8B90A7] shrink-0">Heure de fin</span>
               <span className="font-medium">{shift.end_time.slice(0, 5)}</span>
             </div>
             {shift.poste_id && (() => {
               const poste = postes.find(p => p.id === shift.poste_id)
               return poste ? (
-                <div className="flex items-center justify-between border-b border-gray-100 pb-2 gap-4">
-                  <span className="text-gray-500 shrink-0">Poste</span>
+                <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#2A2D3A] pb-2 gap-4">
+                  <span className="text-gray-500 dark:text-[#8B90A7] shrink-0">Poste</span>
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: poste.color }} />
                     <span className="font-medium truncate">{poste.name}</span>
@@ -839,14 +839,14 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
               ) : null
             })()}
             {(shift.position || employee.position) && (
-              <div className="flex items-center justify-between border-b border-gray-100 pb-2 gap-4">
-                <span className="text-gray-500 shrink-0">Intitulé</span>
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#2A2D3A] pb-2 gap-4">
+                <span className="text-gray-500 dark:text-[#8B90A7] shrink-0">Intitulé</span>
                 <span className="font-medium truncate">{shift.position ?? employee.position}</span>
               </div>
             )}
             {shift.break_minutes > 0 && (
-              <div className="flex items-center justify-between border-b border-gray-100 pb-2 gap-4">
-                <span className="text-gray-500 shrink-0">Pause</span>
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-[#2A2D3A] pb-2 gap-4">
+                <span className="text-gray-500 dark:text-[#8B90A7] shrink-0">Pause</span>
                 <span className="font-medium">
                   {shift.break_minutes === 60 ? '1h' : `${shift.break_minutes} min`}
                 </span>
@@ -854,8 +854,8 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
             )}
             {shift.notes && (
               <div className="flex flex-col gap-1">
-                <span className="text-gray-500">Notes</span>
-                <p className="text-gray-800 bg-gray-50 rounded p-2 break-words">{shift.notes}</p>
+                <span className="text-gray-500 dark:text-[#8B90A7]">Notes</span>
+                <p className="text-gray-800 dark:text-[#F0F2F8] bg-gray-50 dark:bg-[#1A1D27] rounded p-2 break-words">{shift.notes}</p>
               </div>
             )}
 

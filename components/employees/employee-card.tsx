@@ -35,8 +35,8 @@ export function EmployeeCard({ full_name, email, position, created_at }: Employe
           </span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">{full_name}</p>
-          <p className="text-xs text-gray-500 truncate">{email}</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-[#F0F2F8] truncate">{full_name}</p>
+          <p className="text-xs text-gray-500 dark:text-[#8B90A7] truncate">{email}</p>
         </div>
         <div className="flex flex-col items-end gap-1">
           {position && (
@@ -44,7 +44,7 @@ export function EmployeeCard({ full_name, email, position, created_at }: Employe
               {position}
             </Badge>
           )}
-          <span className="text-xs text-gray-400 whitespace-nowrap">
+          <span className="text-xs text-gray-400 dark:text-[#4A4F66] whitespace-nowrap">
             Depuis le {formatDate(created_at)}
           </span>
         </div>
