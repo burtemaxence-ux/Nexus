@@ -2,9 +2,17 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-  const { supabaseResponse, user } = await updateSession(request)
+  const { pathname, searchParams } = request.nextUrl
 
-  const { pathname } = request.nextUrl
+  // Si un code OAuth arrive sur n'importe quelle page (hors /auth/callback),
+  // le router vers /auth/callback pour que le code exchange se fasse correctement
+  if (searchParams.get('code') && pathname !== '/auth/callback') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
+  }
+
+  const { supabaseResponse, user } = await updateSession(request)
 
   // Si l'utilisateur n'est pas connecté et tente d'accéder à une route protégée
   if (!user && pathname !== '/login' && !pathname.startsWith('/auth/') && pathname !== '/demo' && !pathname.startsWith('/api/demo/')) {
