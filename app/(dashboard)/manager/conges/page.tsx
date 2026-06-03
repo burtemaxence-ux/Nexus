@@ -32,11 +32,18 @@ export default function ManagerCongesPage() {
   const [managerComment, setManagerComment] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [fetchError, setFetchError] = useState(false)
 
   const fetchRequests = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/conges')
-    if (res.ok) setRequests(await res.json())
+    setFetchError(false)
+    try {
+      const res = await fetch('/api/conges')
+      if (res.ok) setRequests(await res.json())
+      else setFetchError(true)
+    } catch {
+      setFetchError(true)
+    }
     setLoading(false)
   }, [])
 
@@ -113,6 +120,15 @@ export default function ManagerCongesPage() {
         <div className="flex justify-center py-12">
           <div className="h-5 w-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
         </div>
+      ) : fetchError ? (
+        <div className="text-center py-16 rounded-xl" style={{ border: '0.5px dashed var(--border)' }}>
+          <p className="text-[14px] font-medium" style={{ color: 'var(--danger)' }}>
+            Impossible de charger les demandes
+          </p>
+          <button onClick={fetchRequests} className="mt-3 text-[13px]" style={{ color: 'var(--accent)' }}>
+            Réessayer
+          </button>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 rounded-xl" style={{ border: '0.5px dashed var(--border)' }}>
           <p className="text-[14px] font-medium" style={{ color: 'var(--text-secondary)' }}>
@@ -122,7 +138,8 @@ export default function ManagerCongesPage() {
       ) : (
         <div ref={listRef} className="space-y-2">
           {filtered.map(req => {
-            const emp = req.profiles
+            const emp = req.profiles as { id: string; full_name: string | null; email: string | null; position: string | null } | null
+            if (!emp) return null
             const isOpen = actionId === req.id
             return (
               <div key={req.id} className="overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '0.5px solid var(--border)', borderRadius: '12px' }}>
