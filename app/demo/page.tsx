@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import { Calendar, Clock, Users, BarChart3, ArrowRight } from 'lucide-react'
+import { Calendar, Clock, Users, BarChart3, ArrowRight, AlertCircle, CreditCard, RefreshCw } from 'lucide-react'
 
 export const metadata = {
-  title: 'Démo — Nexus',
-  description: 'Essayez Nexus gratuitement. Aucune inscription requise.',
+  title: 'Démo — Quartzbase',
+  description: 'Essayez Quartzbase gratuitement. Aucune inscription requise.',
 }
 
 const FEATURES = [
@@ -13,44 +13,58 @@ const FEATURES = [
   { icon: BarChart3, label: 'Analytiques',             desc: 'Suivez les heures, coûts et performances.' },
 ]
 
-export default function DemoPage() {
+const ERROR_MESSAGES: Record<string, string> = {
+  not_configured: 'La démo n\'est pas encore configurée sur ce serveur. Revenez bientôt.',
+  '1': 'Une erreur est survenue lors de la connexion à la démo. Réessayez dans quelques instants.',
+}
+
+interface DemoPageProps {
+  searchParams: Promise<{ error?: string }>
+}
+
+export default async function DemoPage({ searchParams }: DemoPageProps) {
+  const { error } = await searchParams
+  const errorMessage = error ? (ERROR_MESSAGES[error] ?? ERROR_MESSAGES['1']) : null
+
   return (
     <div className="min-h-screen bg-[#EDEEFF] dark:bg-[#0F1117] flex flex-col items-center justify-center px-4 py-16 relative overflow-hidden">
 
-      {/* Background blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden>
         <div className="absolute rounded-full" style={{ width: 600, height: 600, top: '-160px', left: '-140px', background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)', filter: 'blur(40px)' }} />
         <div className="absolute rounded-full" style={{ width: 500, height: 500, bottom: '-100px', right: '-100px', background: 'radial-gradient(circle, rgba(139,92,246,0.14) 0%, transparent 70%)', filter: 'blur(50px)' }} />
       </div>
 
-      <div className="relative z-10 w-full max-w-2xl mx-auto text-center space-y-10">
+      <div className="relative z-10 w-full max-w-2xl mx-auto text-center space-y-8">
 
-        {/* Logo */}
         <div className="flex items-center justify-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-[#4F46E5] flex items-center justify-center font-bold text-white text-[17px] select-none">
-            D
+            Q
           </div>
-          <span className="text-[17px] font-semibold tracking-tight text-[#18181B] dark:text-[#F0F2F8]">Nexus</span>
+          <span className="text-[17px] font-semibold tracking-tight text-[#18181B] dark:text-[#F0F2F8]">Quartzbase</span>
         </div>
 
-        {/* Badge */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#4F46E5]/20 bg-white/60 dark:bg-white/10 text-[#4F46E5] text-[12px] font-medium tracking-wide">
           <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5]" />
           Démo interactive — aucune inscription requise
         </div>
 
-        {/* Headline */}
         <div className="space-y-4">
           <h1 className="text-[2.4rem] leading-[1.15] font-bold text-[#18181B] dark:text-[#F0F2F8] tracking-tight">
-            Découvrez Nexus<br />
+            Découvrez Quartzbase<br />
             en <span className="text-[#4F46E5]">conditions réelles</span>
           </h1>
           <p className="text-[16px] leading-relaxed text-[#6B7280] dark:text-[#8B90A7] max-w-[480px] mx-auto">
-            Accédez instantanément à un compte démo pré-rempli avec un restaurant fictif complet.
+            Accédez instantanément à un compte démo pré-rempli avec une boulangerie fictive complète.
           </p>
         </div>
 
-        {/* CTA */}
+        {errorMessage && (
+          <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-left">
+            <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+            <p className="text-[13px] text-red-700">{errorMessage}</p>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/api/demo/login"
@@ -67,8 +81,19 @@ export default function DemoPage() {
           </Link>
         </div>
 
-        {/* Features grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left pt-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-[12px] text-[#9CA3AF]">
+          <span className="flex items-center gap-1.5">
+            <CreditCard className="h-3.5 w-3.5" />
+            Aucune carte bleue requise
+          </span>
+          <span className="hidden sm:block">·</span>
+          <span className="flex items-center gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Données réinitialisées chaque nuit
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left pt-2">
           {FEATURES.map(({ icon: Icon, label, desc }) => (
             <div key={label} className="flex items-start gap-3 px-4 py-4 rounded-xl bg-white/60 dark:bg-white/5 border border-white/80 dark:border-white/10">
               <div className="w-8 h-8 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -82,9 +107,6 @@ export default function DemoPage() {
           ))}
         </div>
 
-        <p className="text-[11px] text-[#C4C9D4] pt-2">
-          Les données de démo sont réinitialisées chaque nuit à 3h du matin.
-        </p>
       </div>
     </div>
   )

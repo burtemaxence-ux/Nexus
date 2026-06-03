@@ -1,49 +1,33 @@
 /**
- * seed-demo.ts — Crée un environnement de démo complet pour Nexus
+ * seed-demo.ts — Crée l'environnement démo "La Boulangerie du Soleil"
  *
  * Usage:
  *   NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co \
  *   SUPABASE_SERVICE_ROLE_KEY=eyJ... \
+ *   DEMO_USER_EMAIL=demo@quartzbase.fr \
  *   npx tsx scripts/seed-demo.ts
  *
- * Comptes créés (mot de passe universel : Demo2024!) :
- *   👔 manager@nexus-demo.fr     — Jean-Pierre Moreau (manager)
- *   👤 marie.dupont@nexus-demo.fr    — Serveuse CDI 35h
- *   👤 thomas.martin@nexus-demo.fr   — Cuisinier CDI 35h
- *   👤 sophie.bernard@nexus-demo.fr  — Serveuse CDI 28h
- *   👤 lucas.petit@nexus-demo.fr     — Plongeur CDD
- *   👤 emma.rousseau@nexus-demo.fr   — Serveuse Extra
- *   👤 antoine.moreau@nexus-demo.fr  — Chef de rang CDI 35h
+ * Comptes créés :
+ *   👔 demo@quartzbase.fr          — Claire Fontaine (manager)
+ *   👤 alice.martin@demo.qb.fr     — Boulangère CDI 35h
+ *   👤 benoit.dupont@demo.qb.fr    — Boulanger CDI 35h
+ *   👤 camille.bernard@demo.qb.fr  — Pâtissière CDI 28h
+ *   👤 david.moreau@demo.qb.fr     — Pâtissier CDD
+ *   👤 elise.petit@demo.qb.fr      — Vendeuse CDI 35h
+ *   👤 francois.simon@demo.qb.fr   — Vendeur CDI 28h
+ *   👤 grace.lambert@demo.qb.fr    — Vendeuse Extra
+ *   👤 hugo.leroy@demo.qb.fr       — Responsable CDI 39h
  */
 
 import { createClient } from '@supabase/supabase-js'
-import type { Profile, Shift } from '../types/index'
-
-type EmployeeSeed = {
-  key: string; email: string; full: string; first: string; last: string
-  phone: string; position: string
-  contract: Profile['contract_type']
-  hours: number; rate: number
-}
-
-type ShiftInsert = Omit<Shift, 'id' | 'notes' | 'created_at'> & { establishment_id: string }
-
-type PresenceInsert = {
-  employee_id: string; establishment_id: string; date: string
-  clock_in: string; clock_out: string; break_minutes_used: number
-}
-
-type LatenessInsert = {
-  employee_id: string; establishment_id: string; date: string
-  scheduled_time: string; actual_time: string; late_minutes: number
-  justified: boolean; notes?: string | null
-}
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY
+const DEMO_EMAIL   = process.env.DEMO_USER_EMAIL ?? 'demo@quartzbase.fr'
+const DEMO_PASS    = process.env.DEMO_USER_PASSWORD ?? 'Demo2024!Nexus'
 
 if (!SUPABASE_URL || !SERVICE_KEY) {
-  console.error('❌  Variables manquantes : NEXT_PUBLIC_SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY requis')
+  console.error('❌  NEXT_PUBLIC_SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY requis')
   process.exit(1)
 }
 
@@ -51,527 +35,279 @@ const sb = createClient(SUPABASE_URL, SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
-// ── Helpers date ──────────────────────────────────────────────────────────────
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-function d(base: Date, offsetDays = 0): Date {
-  const r = new Date(base)
-  r.setDate(r.getDate() + offsetDays)
+function iso(date: Date) { return date.toISOString().split('T')[0] }
+function getMonday(d: Date) {
+  const day = d.getDay()
+  const r = new Date(d)
+  r.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
   return r
 }
-
-function iso(date: Date): string { return date.toISOString().split('T')[0] }
-
-function getMonday(date: Date): Date {
-  const day = date.getDay()
-  return d(date, day === 0 ? -6 : 1 - day)
+function addDays(d: Date, n: number) {
+  const r = new Date(d); r.setDate(r.getDate() + n); return r
 }
 
-function timeToMin(t: string): number {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
-}
+const TODAY    = new Date()
+const MONDAY_0 = getMonday(TODAY)
+const MONDAY_M1 = addDays(MONDAY_0, -7)
+const MONDAY_M2 = addDays(MONDAY_0, -14)
+const MONDAY_M3 = addDays(MONDAY_0, -21)
 
-function addMinToDate(base: Date, dateStr: string, timeStr: string, extraMin: number): Date {
-  const [h, m] = timeStr.split(':').map(Number)
-  const dt = new Date(`${dateStr}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00Z`)
-  dt.setMinutes(dt.getMinutes() + extraMin)
-  return dt
-}
-
-// Deterministic pseudo-random (reproducible seed)
-let seed = 42
-function rand(min: number, max: number): number {
-  seed = (seed * 1664525 + 1013904223) & 0xffffffff
-  const r = ((seed >>> 0) / 0xffffffff)
-  return Math.floor(r * (max - min + 1)) + min
-}
-
-// ── Dates de référence ────────────────────────────────────────────────────────
-
-const TODAY       = new Date('2026-05-26T12:00:00Z')
-const MONDAY_0    = getMonday(TODAY)            // semaine en cours  : 25/05
-const MONDAY_M1   = d(MONDAY_0, -7)             // semaine -1        : 18/05
-const MONDAY_M2   = d(MONDAY_0, -14)            // semaine -2        : 11/05
-const MONDAY_M3   = d(MONDAY_0, -21)            // semaine -3        : 04/05
-const MONDAY_M4   = d(MONDAY_0, -28)            // semaine -4        : 27/04
-const MONDAY_P1   = d(MONDAY_0, 7)              // semaine +1        : 01/06
-
-// ── Patterns de shifts ────────────────────────────────────────────────────────
-// day: 1=Lun … 7=Dim (offset depuis lundi de la semaine)
-
-type ShiftTpl = { day: number; start: string; end: string; brk: number; poste: string }
-
-const PATTERNS: Record<string, ShiftTpl[]> = {
-  MARIE: [
-    { day: 2, start: '10:00', end: '15:30', brk:  0, poste: 'Serveur/Serveuse' },
-    { day: 3, start: '10:00', end: '15:30', brk:  0, poste: 'Serveur/Serveuse' },
-    { day: 4, start: '18:00', end: '23:00', brk:  0, poste: 'Serveur/Serveuse' },
-    { day: 5, start: '18:00', end: '23:30', brk: 30, poste: 'Serveur/Serveuse' },
-    { day: 6, start: '10:00', end: '23:30', brk: 60, poste: 'Serveur/Serveuse' },
-  ],
-  THOMAS: [
-    { day: 2, start: '08:00', end: '15:00', brk: 30, poste: 'Cuisinier' },
-    { day: 3, start: '08:00', end: '15:00', brk: 30, poste: 'Cuisinier' },
-    { day: 4, start: '08:00', end: '23:00', brk: 60, poste: 'Cuisinier' },
-    { day: 5, start: '08:00', end: '23:30', brk: 60, poste: 'Cuisinier' },
-    { day: 6, start: '08:00', end: '23:30', brk: 60, poste: 'Cuisinier' },
-    { day: 7, start: '08:00', end: '15:00', brk: 30, poste: 'Cuisinier' },
-  ],
-  SOPHIE: [
-    { day: 2, start: '10:00', end: '15:00', brk:  0, poste: 'Serveur/Serveuse' },
-    { day: 5, start: '10:00', end: '15:00', brk:  0, poste: 'Serveur/Serveuse' },
-    { day: 6, start: '10:00', end: '15:30', brk:  0, poste: 'Serveur/Serveuse' },
-    { day: 7, start: '10:00', end: '15:30', brk:  0, poste: 'Serveur/Serveuse' },
-  ],
-  LUCAS: [
-    { day: 3, start: '10:00', end: '15:30', brk:  0, poste: 'Plongeur' },
-    { day: 4, start: '10:00', end: '22:00', brk: 60, poste: 'Plongeur' },
-    { day: 5, start: '18:00', end: '23:30', brk:  0, poste: 'Plongeur' },
-    { day: 6, start: '10:00', end: '23:30', brk: 60, poste: 'Plongeur' },
-    { day: 7, start: '10:00', end: '16:00', brk: 30, poste: 'Plongeur' },
-  ],
-  EMMA: [
-    { day: 5, start: '18:00', end: '23:30', brk:  0, poste: 'Serveur/Serveuse' },
-    { day: 6, start: '18:00', end: '23:30', brk:  0, poste: 'Serveur/Serveuse' },
-    { day: 7, start: '10:00', end: '15:30', brk:  0, poste: 'Serveur/Serveuse' },
-  ],
-  ANTOINE: [
-    { day: 2, start: '10:00', end: '15:00', brk:  0, poste: 'Chef de rang' },
-    { day: 3, start: '10:00', end: '15:00', brk:  0, poste: 'Chef de rang' },
-    { day: 4, start: '18:00', end: '23:30', brk:  0, poste: 'Chef de rang' },
-    { day: 5, start: '10:00', end: '23:30', brk: 60, poste: 'Chef de rang' },
-    { day: 6, start: '10:00', end: '23:30', brk: 60, poste: 'Chef de rang' },
-    { day: 7, start: '18:00', end: '23:30', brk:  0, poste: 'Chef de rang' },
-  ],
-}
-
-// ── Main ──────────────────────────────────────────────────────────────────────
+// ── Seed ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('🌱  Démarrage du seed démo Nexus...\n')
+  console.log('🌱  Seed démo — La Boulangerie du Soleil\n')
 
-  // ── 1. Créer le compte manager ─────────────────────────────────────────────
-  console.log('1/10  Création du manager...')
+  // 1. Manager
+  console.log('1/9  Création du manager...')
   const { data: mgrAuth, error: mgrErr } = await sb.auth.admin.createUser({
-    email: 'manager@nexus-demo.fr',
-    password: 'Demo2024!',
+    email: DEMO_EMAIL,
+    password: DEMO_PASS,
     email_confirm: true,
-    user_metadata: { full_name: 'Jean-Pierre Moreau', role: 'manager' },
+    user_metadata: { full_name: 'Claire Fontaine', role: 'manager' },
   })
-  if (mgrErr) throw new Error(`Manager auth: ${mgrErr.message}`)
+  if (mgrErr) throw new Error(`Manager: ${mgrErr.message}`)
   const managerId = mgrAuth.user.id
+  await sleep(1500)
 
-  // Attendre le trigger
-  await sleep(1200)
-
-  const { data: mgrProfile, error: mgrProfErr } = await sb
-    .from('profiles')
-    .select('establishment_id')
-    .eq('id', managerId)
-    .single()
-  if (mgrProfErr || !mgrProfile?.establishment_id) {
-    throw new Error('Profil manager non créé par le trigger')
-  }
+  const { data: mgrProfile, error: profErr } = await sb
+    .from('profiles').select('establishment_id').eq('id', managerId).single()
+  if (profErr || !mgrProfile?.establishment_id) throw new Error('Profil manager manquant')
   const estId = mgrProfile.establishment_id as string
-  console.log(`   ✅  Manager: manager@nexus-demo.fr  (estId: ${estId})`)
+  console.log(`   ✅  ${DEMO_EMAIL}  (estId: ${estId})`)
 
-  // ── 2. Mettre à jour l'établissement + profil manager ─────────────────────
-  console.log('2/10  Configuration établissement...')
-  await sb.from('establishments').update({ name: 'Le Bistrot Parisien' }).eq('id', estId)
+  // 2. Établissement
+  console.log('2/9  Configuration établissement...')
+  await sb.from('establishments').update({ name: 'La Boulangerie du Soleil' }).eq('id', estId)
   await sb.from('profiles').update({
-    full_name: 'Jean-Pierre Moreau',
-    first_name: 'Jean-Pierre',
-    last_name: 'Moreau',
-    phone: '06 12 34 56 78',
-    position: 'Directeur',
-    contract_type: 'CDI 35h',
-    weekly_hours: 35,
+    full_name: 'Claire Fontaine', first_name: 'Claire', last_name: 'Fontaine',
+    phone: '06 11 22 33 44', position: 'Directrice', contract_type: 'CDI 35h', weekly_hours: 35,
   }).eq('id', managerId)
-
   await sb.from('settings').upsert([
-    { key: 'establishment_name',  value: 'Le Bistrot Parisien',                    establishment_id: estId },
-    { key: 'opening_time',        value: '07:00',                                   establishment_id: estId },
-    { key: 'closing_time',        value: '23:30',                                   establishment_id: estId },
-    { key: 'break_minutes_limit', value: '30',                                      establishment_id: estId },
-    { key: 'collective_agreement',value: 'CHR — Convention collective nationale',   establishment_id: estId },
-  ])
-  console.log('   ✅  Établissement configuré : Le Bistrot Parisien')
+    { key: 'establishment_name',  value: 'La Boulangerie du Soleil', establishment_id: estId },
+    { key: 'opening_time',        value: '06:00',                    establishment_id: estId },
+    { key: 'closing_time',        value: '20:00',                    establishment_id: estId },
+    { key: 'break_minutes_limit', value: '30',                       establishment_id: estId },
+    { key: 'collective_agreement', value: 'Boulangerie-Pâtisserie artisanale', establishment_id: estId },
+  ], { onConflict: 'establishment_id,key' })
+  console.log('   ✅  La Boulangerie du Soleil')
 
-  // ── 3. Créer les postes ────────────────────────────────────────────────────
-  console.log('3/10  Création des postes...')
+  // 3. Postes
+  console.log('3/9  Création des postes...')
   const { data: postesRows, error: postesErr } = await sb.from('postes').insert([
-    { name: 'Serveur/Serveuse', color: '#3B82F6', break_minutes: 30, hourly_cost: 12.50, max_hours_per_day: 10, max_hours_per_week: 48, establishment_id: estId },
-    { name: 'Cuisinier',        color: '#EF4444', break_minutes: 30, hourly_cost: 14.00, max_hours_per_day: 10, max_hours_per_week: 48, establishment_id: estId },
-    { name: 'Plongeur',         color: '#8B5CF6', break_minutes: 20, hourly_cost: 11.88, max_hours_per_day:  8, max_hours_per_week: 35, establishment_id: estId },
-    { name: 'Chef de rang',     color: '#059669', break_minutes: 30, hourly_cost: 15.00, max_hours_per_day: 10, max_hours_per_week: 48, establishment_id: estId },
-    { name: 'Barman/Barmaid',   color: '#F59E0B', break_minutes: 30, hourly_cost: 13.00, max_hours_per_day: 10, max_hours_per_week: 48, establishment_id: estId },
+    { name: 'Boulanger',    color: '#F59E0B', break_minutes: 30, hourly_cost: 13.50, max_hours_per_day: 10, max_hours_per_week: 48, establishment_id: estId },
+    { name: 'Pâtissier',   color: '#EC4899', break_minutes: 30, hourly_cost: 14.00, max_hours_per_day: 10, max_hours_per_week: 48, establishment_id: estId },
+    { name: 'Vendeur',     color: '#3B82F6', break_minutes: 20, hourly_cost: 12.00, max_hours_per_day:  8, max_hours_per_week: 35, establishment_id: estId },
+    { name: 'Responsable', color: '#059669', break_minutes: 30, hourly_cost: 16.00, max_hours_per_day: 10, max_hours_per_week: 48, establishment_id: estId },
   ]).select()
   if (postesErr) throw new Error(`Postes: ${postesErr.message}`)
   const posteMap: Record<string, string> = {}
   postesRows?.forEach((p: { id: string; name: string }) => { posteMap[p.name] = p.id })
-  console.log(`   ✅  ${postesRows?.length} postes créés`)
+  console.log(`   ✅  ${postesRows?.length} postes`)
 
-  // ── 4. Créer les employés ──────────────────────────────────────────────────
-  console.log('4/10  Création des 6 employés...')
-
-  const EMPLOYEES: EmployeeSeed[] = [
-    { key: 'MARIE',   email: 'marie.dupont@nexus-demo.fr',    full: 'Marie Dupont',
-      first: 'Marie',    last: 'Dupont',   phone: '06 23 45 67 89',
-      position: 'Serveur/Serveuse', contract: 'CDI 35h', hours: 35, rate: 12.50 },
-    { key: 'THOMAS',  email: 'thomas.martin@nexus-demo.fr',   full: 'Thomas Martin',
-      first: 'Thomas',   last: 'Martin',   phone: '06 34 56 78 90',
-      position: 'Cuisinier',        contract: 'CDI 35h', hours: 35, rate: 14.00 },
-    { key: 'SOPHIE',  email: 'sophie.bernard@nexus-demo.fr',  full: 'Sophie Bernard',
-      first: 'Sophie',   last: 'Bernard',  phone: '06 45 67 89 01',
-      position: 'Serveur/Serveuse', contract: 'CDI 28h', hours: 28, rate: 12.50 },
-    { key: 'LUCAS',   email: 'lucas.petit@nexus-demo.fr',     full: 'Lucas Petit',
-      first: 'Lucas',    last: 'Petit',    phone: '06 56 78 90 12',
-      position: 'Plongeur',         contract: 'CDD',     hours: 35, rate: 11.88 },
-    { key: 'EMMA',    email: 'emma.rousseau@nexus-demo.fr',   full: 'Emma Rousseau',
-      first: 'Emma',     last: 'Rousseau', phone: '06 67 89 01 23',
-      position: 'Serveur/Serveuse', contract: 'Extra',   hours: 24, rate: 12.50 },
-    { key: 'ANTOINE', email: 'antoine.moreau@nexus-demo.fr',  full: 'Antoine Moreau',
-      first: 'Antoine',  last: 'Moreau',   phone: '06 78 90 12 34',
-      position: 'Chef de rang',     contract: 'CDI 35h', hours: 35, rate: 15.00 },
+  // 4. Employés
+  console.log('4/9  Création des 8 employés...')
+  type ContractType = 'CDI 35h' | 'CDI 28h' | 'CDI 39h' | 'CDD' | 'Extra'
+  const EMPLOYEES: Array<{
+    email: string; full: string; first: string; last: string; phone: string
+    poste: string; contract: ContractType; hours: number; rate: number
+  }> = [
+    { email: 'alice.martin@demo.qb.fr',    full: 'Alice Martin',    first: 'Alice',    last: 'Martin',    phone: '06 21 32 43 54', poste: 'Boulanger',    contract: 'CDI 35h', hours: 35, rate: 13.50 },
+    { email: 'benoit.dupont@demo.qb.fr',   full: 'Benoît Dupont',   first: 'Benoît',   last: 'Dupont',    phone: '06 32 43 54 65', poste: 'Boulanger',    contract: 'CDI 35h', hours: 35, rate: 13.50 },
+    { email: 'camille.bernard@demo.qb.fr', full: 'Camille Bernard', first: 'Camille',  last: 'Bernard',   phone: '06 43 54 65 76', poste: 'Pâtissier',   contract: 'CDI 28h', hours: 28, rate: 14.00 },
+    { email: 'david.moreau@demo.qb.fr',    full: 'David Moreau',    first: 'David',    last: 'Moreau',    phone: '06 54 65 76 87', poste: 'Pâtissier',   contract: 'CDD',     hours: 35, rate: 14.00 },
+    { email: 'elise.petit@demo.qb.fr',     full: 'Élise Petit',     first: 'Élise',    last: 'Petit',     phone: '06 65 76 87 98', poste: 'Vendeur',     contract: 'CDI 35h', hours: 35, rate: 12.00 },
+    { email: 'francois.simon@demo.qb.fr',  full: 'François Simon',  first: 'François', last: 'Simon',     phone: '06 76 87 98 09', poste: 'Vendeur',     contract: 'CDI 28h', hours: 28, rate: 12.00 },
+    { email: 'grace.lambert@demo.qb.fr',   full: 'Grace Lambert',   first: 'Grace',    last: 'Lambert',   phone: '06 87 98 09 10', poste: 'Vendeur',     contract: 'Extra',   hours: 24, rate: 12.00 },
+    { email: 'hugo.leroy@demo.qb.fr',      full: 'Hugo Leroy',      first: 'Hugo',     last: 'Leroy',     phone: '06 98 09 10 21', poste: 'Responsable', contract: 'CDI 39h', hours: 39, rate: 16.00 },
   ]
 
   const empIds: Record<string, string> = {}
 
   for (const emp of EMPLOYEES) {
     const { data: authData, error: authErr } = await sb.auth.admin.createUser({
-      email: emp.email,
-      password: 'Demo2024!',
+      email: emp.email, password: 'Demo2024!',
       email_confirm: true,
-      user_metadata: {
-        full_name:        emp.full,
-        role:             'employee',
-        establishment_id: estId,
-      },
+      user_metadata: { full_name: emp.full, role: 'employee', establishment_id: estId },
     })
-    if (authErr) throw new Error(`Employee auth (${emp.email}): ${authErr.message}`)
-
-    empIds[emp.key] = authData.user.id
+    if (authErr) throw new Error(`Employee (${emp.email}): ${authErr.message}`)
+    empIds[emp.email] = authData.user.id
     await sleep(600)
 
     await sb.from('profiles').update({
-      full_name:     emp.full,
-      first_name:    emp.first,
-      last_name:     emp.last,
-      phone:         emp.phone,
-      position:      emp.position,
-      contract_type: emp.contract,
-      weekly_hours:  emp.hours,
-      establishment_id: estId,
+      full_name: emp.full, first_name: emp.first, last_name: emp.last,
+      phone: emp.phone, position: emp.poste,
+      contract_type: emp.contract, weekly_hours: emp.hours,
+      establishment_id: estId, role: 'employee',
     }).eq('id', authData.user.id)
+  }
+  console.log(`   ✅  8 employés`)
 
-    console.log(`   ✅  ${emp.full.padEnd(22)} → ${emp.email}`)
+  // 5. Contrats
+  console.log('5/9  Création des contrats...')
+  const today = iso(TODAY)
+  const contractRows = EMPLOYEES.map(emp => {
+    const empId = empIds[emp.email]
+    const isCdd = emp.contract === 'CDD'
+    return {
+      employee_id: empId, establishment_id: estId,
+      type: emp.contract, weekly_hours: emp.hours, hourly_rate: emp.rate,
+      start_date: iso(addDays(TODAY, -90)),
+      end_date: isCdd ? iso(addDays(TODAY, 45)) : null,
+      trial_period_days: emp.contract.startsWith('CDI') ? 60 : null,
+    }
+  })
+  await sb.from('contracts').insert(contractRows)
+  console.log('   ✅  8 contrats')
+
+  // 6. Planning (semaine en cours + 3 semaines historique)
+  console.log('6/9  Création du planning...')
+
+  // Patterns boulangerie : postes par employé par jour (offset depuis lundi)
+  type ShiftTpl = { day: number; start: string; end: string; brk: number; poste: string }
+  const PATTERNS: Record<string, ShiftTpl[]> = {
+    'alice.martin@demo.qb.fr': [
+      { day: 1, start: '04:00', end: '12:00', brk: 30, poste: 'Boulanger' },
+      { day: 2, start: '04:00', end: '12:00', brk: 30, poste: 'Boulanger' },
+      { day: 3, start: '04:00', end: '12:00', brk: 30, poste: 'Boulanger' },
+      { day: 5, start: '04:00', end: '12:00', brk: 30, poste: 'Boulanger' },
+      { day: 6, start: '04:00', end: '12:00', brk: 30, poste: 'Boulanger' },
+    ],
+    'benoit.dupont@demo.qb.fr': [
+      { day: 1, start: '05:00', end: '13:00', brk: 30, poste: 'Boulanger' },
+      { day: 2, start: '05:00', end: '13:00', brk: 30, poste: 'Boulanger' },
+      { day: 4, start: '05:00', end: '13:00', brk: 30, poste: 'Boulanger' },
+      { day: 5, start: '05:00', end: '13:00', brk: 30, poste: 'Boulanger' },
+      { day: 7, start: '05:00', end: '13:00', brk: 30, poste: 'Boulanger' },
+    ],
+    'camille.bernard@demo.qb.fr': [
+      { day: 2, start: '06:00', end: '13:00', brk: 30, poste: 'Pâtissier' },
+      { day: 3, start: '06:00', end: '13:00', brk: 30, poste: 'Pâtissier' },
+      { day: 5, start: '06:00', end: '13:00', brk: 30, poste: 'Pâtissier' },
+      { day: 6, start: '06:00', end: '14:00', brk: 30, poste: 'Pâtissier' },
+    ],
+    'david.moreau@demo.qb.fr': [
+      { day: 1, start: '06:00', end: '14:00', brk: 30, poste: 'Pâtissier' },
+      { day: 3, start: '06:00', end: '14:00', brk: 30, poste: 'Pâtissier' },
+      { day: 4, start: '06:00', end: '14:00', brk: 30, poste: 'Pâtissier' },
+      { day: 6, start: '06:00', end: '14:00', brk: 30, poste: 'Pâtissier' },
+      { day: 7, start: '06:00', end: '14:00', brk: 30, poste: 'Pâtissier' },
+    ],
+    'elise.petit@demo.qb.fr': [
+      { day: 1, start: '08:00', end: '16:00', brk: 30, poste: 'Vendeur' },
+      { day: 2, start: '08:00', end: '16:00', brk: 30, poste: 'Vendeur' },
+      { day: 3, start: '08:00', end: '16:00', brk: 30, poste: 'Vendeur' },
+      { day: 4, start: '08:00', end: '16:00', brk: 30, poste: 'Vendeur' },
+      { day: 6, start: '08:00', end: '16:00', brk: 30, poste: 'Vendeur' },
+    ],
+    'francois.simon@demo.qb.fr': [
+      { day: 2, start: '12:00', end: '20:00', brk: 30, poste: 'Vendeur' },
+      { day: 4, start: '12:00', end: '20:00', brk: 30, poste: 'Vendeur' },
+      { day: 5, start: '12:00', end: '20:00', brk: 30, poste: 'Vendeur' },
+      { day: 7, start: '08:00', end: '14:00', brk: 20, poste: 'Vendeur' },
+    ],
+    'grace.lambert@demo.qb.fr': [
+      { day: 6, start: '08:00', end: '14:00', brk: 20, poste: 'Vendeur' },
+      { day: 7, start: '08:00', end: '14:00', brk: 20, poste: 'Vendeur' },
+    ],
+    'hugo.leroy@demo.qb.fr': [
+      { day: 1, start: '07:00', end: '17:00', brk: 60, poste: 'Responsable' },
+      { day: 2, start: '07:00', end: '17:00', brk: 60, poste: 'Responsable' },
+      { day: 3, start: '07:00', end: '17:00', brk: 60, poste: 'Responsable' },
+      { day: 4, start: '07:00', end: '17:00', brk: 60, poste: 'Responsable' },
+      { day: 5, start: '07:00', end: '17:00', brk: 60, poste: 'Responsable' },
+    ],
   }
 
-  // ── 5. Contrats ────────────────────────────────────────────────────────────
-  console.log('5/10  Création des contrats...')
-  const START_DATE = iso(d(TODAY, -180))
-  await sb.from('contracts').insert([
-    { employee_id: empIds.MARIE,   establishment_id: estId, type: 'CDI 35h',   start_date: START_DATE, weekly_hours: 35, hourly_rate: 12.50, job_title: 'Serveuse',     paid_leave_days: 25, created_by: managerId },
-    { employee_id: empIds.THOMAS,  establishment_id: estId, type: 'CDI 35h',   start_date: START_DATE, weekly_hours: 35, hourly_rate: 14.00, job_title: 'Cuisinier',    paid_leave_days: 25, created_by: managerId },
-    { employee_id: empIds.SOPHIE,  establishment_id: estId, type: 'CDI 28h',   start_date: START_DATE, weekly_hours: 28, hourly_rate: 12.50, job_title: 'Serveuse',     paid_leave_days: 25, created_by: managerId },
-    { employee_id: empIds.LUCAS,   establishment_id: estId, type: 'CDD',       start_date: START_DATE, end_date: iso(d(TODAY, 90)), weekly_hours: 35, hourly_rate: 11.88, job_title: 'Plongeur', cdd_reason: 'Renfort saisonnier', paid_leave_days: 25, created_by: managerId },
-    { employee_id: empIds.EMMA,    establishment_id: estId, type: 'Extra',     start_date: START_DATE, weekly_hours: 24, hourly_rate: 12.50, job_title: 'Serveuse Extra', paid_leave_days: 25, created_by: managerId },
-    { employee_id: empIds.ANTOINE, establishment_id: estId, type: 'CDI 35h',   start_date: START_DATE, weekly_hours: 35, hourly_rate: 15.00, job_title: 'Chef de rang', paid_leave_days: 25, created_by: managerId },
-  ])
-  console.log('   ✅  6 contrats créés')
+  const shiftsToInsert: object[] = []
 
-  // ── 6. Shifts ──────────────────────────────────────────────────────────────
-  console.log('6/10  Génération des shifts (5 semaines)...')
-
-  // Sophie était en arrêt maladie semaine -3 (04/05 → 10/05)
-  const SOPHIE_SICK_FROM = '2026-05-04'
-  const SOPHIE_SICK_TO   = '2026-05-10'
-
-  const weeks: Array<{ monday: Date; status: 'published' | 'draft' }> = [
-    { monday: MONDAY_M4, status: 'published' },
-    { monday: MONDAY_M3, status: 'published' },
-    { monday: MONDAY_M2, status: 'published' },
-    { monday: MONDAY_M1, status: 'published' },
-    { monday: MONDAY_0,  status: 'published' },
-    { monday: MONDAY_P1, status: 'draft'     },
-  ]
-
-  const allShifts: ShiftInsert[] = []
-
-  for (const { monday, status } of weeks) {
-    for (const [empKey, patterns] of Object.entries(PATTERNS)) {
-      const empId = empIds[empKey]
-      for (const p of patterns) {
-        const shiftDate = iso(d(monday, p.day - 1))
-
-        // Skip Sophie pendant son arrêt maladie
-        if (empKey === 'SOPHIE' && shiftDate >= SOPHIE_SICK_FROM && shiftDate <= SOPHIE_SICK_TO) continue
-
-        allShifts.push({
-          employee_id:      empId,
-          establishment_id: estId,
-          date:             shiftDate,
-          start_time:       p.start,
-          end_time:         p.end,
-          break_minutes:    p.brk,
-          position:         p.poste,
-          poste_id:         posteMap[p.poste],
-          status,
+  for (const [monday, statusVal] of [
+    [MONDAY_M3, 'published'], [MONDAY_M2, 'published'],
+    [MONDAY_M1, 'published'], [MONDAY_0,  'published'],
+  ] as [Date, string][]) {
+    for (const [email, tpls] of Object.entries(PATTERNS)) {
+      const empId = empIds[email]
+      if (!empId) continue
+      for (const t of tpls) {
+        const shiftDate = addDays(monday, t.day - 1)
+        shiftsToInsert.push({
+          employee_id: empId, establishment_id: estId,
+          date: iso(shiftDate),
+          start_time: t.start, end_time: t.end,
+          break_minutes: t.brk,
+          poste_id: posteMap[t.poste] ?? null,
+          status: statusVal,
         })
       }
     }
   }
 
-  for (let i = 0; i < allShifts.length; i += 200) {
-    const { error } = await sb.from('shifts').insert(allShifts.slice(i, i + 200))
-    if (error) throw new Error(`Shifts: ${error.message}`)
-  }
-  console.log(`   ✅  ${allShifts.length} shifts créés`)
+  await sb.from('shifts').insert(shiftsToInsert)
+  console.log(`   ✅  ${shiftsToInsert.length} shifts (4 semaines)`)
 
-  // ── 7. Week status ─────────────────────────────────────────────────────────
-  console.log('7/10  Statut des semaines...')
-  await sb.from('week_status').upsert(weeks.map(w => ({
-    week_monday:      iso(w.monday),
-    establishment_id: estId,
-    published:        w.status === 'published',
-    locked:           false,
-    published_at:     w.status === 'published' ? d(w.monday, -1).toISOString() : null,
-  })))
-  console.log(`   ✅  ${weeks.length} semaines`)
-
-  // ── 8. Présences ───────────────────────────────────────────────────────────
-  console.log('8/10  Génération des présences (4 semaines passées)...')
-
-  // Récupérer les shifts publiés passés (avant aujourd'hui)
-  const { data: pastShifts, error: psErr } = await sb
-    .from('shifts')
-    .select('id, employee_id, date, start_time, end_time, break_minutes')
-    .eq('establishment_id', estId)
-    .eq('status', 'published')
-    .gte('date', iso(MONDAY_M4))
-    .lt('date', iso(TODAY))
-    .order('date', { ascending: true })
-  if (psErr) throw new Error(`PastShifts: ${psErr.message}`)
-
-  const presences: PresenceInsert[] = []
-  const seen = new Set<string>()
-
-  // Retards déterministes (Emma × 6, Lucas × 3)
-  const latenessRecords: LatenessInsert[] = []
-  const emmaLateShifts  = new Set<string>()
-  const lucasLateShifts = new Set<string>()
-
-  // On choisit à l'avance quels shifts seront en retard
-  type PastShiftRow = { id: string; employee_id: string; date: string; start_time: string; end_time: string; break_minutes: number }
-  const emmaShifts  = (pastShifts as PastShiftRow[])?.filter(s => s.employee_id === empIds.EMMA)  ?? []
-  const lucasShifts = (pastShifts as PastShiftRow[])?.filter(s => s.employee_id === empIds.LUCAS) ?? []
-
-  for (let i = 0; i < Math.min(6, emmaShifts.length);  i++) emmaLateShifts.add(emmaShifts[i * 2 < emmaShifts.length ? i * 2 : i].id)
-  for (let i = 0; i < Math.min(3, lucasShifts.length); i++) lucasLateShifts.add(lucasShifts[i * 3 < lucasShifts.length ? i * 3 : i].id)
-
-  for (const shift of pastShifts ?? []) {
-    const key = `${shift.employee_id}:${shift.date}`
-    if (seen.has(key)) continue
-    seen.add(key)
-
-    // 5 % d'absences aléatoires (sauf Emma et Lucas pour ne pas fausser les retards)
-    if (shift.employee_id !== empIds.EMMA && shift.employee_id !== empIds.LUCAS) {
-      if (rand(0, 19) === 0) continue
-    }
-
-    let lateMin = rand(-3, 7) // léger écart normal
-
-    if (emmaLateShifts.has(shift.id)) {
-      lateMin = rand(12, 35)
-      const scheduledTime = shift.start_time.slice(0, 5)
-      latenessRecords.push({
-        employee_id:      shift.employee_id,
-        establishment_id: estId,
-        date:             shift.date,
-        scheduled_time:   scheduledTime,
-        actual_time:      addMinToDate(TODAY, shift.date, scheduledTime, lateMin).toISOString(),
-        late_minutes:     lateMin,
-        justified:        latenessRecords.filter(l => l.employee_id === empIds.EMMA).length >= 4,
-        notes:            latenessRecords.filter(l => l.employee_id === empIds.EMMA).length >= 4 ? 'Problème de transports en commun' : null,
-      })
-    }
-
-    if (lucasLateShifts.has(shift.id)) {
-      lateMin = rand(15, 30)
-      const scheduledTime = shift.start_time.slice(0, 5)
-      latenessRecords.push({
-        employee_id:      shift.employee_id,
-        establishment_id: estId,
-        date:             shift.date,
-        scheduled_time:   scheduledTime,
-        actual_time:      addMinToDate(TODAY, shift.date, scheduledTime, lateMin).toISOString(),
-        late_minutes:     lateMin,
-        justified:        false,
-      })
-    }
-
-    const [sh, sm] = shift.start_time.split(':').map(Number)
-    const [eh, em] = shift.end_time.split(':').map(Number)
-
-    const clockInDt  = addMinToDate(TODAY, shift.date, shift.start_time.slice(0,5), lateMin)
-    const endTimeStr = `${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`
-    const clockOutDt = addMinToDate(TODAY, shift.date, endTimeStr, rand(-5, 10))
-
-    // Correction overnight (end < start)
-    if (eh < sh || (eh === sh && em < sm)) {
-      clockOutDt.setDate(clockOutDt.getDate() + 1)
-    }
-
-    presences.push({
-      employee_id:       shift.employee_id,
-      establishment_id:  estId,
-      date:              shift.date,
-      clock_in:          clockInDt.toISOString(),
-      clock_out:         clockOutDt.toISOString(),
-      break_minutes_used: shift.break_minutes > 0 ? shift.break_minutes : 0,
-    })
-  }
-
-  for (let i = 0; i < presences.length; i += 200) {
-    const { error } = await sb.from('presences').insert(presences.slice(i, i + 200))
-    if (error) console.warn(`   ⚠️  Présences chunk ${i}: ${error.message}`)
-  }
-  console.log(`   ✅  ${presences.length} présences créées`)
-
-  // ── 9. Retards ─────────────────────────────────────────────────────────────
-  console.log('9/10  Enregistrement des retards...')
-  if (latenessRecords.length > 0) {
-    const { error } = await sb.from('lateness_records').insert(latenessRecords)
-    if (error) console.warn(`   ⚠️  Lateness: ${error.message}`)
-  }
-  console.log(`   ✅  ${latenessRecords.length} retards (Emma ×${Array.from(emmaLateShifts).length}, Lucas ×${Array.from(lucasLateShifts).length})`)
-
-  // ── 10. Congés, marketplace, échanges ──────────────────────────────────────
-  console.log('10/10  Congés, marketplace, échange de shifts...')
-
-  // Congés
+  // 7. Congés (2 demandes)
+  console.log('7/9  Création des congés...')
+  const [aliceId, eliseId] = [empIds['alice.martin@demo.qb.fr'], empIds['elise.petit@demo.qb.fr']]
   await sb.from('leave_requests').insert([
     {
-      employee_id:      empIds.MARIE,
-      establishment_id: estId,
-      start_date:       iso(d(TODAY, -18)),
-      end_date:         iso(d(TODAY, -16)),
-      type:             'CP',
-      comment:          'Congés de printemps',
-      status:           'approved',
-      manager_comment:  'Bonne recharge !',
+      employee_id: aliceId, establishment_id: estId,
+      type: 'CP',
+      start_date: iso(addDays(TODAY, 14)),
+      end_date:   iso(addDays(TODAY, 21)),
+      status: 'pending',
+      reason: 'Vacances d\'été',
     },
     {
-      employee_id:      empIds.THOMAS,
-      establishment_id: estId,
-      start_date:       iso(d(MONDAY_P1, 1)),
-      end_date:         iso(d(MONDAY_P1, 2)),
-      type:             'RTT',
-      comment:          'Récupération heures supplémentaires',
-      status:           'pending',
-    },
-    {
-      employee_id:      empIds.SOPHIE,
-      establishment_id: estId,
-      start_date:       SOPHIE_SICK_FROM,
-      end_date:         SOPHIE_SICK_TO,
-      type:             'maladie',
-      comment:          'Arrêt médical délivré le 04/05',
-      status:           'approved',
-      manager_comment:  'Bon rétablissement Sophie',
-    },
-    {
-      employee_id:      empIds.EMMA,
-      establishment_id: estId,
-      start_date:       iso(d(TODAY, -5)),
-      end_date:         iso(d(TODAY, -3)),
-      type:             'CP',
-      comment:          'Week-end prolongé',
-      status:           'rejected',
-      manager_comment:  'Effectifs insuffisants ce week-end — reporter si possible',
-    },
-    {
-      employee_id:      empIds.ANTOINE,
-      establishment_id: estId,
-      start_date:       iso(d(TODAY, 14)),
-      end_date:         iso(d(TODAY, 16)),
-      type:             'sans_solde',
-      comment:          'Voyage prévu de longue date',
-      status:           'pending',
-    },
-    {
-      employee_id:      empIds.LUCAS,
-      establishment_id: estId,
-      start_date:       iso(d(MONDAY_P1, 3)),
-      end_date:         iso(d(MONDAY_P1, 4)),
-      type:             'CP',
-      comment:          '',
-      status:           'approved',
+      employee_id: eliseId, establishment_id: estId,
+      type: 'CP',
+      start_date: iso(addDays(TODAY, -10)),
+      end_date:   iso(addDays(TODAY, -7)),
+      status: 'approved',
+      reason: 'Long week-end',
     },
   ])
-  console.log('   ✅  6 demandes de congés créées')
+  console.log('   ✅  2 demandes de congés')
 
-  // Marketplace — slot sur un shift d'Emma semaine prochaine
-  const { data: emmaNextShift } = await sb
-    .from('shifts')
-    .select('id')
-    .eq('establishment_id', estId)
-    .eq('employee_id', empIds.EMMA)
-    .gte('date', iso(MONDAY_P1))
-    .order('date', { ascending: true })
-    .limit(1)
-    .single()
+  // 8. Alertes conformité (2 : 1 WARNING + 1 CRITICAL)
+  console.log('8/9  Création des alertes conformité...')
+  const davidId = empIds['david.moreau@demo.qb.fr']
+  await sb.from('compliance_alerts').insert([
+    {
+      establishment_id: estId, employee_id: davidId,
+      type: 'cdd_ending', level: 'WARNING',
+      title: 'Fin de CDD — David Moreau',
+      message: 'Le contrat CDD de David Moreau se termine dans 45 jours. Décision de renouvellement ou de fin de contrat à prendre rapidement.',
+      status: 'active', options: { days_remaining: 45 },
+    },
+    {
+      establishment_id: estId, employee_id: aliceId,
+      type: 'hours_exceeded', level: 'CRITICAL',
+      title: 'Dépassement heures — Alice Martin',
+      message: 'Alice Martin dépasse régulièrement ses 35h contractuelles depuis 8 semaines. Risque de requalification si la situation persiste.',
+      status: 'active', options: { consecutive_weeks: 8, avg_hours: 40.5, contract_hours: 35 },
+    },
+  ])
+  console.log('   ✅  2 alertes conformité')
 
-  if (emmaNextShift) {
-    await sb.from('marketplace_slots').insert({
-      shift_id:         emmaNextShift.id,
-      establishment_id: estId,
-      created_by:       managerId,
-      reason:           'Absence imprévue — renfort recherché',
-      expires_at:       new Date(Date.now() + 20 * 3600 * 1000).toISOString(),
-      status:           'open',
-    })
-    console.log('   ✅  Slot marketplace créé')
-  }
+  // 9. Notifications (5 non lues pour le manager)
+  console.log('9/9  Création des notifications...')
+  await sb.from('notifications').insert([
+    { user_id: managerId, establishment_id: estId, type: 'leave_request',    title: 'Nouvelle demande de congés', body: 'Alice Martin demande des congés du 14 au 21.', read: false, action_url: '/manager/conges' },
+    { user_id: managerId, establishment_id: estId, type: 'compliance_alert', title: 'Alerte conformité CRITICAL', body: 'Dépassement heures — Alice Martin depuis 8 semaines.', read: false, action_url: '/manager/alertes' },
+    { user_id: managerId, establishment_id: estId, type: 'compliance_alert', title: 'Alerte conformité WARNING',  body: 'CDD David Moreau se termine dans 45 jours.', read: false, action_url: '/manager/alertes' },
+    { user_id: managerId, establishment_id: estId, type: 'shift_swap',       title: 'Échange de planning',        body: 'Benoît Dupont propose un échange de shift à Grace Lambert.', read: false, action_url: '/manager/echanges' },
+    { user_id: managerId, establishment_id: estId, type: 'system',           title: 'Planning publié',            body: 'Le planning de la semaine a été publié avec succès.', read: false, action_url: '/manager/planning' },
+  ])
+  console.log('   ✅  5 notifications')
 
-  // Échange de shift — Marie propose à Sophie (shift semaine prochaine)
-  const { data: mariNextShift } = await sb
-    .from('shifts')
-    .select('id')
-    .eq('establishment_id', estId)
-    .eq('employee_id', empIds.MARIE)
-    .gte('date', iso(MONDAY_P1))
-    .order('date', { ascending: true })
-    .limit(1)
-    .single()
-
-  if (mariNextShift) {
-    await sb.from('shift_exchanges').insert({
-      shift_id:      mariNextShift.id,
-      proposer_id:   empIds.MARIE,
-      acceptor_id:   empIds.SOPHIE,
-      status:        'pending_approval',
-      proposer_note: 'Rendez-vous médical ce jour-là, Sophie peut-elle me remplacer ?',
-    })
-    console.log('   ✅  Échange de shift créé (Marie → Sophie)')
-  }
-
-  // ── Résumé ─────────────────────────────────────────────────────────────────
-  console.log('\n' + '═'.repeat(56))
-  console.log('🎉  Seed terminé avec succès !')
-  console.log('═'.repeat(56))
-  console.log('\n📋  Identifiants de connexion (mot de passe : Demo2024!)\n')
-  console.log('  👔  MANAGER')
-  console.log('      manager@nexus-demo.fr')
-  console.log('\n  👥  EMPLOYÉS')
-  for (const emp of EMPLOYEES) {
-    console.log(`      ${emp.full.padEnd(22)}  ${emp.email}`)
-  }
-  console.log('\n  🏪  Établissement : Le Bistrot Parisien')
-  console.log(`  🆔  ID             : ${estId}`)
-  console.log('\n' + '═'.repeat(56))
+  console.log(`\n🎉  Seed terminé !`)
+  console.log(`\n📋  À copier dans .env.local :`)
+  console.log(`   DEMO_USER_EMAIL=${DEMO_EMAIL}`)
+  console.log(`   DEMO_ESTABLISHMENT_ID=${estId}\n`)
 }
 
-function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
-
-main().catch(err => { console.error('\n❌  Seed échoué :', err); process.exit(1) })
+main().catch(err => {
+  console.error('❌', err)
+  process.exit(1)
+})
