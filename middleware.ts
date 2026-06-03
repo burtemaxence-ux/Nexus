@@ -38,14 +38,16 @@ export async function middleware(request: NextRequest) {
     }
 
     // Protection des routes manager (managers et superviseurs autorisés)
-    if (pathname.startsWith('/manager') && role !== 'manager' && role !== 'supervisor') {
+    // Un rôle indéfini (ex: nouveau compte Google) peut accéder à /manager — l'onboarding prend le relais
+    if (pathname.startsWith('/manager') && role && role !== 'manager' && role !== 'supervisor') {
       const url = request.nextUrl.clone()
       url.pathname = '/employee'
       return NextResponse.redirect(url)
     }
 
     // Protection des routes employee (employés seulement)
-    if (pathname.startsWith('/employee') && role !== 'employee') {
+    // Un rôle indéfini peut accéder à /manager (onboarding) — pas à /employee
+    if (pathname.startsWith('/employee') && role && role !== 'employee') {
       const url = request.nextUrl.clone()
       url.pathname = '/manager'
       return NextResponse.redirect(url)
