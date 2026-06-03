@@ -637,10 +637,10 @@ export default function HelpPage() {
         <div>
           <p className="text-[13px] font-medium text-[var(--text-primary)]">Besoin d&apos;aide supplémentaire ?</p>
           <p className="text-[12px] text-[var(--text-secondary)]">
-            Utilisez l&apos;assistant IA (bulle en bas à droite) ou contactez le support depuis{' '}
-            <Link href="/manager/settings" className="text-[var(--accent)] underline underline-offset-2">
-              Paramètres
-            </Link>.
+            Utilisez l&apos;assistant IA (bulle en bas à droite) ou écrivez-nous à{' '}
+            <a href="mailto:assistance.quartzbase@mail.fr" className="text-[var(--accent)] underline underline-offset-2">
+              assistance.quartzbase@mail.fr
+            </a>.
           </p>
         </div>
       </div>

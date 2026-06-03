@@ -22,7 +22,7 @@ export default function MentionsLegalesPage() {
           <li><strong>SIRET :</strong> En cours d&apos;immatriculation</li>
           <li><strong>N° TVA intracommunautaire :</strong> Non applicable (immatriculation en cours)</li>
           <li><strong>Siège social :</strong> Paris, France</li>
-          <li><strong>Email :</strong> <a href="mailto:contact@quartz.fr">contact@quartz.fr</a></li>
+          <li><strong>Email :</strong> <a href="mailto:assistance.quartzbase@mail.fr">assistance.quartzbase@mail.fr</a></li>
         </ul>
       </section>
 
@@ -75,7 +75,7 @@ export default function MentionsLegalesPage() {
         <h2>7. Contact</h2>
         <p>
           Pour toute question relative aux présentes mentions légales, vous pouvez nous contacter à l&apos;adresse suivante :{' '}
-          <a href="mailto:legal@quartz.fr">legal@quartz.fr</a>
+          <a href="mailto:assistance.quartzbase@mail.fr">assistance.quartzbase@mail.fr</a>
         </p>
       </section>
     </article>

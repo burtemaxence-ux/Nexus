@@ -220,7 +220,7 @@ export default function RgpdPage() {
               <div>
                 <p className="font-medium">Demande enregistrée</p>
                 <p className="text-[12px] mt-0.5">
-                  Votre demande a été transmise à <a href="mailto:dpo@quartz.fr" className="underline">dpo@quartz.fr</a>.
+                  Votre demande a été transmise à <a href="mailto:assistance.quartzbase@mail.fr" className="underline">assistance.quartzbase@mail.fr</a>.
                   Traitement sous 30 jours.
                 </p>
               </div>
@@ -228,7 +228,7 @@ export default function RgpdPage() {
           )}
 
           <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-            Droit à l&apos;effacement — Art. 17 RGPD · Contact DPO : <a href="mailto:dpo@quartz.fr" style={{ color: 'var(--accent)' }}>dpo@quartz.fr</a>
+            Droit à l&apos;effacement — Art. 17 RGPD · Contact DPO : <a href="mailto:assistance.quartzbase@mail.fr" style={{ color: 'var(--accent)' }}>assistance.quartzbase@mail.fr</a>
           </p>
         </div>
       </section>

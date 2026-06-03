@@ -17,7 +17,7 @@ export default function ConfidentialitePage() {
         </p>
         <ul>
           <li><strong>Quartz SAS</strong>, Paris, France</li>
-          <li><strong>Email DPO :</strong> <a href="mailto:dpo@quartz.fr">dpo@quartz.fr</a></li>
+          <li><strong>Email DPO :</strong> <a href="mailto:assistance.quartzbase@mail.fr">assistance.quartzbase@mail.fr</a></li>
         </ul>
       </section>
 
@@ -128,7 +128,7 @@ export default function ConfidentialitePage() {
           <li><strong>Droit à la limitation</strong> (Art. 18) — restreindre temporairement un traitement</li>
         </ul>
         <p>
-          Pour exercer ces droits, contactez notre DPO à <a href="mailto:dpo@quartz.fr">dpo@quartz.fr</a>. Nous répondons dans un délai maximum de <strong>30 jours</strong>.
+          Pour exercer ces droits, contactez notre DPO à <a href="mailto:assistance.quartzbase@mail.fr">assistance.quartzbase@mail.fr</a>. Nous répondons dans un délai maximum de <strong>30 jours</strong>.
         </p>
         <p>
           En cas de réponse insatisfaisante, vous pouvez introduire une réclamation auprès de la <strong>CNIL</strong> (<a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer">www.cnil.fr</a>).
