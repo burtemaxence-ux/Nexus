@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Syne, DM_Sans } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { PwaRegister } from '@/components/ui/pwa-register'
 import { Analytics } from '@vercel/analytics/react'
@@ -7,7 +7,18 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'], display: 'swap' })
+const syne = Syne({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-syne',
+  weight: ['400', '500', '600', '700', '800'],
+})
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-dm-sans',
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://quartzbase.fr'),
@@ -43,13 +54,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang="fr" className={`dark ${syne.variable} ${dmSans.variable}`} suppressHydrationWarning>
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('dp-theme');if(t==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})()`,
-          }}
-        />
         {supabaseUrl && (
           <>
             <link rel="preconnect" href={supabaseUrl} />
@@ -57,7 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         )}
       </head>
-      <body className={inter.className}>
+      <body className={dmSans.className}>
         <ErrorBoundary>
           {children}
         </ErrorBoundary>
