@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/demo?error=not_configured`)
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin
+  const appUrl = process.env.NEXT_PUBLIC_URL ?? new URL(request.url).origin
 
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: 'magiclink',

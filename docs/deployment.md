@@ -8,6 +8,40 @@
 
 ---
 
+## 0. Google OAuth — Configuration manuelle (requis pour la connexion Google)
+
+L'erreur `Unsupported provider: provider is not enabled` signifie que le provider Google n'est pas activé dans le Dashboard Supabase. Ce n'est pas du code — c'est une configuration manuelle à faire une fois.
+
+### Étapes
+
+**1. Google Cloud Console**
+
+1. Aller sur [console.cloud.google.com](https://console.cloud.google.com)
+2. Créer un projet ou sélectionner un projet existant
+3. Menu → **API & Services** → **Bibliothèque** → rechercher **"Google Identity"** → Activer `Google Identity Toolkit API`
+4. Menu → **API & Services** → **Identifiants** → **Créer des identifiants** → **ID client OAuth 2.0**
+5. Type d'application : **Application Web**
+6. Nom : `Quartzbase Production`
+7. **Origines JavaScript autorisées** : `https://quartzbase.fr`
+8. **URI de redirection autorisés** : `https://<votre-ref>.supabase.co/auth/v1/callback`
+   - Récupérer l'URL exacte depuis Supabase Dashboard → Authentication → Providers → Google → "Callback URL (for OAuth)"
+9. Copier le **Client ID** et le **Client Secret**
+
+**2. Supabase Dashboard**
+
+1. Aller sur [supabase.com](https://supabase.com) → votre projet
+2. **Authentication** → **Providers** → **Google**
+3. Activer le toggle **Enable Google provider**
+4. Coller le **Client ID** et le **Client Secret** Google
+5. Vérifier que **Redirect URL** contient bien `https://quartzbase.fr/auth/callback`
+6. Sauvegarder
+
+**3. Variable d'environnement**
+
+S'assurer que `NEXT_PUBLIC_URL=https://quartzbase.fr` est configuré dans Vercel.
+
+---
+
 ## 1. Déployer le projet
 
 ```bash
