@@ -8,9 +8,21 @@ export async function POST() {
 
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  // Déjà configuré comme manager
-  if (user.user_metadata?.role === 'manager') {
-    return NextResponse.json({ role: 'manager', already_setup: true })
+  // Vérifier si le profil en base est déjà correctement configuré (manager + son propre établissement)
+  const { data: existingProfile } = await supabaseAdmin
+    .from('profiles')
+    .select('role, establishment_id')
+    .eq('id', user.id)
+    .single()
+
+  if (existingProfile?.role === 'manager' && existingProfile?.establishment_id) {
+    const { data: ownedEst } = await supabaseAdmin
+      .from('establishments')
+      .select('id')
+      .eq('id', existingProfile.establishment_id)
+      .eq('owner_id', user.id)
+      .maybeSingle()
+    if (ownedEst) return NextResponse.json({ role: 'manager', already_setup: true })
   }
 
   // Créer un établissement dédié pour ce nouveau manager Google
