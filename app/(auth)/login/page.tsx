@@ -14,6 +14,23 @@ function useLogin() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  async function handleGoogleLogin() {
+    setGoogleLoading(true)
+    setError(null)
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+    if (error) {
+      setError(error.message)
+      setGoogleLoading(false)
+    }
+  }
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -40,7 +57,7 @@ function useLogin() {
     router.refresh()
   }
 
-  return { email, setEmail, password, setPassword, error, loading, handleLogin }
+  return { email, setEmail, password, setPassword, error, loading, handleLogin, googleLoading, handleGoogleLogin }
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -192,7 +209,7 @@ function MeshBackground() {
 // ── Page principale ────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
-  const { email, setEmail, password, setPassword, error, loading, handleLogin } = useLogin()
+  const { email, setEmail, password, setPassword, error, loading, handleLogin, googleLoading, handleGoogleLogin } = useLogin()
   const [showPassword, setShowPassword] = useState(false)
 
   return (
@@ -388,19 +405,24 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-[#F3F4F6] dark:bg-[#2A2D3A]" />
           </div>
 
-          {/* Bouton Google — UI uniquement, OAuth à configurer dans Supabase */}
+          {/* Bouton Google */}
           <button
             type="button"
-            disabled
+            onClick={handleGoogleLogin}
+            disabled={googleLoading || loading}
             className={cn(
               'w-full flex items-center justify-center gap-2.5',
               'px-4 py-3 rounded-xl text-[14px] font-medium text-[#374151] dark:text-[#F0F2F8]',
               'bg-white dark:bg-[#1A1D27] border border-[#E5E7EB] dark:border-[#2A2D3A]',
               'hover:bg-[#F9FAFB] dark:hover:bg-[#0F1117] transition-all duration-150',
-              'opacity-60 cursor-not-allowed'
+              'disabled:opacity-60 disabled:cursor-not-allowed'
             )}
           >
-            <GoogleIcon />
+            {googleLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <GoogleIcon />
+            )}
             <span>Se connecter avec Google</span>
           </button>
 
