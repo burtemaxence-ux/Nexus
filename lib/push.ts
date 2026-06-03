@@ -29,7 +29,7 @@ async function initVapid(supabase: SupabaseClient) {
 
   if (!pub || !priv) return false
 
-  const email = process.env.VAPID_EMAIL ?? 'admin@nexus-app.fr'
+  const email = process.env.VAPID_EMAIL ?? 'admin@quartzbase.fr'
   webpush.setVapidDetails(`mailto:${email}`, pub, priv)
   vapidReady = true
   return true

@@ -128,7 +128,7 @@ export async function sendLeaveDecisionEmail({
   }
 
   const resend = new Resend(apiKey)
-  const from = process.env.RESEND_FROM_EMAIL ?? 'Nexus by Quartz <onboarding@resend.dev>'
+  const from = process.env.RESEND_FROM_EMAIL ?? 'Quartzbase <noreply@quartzbase.fr>'
   const subject = status === 'approved'
     ? `✅ Votre congé a été validé — ${LEAVE_LABELS[type]}`
     : `❌ Votre congé a été refusé — ${LEAVE_LABELS[type]}`

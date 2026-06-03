@@ -90,7 +90,7 @@ export async function sendWeeklyBriefEmail(
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY)
-  const from = process.env.RESEND_FROM_EMAIL ?? 'Nexus by Quartz <onboarding@resend.dev>'
+  const from = process.env.RESEND_FROM_EMAIL ?? 'Quartzbase <noreply@quartzbase.fr>'
 
   const { weekLabel, establishmentName } = data
   const weekNum = weekLabel.match(/\d+/)?.[0] ?? ''
