@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { getSubscription } from '@/lib/subscription'
+import { getPlanTier } from '@/lib/plan-guard'
 
 const client = new Anthropic()
 
@@ -27,13 +29,34 @@ export async function POST(req: Request) {
 
   const supabase = await createClient()
   let authUser: { id: string }
+  let estId: string
   try {
-    const { user } = await requireManager(supabase)
+    const { user, profile } = await requireManager(supabase)
     authUser = user
+    estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
   } catch (e) {
     if (e instanceof Response) return e
     throw e
   }
+
+  // ── Guard : quota IA mensuel pour le plan Essentiel ───────────────
+  const sub  = await getSubscription(supabase, estId)
+  const tier = getPlanTier(sub)
+
+  if (tier === 'essential') {
+    const rlMonthly = await checkRateLimit({
+      key: `ai-plan-monthly:${estId}`,
+      limit: 3,
+      windowMs: 30 * 24 * 60 * 60 * 1000,
+    })
+    if (!rlMonthly.allowed) {
+      return Response.json(
+        { error: 'Quota IA atteint', upgrade_url: '/manager/settings/billing' },
+        { status: 402 }
+      )
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────
 
   const rl = await checkRateLimit({ key: `ai-plan:${authUser.id}`, limit: 10, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)

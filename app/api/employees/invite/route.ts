@@ -4,6 +4,8 @@ import { requireAuth } from '@/lib/api-auth'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 import { InviteSchema, validationError } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications/create'
+import { getSubscription } from '@/lib/subscription'
+import { getPlanTier, PLAN_EMPLOYEE_LIMITS } from '@/lib/plan-guard'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -26,6 +28,29 @@ export async function POST(request: NextRequest) {
     if (managerProfile.role !== 'manager') {
       return NextResponse.json({ error: 'Seul un manager peut inviter des employés' }, { status: 403 })
     }
+
+    // ── Guard : limite employés par plan ──────────────────────────────
+    const estId = managerProfile.establishment_id ?? ''
+    const sub   = await getSubscription(supabase, estId)
+    const tier  = getPlanTier(sub)
+    const limit = PLAN_EMPLOYEE_LIMITS[tier]
+
+    if (isFinite(limit)) {
+      const { count } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'employee')
+        .eq('archived', false)
+        .eq('establishment_id', estId)
+
+      if ((count ?? 0) >= limit) {
+        return NextResponse.json(
+          { error: `Limite de ${limit} employé${limit > 1 ? 's' : ''} atteinte pour votre plan. Passez au plan supérieur pour en ajouter d'autres.` },
+          { status: 403 }
+        )
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────
 
     const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:3000'
     const proto = host.includes('localhost') ? 'http' : 'https'

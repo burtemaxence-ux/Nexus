@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { ComplianceAlert } from '@/types'
 import type { DocumentType } from '@/app/api/compliance/generate-document/route'
 import { ComplianceMenuView } from './compliance-menu'
+import { getPlanTier, isPro as checkIsPro } from '@/lib/plan-guard'
 import { ComplianceAvenantView, ComplianceTrialChoiceView } from './compliance-avenant'
 import { ComplianceEmailView } from './compliance-email'
 import { ComplianceSosView, ComplianceSosResultsView, ComplianceSosNotifiedView } from './compliance-sos'
@@ -58,6 +59,7 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
   const [weekShiftsLoading, setWeekShiftsLoading] = useState(false)
   const [savingDoc, setSavingDoc] = useState(false)
   const [savedDoc, setSavedDoc] = useState(false)
+  const [proAccess, setProAccess] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
   const [sosCandidates, setSosCandidates] = useState<ScoredCandidate[]>([])
   const [sosRequestId, setSosRequestId] = useState<string | null>(null)
@@ -96,6 +98,18 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
       setPDFComponents({ PDFDownloadLink: pdf.PDFDownloadLink, AvenantDocument: avenant.AvenantDocument })
     }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    createClient()
+      .from('subscriptions')
+      .select('plan, status')
+      .eq('establishment_id', alert.establishment_id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const tier = getPlanTier(data as Parameters<typeof getPlanTier>[0])
+        setProAccess(checkIsPro(tier))
+      })
+  }, [alert.establishment_id])
 
   const employeeName = alert.profiles?.full_name ?? 'Employé'
   const employeeId = alert.employee_id
@@ -343,6 +357,7 @@ export function ComplianceOptionsPanel({ alert, role, onClose, onAlertUpdated }:
               alert={alert}
               role={role}
               generating={generating}
+              isPro={proAccess}
               onGenerateDocument={generateDocument}
               onGenerateEmail={generateEmail}
               onGoToPlanning={goToPlanning}

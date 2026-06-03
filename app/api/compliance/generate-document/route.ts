@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireManager } from '@/lib/api-auth'
+import { getSubscription } from '@/lib/subscription'
+import { getPlanTier, isPro } from '@/lib/plan-guard'
 import { NextRequest, NextResponse } from 'next/server'
 
 const anthropic = new Anthropic()
@@ -26,6 +28,17 @@ export async function POST(req: NextRequest) {
   }
 
   const establishmentId = profile.active_establishment_id ?? profile.establishment_id
+
+  // ── Guard : fonctionnalité Pro uniquement ─────────────────────────
+  const sub  = await getSubscription(supabase, establishmentId ?? '')
+  const tier = getPlanTier(sub)
+  if (!isPro(tier)) {
+    return NextResponse.json(
+      { error: 'Fonctionnalité disponible en plan Pro ou Multi-site', upgrade_url: '/manager/settings/billing' },
+      { status: 402 }
+    )
+  }
+  // ─────────────────────────────────────────────────────────────────
 
   const {
     alert_id,

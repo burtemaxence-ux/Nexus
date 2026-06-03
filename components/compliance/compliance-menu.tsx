@@ -1,6 +1,7 @@
 'use client'
 
-import { ChevronRight, FileText, Calendar, Mail, Users, AlertTriangle } from 'lucide-react'
+import { ChevronRight, FileText, Calendar, Mail, Users, AlertTriangle, Sparkles } from 'lucide-react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import type { ComplianceAlert } from '@/types'
 import type { DocumentType } from '@/app/api/compliance/generate-document/route'
@@ -38,6 +39,7 @@ interface Props {
   alert: ComplianceAlertWithProfile
   role: 'manager' | 'supervisor'
   generating: boolean
+  isPro: boolean
   onGenerateDocument: (dtype: DocumentType) => void
   onGenerateEmail: () => void
   onGoToPlanning: () => void
@@ -45,29 +47,14 @@ interface Props {
   onTrialChoice: () => void
 }
 
-export function ComplianceMenuView({ alert, role, generating, onGenerateDocument, onGenerateEmail, onGoToPlanning, onSos, onTrialChoice }: Props) {
+export function ComplianceMenuView({ alert, role, generating, isPro, onGenerateDocument, onGenerateEmail, onGoToPlanning, onSos, onTrialChoice }: Props) {
+  const hasDocAction =
+    role === 'manager' &&
+    (alert.type === 'hours_exceeded' || alert.type === 'requalification_risk' ||
+     alert.type === 'cdd_ending' || alert.type === 'trial_ending')
+
   return (
     <div className="p-5 space-y-3">
-      {role === 'manager' && (alert.type === 'hours_exceeded' || alert.type === 'requalification_risk') && (
-        <OptionCard
-          icon={FileText}
-          title="Créer un avenant de contrat"
-          description="Générer un avenant pour régulariser les heures de travail"
-          accent="#2563EB"
-          disabled={generating}
-          onClick={() => onGenerateDocument('avenant_heures')}
-        />
-      )}
-      {role === 'manager' && alert.type === 'cdd_ending' && (
-        <OptionCard
-          icon={FileText}
-          title="Créer un avenant de renouvellement"
-          description="Générer un avenant de renouvellement ou de transformation en CDI"
-          accent="#2563EB"
-          disabled={generating}
-          onClick={() => onGenerateDocument('avenant_cdd')}
-        />
-      )}
       {(alert.type === 'hours_exceeded' || alert.type === 'requalification_risk') && (
         <OptionCard
           icon={Calendar}
@@ -77,14 +64,6 @@ export function ComplianceMenuView({ alert, role, generating, onGenerateDocument
           onClick={onGoToPlanning}
         />
       )}
-      <OptionCard
-        icon={Mail}
-        title="Envoyer un résumé à mon expert-comptable"
-        description="Générer un email professionnel factuel à partager avec votre conseil"
-        accent="#7C3AED"
-        disabled={generating}
-        onClick={onGenerateEmail}
-      />
       {(alert.type === 'hours_exceeded' || alert.type === 'requalification_risk') && (
         <OptionCard
           icon={Users}
@@ -94,14 +73,65 @@ export function ComplianceMenuView({ alert, role, generating, onGenerateDocument
           onClick={onSos}
         />
       )}
-      {role === 'manager' && alert.type === 'trial_ending' && (
-        <OptionCard
-          icon={AlertTriangle}
-          title="Générer la lettre de période d'essai"
-          description="Confirmer l'embauche ou rompre la période d'essai — génération du courrier"
-          accent="#DC2626"
-          onClick={onTrialChoice}
-        />
+
+      {isPro ? (
+        <>
+          {role === 'manager' && (alert.type === 'hours_exceeded' || alert.type === 'requalification_risk') && (
+            <OptionCard
+              icon={FileText}
+              title="Créer un avenant de contrat"
+              description="Générer un avenant pour régulariser les heures de travail"
+              accent="#2563EB"
+              disabled={generating}
+              onClick={() => onGenerateDocument('avenant_heures')}
+            />
+          )}
+          {role === 'manager' && alert.type === 'cdd_ending' && (
+            <OptionCard
+              icon={FileText}
+              title="Créer un avenant de renouvellement"
+              description="Générer un avenant de renouvellement ou de transformation en CDI"
+              accent="#2563EB"
+              disabled={generating}
+              onClick={() => onGenerateDocument('avenant_cdd')}
+            />
+          )}
+          <OptionCard
+            icon={Mail}
+            title="Envoyer un résumé à mon expert-comptable"
+            description="Générer un email professionnel factuel à partager avec votre conseil"
+            accent="#7C3AED"
+            disabled={generating}
+            onClick={onGenerateEmail}
+          />
+          {role === 'manager' && alert.type === 'trial_ending' && (
+            <OptionCard
+              icon={AlertTriangle}
+              title="Générer la lettre de période d'essai"
+              description="Confirmer l'embauche ou rompre la période d'essai — génération du courrier"
+              accent="#DC2626"
+              onClick={onTrialChoice}
+            />
+          )}
+        </>
+      ) : (hasDocAction || true) && (
+        <div className="rounded-xl border border-[#6366F1]/30 bg-[#EEF2FF] p-4 flex items-start gap-3">
+          <div className="h-9 w-9 rounded-lg bg-[#6366F1]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Sparkles className="h-4 w-4 text-[#6366F1]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-[#4338CA]">Disponible en Pro</p>
+            <p className="text-[12px] text-[#6366F1] mt-0.5 leading-snug">
+              La génération de documents juridiques et d&apos;emails pour expert-comptable est réservée au plan Pro ou Multi-site.
+            </p>
+            <Link
+              href="/manager/settings/billing"
+              className="inline-flex items-center gap-1 mt-2 text-[12px] font-medium text-[#4F46E5] hover:underline"
+            >
+              Passer au plan Pro →
+            </Link>
+          </div>
+        </div>
       )}
     </div>
   )
