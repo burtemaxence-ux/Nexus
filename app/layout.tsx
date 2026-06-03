@@ -10,16 +10,25 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
 export const metadata: Metadata = {
-  title: 'Nexus - Gestion de planning',
-  description: 'Application de gestion de planning pour la restauration',
-  applicationName: 'Nexus',
+  metadataBase: new URL('https://quartzbase.fr'),
+  title: 'Quartzbase — Gestion de planning pour la restauration',
+  description: 'Quartzbase remplace Skello. Planning, congés, badgeuse et IA.',
+  applicationName: 'Quartzbase',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Nexus',
+    title: 'Quartzbase',
   },
   formatDetection: { telephone: false },
   manifest: '/manifest.webmanifest',
+  openGraph: {
+    title: 'Quartzbase — Gestion de planning pour la restauration',
+    description: 'Quartzbase remplace Skello. Planning, congés, badgeuse et IA.',
+    url: 'https://quartzbase.fr',
+    siteName: 'Quartzbase',
+    locale: 'fr_FR',
+    type: 'website',
+  },
 }
 
 export const viewport: Viewport = {
