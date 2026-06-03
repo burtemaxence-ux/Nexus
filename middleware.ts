@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Si l'utilisateur n'est pas connecté et tente d'accéder à une route protégée
-  if (!user && pathname !== '/login' && !pathname.startsWith('/auth/')) {
+  if (!user && pathname !== '/login' && !pathname.startsWith('/auth/') && pathname !== '/demo' && !pathname.startsWith('/api/demo/')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

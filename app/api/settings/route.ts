@@ -1,35 +1,49 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth, requireManager } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  try {
+    const supabase = await createClient()
+    const { profile } = await requireAuth(supabase)
 
-  const { data, error } = await supabase.from('settings').select('key, value')
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
 
-  const map: Record<string, string> = {}
-  for (const row of data ?? []) map[row.key] = row.value
-  return NextResponse.json(map)
+    let query = supabase.from('settings').select('key, value')
+    if (estId) query = query.eq('establishment_id', estId) as typeof query
+
+    const { data, error } = await query
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    const map: Record<string, string> = {}
+    for (const row of data ?? []) map[row.key] = row.value
+    return NextResponse.json(map)
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
 }
 
 export async function PATCH(request: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  try {
+    const supabase = await createClient()
+    const { profile } = await requireManager(supabase)
 
-  const { data: profile } = await supabase.from('profiles').select('role, establishment_id').eq('id', user.id).single()
-  if (profile?.role !== 'manager') return NextResponse.json({ error: 'Seul un manager peut modifier les paramètres' }, { status: 403 })
+    const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
+    if (!estId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 400 })
 
-  const body = await request.json()
-  const updates: { establishment_id: string; key: string; value: string; updated_at: string }[] = []
+    const body = await request.json()
+    const updates: { establishment_id: string; key: string; value: string; updated_at: string }[] = []
 
-  for (const [key, value] of Object.entries(body)) {
-    updates.push({ establishment_id: profile!.establishment_id!, key, value: String(value), updated_at: new Date().toISOString() })
+    for (const [key, value] of Object.entries(body)) {
+      updates.push({ establishment_id: estId, key, value: String(value), updated_at: new Date().toISOString() })
+    }
+
+    const { error } = await supabase.from('settings').upsert(updates, { onConflict: 'establishment_id,key' })
+    if (error) return NextResponse.json({ error: 'Erreur lors de la sauvegarde des paramètres' }, { status: 500 })
+    return NextResponse.json({ success: true })
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
   }
-
-  const { error } = await supabase.from('settings').upsert(updates, { onConflict: 'establishment_id,key' })
-  if (error) return NextResponse.json({ error: 'Erreur lors de la sauvegarde des paramètres' }, { status: 500 })
-  return NextResponse.json({ success: true })
 }

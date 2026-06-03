@@ -13,6 +13,7 @@ import {
   Plug,
   Store,
   ShieldCheck,
+  CreditCard,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { label: 'Notifications',     href: '/manager/settings/notifications', icon: Bell },
   { label: 'Exports & paie',   href: '/manager/settings/exports',        icon: Download },
   { label: 'Intégrations',     href: '/manager/settings/integrations',   icon: Plug },
+  { label: 'Abonnement',        href: '/manager/settings/billing',        icon: CreditCard },
   { label: 'Données & RGPD',   href: '/manager/settings/rgpd',           icon: ShieldCheck },
 ]
 

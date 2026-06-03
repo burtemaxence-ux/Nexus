@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/reset-demo",
+      "schedule": "0 3 * * *"
+    },
+    {
       "path": "/api/cron/check-missing-clockout",
       "schedule": "0 23 * * *"
     },
