@@ -13,9 +13,16 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      // Si next est explicitement fourni (ex: démo), l'utiliser
+      if (next !== '/') {
+        return NextResponse.redirect(`${origin}${next}`)
+      }
+      // Sinon rediriger selon le rôle
+      const role = data.user?.user_metadata?.role as string | undefined
+      const destination = role === 'manager' ? '/manager' : role === 'employee' ? '/employee' : next
+      return NextResponse.redirect(`${origin}${destination}`)
     }
   }
 
