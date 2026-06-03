@@ -113,17 +113,13 @@ function MetricsSkeleton() {
 export function ManagerMetricsClient() {
   const [metrics, setMetrics] = useState<Metrics | null>(null)
 
-  // Nouveau compte Google ou profil DB incohérent → setup automatique
+  // Vérifie et corrige le setup manager à chaque chargement (idempotent via set-role)
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    createClient().auth.getUser().then(({ data: { user } }) => {
       if (!user) return
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-      if (!user.user_metadata?.role || profile?.role !== 'manager') {
-        fetch('/api/auth/set-role', { method: 'POST' })
-          .then(r => r.json())
-          .then(data => { if (data.role === 'manager' || data.already_setup) window.location.reload() })
-      }
+      fetch('/api/auth/set-role', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => { if (data.role === 'manager' && !data.already_setup) window.location.reload() })
     })
   }, [])
 
