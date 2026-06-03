@@ -113,6 +113,17 @@ function MetricsSkeleton() {
 export function ManagerMetricsClient() {
   const [metrics, setMetrics] = useState<Metrics | null>(null)
 
+  // Nouveau compte Google : pas de rôle dans les métadonnées → setup automatique
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data: { user } }) => {
+      if (user && !user.user_metadata?.role) {
+        fetch('/api/auth/set-role', { method: 'POST' })
+          .then(r => r.json())
+          .then(data => { if (data.role === 'manager') window.location.reload() })
+      }
+    })
+  }, [])
+
   useEffect(() => {
     const supabase = createClient()
 
