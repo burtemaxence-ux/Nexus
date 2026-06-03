@@ -4,18 +4,23 @@ import { LeaveRequestSchema, validationError } from '@/lib/validations'
 import { NextRequest, NextResponse } from 'next/server'
 import { fireWebhook } from '@/lib/integrations/webhook'
 
-// GET — employé : ses propres demandes / manager : toutes
+// GET — employé : ses propres demandes / manager : toutes dans son établissement
 export async function GET() {
   try {
     const supabase = await createClient()
     const { user, profile } = await requireAuth(supabase)
+
+    const isManager = profile.role === 'manager' || profile.role === 'supervisor'
+    const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
 
     let query = supabase
       .from('leave_requests')
       .select('*, profiles(id, full_name, email, position)')
       .order('created_at', { ascending: false })
 
-    if (profile.role !== 'manager') {
+    if (isManager) {
+      if (estId) query = query.eq('establishment_id', estId) as typeof query
+    } else {
       query = query.eq('employee_id', user.id) as typeof query
     }
 

@@ -5,12 +5,15 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const supabase = await createClient()
-    await requireManager(supabase)
+    const { profile } = await requireManager(supabase)
+
+    const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
 
     const { data, error } = await supabase
       .from('profiles')
       .select('id, full_name, email, position, contract_type, weekly_hours')
       .eq('role', 'employee')
+      .eq('establishment_id', estId)
       .eq('archived', false)
       .order('full_name', { ascending: true })
 

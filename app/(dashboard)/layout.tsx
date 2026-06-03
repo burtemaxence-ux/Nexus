@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { AppShell } from '@/components/ui/app-shell'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
+import { PaywallGate } from '@/components/ui/paywall-gate'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient()
@@ -81,6 +82,29 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     return { id: est?.id ?? '', name: est?.name ?? '' }
   }).filter(e => e.id)
 
+  // ── Paywall — managers uniquement ───────────────────────────────────────────
+  let paywallGate: ReactNode | null = null
+  if (isManagerOrSupervisor && activeEstablishmentId) {
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('status')
+      .eq('establishment_id', activeEstablishmentId)
+      .maybeSingle()
+
+    const isActive = sub?.status === 'active' || sub?.status === 'trialing'
+
+    if (!isActive) {
+      const trialEnd = user
+        ? new Date(new Date(user.created_at).getTime() + 14 * 24 * 60 * 60 * 1000)
+        : new Date(0)
+      const inTrial = Date.now() < trialEnd.getTime()
+      if (!inTrial) {
+        const trialDaysLeft = sub ? undefined : 0
+        paywallGate = <PaywallGate trialDaysLeft={trialDaysLeft} />
+      }
+    }
+  }
+
   return (
     <AppShell
       role={role}
@@ -95,7 +119,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       activeEstablishmentId={activeEstablishmentId}
     >
       <ErrorBoundary>
-        {children}
+        {paywallGate ?? children}
       </ErrorBoundary>
     </AppShell>
   )

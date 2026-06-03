@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { user } = await requireAuth(supabase)
+    const { user, profile } = await requireAuth(supabase)
 
     const { searchParams } = new URL(request.url)
     const employeeParam = searchParams.get('employee')
@@ -15,15 +15,24 @@ export async function GET(request: NextRequest) {
     const from = searchParams.get('from')
     const to = searchParams.get('to')
 
+    const isManager = profile.role === 'manager' || profile.role === 'supervisor'
+    const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
+
     let query = supabase
       .from('shifts')
       .select('id, start_time, end_time, position, date, employee_id, break_minutes, notes, poste_id, status')
       .is('deleted_at', null)
 
+    // Always scope to establishment
+    if (estId) query = query.eq('establishment_id', estId)
+
     if (employeeParam === 'me') {
       query = query.eq('employee_id', user.id)
-    } else if (employeeParam) {
+    } else if (employeeParam && isManager) {
       query = query.eq('employee_id', employeeParam)
+    } else if (!isManager) {
+      // Employees can only see their own shifts
+      query = query.eq('employee_id', user.id)
     }
 
     if (from && to) {

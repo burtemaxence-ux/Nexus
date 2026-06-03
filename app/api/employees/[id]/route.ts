@@ -1,48 +1,67 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
+import { requireManager } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
-
-async function getManagerOrError() {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: NextResponse.json({ error: 'Non authentifié' }, { status: 401 }) }
-
-  const { data: profile } = await supabase
-    .from('profiles').select('role').eq('id', user.id).single()
-  if (!['manager', 'supervisor'].includes(profile?.role ?? ''))
-    return { error: NextResponse.json({ error: 'Accès refusé' }, { status: 403 }) }
-
-  return { supabase }
-}
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { supabase, error } = await getManagerOrError()
-  if (error) return error
+  try {
+    const supabase = await createClient()
+    const { profile } = await requireManager(supabase)
 
-  const body = await request.json()
-  const { full_name, position, contract_type, weekly_hours, phone, pay_ref, pin, disability } = body
+    const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
 
-  const { error: updateError } = await supabase!
-    .from('profiles')
-    .update({ full_name, position, contract_type, weekly_hours, phone, pay_ref, pin, disability, updated_at: new Date().toISOString() })
-    .eq('id', params.id)
+    const { data: target } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', params.id)
+      .eq('establishment_id', estId)
+      .single()
 
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
-  return NextResponse.json({ success: true })
+    if (!target) return NextResponse.json({ error: 'Employé introuvable' }, { status: 404 })
+
+    const body = await request.json()
+    const { full_name, position, contract_type, weekly_hours, phone, pay_ref, pin, disability } = body
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ full_name, position, contract_type, weekly_hours, phone, pay_ref, pin, disability, updated_at: new Date().toISOString() })
+      .eq('id', params.id)
+
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+    return NextResponse.json({ success: true })
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
 }
 
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { error } = await getManagerOrError()
-  if (error) return error
+  try {
+    const supabase = await createClient()
+    const { profile } = await requireManager(supabase)
 
-  // Deleting the auth user cascades to profiles → shifts → leave_requests
-  const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(params.id)
-  if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 })
-  return NextResponse.json({ success: true })
+    const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
+
+    const { data: target } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', params.id)
+      .eq('establishment_id', estId)
+      .single()
+
+    if (!target) return NextResponse.json({ error: 'Employé introuvable' }, { status: 404 })
+
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(params.id)
+    if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 })
+    return NextResponse.json({ success: true })
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
 }
