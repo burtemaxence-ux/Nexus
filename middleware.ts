@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
   const { supabaseResponse, user } = await updateSession(request)
 
   // Si l'utilisateur n'est pas connecté et tente d'accéder à une route protégée
-  if (!user && pathname !== '/login' && !pathname.startsWith('/auth/') && pathname !== '/demo' && !pathname.startsWith('/api/demo/')) {
+  if (!user && pathname !== '/login' && pathname !== '/register' && !pathname.startsWith('/auth/') && pathname !== '/demo' && !pathname.startsWith('/api/demo/') && !pathname.startsWith('/legal/')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

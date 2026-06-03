@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Mail, Lock, Eye, EyeOff, Calendar, Clock, Users, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
 // ── Supabase auth logic — NE PAS MODIFIER ─────────────────────────────────────
 
@@ -426,9 +427,15 @@ export default function LoginPage() {
             <span>Se connecter avec Google</span>
           </button>
 
+          {/* Lien inscription */}
+          <p className="mt-6 text-center text-[13px] text-[#6B7280]">
+            Pas encore de compte ?{' '}
+            <Link href="/register" className="text-[#4F46E5] hover:underline font-medium">Créer un compte</Link>
+          </p>
+
           {/* Pied de carte */}
-          <p className="mt-8 text-center text-[11px] text-[#C4C9D4]">
-            Nexus — Gestion planning &amp; équipe
+          <p className="mt-4 text-center text-[11px] text-[#C4C9D4]">
+            Quartzbase — Gestion planning &amp; équipe
           </p>
         </div>
       </div>

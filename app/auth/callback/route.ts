@@ -15,13 +15,19 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      // Si next est explicitement fourni (ex: démo), l'utiliser
+      // Si next est explicitement fourni (ex: démo, register), l'utiliser
       if (next !== '/') {
         return NextResponse.redirect(`${origin}${next}`)
       }
       // Sinon rediriger selon le rôle
       const role = data.user?.user_metadata?.role as string | undefined
-      const destination = role === 'manager' ? '/manager' : role === 'employee' ? '/employee' : next
+      // Nouveau compte Google sans rôle → manager par défaut
+      if (!role) {
+        const supabase = await createClient()
+        await supabase.auth.updateUser({ data: { role: 'manager' } })
+        return NextResponse.redirect(`${origin}/manager`)
+      }
+      const destination = role === 'manager' ? '/manager' : '/employee'
       return NextResponse.redirect(`${origin}${destination}`)
     }
   }
