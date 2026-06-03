@@ -216,7 +216,56 @@ Pour un niveau de protection maximal, configurer dans **Supabase Dashboard > Aut
 
 ---
 
-## 8. Vérifications post-déploiement
+## 8. Stripe — Créer les 6 produits et Price IDs
+
+Quartzbase propose 3 plans × 2 intervalles = 6 Price IDs à créer sur [dashboard.stripe.com](https://dashboard.stripe.com).
+
+### Tarifs
+
+| Plan       | Mensuel | Annuel   | Réduction |
+|------------|---------|----------|-----------|
+| Essentiel  | 49 €    | 490 €/an | −17 %     |
+| Pro        | 89 €    | 890 €/an | −17 %     |
+| Multi-site | 149 €   | 1490 €/an| −17 %     |
+
+### Procédure (répéter pour chaque plan)
+
+1. Aller sur **dashboard.stripe.com → Catalogue de produits → Créer un produit**
+2. Nom du produit : `Quartzbase Essentiel` (ou Pro / Multi-site)
+3. **Modèle de tarification** : Récurrent
+4. Créer **2 prix** pour ce produit :
+   - Prix 1 — **Mensuel** : `49,00 EUR` · Récurrent · Chaque mois
+   - Prix 2 — **Annuel** : `490,00 EUR` · Récurrent · Chaque année
+5. Copier les **Price IDs** (`price_...`) affichés après la création
+6. Les coller dans Vercel Dashboard > Settings > Environment Variables :
+
+```
+STRIPE_PRICE_ESSENTIAL_MONTHLY=price_xxx
+STRIPE_PRICE_ESSENTIAL_YEARLY=price_yyy
+STRIPE_PRICE_PRO_MONTHLY=price_zzz
+STRIPE_PRICE_PRO_YEARLY=price_aaa
+STRIPE_PRICE_MULTISITE_MONTHLY=price_bbb
+STRIPE_PRICE_MULTISITE_YEARLY=price_ccc
+```
+
+### Webhook Stripe
+
+1. **dashboard.stripe.com → Développeurs → Webhooks → Ajouter un endpoint**
+2. URL : `https://quartzbase.fr/api/stripe/webhook`
+3. Événements à écouter :
+   - `checkout.session.completed`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_failed`
+4. Copier le **Webhook signing secret** (`whsec_...`) → `STRIPE_WEBHOOK_SECRET`
+
+### Essai gratuit 14 jours
+
+La route `/api/stripe/checkout` applique automatiquement `trial_period_days: 14` à la **première** souscription d'un établissement. Les souscriptions suivantes (changement de plan) ne déclenchent pas de nouvel essai.
+
+---
+
+## 9. Vérifications post-déploiement
 
 - [ ] Connexion Supabase : créer un compte et accéder au dashboard
 - [ ] Emails : inviter un employé et vérifier la réception
