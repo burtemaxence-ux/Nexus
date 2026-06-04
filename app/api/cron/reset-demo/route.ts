@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
-import { resetDemoData } from '@/lib/demo-seed'
+import { resetDemoData, getDemoEstablishmentId } from '@/lib/demo-seed'
 
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  const estId = process.env.DEMO_ESTABLISHMENT_ID
+
+  const estId = process.env.DEMO_ESTABLISHMENT_ID ?? await getDemoEstablishmentId()
   if (!estId) {
-    return NextResponse.json({ error: 'DEMO_ESTABLISHMENT_ID non configuré' }, { status: 500 })
+    return NextResponse.json({ error: 'Établissement démo introuvable (DEMO_ESTABLISHMENT_ID absent et profil démo non trouvé)' }, { status: 500 })
   }
+
   try {
     await resetDemoData(estId)
     return NextResponse.json({ ok: true, reset_at: new Date().toISOString() })
