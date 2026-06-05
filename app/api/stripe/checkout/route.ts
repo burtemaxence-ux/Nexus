@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     const stripe = getStripe()
     const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
-    const appUrl = process.env.NEXT_PUBLIC_URL ?? ''
+    const appUrl = process.env.NEXT_PUBLIC_URL ?? 'https://quartzbase.fr'
 
     const { data: sub } = await supabase
       .from('subscriptions')
