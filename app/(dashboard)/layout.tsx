@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { AppShell } from '@/components/ui/app-shell'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
@@ -83,8 +84,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }).filter(e => e.id)
 
   // ── Paywall — managers uniquement ───────────────────────────────────────────
+  const headersList = await headers()
+  const currentPathname = headersList.get('x-pathname') ?? headersList.get('x-invoke-path') ?? ''
+  const isBillingPage = currentPathname.includes('/settings/billing')
+
   let paywallGate: ReactNode | null = null
-  if (isManagerOrSupervisor && activeEstablishmentId) {
+  if (isManagerOrSupervisor && activeEstablishmentId && !isBillingPage) {
     const { data: sub } = await supabase
       .from('subscriptions')
       .select('status')
