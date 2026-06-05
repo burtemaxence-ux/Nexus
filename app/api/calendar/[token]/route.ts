@@ -33,7 +33,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
     return new NextResponse(ics, {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
-        'Content-Disposition': `attachment; filename="planning-nexus.ics"`,
+        'Content-Disposition': `attachment; filename="planning-quartzbase.ics"`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
     })

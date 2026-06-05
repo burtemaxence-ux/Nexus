@@ -48,7 +48,7 @@ export function generateICS(
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Nexus//Planning//FR',
+    'PRODID:-//Quartzbase//Planning//FR',
     `X-WR-CALNAME:${icsEscape(`Planning ${employeeName} — ${orgName}`)}`,
     'X-WR-TIMEZONE:Europe/Paris',
     'CALSCALE:GREGORIAN',

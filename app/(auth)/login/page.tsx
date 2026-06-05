@@ -71,10 +71,10 @@ function NexusLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
         'rounded-xl bg-[#4F46E5] flex items-center justify-center font-bold text-white select-none',
         s ? 'w-9 h-9 text-[17px]' : 'w-7 h-7 text-[14px]'
       )}>
-        D
+        Q
       </div>
       <span className={cn('font-semibold tracking-tight text-[#18181B] dark:text-[#F0F2F8]', s ? 'text-[17px]' : 'text-[15px]')}>
-        Nexus
+        Quartzbase
       </span>
     </div>
   )

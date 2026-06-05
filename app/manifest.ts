@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Nexus Planning',
-    short_name: 'Nexus',
+    name: 'Quartzbase',
+    short_name: 'Quartzbase',
     description: 'Votre planning de travail et badgeuse en un clic',
     start_url: '/employee',
     scope: '/',
