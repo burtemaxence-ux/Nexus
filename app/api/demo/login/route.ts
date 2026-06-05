@@ -21,11 +21,16 @@ export async function GET(request: NextRequest) {
   let { data, error } = await generateLink()
 
   if (error) {
+    const demoEstId = process.env.DEMO_ESTABLISHMENT_ID
     await supabaseAdmin.auth.admin.createUser({
       email: demoEmail,
       password: process.env.DEMO_USER_PASSWORD ?? 'Demo2024!Nexus',
       email_confirm: true,
-      user_metadata: { full_name: 'Demo Manager', role: 'manager' },
+      user_metadata: {
+        full_name: 'Claire Fontaine',
+        role: 'manager',
+        ...(demoEstId ? { establishment_id: demoEstId } : {}),
+      },
     })
     const retry = await generateLink()
     data  = retry.data
