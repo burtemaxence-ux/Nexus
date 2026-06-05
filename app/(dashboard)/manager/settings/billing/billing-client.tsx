@@ -5,6 +5,7 @@ import { CreditCard, Check, Zap, Building2, Loader2, AlertTriangle } from 'lucid
 import type { SubscriptionRow } from '@/lib/subscription'
 import { type BillingInterval, type PlanId, PLAN_META } from '@/lib/stripe'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface Props {
   subscription: SubscriptionRow | null
@@ -87,7 +88,11 @@ export function BillingClient({ subscription, trialDaysLeft }: Props) {
         body: JSON.stringify({ planId, interval }),
       })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
+      if (!data.url) {
+        toast.error('Une erreur est survenue. Veuillez réessayer.')
+        return
+      }
+      window.location.href = data.url
     } finally {
       setLoading(null)
     }

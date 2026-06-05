@@ -241,7 +241,7 @@ export async function GET(request: NextRequest) {
       results.briefs_sent++
       console.log(`[weekly-brief] ${est.name} → brief envoyé à ${managers.length} manager(s)`)
     } catch (err) {
-      captureError(err, { cron: 'weekly-brief-manager', establishment_id: est.id })
+      captureError(err, { context: 'weekly-brief-manager', etablissement: est.id })
       results.errors++
     }
   }

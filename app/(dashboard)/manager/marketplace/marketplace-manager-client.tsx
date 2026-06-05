@@ -7,6 +7,7 @@ import {
   UserCheck, Users, Zap, Timer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import type { MarketplaceSlot } from '@/app/api/marketplace/route'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -226,7 +227,10 @@ function SlotCard({ slot, onRefresh }: { slot: MarketplaceSlot; onRefresh: () =>
     try {
       await fetch(`/api/marketplace/${slot.id}`, { method: 'DELETE' })
       onRefresh()
-    } catch {} finally { setCancelling(false) }
+    } catch (e) {
+      console.error('Annulation candidature échouée:', e)
+      toast.error('Erreur lors de l\'annulation')
+    } finally { setCancelling(false) }
   }
 
   const statusColors = {
