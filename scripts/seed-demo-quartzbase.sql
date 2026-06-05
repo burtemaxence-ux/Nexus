@@ -263,27 +263,34 @@ BEGIN
   RAISE NOTICE '✅ 2 congés créés';
 
   -- ── 8. Alertes conformité ─────────────────────────────────────────────────────
-  INSERT INTO public.compliance_alerts (establishment_id, employee_id, type, level, title, message, status, options) VALUES
-    (v_est_id, v_alice_id, 'hours_exceeded', 'CRITICAL',
-     'Dépassement heures — Alice Martin',
-     'Alice Martin dépasse régulièrement ses 35h contractuelles depuis 8 semaines. Risque de requalification si la situation persiste.',
-     'active', '{"consecutive_weeks":8,"avg_hours":40.5,"contract_hours":35}'::jsonb),
-    (v_est_id, v_david_id, 'cdd_ending', 'WARNING',
-     'Fin de CDD — David Moreau',
-     'Le contrat CDD de David Moreau se termine dans 45 jours. Décision de renouvellement à prendre rapidement.',
-     'active', '{"days_remaining":45}'::jsonb);
-
-  RAISE NOTICE '✅ 2 alertes conformité créées';
+  -- Insertion conditionnelle : la table n'existe pas sur tous les projets
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'compliance_alerts') THEN
+    INSERT INTO public.compliance_alerts (establishment_id, employee_id, type, level, title, message, status, options) VALUES
+      (v_est_id, v_alice_id, 'hours_exceeded', 'CRITICAL',
+       'Dépassement heures — Alice Martin',
+       'Alice Martin dépasse régulièrement ses 35h contractuelles depuis 8 semaines. Risque de requalification si la situation persiste.',
+       'active', '{"consecutive_weeks":8,"avg_hours":40.5,"contract_hours":35}'::jsonb),
+      (v_est_id, v_david_id, 'cdd_ending', 'WARNING',
+       'Fin de CDD — David Moreau',
+       'Le contrat CDD de David Moreau se termine dans 45 jours. Décision de renouvellement à prendre rapidement.',
+       'active', '{"days_remaining":45}'::jsonb);
+    RAISE NOTICE '✅ 2 alertes conformité créées';
+  ELSE
+    RAISE NOTICE '⚠️  Table compliance_alerts absente — alertes ignorées';
+  END IF;
 
   -- ── 9. Notifications (5 non lues pour le manager) ────────────────────────────
-  INSERT INTO public.notifications (user_id, establishment_id, type, title, body, read, action_url) VALUES
-    (v_mgr_id, v_est_id, 'leave_request',    'Nouvelle demande de congés', 'Alice Martin demande des congés.',              false, '/manager/conges'),
-    (v_mgr_id, v_est_id, 'compliance_alert', 'Alerte conformité CRITICAL', 'Dépassement heures — Alice Martin.',            false, '/manager/alertes'),
-    (v_mgr_id, v_est_id, 'compliance_alert', 'Alerte conformité WARNING',  'CDD David Moreau se termine dans 45 jours.',    false, '/manager/alertes'),
-    (v_mgr_id, v_est_id, 'shift_swap',       'Échange de planning',        'Benoît Dupont propose un échange à Grace.',     false, '/manager/echanges'),
-    (v_mgr_id, v_est_id, 'system',           'Planning publié',            'Le planning de la semaine a été publié.',       false, '/manager/planning');
-
-  RAISE NOTICE '✅ 5 notifications créées';
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'notifications') THEN
+    INSERT INTO public.notifications (user_id, establishment_id, type, title, body, read, action_url) VALUES
+      (v_mgr_id, v_est_id, 'leave_request',    'Nouvelle demande de congés', 'Alice Martin demande des congés.',              false, '/manager/conges'),
+      (v_mgr_id, v_est_id, 'compliance_alert', 'Alerte conformité CRITICAL', 'Dépassement heures — Alice Martin.',            false, '/manager/alertes'),
+      (v_mgr_id, v_est_id, 'compliance_alert', 'Alerte conformité WARNING',  'CDD David Moreau se termine dans 45 jours.',    false, '/manager/alertes'),
+      (v_mgr_id, v_est_id, 'shift_swap',       'Échange de planning',        'Benoît Dupont propose un échange à Grace.',     false, '/manager/echanges'),
+      (v_mgr_id, v_est_id, 'system',           'Planning publié',            'Le planning de la semaine a été publié.',       false, '/manager/planning');
+    RAISE NOTICE '✅ 5 notifications créées';
+  ELSE
+    RAISE NOTICE '⚠️  Table notifications absente — notifications ignorées';
+  END IF;
 
   -- ── Résumé ────────────────────────────────────────────────────────────────────
   RAISE NOTICE '';
