@@ -191,7 +191,7 @@ BEGIN
     (v_elise_id,    v_est_id, 'CDI 35h', CURRENT_DATE - 90, NULL,                 35, 12.00, 60),
     (v_francois_id, v_est_id, 'CDI 28h', CURRENT_DATE - 90, NULL,                 28, 12.00, 60),
     (v_grace_id,    v_est_id, 'Extra',   CURRENT_DATE - 90, NULL,                 24, 12.00, NULL),
-    (v_hugo_id,     v_est_id, 'CDI 39h', CURRENT_DATE - 90, NULL,                 39, 16.00, 60);
+    (v_hugo_id,     v_est_id, 'CDI 35h', CURRENT_DATE - 90, NULL,                 39, 16.00, 60);
 
   RAISE NOTICE '✅ 8 contrats créés';
 
