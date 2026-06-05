@@ -2,7 +2,14 @@ export const runtime = 'nodejs'
 
 import type Stripe from 'stripe'
 import { NextRequest, NextResponse } from 'next/server'
-import { getStripe } from '@/lib/stripe'
+import { getStripe, STRIPE_PRICES } from '@/lib/stripe'
+
+function resolvePlan(priceId: string): string {
+  if (priceId === STRIPE_PRICES.essential_monthly || priceId === STRIPE_PRICES.essential_yearly) return 'essential'
+  if (priceId === STRIPE_PRICES.pro_monthly || priceId === STRIPE_PRICES.pro_yearly) return 'pro'
+  if (priceId === STRIPE_PRICES.multisite_monthly || priceId === STRIPE_PRICES.multisite_yearly) return 'multisite'
+  return 'essential'
+}
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 const RELEVANT_EVENTS = new Set([
@@ -49,13 +56,14 @@ export async function POST(request: NextRequest) {
 
       const sub = await stripe.subscriptions.retrieve(subscriptionId, { expand: ['items'] })
       const periodEnd = sub.items.data[0]?.current_period_end
+      const plan = resolvePlan(sub.items.data[0]?.price.id ?? '')
 
       await supabaseAdmin.from('subscriptions').upsert({
         establishment_id: establishmentId,
         user_id: userId,
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
-        plan: 'pro',
+        plan,
         status: sub.status,
         current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
         cancel_at_period_end: sub.cancel_at_period_end,
@@ -69,13 +77,16 @@ export async function POST(request: NextRequest) {
       if (!establishmentId) return NextResponse.json({ received: true })
 
       const periodEnd = sub.items.data[0]?.current_period_end
+      const plan = event.type === 'customer.subscription.deleted'
+        ? 'free'
+        : resolvePlan(sub.items.data[0]?.price.id ?? '')
 
       await supabaseAdmin.from('subscriptions').upsert({
         establishment_id: establishmentId,
         stripe_subscription_id: sub.id,
         stripe_customer_id: sub.customer as string,
         status: sub.status,
-        plan: event.type === 'customer.subscription.deleted' ? 'free' : 'pro',
+        plan,
         current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
         cancel_at_period_end: sub.cancel_at_period_end,
         updated_at: new Date().toISOString(),
