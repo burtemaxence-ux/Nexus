@@ -166,7 +166,7 @@ BEGIN
   UPDATE public.profiles SET full_name='Élise Petit',     first_name='Élise',    last_name='Petit',     phone='06 65 76 87 98', position='Vendeur',     contract_type='CDI 35h', weekly_hours=35, establishment_id=v_est_id WHERE id=v_elise_id;
   UPDATE public.profiles SET full_name='François Simon',  first_name='François', last_name='Simon',     phone='06 76 87 98 09', position='Vendeur',     contract_type='CDI 28h', weekly_hours=28, establishment_id=v_est_id WHERE id=v_francois_id;
   UPDATE public.profiles SET full_name='Grace Lambert',   first_name='Grace',    last_name='Lambert',   phone='06 87 98 09 10', position='Vendeur',     contract_type='Extra',   weekly_hours=24, establishment_id=v_est_id WHERE id=v_grace_id;
-  UPDATE public.profiles SET full_name='Hugo Leroy',      first_name='Hugo',     last_name='Leroy',     phone='06 98 09 10 21', position='Responsable', contract_type='CDI 39h', weekly_hours=39, establishment_id=v_est_id WHERE id=v_hugo_id;
+  UPDATE public.profiles SET full_name='Hugo Leroy',      first_name='Hugo',     last_name='Leroy',     phone='06 98 09 10 21', position='Responsable', contract_type='CDI 35h', weekly_hours=39, establishment_id=v_est_id WHERE id=v_hugo_id;
 
   RAISE NOTICE '✅ 8 employés créés';
 
