@@ -7,9 +7,10 @@
  */
 export async function triggerSOSReplacement(shift_id: string): Promise<string | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+      ?? (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000')
 
     // On passe par l'API interne pour réutiliser tout le scoring + Claude Haiku
     // L'appel interne utilise le service role via supabaseAdmin — pas de session cookie nécessaire
