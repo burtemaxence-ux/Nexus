@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const demoEstId = process.env.DEMO_ESTABLISHMENT_ID
     await supabaseAdmin.auth.admin.createUser({
       email: demoEmail,
-      password: process.env.DEMO_USER_PASSWORD ?? 'Demo2024!Quartzbase',
+      password: process.env.DEMO_USER_PASSWORD ?? 'Demo2024!Nexus',
       email_confirm: true,
       user_metadata: {
         full_name: 'Claire Fontaine',
@@ -38,9 +38,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (error || !data.properties?.action_link) {
-    const msg = error?.message ?? 'no_action_link'
-    console.error('[demo/login] generateLink failed:', msg)
-    return NextResponse.redirect(`${appUrl}/demo?error=1&detail=${encodeURIComponent(msg)}`)
+    const detail = (error as any)?.message ?? 'unknown'
+    console.error('[demo/login]', detail)
+    return NextResponse.redirect(`${appUrl}/demo?error=1&detail=${encodeURIComponent(detail)}`)
   }
 
   return NextResponse.redirect(data.properties.action_link)
