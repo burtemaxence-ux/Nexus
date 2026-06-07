@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const demoEstId = process.env.DEMO_ESTABLISHMENT_ID
     await supabaseAdmin.auth.admin.createUser({
       email: demoEmail,
-      password: process.env.DEMO_USER_PASSWORD ?? 'Demo2024!Nexus',
+      password: process.env.DEMO_USER_PASSWORD ?? 'Demo2024!Quartzbase',
       email_confirm: true,
       user_metadata: {
         full_name: 'Claire Fontaine',
