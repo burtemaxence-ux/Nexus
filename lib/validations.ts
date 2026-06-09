@@ -53,6 +53,8 @@ export const ContractSchema = z.object({
   notes: z.string().max(2000).optional().nullable(),
 })
 
+export const pinSchema = z.string().regex(/^\d{4,6}$/, 'PIN doit être 4 à 6 chiffres')
+
 export function validationError(err: ZodError) {
   const messages = err.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
   return Response.json({ error: `Données invalides — ${messages}` }, { status: 422 })

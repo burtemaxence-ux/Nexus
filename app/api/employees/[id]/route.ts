@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
+import { hashPin } from '@/lib/pin'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function PATCH(
@@ -25,9 +26,15 @@ export async function PATCH(
     const body = await request.json()
     const { full_name, position, contract_type, weekly_hours, phone, pay_ref, pin, disability } = body
 
+    const pinHash = pin ? await hashPin(pin) : undefined
+
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ full_name, position, contract_type, weekly_hours, phone, pay_ref, pin, disability, updated_at: new Date().toISOString() })
+      .update({
+        full_name, position, contract_type, weekly_hours, phone, pay_ref,
+        ...(pinHash !== undefined && { pin: pinHash }),
+        disability, updated_at: new Date().toISOString(),
+      })
       .eq('id', params.id)
 
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
