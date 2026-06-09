@@ -1,10 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { ArrowRight, Copy, Check } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { ensureDemoAuth } from './actions'
+import { getDemoMagicLink } from './actions'
 
 const DEMO_EMAIL    = 'demo@quartzbase.fr'
 const DEMO_PASSWORD = 'Demo2024!'
@@ -24,26 +22,20 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export default function DemoLoginButton() {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleClick() {
     setLoading(true)
     setError(null)
-    await ensureDemoAuth()
-    const supabase = createClient()
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: DEMO_EMAIL,
-      password: DEMO_PASSWORD,
-    })
-    if (authError) {
-      console.error('[Demo] signInWithPassword error:', authError.message)
+    const { url, error: linkError } = await getDemoMagicLink()
+    if (linkError || !url) {
+      console.error('[Demo] magic link error:', linkError)
       setError('Connexion impossible. Réessayez dans quelques instants.')
       setLoading(false)
       return
     }
-    router.push('/manager')
+    window.location.href = url
   }
 
   return (

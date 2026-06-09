@@ -2,22 +2,21 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
-const DEMO_USER_ID = 'c4000000-0000-0000-0000-000000000001'
-const DEMO_PASSWORD = 'Demo2024!'
+const DEMO_EMAIL = 'demo@quartzbase.fr'
 
-export async function ensureDemoAuth(): Promise<{ error?: string }> {
-  const { error } = await supabaseAdmin.auth.admin.updateUserById(DEMO_USER_ID, {
-    password: DEMO_PASSWORD,
-    email_confirm: true,
+export async function getDemoMagicLink(): Promise<{ url?: string; error?: string }> {
+  const appUrl = process.env.NEXT_PUBLIC_URL ?? 'https://quartzbase.fr'
+
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'magiclink',
+    email: DEMO_EMAIL,
+    options: { redirectTo: `${appUrl}/auth/callback?next=/manager` },
   })
-  if (error?.message.toLowerCase().includes('not found')) {
-    const { error: createErr } = await supabaseAdmin.auth.admin.createUser({
-      email: 'demo@quartzbase.fr',
-      password: DEMO_PASSWORD,
-      email_confirm: true,
-      user_metadata: { full_name: 'Claire Fontaine', role: 'manager' },
-    })
-    return createErr ? { error: createErr.message } : {}
+
+  if (error || !data?.properties?.action_link) {
+    console.error('[Demo] generateLink error:', error?.message ?? 'no action_link')
+    return { error: error?.message ?? 'no action_link' }
   }
-  return error ? { error: error.message } : {}
+
+  return { url: data.properties.action_link }
 }
