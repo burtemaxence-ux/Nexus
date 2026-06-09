@@ -4,7 +4,7 @@ import Link from 'next/link'
 const HERO_TITLE = 'Fini les dimanches soir à galérer sur le planning.'
 
 const HERO_SUBTITLE =
-  'Générez le planning de votre équipe en 2 minutes avec l'IA. 4× moins cher que Skello, conforme Code du Travail.'
+  `Générez le planning de votre équipe en 2 minutes avec l'IA. 4× moins cher que Skello, conforme Code du Travail.`
 
 const TRUST_BADGE = '14 jours gratuits · Sans carte bleue · Conforme Code du Travail'
 

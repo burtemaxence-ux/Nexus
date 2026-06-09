@@ -13,7 +13,7 @@ const FEATURES = [
     accentColor: '#6C63FF',
     title: 'Planning fait en 2 minutes',
     description:
-      'Dites à l'IA vos contraintes de la semaine. Elle génère un planning complet, que vous validez ou ajustez avant de l'envoyer à votre équipe.',
+      `Dites à l'IA vos contraintes de la semaine. Elle génère un planning complet, que vous validez ou ajustez avant de l'envoyer à votre équipe.`,
     linkTo: '#dimanche-soir',
     delay: 0,
   },
@@ -29,7 +29,7 @@ const FEATURES = [
     accentColor: '#00D4AA',
     title: 'Remplaçant trouvé en 1 clic',
     description:
-      'Un absent au dernier moment ? L'application envoie automatiquement la demande aux disponibles. Vous confirmez le remplaçant depuis votre téléphone.',
+      `Un absent au dernier moment ? L'application envoie automatiquement la demande aux disponibles. Vous confirmez le remplaçant depuis votre téléphone.`,
     linkTo: '#absent',
     delay: 100,
   },
