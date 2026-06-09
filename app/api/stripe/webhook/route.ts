@@ -8,7 +8,7 @@ function resolvePlan(priceId: string): string {
   if (priceId === STRIPE_PRICES.essential_monthly || priceId === STRIPE_PRICES.essential_yearly) return 'essential'
   if (priceId === STRIPE_PRICES.pro_monthly || priceId === STRIPE_PRICES.pro_yearly) return 'pro'
   if (priceId === STRIPE_PRICES.multisite_monthly || priceId === STRIPE_PRICES.multisite_yearly) return 'multisite'
-  return 'essential'
+  return 'free'
 }
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
