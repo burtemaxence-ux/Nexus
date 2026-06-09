@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { ensureDemoAuth } from './actions'
 
 const DEMO_EMAIL    = 'demo@quartzbase.fr'
 const DEMO_PASSWORD = 'Demo2024!'
@@ -16,6 +17,7 @@ export default function DemoLoginButton() {
   async function handleClick() {
     setLoading(true)
     setError(null)
+    await ensureDemoAuth()
     const supabase = createClient()
     const { error: authError } = await supabase.auth.signInWithPassword({
       email: DEMO_EMAIL,
