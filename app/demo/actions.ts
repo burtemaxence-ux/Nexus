@@ -7,10 +7,12 @@ export async function syncDemoPassword(): Promise<{ error?: string }> {
   const password = process.env.DEMO_USER_PASSWORD
   if (!email || !password) return { error: 'not_configured' }
 
+  const estId = process.env.DEMO_ESTABLISHMENT_ID
   const { data: profile } = await supabaseAdmin
     .from('profiles')
     .select('id')
-    .eq('email', email)
+    .eq('establishment_id', estId ?? '')
+    .eq('role', 'manager')
     .maybeSingle()
 
   if (!profile?.id) return { error: 'user_not_found' }
