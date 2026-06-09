@@ -13,6 +13,12 @@
       "skillPath": "skills/caveman/SKILL.md",
       "computedHash": "dfbf85749fd474feeb0bbe60c779795ecd5dbec0083299b56e68916bc3ddd8c9"
     },
+    "context-engineering-collection": {
+      "source": "muratcankoylan/agent-skills-for-context-engineering",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "df67ded00f18bf31f65a782dbcdcbeaedc42b5aa65137784bb163abbad7c5952"
+    },
     "dispatching-parallel-agents": {
       "source": "obra/superpowers",
       "sourceType": "github",
