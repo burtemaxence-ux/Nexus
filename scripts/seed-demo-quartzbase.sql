@@ -62,26 +62,35 @@ BEGIN
   ];
 
   -- ── 1. Nettoyage (ordre FK : enfants avant parents) ──────────────────────────
-  -- Trouver l'établissement existant du manager demo (si déjà seedé)
+  -- Chercher l'établissement via le profil (UUID fixe)
   SELECT establishment_id INTO v_est_id FROM public.profiles WHERE id = v_mgr_id;
-
-  IF v_est_id IS NOT NULL THEN
-    DELETE FROM public.notifications       WHERE establishment_id = v_est_id;
-    DELETE FROM public.compliance_alerts   WHERE establishment_id = v_est_id;
-    DELETE FROM public.lateness_records    WHERE establishment_id = v_est_id;
-    DELETE FROM public.replacement_requests WHERE establishment_id = v_est_id;
-    DELETE FROM public.presences           WHERE establishment_id = v_est_id;
-    DELETE FROM public.leave_requests      WHERE establishment_id = v_est_id;
-    DELETE FROM public.contracts           WHERE establishment_id = v_est_id;
-    DELETE FROM public.shifts              WHERE establishment_id = v_est_id;
-    DELETE FROM public.postes              WHERE establishment_id = v_est_id;
-    DELETE FROM public.settings            WHERE establishment_id = v_est_id;
+  -- Fallback : via owner_id (cas où le profil n'a pas encore le bon UUID)
+  IF v_est_id IS NULL THEN
+    SELECT id INTO v_est_id FROM public.establishments WHERE owner_id = v_mgr_id LIMIT 1;
   END IF;
 
-  DELETE FROM public.profiles    WHERE id = ANY(v_all_ids);
+  IF v_est_id IS NOT NULL THEN
+    DELETE FROM public.notifications        WHERE establishment_id = v_est_id;
+    DELETE FROM public.compliance_alerts    WHERE establishment_id = v_est_id;
+    DELETE FROM public.lateness_records     WHERE establishment_id = v_est_id;
+    DELETE FROM public.replacement_requests WHERE establishment_id = v_est_id;
+    DELETE FROM public.presences            WHERE establishment_id = v_est_id;
+    DELETE FROM public.leave_requests       WHERE establishment_id = v_est_id;
+    DELETE FROM public.contracts            WHERE establishment_id = v_est_id;
+    DELETE FROM public.shifts               WHERE establishment_id = v_est_id;
+    DELETE FROM public.postes               WHERE establishment_id = v_est_id;
+    DELETE FROM public.settings             WHERE establishment_id = v_est_id;
+  END IF;
+
+  -- Nettoyer aussi les FK des établissements supplémentaires liés à cet owner
+  -- (sécurité : évite les violations FK si plusieurs établissements existent)
+  DELETE FROM public.postes    WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id = v_mgr_id);
+  DELETE FROM public.settings  WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id = v_mgr_id);
+
+  DELETE FROM public.profiles      WHERE id = ANY(v_all_ids);
   DELETE FROM public.establishments WHERE owner_id = v_mgr_id;
-  DELETE FROM auth.identities    WHERE user_id = ANY(v_all_ids);
-  DELETE FROM auth.users         WHERE id = ANY(v_all_ids);
+  DELETE FROM auth.identities       WHERE user_id = ANY(v_all_ids);
+  DELETE FROM auth.users            WHERE id = ANY(v_all_ids);
 
   -- Nettoyage par email (cas où UUIDs différents d'un run précédent)
   DELETE FROM auth.identities WHERE user_id IN (
