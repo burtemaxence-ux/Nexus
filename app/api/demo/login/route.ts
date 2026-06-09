@@ -28,10 +28,26 @@ export async function GET(request: NextRequest) {
       email_confirm: true,
     })
     if (updateErr) {
-      console.error('[Demo] updateUserById error:', updateErr.message)
-      return NextResponse.redirect(`${appUrl}/demo?error=1`)
+      if (!updateErr.message.toLowerCase().includes('not found')) {
+        console.error('[Demo] updateUserById error:', updateErr.message)
+        return NextResponse.redirect(`${appUrl}/demo?error=1`)
+      }
+      // Profil orphelin : auth.users supprimé sans cascade — nettoyer et recréer
+      console.warn('[Demo] orphaned profile detected, cleaning up:', profileRow.id)
+      await supabaseAdmin.from('profiles').delete().eq('id', profileRow.id)
+      const { error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email: demoEmail,
+        password: demoPassword,
+        email_confirm: true,
+        user_metadata: { full_name: 'Claire Fontaine', role: 'manager' },
+      })
+      if (createErr) {
+        console.error('[Demo] createUser after orphan cleanup:', createErr.message)
+        return NextResponse.redirect(`${appUrl}/demo?error=1`)
+      }
+    } else {
+      console.log('[Demo] password synced for existing user', profileRow.id)
     }
-    console.log('[Demo] password synced for existing user', profileRow.id)
   } else {
     // Utilisateur introuvable — créer via admin (déclenche handle_new_user)
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
