@@ -11,11 +11,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { planId, interval } = body as { planId: PlanId; interval: BillingInterval }
 
-    const priceKey = `${planId}_${interval}` as keyof typeof STRIPE_PRICES
-    const priceId = STRIPE_PRICES[priceKey]
-
-    if (!priceId) {
+    const priceKey = `${planId}_${interval}`
+    if (!(priceKey in STRIPE_PRICES)) {
       return NextResponse.json({ error: 'Plan ou intervalle invalide' }, { status: 400 })
+    }
+
+    const priceId = STRIPE_PRICES[priceKey as keyof typeof STRIPE_PRICES]
+    if (!priceId) {
+      return NextResponse.json(
+        { error: 'Plan de paiement non configuré. Contactez le support.' },
+        { status: 503 }
+      )
     }
 
     const stripe = getStripe()
