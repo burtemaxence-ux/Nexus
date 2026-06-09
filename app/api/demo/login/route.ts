@@ -8,6 +8,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/demo?error=not_configured`)
   }
 
+  const demoPassword = process.env.DEMO_USER_PASSWORD
+  if (!demoPassword) {
+    console.error('[Demo] DEMO_USER_PASSWORD not configured')
+    const origin = new URL(request.url).origin
+    return NextResponse.redirect(`${origin}/demo?error=not_configured`)
+  }
+
   const appUrl = process.env.NEXT_PUBLIC_URL ?? new URL(request.url).origin
 
   async function generateLink() {
@@ -23,7 +30,7 @@ export async function GET(request: NextRequest) {
   if (error) {
     await supabaseAdmin.auth.admin.createUser({
       email: demoEmail,
-      password: process.env.DEMO_USER_PASSWORD ?? 'Demo2024!Quartzbase',
+      password: demoPassword,
       email_confirm: true,
       user_metadata: {
         full_name: 'Claire Fontaine',
@@ -36,9 +43,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (error || !data.properties?.action_link) {
-    const detail = (error as any)?.message ?? 'unknown'
-    console.error('[demo/login]', detail)
-    return NextResponse.redirect(`${appUrl}/demo?error=1&detail=${encodeURIComponent(detail)}`)
+    console.error('[Demo login error]', (error as any)?.message ?? 'unknown')
+    return NextResponse.redirect(`${appUrl}/demo?error=1`)
   }
 
   return NextResponse.redirect(data.properties.action_link)
