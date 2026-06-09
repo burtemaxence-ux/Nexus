@@ -21,6 +21,7 @@ export default function DemoLoginButton({ email, password }: Props) {
     const supabase = createClient()
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
     if (authError) {
+      console.error('[Demo] signInWithPassword error:', authError.message)
       setError('Une erreur est survenue. Réessayez dans quelques instants.')
       setLoading(false)
       return

@@ -37,8 +37,9 @@ DECLARE
   v_p_resp UUID;
   r        RECORD;
 
-  -- Hash bcrypt de Demo2024! — le login démo utilise un magic link, pas le mot de passe
-  v_pwd TEXT := '$2b$10$DRYzhLWjG85vcB8scfXZNOYkYgbfboz57JtzTNMgi1bZzMHP46Hxu';
+  -- Mot de passe du compte démo (doit correspondre à DEMO_USER_PASSWORD dans Vercel)
+  -- crypt() via pgcrypto génère un hash $2a$ compatible GoTrue/Supabase Auth
+  v_pwd TEXT := crypt('Demo2024!', gen_salt('bf', 10));
 
   v_mon0 DATE; -- lundi semaine en cours
   v_mon1 DATE; -- lundi semaine -1
