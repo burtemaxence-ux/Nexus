@@ -4,14 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { syncDemoPassword } from './actions'
 
-interface Props {
-  email: string
-  password: string
-}
+const DEMO_EMAIL    = 'demo@quartzbase.fr'
+const DEMO_PASSWORD = 'Demo2024!'
 
-export default function DemoLoginButton({ email, password }: Props) {
+export default function DemoLoginButton() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -19,17 +16,11 @@ export default function DemoLoginButton({ email, password }: Props) {
   async function handleClick() {
     setLoading(true)
     setError(null)
-
-    const sync = await syncDemoPassword()
-    if (sync.error) {
-      console.error('[Demo] sync error:', sync.error)
-      setError('Une erreur est survenue. Réessayez dans quelques instants.')
-      setLoading(false)
-      return
-    }
-
     const supabase = createClient()
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: DEMO_EMAIL,
+      password: DEMO_PASSWORD,
+    })
     if (authError) {
       console.error('[Demo] signInWithPassword error:', authError.message)
       setError('Une erreur est survenue. Réessayez dans quelques instants.')

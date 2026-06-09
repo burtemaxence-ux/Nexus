@@ -15,10 +15,6 @@ const FEATURES = [
 ]
 
 export default function DemoPage() {
-  const email = process.env.DEMO_USER_EMAIL
-  const password = process.env.DEMO_USER_PASSWORD
-  const configured = !!(email && password)
-
   return (
     <div className="min-h-screen bg-[#EDEEFF] dark:bg-[#0F1117] flex flex-col items-center justify-center px-4 py-16 relative overflow-hidden">
 
@@ -52,11 +48,7 @@ export default function DemoPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          {configured ? (
-            <DemoLoginButton email={email} password={password} />
-          ) : (
-            <p className="text-[13px] text-[#6B7280]">La démo n&apos;est pas encore configurée sur ce serveur. Revenez bientôt.</p>
-          )}
+          <DemoLoginButton />
           <Link
             href="/login"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-[#E5E7EB] dark:border-[#2A2D3A] bg-white dark:bg-[#1A1D27] text-[#374151] dark:text-[#F0F2F8] text-[14px] font-medium hover:bg-[#F9FAFB] dark:hover:bg-[#0F1117] transition-colors duration-150"
