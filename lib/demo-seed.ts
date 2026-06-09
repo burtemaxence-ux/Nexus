@@ -15,10 +15,13 @@ function addDays(d: Date, n: number) {
 function iso(d: Date) { return d.toISOString().split('T')[0] }
 
 /**
- * Looks up the demo establishment ID from the manager's profile.
- * Fallback used when DEMO_ESTABLISHMENT_ID env var is not set.
+ * Returns the demo establishment ID.
+ * Uses DEMO_ESTABLISHMENT_ID env var as a fast path (no DB round-trip).
+ * Falls back to a DB lookup on DEMO_USER_EMAIL when the env var is absent.
  */
 export async function getDemoEstablishmentId(): Promise<string | null> {
+  if (process.env.DEMO_ESTABLISHMENT_ID) return process.env.DEMO_ESTABLISHMENT_ID
+
   const email = process.env.DEMO_USER_EMAIL
   if (!email) return null
   const { data } = await supabaseAdmin
