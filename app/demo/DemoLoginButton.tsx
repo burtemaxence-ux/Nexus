@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { syncDemoPassword } from './actions'
 
 interface Props {
   email: string
@@ -18,6 +19,15 @@ export default function DemoLoginButton({ email, password }: Props) {
   async function handleClick() {
     setLoading(true)
     setError(null)
+
+    const sync = await syncDemoPassword()
+    if (sync.error) {
+      console.error('[Demo] sync error:', sync.error)
+      setError('Une erreur est survenue. Réessayez dans quelques instants.')
+      setLoading(false)
+      return
+    }
+
     const supabase = createClient()
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
     if (authError) {
