@@ -15,6 +15,13 @@ export async function POST() {
     .eq('id', user.id)
     .single()
 
+  if (existingProfile?.role === 'employee') {
+    return NextResponse.json(
+      { error: 'Accès refusé — action non autorisée pour un employé' },
+      { status: 403 }
+    )
+  }
+
   if (existingProfile?.role === 'manager' && existingProfile?.establishment_id) {
     const { data: ownedEst } = await supabaseAdmin
       .from('establishments')
