@@ -17,7 +17,7 @@ async function initVapid(supabase: SupabaseClient) {
   let priv = process.env.VAPID_PRIVATE_KEY ?? ''
 
   if (!pub || !priv) {
-    // Load from settings table (auto-generated on first use)
+    // Fallback: load from settings table (persistent across serverless instances)
     const { data } = await supabase
       .from('settings')
       .select('key, value')
@@ -27,7 +27,10 @@ async function initVapid(supabase: SupabaseClient) {
     priv = map.vapid_private_key ?? ''
   }
 
-  if (!pub || !priv) return false
+  if (!pub || !priv) {
+    console.warn('[Push] VAPID keys not configured (neither env vars nor settings table) — push notifications disabled')
+    return false
+  }
 
   const email = process.env.VAPID_EMAIL ?? 'admin@quartzbase.fr'
   webpush.setVapidDetails(`mailto:${email}`, pub, priv)

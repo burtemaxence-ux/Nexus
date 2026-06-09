@@ -92,6 +92,10 @@ Générer les clés VAPID :
 npx web-push generate-vapid-keys
 ```
 
+> ⚠️ **Si les clés VAPID sont absentes** (ni variables d'env ni table `settings`), `sendPushToUser()` ne fait rien silencieusement — les push ne sont pas envoyés et aucune erreur ne remonte. Configurer ces variables pour activer les notifications push.
+>
+> L'app dispose d'un fallback sur la table `settings` en DB — les clés y sont persistantes entre instances serverless. Les variables d'env sont recommandées pour éviter un aller-retour DB à chaque appel push.
+
 ---
 
 ## 3. Crons Vercel
