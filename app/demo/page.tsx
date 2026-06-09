@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Calendar, Clock, Users, BarChart3, ArrowRight, AlertCircle, CreditCard, RefreshCw } from 'lucide-react'
+import { Calendar, Clock, Users, BarChart3, CreditCard, RefreshCw } from 'lucide-react'
+import DemoLoginButton from './DemoLoginButton'
 
 export const metadata = {
   title: 'Démo — Quartzbase',
@@ -13,18 +14,10 @@ const FEATURES = [
   { icon: BarChart3, label: 'Analytiques',             desc: 'Suivez les heures, coûts et performances.' },
 ]
 
-const ERROR_MESSAGES: Record<string, string> = {
-  not_configured: 'La démo n\'est pas encore configurée sur ce serveur. Revenez bientôt.',
-  '1': 'Une erreur est survenue lors de la connexion à la démo. Réessayez dans quelques instants.',
-}
-
-interface DemoPageProps {
-  searchParams: Promise<{ error?: string }>
-}
-
-export default async function DemoPage({ searchParams }: DemoPageProps) {
-  const { error } = await searchParams
-  const errorMessage = error ? (ERROR_MESSAGES[error] ?? ERROR_MESSAGES['1']) : null
+export default function DemoPage() {
+  const email = process.env.DEMO_USER_EMAIL
+  const password = process.env.DEMO_USER_PASSWORD
+  const configured = !!(email && password)
 
   return (
     <div className="min-h-screen bg-[#EDEEFF] dark:bg-[#0F1117] flex flex-col items-center justify-center px-4 py-16 relative overflow-hidden">
@@ -58,21 +51,12 @@ export default async function DemoPage({ searchParams }: DemoPageProps) {
           </p>
         </div>
 
-        {errorMessage && (
-          <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-left">
-            <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-            <p className="text-[13px] text-red-700">{errorMessage}</p>
-          </div>
-        )}
-
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
-            href="/api/demo/login"
-            className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-[15px] font-semibold transition-all duration-150 shadow-[0_2px_8px_0_rgba(79,70,229,0.35)] hover:shadow-[0_4px_12px_0_rgba(79,70,229,0.4)]"
-          >
-            Essayer la démo
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          {configured ? (
+            <DemoLoginButton email={email} password={password} />
+          ) : (
+            <p className="text-[13px] text-[#6B7280]">La démo n&apos;est pas encore configurée sur ce serveur. Revenez bientôt.</p>
+          )}
           <Link
             href="/login"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-[#E5E7EB] dark:border-[#2A2D3A] bg-white dark:bg-[#1A1D27] text-[#374151] dark:text-[#F0F2F8] text-[14px] font-medium hover:bg-[#F9FAFB] dark:hover:bg-[#0F1117] transition-colors duration-150"

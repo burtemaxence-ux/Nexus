@@ -18,7 +18,6 @@ export async function middleware(request: NextRequest) {
   if (!user && pathname !== '/login' && pathname !== '/register'
     && !pathname.startsWith('/auth/')
     && pathname !== '/demo'
-    && !pathname.startsWith('/api/demo/')
     && !pathname.startsWith('/legal/')
     && !pathname.startsWith('/api/stripe/')
     && !pathname.startsWith('/api/cron/')
