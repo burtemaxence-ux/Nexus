@@ -103,7 +103,7 @@ export function SolutionSection() {
             maxWidth: 560,
             margin: '0 auto 16px',
           }}>
-            Faites votre planning en 2 minutes. L'IA s'occupe du reste.
+            {`Faites votre planning en 2 minutes. L'IA s'occupe du reste.`}
           </h2>
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
@@ -113,7 +113,7 @@ export function SolutionSection() {
             margin: '0 auto',
             lineHeight: 1.6,
           }}>
-            Quartzbase répond exactement aux trois situations qui vous coûtent le plus de temps et d'énergie.
+            {`Quartzbase répond exactement aux trois situations qui vous coûtent le plus de temps et d'énergie.`}
           </p>
         </div>
 

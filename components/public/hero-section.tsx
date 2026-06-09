@@ -332,7 +332,7 @@ function PlanningMockup() {
           fontSize: 11,
           color: 'rgba(255,255,255,0.5)',
         }}>
-          Planning généré par l'IA · Conforme Code du Travail
+          {`Planning généré par l'IA · Conforme Code du Travail`}
         </span>
       </div>
     </div>
