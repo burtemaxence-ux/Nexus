@@ -108,6 +108,24 @@ Les crons sont définis dans `vercel.json` et s'activent automatiquement au dép
 
 Le header `Authorization: Bearer <CRON_SECRET>` est vérifié sur chaque endpoint cron. Vercel l'envoie automatiquement depuis le Dashboard si `CRON_SECRET` est configuré.
 
+> ⚠️ **Si `CRON_SECRET` est absent ou vide**, tous les crons retournent `401 Unauthorized` silencieusement — aucune erreur visible dans l'app, aucune notification. Les tâches hebdomadaires (briefs, conformité, résumés employés) ne s'exécutent tout simplement jamais.
+
+### Configurer CRON_SECRET
+
+1. Générer un secret aléatoire :
+   ```bash
+   openssl rand -hex 32
+   ```
+2. L'ajouter dans **Vercel Dashboard > Settings > Environment Variables** → nom : `CRON_SECRET`
+3. Redéployer (les variables d'environnement nécessitent un nouveau déploiement pour prendre effet)
+
+### Vérifier qu'un cron s'exécute
+
+1. Aller dans **Vercel Dashboard > votre projet > Logs**
+2. Filtrer par `Source: Cron` ou rechercher `/api/cron/`
+3. Chaque exécution réussie retourne HTTP 200 avec un JSON de résultat (ex: `{"establishments":3,"briefs_sent":3,"errors":0}`)
+4. Un HTTP 401 indique que `CRON_SECRET` est manquant ou incorrect
+
 ---
 
 ## 4. Migrations Supabase
