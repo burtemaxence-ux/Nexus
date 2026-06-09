@@ -283,13 +283,49 @@ La route `/api/stripe/checkout` applique automatiquement `trial_period_days: 14`
 
 ---
 
-## 9. Vérifications post-déploiement
+## 9. Checklist de déploiement
 
+Cocher chaque point avant la mise en production.
+
+### Variables d'environnement obligatoires
+
+- [ ] `NEXT_PUBLIC_SUPABASE_URL` configuré
+- [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` configuré
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` configuré
+- [ ] `NEXT_PUBLIC_URL=https://quartzbase.fr`
+- [ ] `NEXT_PUBLIC_SITE_URL=https://quartzbase.fr`
+- [ ] `RESEND_API_KEY` configuré
+- [ ] `RESEND_FROM_EMAIL` configuré
+- [ ] `ANTHROPIC_API_KEY` configuré
+- [ ] `STRIPE_SECRET_KEY` configuré
+- [ ] `STRIPE_WEBHOOK_SECRET` configuré
+- [ ] `STRIPE_PRICE_ESSENTIAL_MONTHLY` configuré (`price_...`)
+- [ ] `STRIPE_PRICE_ESSENTIAL_YEARLY` configuré (`price_...`)
+- [ ] `STRIPE_PRICE_PRO_MONTHLY` configuré (`price_...`)
+- [ ] `STRIPE_PRICE_PRO_YEARLY` configuré (`price_...`)
+- [ ] `STRIPE_PRICE_MULTISITE_MONTHLY` configuré (`price_...`)
+- [ ] `STRIPE_PRICE_MULTISITE_YEARLY` configuré (`price_...`)
+- [ ] `CRON_SECRET` configuré (`openssl rand -hex 32`)
+- [ ] `CALENDAR_SECRET` configuré (`openssl rand -hex 32`)
+- [ ] `DEMO_USER_EMAIL=demo@quartzbase.fr` configuré
+- [ ] `DEMO_USER_PASSWORD` configuré (mot de passe fort)
+- [ ] `DEMO_ESTABLISHMENT_ID` configuré (UUID issu du seed SQL)
+
+### Variables recommandées
+
+- [ ] `NEXT_PUBLIC_SENTRY_DSN` configuré (erreurs production visibles)
+- [ ] `KV_REST_API_URL` + `KV_REST_API_TOKEN` configurés (rate limiting distribué)
+- [ ] `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` configurés (push persistant)
+
+### Actions post-déploiement
+
+- [ ] Migrations Supabase appliquées (`supabase db push` ou SQL Editor)
+- [ ] Seed démo exécuté (`scripts/seed-demo-quartzbase.sql`) et `DEMO_ESTABLISHMENT_ID` copié
+- [ ] Google OAuth configuré (voir § 0 ci-dessus)
 - [ ] Connexion Supabase : créer un compte et accéder au dashboard
 - [ ] Emails : inviter un employé et vérifier la réception
-- [ ] Push notifications : activer depuis un navigateur mobile
 - [ ] Crons : déclencher manuellement depuis Vercel Dashboard > Crons
-- [ ] API v1 : créer un token dans Paramètres > Intégrations et tester un endpoint
+- [ ] Push notifications : activer depuis un navigateur mobile
 - [ ] Sentry : vérifier qu'une erreur test remonte sur sentry.io
-- [ ] Healthcheck : `curl https://votre-domaine.fr/api/health` retourne HTTP 200
+- [ ] Healthcheck : `curl https://quartzbase.fr/api/health` retourne HTTP 200
 - [ ] Auth rate limits : configurer dans Supabase Dashboard > Authentication > Rate Limits
