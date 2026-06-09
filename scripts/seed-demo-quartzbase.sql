@@ -35,6 +35,7 @@ DECLARE
   v_p_pati UUID;
   v_p_vend UUID;
   v_p_resp UUID;
+  r        RECORD;
 
   -- Hash bcrypt de Demo2024! — le login démo utilise un magic link, pas le mot de passe
   v_pwd TEXT := '$2b$10$DRYzhLWjG85vcB8scfXZNOYkYgbfboz57JtzTNMgi1bZzMHP46Hxu';
@@ -61,45 +62,24 @@ BEGIN
     v_david_id, v_elise_id, v_francois_id, v_grace_id, v_hugo_id
   ];
 
-  -- ── 1. Nettoyage (ordre FK : enfants avant parents) ──────────────────────────
-  -- Chercher l'établissement via le profil (UUID fixe)
-  SELECT establishment_id INTO v_est_id FROM public.profiles WHERE id = v_mgr_id;
-  -- Fallback : via owner_id (cas où le profil n'a pas encore le bon UUID)
-  IF v_est_id IS NULL THEN
-    SELECT id INTO v_est_id FROM public.establishments WHERE owner_id = v_mgr_id LIMIT 1;
-  END IF;
-
-  IF v_est_id IS NOT NULL THEN
-    -- Tables optionnelles (présence dépend des migrations appliquées)
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='notifications') THEN
-      DELETE FROM public.notifications WHERE establishment_id = v_est_id;
-    END IF;
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='compliance_alerts') THEN
-      DELETE FROM public.compliance_alerts WHERE establishment_id = v_est_id;
-    END IF;
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='lateness_records') THEN
-      DELETE FROM public.lateness_records WHERE establishment_id = v_est_id;
-    END IF;
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='replacement_requests') THEN
-      DELETE FROM public.replacement_requests WHERE establishment_id = v_est_id;
-    END IF;
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='presences') THEN
-      DELETE FROM public.presences WHERE establishment_id = v_est_id;
-    END IF;
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='contracts') THEN
-      DELETE FROM public.contracts WHERE establishment_id = v_est_id;
-    END IF;
-    -- Tables core (toujours présentes)
-    DELETE FROM public.leave_requests WHERE establishment_id = v_est_id;
-    DELETE FROM public.shifts         WHERE establishment_id = v_est_id;
-    DELETE FROM public.postes         WHERE establishment_id = v_est_id;
-    DELETE FROM public.settings       WHERE establishment_id = v_est_id;
-  END IF;
-
-  -- Nettoyer aussi les FK des établissements supplémentaires liés à cet owner
-  -- (sécurité : évite les violations FK si plusieurs établissements existent)
-  DELETE FROM public.postes    WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id = v_mgr_id);
-  DELETE FROM public.settings  WHERE establishment_id IN (SELECT id FROM public.establishments WHERE owner_id = v_mgr_id);
+  -- ── 1. Nettoyage — suppression dynamique de toutes les FK vers establishments ──
+  -- Requête pg_constraint pour trouver toutes les tables référençant establishments(id)
+  -- → évite de lister manuellement les tables et résiste aux nouvelles migrations
+  FOR r IN
+    SELECT
+      c.conrelid::regclass::text AS tbl,
+      a.attname                  AS col
+    FROM pg_constraint c
+    JOIN pg_attribute a
+      ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
+    WHERE c.confrelid = 'public.establishments'::regclass
+      AND c.contype   = 'f'
+  LOOP
+    EXECUTE format(
+      'DELETE FROM %s WHERE %I IN (SELECT id FROM public.establishments WHERE owner_id = $1)',
+      r.tbl, r.col
+    ) USING v_mgr_id;
+  END LOOP;
 
   DELETE FROM public.profiles      WHERE id = ANY(v_all_ids);
   DELETE FROM public.establishments WHERE owner_id = v_mgr_id;
