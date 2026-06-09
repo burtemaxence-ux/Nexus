@@ -433,6 +433,12 @@ export default function LoginPage() {
             <Link href="/register" className="text-[#4F46E5] hover:underline font-medium">Créer un compte</Link>
           </p>
 
+          {/* Lien démo */}
+          <p className="mt-2.5 text-center text-[13px] text-[#6B7280]">
+            Envie d&apos;explorer ?{' '}
+            <Link href="/demo" className="text-[#4F46E5] hover:underline font-medium">Accéder à la démo</Link>
+          </p>
+
           {/* Pied de carte */}
           <p className="mt-4 text-center text-[11px] text-[#C4C9D4]">
             Quartzbase — Gestion planning &amp; équipe
