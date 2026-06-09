@@ -70,16 +70,30 @@ BEGIN
   END IF;
 
   IF v_est_id IS NOT NULL THEN
-    DELETE FROM public.notifications        WHERE establishment_id = v_est_id;
-    DELETE FROM public.compliance_alerts    WHERE establishment_id = v_est_id;
-    DELETE FROM public.lateness_records     WHERE establishment_id = v_est_id;
-    DELETE FROM public.replacement_requests WHERE establishment_id = v_est_id;
-    DELETE FROM public.presences            WHERE establishment_id = v_est_id;
-    DELETE FROM public.leave_requests       WHERE establishment_id = v_est_id;
-    DELETE FROM public.contracts            WHERE establishment_id = v_est_id;
-    DELETE FROM public.shifts               WHERE establishment_id = v_est_id;
-    DELETE FROM public.postes               WHERE establishment_id = v_est_id;
-    DELETE FROM public.settings             WHERE establishment_id = v_est_id;
+    -- Tables optionnelles (présence dépend des migrations appliquées)
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='notifications') THEN
+      DELETE FROM public.notifications WHERE establishment_id = v_est_id;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='compliance_alerts') THEN
+      DELETE FROM public.compliance_alerts WHERE establishment_id = v_est_id;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='lateness_records') THEN
+      DELETE FROM public.lateness_records WHERE establishment_id = v_est_id;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='replacement_requests') THEN
+      DELETE FROM public.replacement_requests WHERE establishment_id = v_est_id;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='presences') THEN
+      DELETE FROM public.presences WHERE establishment_id = v_est_id;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='contracts') THEN
+      DELETE FROM public.contracts WHERE establishment_id = v_est_id;
+    END IF;
+    -- Tables core (toujours présentes)
+    DELETE FROM public.leave_requests WHERE establishment_id = v_est_id;
+    DELETE FROM public.shifts         WHERE establishment_id = v_est_id;
+    DELETE FROM public.postes         WHERE establishment_id = v_est_id;
+    DELETE FROM public.settings       WHERE establishment_id = v_est_id;
   END IF;
 
   -- Nettoyer aussi les FK des établissements supplémentaires liés à cet owner
