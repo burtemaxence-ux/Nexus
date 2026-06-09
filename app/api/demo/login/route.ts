@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function GET(request: NextRequest) {
@@ -11,26 +10,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${new URL(request.url).origin}/demo?error=not_configured`)
   }
 
-  // Try direct password sign-in first (happy path: seed ran, passwords match)
-  const supabase = await createClient()
-  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-    email: demoEmail,
-    password: demoPassword,
-  })
-
-  if (signInData?.session) {
-    return NextResponse.redirect(`${appUrl}/manager`)
-  }
-
-  // Sign-in failed — ensure user exists and password matches DEMO_USER_PASSWORD
-  const { data: profileRow } = await supabaseAdmin
+  // ── 1. Vérifier si l'utilisateur demo existe dans les profils ────────────────
+  const { data: profileRow, error: profileErr } = await supabaseAdmin
     .from('profiles')
     .select('id')
     .eq('email', demoEmail)
     .maybeSingle()
 
+  if (profileErr) {
+    console.error('[Demo] profiles lookup error:', profileErr.message)
+  }
+
   if (profileRow?.id) {
-    // User exists but password in DB doesn't match env var — sync it
+    // Utilisateur trouvé — synchroniser le mot de passe avec l'env var
     const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(profileRow.id, {
       password: demoPassword,
       email_confirm: true,
@@ -39,9 +31,10 @@ export async function GET(request: NextRequest) {
       console.error('[Demo] updateUserById error:', updateErr.message)
       return NextResponse.redirect(`${appUrl}/demo?error=1`)
     }
+    console.log('[Demo] password synced for existing user', profileRow.id)
   } else {
-    // User does not exist at all — create it (triggers handle_new_user)
-    const { error: createErr } = await supabaseAdmin.auth.admin.createUser({
+    // Utilisateur introuvable — créer via admin (déclenche handle_new_user)
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: demoEmail,
       password: demoPassword,
       email_confirm: true,
@@ -51,19 +44,21 @@ export async function GET(request: NextRequest) {
       console.error('[Demo] createUser error:', createErr.message)
       return NextResponse.redirect(`${appUrl}/demo?error=1`)
     }
+    console.log('[Demo] demo user created', created?.user?.id)
   }
 
-  // Retry sign-in after ensuring user / password
-  const supabase2 = await createClient()
-  const { data: retryData, error: retryErr } = await supabase2.auth.signInWithPassword({
+  // ── 2. Générer un magic link pour l'utilisateur (garanti d'exister maintenant) ─
+  const { data, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'magiclink',
     email: demoEmail,
-    password: demoPassword,
+    options: { redirectTo: `${appUrl}/auth/callback?next=/manager` },
   })
 
-  if (retryErr || !retryData?.session) {
-    console.error('[Demo login error]', retryErr?.message ?? 'no session after retry')
+  if (linkErr || !data?.properties?.action_link) {
+    console.error('[Demo] generateLink error:', linkErr?.message ?? 'no action_link')
     return NextResponse.redirect(`${appUrl}/demo?error=1`)
   }
 
-  return NextResponse.redirect(`${appUrl}/manager`)
+  // ── 3. Rediriger vers le lien — passe par auth/callback qui pose les cookies ──
+  return NextResponse.redirect(data.properties.action_link)
 }
