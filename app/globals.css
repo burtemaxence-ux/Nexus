@@ -102,6 +102,17 @@ html {
   }
 }
 
+/* ── Auth pages ──────────────────────────────────────────────────────────────── */
+
+.auth-back-link {
+  color: #5a5a72;
+  font-size: 12px;
+  transition: color 200ms ease;
+}
+.auth-back-link:hover {
+  color: #9090a8;
+}
+
 @layer components {
   .btn-primary {
     display: inline-flex;
