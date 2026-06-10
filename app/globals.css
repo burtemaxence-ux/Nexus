@@ -575,3 +575,38 @@ html {
   from { opacity: 0; transform: translateY(-6px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
+
+/* ── Dashboard motion design ─────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+
+  @keyframes dashboardFadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .dashboard-content {
+    animation: dashboardFadeIn 0.4s ease forwards;
+  }
+
+  .dashboard-s0 { opacity: 0; animation: dashboardFadeIn 0.4s ease   0ms forwards; }
+  .dashboard-s1 { opacity: 0; animation: dashboardFadeIn 0.4s ease  80ms forwards; }
+  .dashboard-s2 { opacity: 0; animation: dashboardFadeIn 0.4s ease 160ms forwards; }
+  .dashboard-s3 { opacity: 0; animation: dashboardFadeIn 0.4s ease 240ms forwards; }
+
+  .dashboard-card:hover {
+    box-shadow:
+      0 0 0 1px rgba(108,99,255,0.2),
+      0 8px 24px rgba(0,0,0,0.3),
+      0 0 40px rgba(108,99,255,0.06);
+  }
+
+  @keyframes alertPulse {
+    0%, 100% { box-shadow: 0 0 0 0   rgba(255,107,107,0.3); }
+    50%       { box-shadow: 0 0 0 6px rgba(255,107,107,0);   }
+  }
+
+  .alert-pulse {
+    animation: alertPulse 2s ease infinite;
+  }
+}

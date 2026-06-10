@@ -182,7 +182,7 @@ function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progres
         borderRadius: '14px',
         padding: '20px 22px',
         transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
-        boxShadow: hovered ? '0 8px 24px rgba(0,0,0,0.3)' : 'none',
+        boxShadow: hovered ? '0 0 0 1px rgba(108,99,255,0.2), 0 8px 24px rgba(0,0,0,0.3), 0 0 40px rgba(108,99,255,0.06)' : 'none',
         transition: 'all 200ms ease',
         display: 'flex',
         flexDirection: 'column',
@@ -371,11 +371,13 @@ export function ManagerMetricsClient() {
 
       {/* ── ONBOARDING ────────────────────────────────────────────────────── */}
       {!onboardingAllDone && (
-        <OnboardingChecklist steps={onboardingSteps} />
+        <div className="dashboard-s2">
+          <OnboardingChecklist steps={onboardingSteps} />
+        </div>
       )}
 
       {/* ── KPI CARDS ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 dashboard-s1">
         <KpiCard
           label={`Présence · S${getCurrentWeek()}`}
           value={presenceRate ?? 0}
@@ -420,7 +422,7 @@ export function ManagerMetricsClient() {
 
       {/* ── ALERTES ───────────────────────────────────────────────────────── */}
       {(pendingCount > 0 || latenessCount > 0) && (
-        <div className="space-y-2">
+        <div className="space-y-2 dashboard-s2">
           {pendingCount > 0 && (
             <Link href="/manager/conges">
               <div className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-[rgba(255,179,71,0.05)]"
@@ -475,7 +477,7 @@ export function ManagerMetricsClient() {
               borderRadius: '14px',
               padding: '18px 20px',
               transform: hoveredModule === '/manager/planning' ? 'translateY(-3px)' : 'translateY(0)',
-              boxShadow: hoveredModule === '/manager/planning' ? '0 8px 24px rgba(108,99,255,0.15)' : 'none',
+              boxShadow: hoveredModule === '/manager/planning' ? '0 0 0 1px rgba(108,99,255,0.2), 0 8px 24px rgba(0,0,0,0.3), 0 0 40px rgba(108,99,255,0.06)' : 'none',
               transition: 'all 200ms ease',
             }}
           >
@@ -533,7 +535,7 @@ export function ManagerMetricsClient() {
                     padding: '18px 20px',
                     height: '100%',
                     transform: hoveredModule === href ? 'translateY(-3px)' : 'translateY(0)',
-                    boxShadow: hoveredModule === href ? '0 8px 24px rgba(108,99,255,0.15)' : 'none',
+                    boxShadow: hoveredModule === href ? '0 0 0 1px rgba(108,99,255,0.2), 0 8px 24px rgba(0,0,0,0.3), 0 0 40px rgba(108,99,255,0.06)' : 'none',
                     transition: 'all 200ms ease',
                   }}
                 >

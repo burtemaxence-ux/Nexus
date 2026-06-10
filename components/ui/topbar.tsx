@@ -188,7 +188,7 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
     >
       {item.label}
       {item.badge !== undefined && item.badge > 0 && (
-        <span className="relative flex items-center justify-center">
+        <span className="relative flex items-center justify-center alert-pulse">
           <span className="absolute inset-0 rounded-[4px] opacity-30 animate-ping" style={{ backgroundColor: '#FF6B6B' }} />
           <span className="relative flex items-center justify-center h-4 min-w-[16px] px-1 rounded-[4px] text-[10px] font-medium leading-none" style={{ backgroundColor: 'rgba(255,107,107,0.15)', color: '#FF6B6B' }}>
             {item.badge > 99 ? '99+' : item.badge}

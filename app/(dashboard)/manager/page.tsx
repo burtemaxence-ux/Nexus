@@ -24,11 +24,11 @@ export default async function ManagerDashboard() {
   })
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-page)' }}>
+    <div className="min-h-screen dashboard-content" style={{ backgroundColor: 'var(--bg-page)' }}>
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
         {/* ── HEADER ────────────────────────────────────────────────────────── */}
-        <div className="flex items-start justify-between gap-4 flex-wrap pt-1">
+        <div className="flex items-start justify-between gap-4 flex-wrap pt-1 dashboard-s0">
           <div>
             <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
               Bonjour {firstName} 👋
