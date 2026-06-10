@@ -73,6 +73,7 @@ export function SolutionSection() {
 
   return (
     <section
+      id="fonctionnalites"
       style={{
         background: 'linear-gradient(180deg, #0a0a0f 0%, #0c0b18 100%)',
         padding: '96px 24px',
