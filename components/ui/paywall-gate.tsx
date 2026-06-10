@@ -23,7 +23,7 @@ export function PaywallGate({ trialDaysLeft }: { trialDaysLeft?: number }) {
           </p>
         </div>
         <Link
-          href="/manager/settings/billing"
+          href="/billing"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--accent)] text-white text-[14px] font-medium hover:opacity-90 transition-opacity"
         >
           <Zap className="h-4 w-4" />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Mail, Lock, Eye, EyeOff, User, Loader2, Calendar, Clock, Users } from 'lucide-react'
@@ -16,6 +16,13 @@ function useRegister() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [refCode, setRefCode] = useState<string | null>(null)
+
+  // Read referral code from URL client-side to avoid SSR/Suspense issues
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get('ref')
+    if (ref) setRefCode(ref)
+  }, [])
 
   async function handleGoogleRegister() {
     setGoogleLoading(true)
@@ -53,6 +60,7 @@ function useRegister() {
         data: {
           full_name: fullName.trim(),
           role: 'manager',
+          ...(refCode ? { referral_code: refCode } : {}),
         },
         emailRedirectTo: `${process.env.NEXT_PUBLIC_URL ?? window.location.origin}/auth/callback?next=/manager`,
       },

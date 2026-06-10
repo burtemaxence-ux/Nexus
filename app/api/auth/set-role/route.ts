@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { createReferralFromCode } from '@/lib/referral'
+import { sendWelcomeEmail } from '@/lib/email/welcome'
 
 export async function POST() {
   const supabase = await createClient()
@@ -66,6 +68,17 @@ export async function POST() {
   await supabaseAdmin.auth.admin.updateUserById(user.id, {
     user_metadata: { ...user.user_metadata, role: 'manager', full_name: fullName },
   })
+
+  // Email de bienvenue (nouveau compte uniquement)
+  if (user.email) {
+    await sendWelcomeEmail(user.email, fullName)
+  }
+
+  // Enregistrer le parrainage si un code a été utilisé à l'inscription
+  const referralCode = user.user_metadata?.referral_code as string | undefined
+  if (referralCode) {
+    await createReferralFromCode(referralCode, user.id)
+  }
 
   return NextResponse.json({ role: 'manager', establishment_id: estId })
 }

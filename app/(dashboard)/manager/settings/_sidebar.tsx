@@ -14,6 +14,7 @@ import {
   Store,
   ShieldCheck,
   CreditCard,
+  Gift,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { label: 'Exports & paie',   href: '/manager/settings/exports',        icon: Download },
   { label: 'Intégrations',     href: '/manager/settings/integrations',   icon: Plug },
   { label: 'Abonnement',        href: '/manager/settings/billing',        icon: CreditCard },
+  { label: 'Parrainage 🤝',    href: '/manager/parrainage',              icon: Gift },
   { label: 'Données & RGPD',   href: '/manager/settings/rgpd',           icon: ShieldCheck },
 ]
 
