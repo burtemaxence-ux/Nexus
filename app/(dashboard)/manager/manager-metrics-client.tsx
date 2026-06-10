@@ -83,16 +83,14 @@ interface Metrics {
 function MetricsSkeleton() {
   return (
     <div className="space-y-6" style={{ minHeight: '560px' }}>
-      {/* Metric cards skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {[0, 1].map(i => (
-          <div key={i} className="rounded-xl border p-5" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)', borderWidth: '0.5px' }}>
-            <div className="h-3 w-32 rounded animate-pulse mb-4" style={{ backgroundColor: 'var(--muted)' }} />
-            <div className="h-10 w-20 rounded-[10px] animate-pulse mb-4" style={{ backgroundColor: 'var(--muted)' }} />
-            <div className="h-3 w-40 rounded animate-pulse mb-4" style={{ backgroundColor: 'var(--muted)' }} />
-            <div className="pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
-              <div className="h-3 w-48 rounded animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
-            </div>
+      {/* KPI cards skeleton */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className="rounded-[14px] p-5 flex flex-col gap-3" style={{ backgroundColor: '#0f0f16', border: '1px solid rgba(255,255,255,0.06)', minHeight: '170px' }}>
+            <div className="w-9 h-9 rounded-[10px] animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
+            <div className="h-2 w-20 rounded animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
+            <div className="h-8 w-16 rounded animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
+            <div className="mt-auto h-[5px] rounded-full" style={{ backgroundColor: 'var(--muted)' }} />
           </div>
         ))}
       </div>
@@ -104,6 +102,84 @@ function MetricsSkeleton() {
           {[0,1,2,3,4].map(i => (
             <div key={i} className="rounded-xl border h-[110px] animate-pulse" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', borderWidth: '0.5px' }} />
           ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function useCountUp(target: number, duration = 800): number {
+  const [value, setValue] = useState(0)
+  useEffect(() => {
+    if (target === 0) { setValue(0); return }
+    let startTime: number | null = null
+    let rafId: number
+    const step = (timestamp: number) => {
+      if (startTime === null) startTime = timestamp
+      const progress = Math.min((timestamp - startTime) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setValue(Math.round(eased * target))
+      if (progress < 1) { rafId = requestAnimationFrame(step) }
+    }
+    rafId = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(rafId)
+  }, [target, duration])
+  return value
+}
+
+interface KpiCardProps {
+  label: string
+  value: number
+  color: string
+  icon: ElementType
+  iconBg: string
+  suffix?: string
+  progressPct: number
+  subLabel?: string
+  isNull?: boolean
+}
+
+function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progressPct, subLabel, isNull = false }: KpiCardProps) {
+  const animated = useCountUp(value)
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        backgroundColor: '#0f0f16',
+        border: `1px solid ${hovered ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'}`,
+        borderRadius: '14px',
+        padding: '20px 22px',
+        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: hovered ? '0 8px 24px rgba(0,0,0,0.3)' : 'none',
+        transition: 'all 200ms ease',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+      }}
+    >
+      <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon className="h-4 w-4" style={{ color }} />
+      </div>
+      <p style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5a5a72', fontFamily: 'var(--font-dm-sans)', margin: 0 }}>
+        {label}
+      </p>
+      <p style={{ fontSize: '32px', fontWeight: 700, lineHeight: 1, color, fontFamily: 'var(--font-syne)', margin: 0 }}>
+        {isNull ? '—' : `${animated}${suffix}`}
+      </p>
+      {subLabel && (
+        <p style={{ fontSize: '12px', color: '#9090a8', margin: 0 }}>{subLabel}</p>
+      )}
+      <div style={{ marginTop: 'auto', paddingTop: '8px' }}>
+        <div style={{ height: '5px', borderRadius: '99px', backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%',
+            borderRadius: '99px',
+            width: `${Math.min(Math.max(progressPct, 0), 100)}%`,
+            backgroundColor: color,
+            transition: 'width 700ms ease',
+          }} />
         </div>
       </div>
     </div>
@@ -224,12 +300,12 @@ export function ManagerMetricsClient() {
   const { employeeCount, pendingCount, presenceRate, totalShifts, presentCount, latenessCount, onboardingSteps, onboardingAllDone } = metrics
 
   const presence = presenceRate === null
-    ? { color: 'var(--text-tertiary)', dotColor: 'var(--text-tertiary)', label: 'Aucun shift planifié' }
+    ? { color: '#5a5a72', iconBg: 'rgba(90,90,114,0.15)', label: 'Aucun shift planifié' }
     : presenceRate >= 80
-    ? { color: 'var(--success)', dotColor: 'var(--success)', label: 'Bonne présence' }
-    : presenceRate >= 60
-    ? { color: 'var(--warning)', dotColor: 'var(--warning)', label: 'Présence à surveiller' }
-    : { color: 'var(--danger)', dotColor: 'var(--danger)', label: 'Présence insuffisante' }
+    ? { color: '#00D4AA', iconBg: 'rgba(0,212,170,0.15)', label: 'Bonne présence' }
+    : presenceRate >= 50
+    ? { color: '#FFB347', iconBg: 'rgba(255,179,71,0.15)', label: 'Présence à surveiller' }
+    : { color: '#FF6B6B', iconBg: 'rgba(255,107,107,0.15)', label: 'Présence insuffisante' }
 
   return (
     <div className="space-y-6">
@@ -239,67 +315,46 @@ export function ManagerMetricsClient() {
         <OnboardingChecklist steps={onboardingSteps} />
       )}
 
-      {/* ── METRIC CARDS ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        {/* Card 1 — Présence */}
-        <div className="rounded-xl border p-5"
-          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)', borderWidth: '0.5px' }}
-        >
-          <p className="text-[10px] uppercase tracking-[0.06em] mb-4" style={{ color: 'var(--text-tertiary)' }}>
-            Présence · Semaine S{getCurrentWeek()}
-          </p>
-          <div className="rounded-[10px] p-3 mb-4 inline-block" style={{ backgroundColor: 'var(--muted)' }}>
-            <span className="text-[20px] font-[400] leading-none" style={{ color: presence.color }}>
-              {presenceRate === null ? '—' : `${presenceRate}%`}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 mb-4">
-            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: presence.dotColor }} />
-            <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{presence.label}</span>
-          </div>
-          <div className="pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
-            <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-              {totalShifts > 0
-                ? `${presentCount} présences sur ${totalShifts} shifts planifiés`
-                : 'Aucun shift planifié pour cette semaine'}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 2 — Équipe */}
-        <div className="rounded-xl border p-5"
-          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)', borderWidth: '0.5px' }}
-        >
-          <p className="text-[10px] uppercase tracking-[0.06em] mb-4" style={{ color: 'var(--text-tertiary)' }}>
-            Votre équipe
-          </p>
-          <div className="space-y-3">
-            <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: 'var(--muted)' }}>
-              <Users className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-              <span className="text-[20px] font-[400] leading-none" style={{ color: 'var(--text-primary)' }}>{employeeCount}</span>
-              <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>employés actifs</span>
-            </div>
-            <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: 'var(--muted)' }}>
-              <Palmtree className="h-3.5 w-3.5 flex-shrink-0" style={{ color: pendingCount > 0 ? 'var(--warning)' : 'var(--text-tertiary)' }} />
-              <span className="text-[20px] font-[400] leading-none" style={{ color: pendingCount > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>
-                {pendingCount}
-              </span>
-              <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-                congé{pendingCount !== 1 ? 's' : ''} en attente
-              </span>
-            </div>
-            <div className="rounded-[10px] p-3 flex items-center gap-3" style={{ backgroundColor: 'var(--muted)' }}>
-              <Clock className="h-3.5 w-3.5 flex-shrink-0" style={{ color: latenessCount > 0 ? 'var(--danger)' : 'var(--text-tertiary)' }} />
-              <span className="text-[20px] font-[400] leading-none" style={{ color: latenessCount > 0 ? 'var(--danger)' : 'var(--text-primary)' }}>
-                {latenessCount}
-              </span>
-              <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-                retard{latenessCount !== 1 ? 's' : ''} ce mois
-              </span>
-            </div>
-          </div>
-        </div>
+      {/* ── KPI CARDS ──────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard
+          label={`Présence · S${getCurrentWeek()}`}
+          value={presenceRate ?? 0}
+          suffix="%"
+          color={presence.color}
+          icon={BarChart3}
+          iconBg={presence.iconBg}
+          progressPct={presenceRate ?? 0}
+          subLabel={presence.label}
+          isNull={presenceRate === null}
+        />
+        <KpiCard
+          label="Équipe"
+          value={employeeCount}
+          color="#6C63FF"
+          icon={Users}
+          iconBg="rgba(108,99,255,0.15)"
+          progressPct={Math.min(employeeCount * 5, 100)}
+          subLabel="employés actifs"
+        />
+        <KpiCard
+          label="Congés en attente"
+          value={pendingCount}
+          color="#FFB347"
+          icon={Palmtree}
+          iconBg="rgba(255,179,71,0.15)"
+          progressPct={Math.min(pendingCount * 20, 100)}
+          subLabel="demandes"
+        />
+        <KpiCard
+          label="Retards ce mois"
+          value={latenessCount}
+          color="#FF6B6B"
+          icon={Clock}
+          iconBg="rgba(255,107,107,0.15)"
+          progressPct={Math.min(latenessCount * 10, 100)}
+          subLabel="enregistrés"
+        />
       </div>
 
       {/* ── ALERTES ───────────────────────────────────────────────────────── */}
