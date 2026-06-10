@@ -25,40 +25,40 @@ const SECONDARY_MODULES: ModuleConfig[] = [
     description: 'Profils, contrats et rôles.',
     icon: Users,
     href: '/manager/employees',
-    accentColor: 'var(--success)',
-    accentBg: '#DCFCE7',
+    accentColor: '#00D4AA',
+    accentBg: 'rgba(0,212,170,0.15)',
   },
   {
     title: 'Rapport',
     description: 'Synthèse horaire et coûts.',
     icon: BarChart3,
     href: '/manager/rapport',
-    accentColor: 'var(--accent)',
-    accentBg: 'var(--accent-light)',
+    accentColor: '#6C63FF',
+    accentBg: 'rgba(108,99,255,0.15)',
   },
   {
     title: 'Congés',
     description: "Demandes et soldes d'absence.",
     icon: Palmtree,
     href: '/manager/conges',
-    accentColor: 'var(--warning)',
-    accentBg: '#FEF3C7',
+    accentColor: '#FFB347',
+    accentBg: 'rgba(255,179,71,0.15)',
   },
   {
     title: 'Présences',
     description: 'Horaires réels et pointages.',
     icon: Clock,
     href: '/manager/presences',
-    accentColor: 'var(--danger)',
-    accentBg: '#FEE2E2',
+    accentColor: '#FF6B6B',
+    accentBg: 'rgba(255,107,107,0.15)',
   },
   {
     title: 'Paramètres',
     description: 'Configuration et règles.',
     icon: Settings,
     href: '/manager/settings',
-    accentColor: 'var(--text-tertiary)',
-    accentBg: 'var(--muted)',
+    accentColor: '#5a5a72',
+    accentBg: 'rgba(90,90,114,0.15)',
   },
 ]
 
@@ -188,6 +188,8 @@ function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progres
 
 export function ManagerMetricsClient() {
   const [metrics, setMetrics] = useState<Metrics | null>(null)
+  const [modulesVisible, setModulesVisible] = useState(false)
+  const [hoveredModule, setHoveredModule] = useState<string | null>(null)
 
   // Vérifie et corrige le setup manager à chaque chargement (idempotent via set-role)
   useEffect(() => {
@@ -295,6 +297,12 @@ export function ManagerMetricsClient() {
     fetchMetrics()
   }, [])
 
+  useEffect(() => {
+    if (!metrics) return
+    const t = setTimeout(() => setModulesVisible(true), 50)
+    return () => clearTimeout(t)
+  }, [metrics])
+
   if (!metrics) return <MetricsSkeleton />
 
   const { employeeCount, pendingCount, presenceRate, totalShifts, presentCount, latenessCount, onboardingSteps, onboardingAllDone } = metrics
@@ -391,32 +399,49 @@ export function ManagerMetricsClient() {
 
       {/* ── MODULES ───────────────────────────────────────────────────────── */}
       <div className="space-y-3">
-        <p className="text-[11px] uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+        <p className="text-[11px] uppercase tracking-[0.06em]" style={{ color: '#5a5a72', fontFamily: 'var(--font-dm-sans)' }}>
           Modules
         </p>
 
         {/* Planning — module principal */}
-        <Link href="/manager/planning" className="group block">
-          <div className="rounded-xl border px-5 py-4 transition-colors duration-150"
-            style={{ backgroundColor: 'var(--accent-light)', borderColor: 'var(--accent)', borderWidth: '0.5px' }}
+        <Link
+          href="/manager/planning"
+          className="block"
+          style={{
+            opacity: modulesVisible ? 1 : 0,
+            transform: modulesVisible ? 'translateY(0)' : 'translateY(12px)',
+            transition: 'opacity 0.4s ease 0ms, transform 0.4s ease 0ms',
+          }}
+        >
+          <div
+            onMouseEnter={() => setHoveredModule('/manager/planning')}
+            onMouseLeave={() => setHoveredModule(null)}
+            style={{
+              backgroundColor: '#0f0f16',
+              border: `1px solid ${hoveredModule === '/manager/planning' ? '#6C63FF' : 'rgba(255,255,255,0.06)'}`,
+              borderRadius: '14px',
+              padding: '18px 20px',
+              transform: hoveredModule === '/manager/planning' ? 'translateY(-3px)' : 'translateY(0)',
+              boxShadow: hoveredModule === '/manager/planning' ? '0 8px 24px rgba(108,99,255,0.15)' : 'none',
+              transition: 'all 200ms ease',
+            }}
           >
-            <div className="flex items-center justify-between gap-6">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: 'var(--accent)', opacity: 0.15 + 0.85 }}
-                >
-                  <Calendar className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: 'rgba(108,99,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Calendar className="h-5 w-5" style={{ color: '#6C63FF' }} />
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>Planning</p>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md"
-                      style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', borderRadius: '6px', fontSize: '10px', letterSpacing: '0.04em' }}
-                    >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}>Planning</p>
+                    <span style={{
+                      fontSize: '10px', padding: '2px 8px', borderRadius: '6px', letterSpacing: '0.04em', fontFamily: 'var(--font-syne)',
+                      backgroundColor: 'rgba(108,99,255,0.15)', color: '#6C63FF', border: '1px solid rgba(108,99,255,0.3)',
+                    }}>
                       Principal
                     </span>
                   </div>
-                  <p className="text-[13px] mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
+                  <p style={{ fontSize: '12px', color: '#9090a8', marginTop: '2px', fontFamily: 'var(--font-dm-sans)' }}>
                     Créez, modifiez et publiez les horaires de votre équipe.
                   </p>
                 </div>
@@ -431,32 +456,52 @@ export function ManagerMetricsClient() {
 
         {/* Modules secondaires */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {SECONDARY_MODULES.map(({ title, description, icon: Icon, href, accentColor, accentBg }) => {
+          {SECONDARY_MODULES.map(({ title, description, icon: Icon, href, accentColor, accentBg }, idx) => {
             const badge = href === '/manager/conges' ? pendingCount : 0
+            const delay = (idx + 1) * 60
             return (
-              <Link key={href} href={href} className="group block">
-                <div className="rounded-xl border h-full px-4 py-4 transition-colors duration-150"
-                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)', borderWidth: '0.5px' }}
+              <Link
+                key={href}
+                href={href}
+                className="block"
+                style={{
+                  opacity: modulesVisible ? 1 : 0,
+                  transform: modulesVisible ? 'translateY(0)' : 'translateY(12px)',
+                  transition: `opacity 0.4s ease ${delay}ms, transform 0.4s ease ${delay}ms`,
+                }}
+              >
+                <div
+                  onMouseEnter={() => setHoveredModule(href)}
+                  onMouseLeave={() => setHoveredModule(null)}
+                  style={{
+                    backgroundColor: '#0f0f16',
+                    border: `1px solid ${hoveredModule === href ? '#6C63FF' : 'rgba(255,255,255,0.06)'}`,
+                    borderRadius: '14px',
+                    padding: '18px 20px',
+                    height: '100%',
+                    transform: hoveredModule === href ? 'translateY(-3px)' : 'translateY(0)',
+                    boxShadow: hoveredModule === href ? '0 8px 24px rgba(108,99,255,0.15)' : 'none',
+                    transition: 'all 200ms ease',
+                  }}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: accentBg }}
-                    >
-                      <Icon className="h-3.5 w-3.5" style={{ color: accentColor }} />
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: accentBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon className="h-4 w-4" style={{ color: accentColor }} />
                     </div>
                     {badge > 0 && (
-                      <span className="flex items-center justify-center h-4 min-w-[16px] px-1 text-[10px] font-medium leading-none"
-                        style={{ backgroundColor: '#FEF3C7', color: 'var(--warning)', borderRadius: '6px' }}
-                      >
+                      <span style={{ backgroundColor: 'rgba(255,179,71,0.15)', color: '#FFB347', borderRadius: '6px', fontSize: '10px', fontWeight: 500, padding: '2px 6px', lineHeight: '16px' }}>
                         {badge}
                       </span>
                     )}
                   </div>
-                  <p className="text-[14px] font-medium leading-tight" style={{ color: 'var(--text-primary)' }}>{title}</p>
-                  <p className="text-[12px] mt-1 leading-snug" style={{ color: 'var(--text-secondary)' }}>{description}</p>
-                  <div className="mt-3 flex items-center gap-1 text-[11px] transition-colors duration-150"
-                    style={{ color: 'var(--text-tertiary)' }}
-                  >
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}>{title}</p>
+                  <p style={{ fontSize: '12px', color: '#9090a8', marginTop: '4px', fontFamily: 'var(--font-dm-sans)' }}>{description}</p>
+                  <div style={{
+                    marginTop: '12px', display: 'flex', alignItems: 'center', gap: '4px',
+                    fontSize: '12px', fontWeight: 500, color: '#6C63FF',
+                    opacity: hoveredModule === href ? 1 : 0,
+                    transition: 'opacity 150ms ease',
+                  }}>
                     Accéder <ArrowRight className="h-3 w-3" />
                   </div>
                 </div>
