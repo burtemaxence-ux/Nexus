@@ -23,6 +23,7 @@ import { ContextMenu, type CtxMenu } from './shift-card'
 import { GridCell } from './grid-cell'
 import { MetricCard, DonutChart, AlertRow, ActivityRow } from './planning-metrics'
 import { MobileManagerPlanning } from './mobile-planning'
+import { AiQuotaBadge } from '@/components/ui/ai-quota-badge'
 
 const AiPlanModal = dynamic(
   () => import('@/components/planning/ai-plan-modal').then(m => ({ default: m.AiPlanModal })),
@@ -79,6 +80,7 @@ export function PlanningWeekTimeline({
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [filterPoste, setFilterPoste] = useState('')
   const [showAiPlanModal, setShowAiPlanModal] = useState(false)
+  const [aiQuotaKey, setAiQuotaKey] = useState(0)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -267,6 +269,7 @@ export function PlanningWeekTimeline({
             <Link href={`/manager/planning/print?week=${mondayStr}`} target="_blank">
               <button className="btn-secondary" style={{ padding: '7px 9px' }} title="Exporter PDF"><Printer size={13} /></button>
             </Link>
+            <AiQuotaBadge refreshKey={aiQuotaKey} />
             <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', borderColor: 'var(--accent)', color: 'var(--accent)' }}
               onClick={() => setShowAiPlanModal(true)} title="Générer le planning automatiquement avec l'IA">
               <Sparkles size={13} />Générer
@@ -488,7 +491,8 @@ export function PlanningWeekTimeline({
 
       {showAiPlanModal && (
         <AiPlanModal weekMonday={mondayStr} weekLabel={weekLabel} employees={employees} postes={postes}
-          onSuccess={() => router.refresh()} onClose={() => setShowAiPlanModal(false)} />
+          onSuccess={() => { router.refresh(); setAiQuotaKey(k => k + 1) }}
+          onClose={() => setShowAiPlanModal(false)} />
       )}
 
       <DragOverlay>

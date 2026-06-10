@@ -6,6 +6,7 @@ import type { SubscriptionRow } from '@/lib/subscription'
 import { type BillingInterval, type PlanId, PLAN_META } from '@/lib/stripe'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { AiQuotaBadge } from '@/components/ui/ai-quota-badge'
 
 interface Props {
   subscription: SubscriptionRow | null
@@ -167,7 +168,8 @@ export function BillingClient({ subscription, trialDaysLeft }: Props) {
           )}
 
           {isActive && (
-            <div className="mt-4 pt-4 border-t border-[var(--border)]">
+            <div className="mt-4 pt-4 border-t border-[var(--border)] space-y-3">
+              <AiQuotaBadge />
               <button
                 onClick={handlePortal}
                 disabled={loading === 'portal'}
