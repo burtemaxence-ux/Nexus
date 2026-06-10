@@ -76,6 +76,7 @@ interface Metrics {
   totalShifts: number
   presentCount: number
   latenessCount: number
+  sparklineData: number[]
   onboardingSteps: { title: string; description: string; done: boolean; href: string; cta: string }[]
   onboardingAllDone: boolean
 }
@@ -108,6 +109,33 @@ function MetricsSkeleton() {
   )
 }
 
+function MiniSparkline({ data, color }: { data: number[]; color: string }) {
+  const max = Math.max(...data, 1)
+  const h = 22
+  const barW = 5
+  const gap = 2
+  const totalW = data.length * (barW + gap) - gap
+  return (
+    <svg width={totalW} height={h} style={{ display: 'block' }} aria-hidden="true">
+      {data.map((val, i) => {
+        const barH = val > 0 ? Math.max(4, Math.round((val / max) * h)) : 4
+        return (
+          <rect
+            key={i}
+            x={i * (barW + gap)}
+            y={h - barH}
+            width={barW}
+            height={barH}
+            rx={2}
+            fill={val > 0 ? color : 'rgba(255,255,255,0.06)'}
+            opacity={val > 0 ? 0.7 : 1}
+          />
+        )
+      })}
+    </svg>
+  )
+}
+
 function useCountUp(target: number, duration = 800): number {
   const [value, setValue] = useState(0)
   useEffect(() => {
@@ -136,10 +164,12 @@ interface KpiCardProps {
   suffix?: string
   progressPct: number
   subLabel?: string
+  subLabelColored?: boolean
   isNull?: boolean
+  sparkline?: number[]
 }
 
-function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progressPct, subLabel, isNull = false }: KpiCardProps) {
+function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progressPct, subLabel, subLabelColored = false, isNull = false, sparkline }: KpiCardProps) {
   const animated = useCountUp(value)
   const [hovered, setHovered] = useState(false)
   return (
@@ -169,7 +199,12 @@ function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progres
         {isNull ? '—' : `${animated}${suffix}`}
       </p>
       {subLabel && (
-        <p style={{ fontSize: '12px', color: '#9090a8', margin: 0 }}>{subLabel}</p>
+        <p style={{ fontSize: '12px', color: subLabelColored ? color : '#9090a8', margin: 0 }}>{subLabel}</p>
+      )}
+      {sparkline && (
+        <div style={{ marginTop: '4px' }}>
+          <MiniSparkline data={sparkline} color={color} />
+        </div>
       )}
       <div style={{ marginTop: 'auto', paddingTop: '8px' }}>
         <div style={{ height: '5px', borderRadius: '99px', backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' }}>
@@ -242,6 +277,21 @@ export function ManagerMetricsClient() {
       const presentCount = (weekPresences ?? []).filter((p: { employee_id: string; date: string }) => shiftKeys.has(`${p.employee_id}_${p.date}`)).length
       const presenceRate = totalShifts > 0 ? Math.round(presentCount / totalShifts * 100) : null
       const latenessCount = monthLateness?.length ?? 0
+
+      const weekDates: string[] = []
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday)
+        d.setDate(monday.getDate() + i)
+        weekDates.push(d.toISOString().split('T')[0])
+      }
+      const sparklineData = weekDates.map(date => {
+        const dayShifts = (weekShifts ?? []).filter((s: { employee_id: string; date: string }) => s.date === date).length
+        if (dayShifts === 0) return 0
+        const dayPresent = (weekPresences ?? []).filter((p: { employee_id: string; date: string }) =>
+          p.date === date && shiftKeys.has(`${p.employee_id}_${p.date}`)
+        ).length
+        return Math.round((dayPresent / dayShifts) * 100)
+      })
       const isDefaultName = !nameRow?.value || nameRow.value === 'Mon établissement'
 
       const onboardingSteps = [
@@ -289,6 +339,7 @@ export function ManagerMetricsClient() {
         totalShifts,
         presentCount,
         latenessCount,
+        sparklineData,
         onboardingSteps,
         onboardingAllDone: onboardingSteps.every(s => s.done),
       })
@@ -305,7 +356,7 @@ export function ManagerMetricsClient() {
 
   if (!metrics) return <MetricsSkeleton />
 
-  const { employeeCount, pendingCount, presenceRate, totalShifts, presentCount, latenessCount, onboardingSteps, onboardingAllDone } = metrics
+  const { employeeCount, pendingCount, presenceRate, totalShifts, presentCount, latenessCount, sparklineData, onboardingSteps, onboardingAllDone } = metrics
 
   const presence = presenceRate === null
     ? { color: '#5a5a72', iconBg: 'rgba(90,90,114,0.15)', label: 'Aucun shift planifié' }
@@ -334,7 +385,9 @@ export function ManagerMetricsClient() {
           iconBg={presence.iconBg}
           progressPct={presenceRate ?? 0}
           subLabel={presence.label}
+          subLabelColored
           isNull={presenceRate === null}
+          sparkline={sparklineData}
         />
         <KpiCard
           label="Équipe"
@@ -370,27 +423,27 @@ export function ManagerMetricsClient() {
         <div className="space-y-2">
           {pendingCount > 0 && (
             <Link href="/manager/conges">
-              <div className="flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors duration-150"
-                style={{ backgroundColor: '#FEF3C7', borderColor: '#D97706', borderWidth: '0.5px' }}
+              <div className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-[rgba(255,179,71,0.05)]"
+                style={{ backgroundColor: 'rgba(255,179,71,0.08)', border: '1px solid rgba(255,179,71,0.2)', borderRadius: '10px' }}
               >
-                <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
-                <p className="flex-1 text-[13px]" style={{ color: '#92400E' }}>
+                <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" style={{ color: '#FFB347' }} />
+                <p className="flex-1 text-[13px]" style={{ color: '#f0f0f8', fontFamily: 'var(--font-dm-sans)' }}>
                   {pendingCount} demande{pendingCount !== 1 ? 's' : ''} de congé{pendingCount !== 1 ? 's' : ''} en attente de validation
                 </p>
-                <span className="text-[12px] font-medium flex-shrink-0" style={{ color: 'var(--warning)' }}>Traiter →</span>
+                <span className="text-[12px] font-medium flex-shrink-0" style={{ color: '#FFB347' }}>Traiter →</span>
               </div>
             </Link>
           )}
           {latenessCount > 0 && (
             <Link href="/manager/presences">
-              <div className="flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors duration-150"
-                style={{ backgroundColor: '#FEE2E2', borderColor: '#DC2626', borderWidth: '0.5px' }}
+              <div className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-[rgba(255,107,107,0.05)]"
+                style={{ backgroundColor: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.2)', borderRadius: '10px' }}
               >
-                <Clock className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--danger)' }} />
-                <p className="flex-1 text-[13px]" style={{ color: '#991B1B' }}>
+                <Clock className="h-3.5 w-3.5 flex-shrink-0" style={{ color: '#FF6B6B' }} />
+                <p className="flex-1 text-[13px]" style={{ color: '#f0f0f8', fontFamily: 'var(--font-dm-sans)' }}>
                   {latenessCount} retard{latenessCount !== 1 ? 's' : ''} enregistré{latenessCount !== 1 ? 's' : ''} ce mois
                 </p>
-                <span className="text-[12px] font-medium flex-shrink-0" style={{ color: 'var(--danger)' }}>Voir →</span>
+                <span className="text-[12px] font-medium flex-shrink-0" style={{ color: '#FF6B6B' }}>Voir →</span>
               </div>
             </Link>
           )}
