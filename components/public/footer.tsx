@@ -10,7 +10,6 @@ const LEGAL_LINKS = [
 ]
 
 const USEFUL_LINKS = [
-  { label: 'Démo',          href: '/demo' },
   { label: 'Se connecter',  href: '/login' },
   { label: 'Contact',       href: 'mailto:hello@quartzbase.fr' },
 ]

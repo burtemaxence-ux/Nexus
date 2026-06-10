@@ -143,26 +143,6 @@ export function HeroSection() {
                 transform: 'skewX(-15deg)',
               }} />
             </Link>
-            <Link
-              href="/demo"
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 14,
-                color: 'rgba(255,255,255,0.55)',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                transition: 'color 200ms ease',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)')}
-            >
-              Voir la démo
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2.5 7h9M8 3.5L11.5 7 8 10.5" />
-              </svg>
-            </Link>
           </div>
         </div>
 
