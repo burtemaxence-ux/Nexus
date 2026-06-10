@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Mail, Lock, Eye, EyeOff, User, Loader2, Calendar, Clock, Users } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+
+// ── Supabase auth logic — NE PAS MODIFIER ─────────────────────────────────────
 
 function useRegister() {
   const router = useRouter()
@@ -83,6 +84,8 @@ function useRegister() {
   return { fullName, setFullName, email, setEmail, password, setPassword, error, loading, googleLoading, success, handleRegister, handleGoogleRegister }
 }
 
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -94,195 +97,204 @@ function GoogleIcon() {
   )
 }
 
-const BENEFITS = [
-  { icon: Calendar, label: 'Planning intelligent',    desc: 'Créez vos plannings rapidement.' },
-  { icon: Clock,    label: 'Présences en temps réel', desc: 'Suivez retards et pointages.' },
-  { icon: Users,   label: 'Congés synchronisés',      desc: "Centralisez les demandes d'absence." },
-]
-
-function MeshBackground() {
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden>
-      <div className="absolute rounded-full" style={{ width: 600, height: 600, top: '-160px', left: '-140px', background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)', filter: 'blur(40px)' }} />
-      <div className="absolute rounded-full" style={{ width: 500, height: 500, top: '30%', right: '-100px', background: 'radial-gradient(circle, rgba(139,92,246,0.14) 0%, transparent 70%)', filter: 'blur(50px)' }} />
-      <div className="absolute rounded-full" style={{ width: 450, height: 450, bottom: '-80px', left: '15%', background: 'radial-gradient(circle, rgba(79,70,229,0.12) 0%, transparent 70%)', filter: 'blur(60px)' }} />
-    </div>
-  )
-}
+// ── Page principale ────────────────────────────────────────────────────────────
 
 export default function RegisterPage() {
   const { fullName, setFullName, email, setEmail, password, setPassword, error, loading, googleLoading, success, handleRegister, handleGoogleRegister } = useRegister()
   const [showPassword, setShowPassword] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!error || !cardRef.current) return
+    const card = cardRef.current
+    card.classList.add('auth-card-error')
+    const timer = setTimeout(() => card.classList.remove('auth-card-error'), 400)
+    return () => clearTimeout(timer)
+  }, [error])
+
+  if (success) {
+    return (
+      <div className="auth-card text-center space-y-5 py-4">
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center mx-auto"
+          style={{ background: 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.2)' }}
+        >
+          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="#00D4AA" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="text-[22px] font-bold" style={{ color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}>
+          Vérifiez vos emails
+        </h2>
+        <p className="text-[14px]" style={{ color: '#9090a8', fontFamily: 'var(--font-dm-sans)' }}>
+          Un lien de confirmation a été envoyé à{' '}
+          <strong style={{ color: '#f0f0f8' }}>{email}</strong>.
+          Cliquez dessus pour activer votre compte.
+        </p>
+        <Link
+          href="/login"
+          className="block text-[13px] hover:underline transition-colors"
+          style={{ color: '#6C63FF' }}
+        >
+          Retour à la connexion
+        </Link>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-[#EDEEFF] dark:bg-[#0F1117] lg:grid lg:grid-cols-2 relative">
-      <MeshBackground />
+    <div ref={cardRef} className="auth-card">
 
-      {/* Colonne gauche */}
-      <div className="hidden lg:flex flex-col justify-between px-16 py-14 relative z-10">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[#4F46E5] flex items-center justify-center font-bold text-white text-[17px] select-none">Q</div>
-          <span className="text-[17px] font-semibold tracking-tight text-[#18181B] dark:text-[#F0F2F8]">Quartzbase</span>
-        </div>
-        <div className="space-y-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#4F46E5]/20 bg-white/60 text-[#4F46E5] text-[12px] font-medium tracking-wide">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5]" />
-            14 jours d&apos;essai gratuit — aucune carte requise
-          </div>
-          <div className="space-y-4">
-            <h1 className="text-[2.6rem] leading-[1.15] font-bold text-[#18181B] dark:text-[#F0F2F8] tracking-tight">
-              Gérez votre équipe,<br />
-              simplement{' '}
-              <span className="text-[#4F46E5]">maîtrisé.</span>
-            </h1>
-            <p className="text-[15px] leading-relaxed text-[#6B7280] dark:text-[#8B90A7] max-w-[360px]">
-              Quartzbase remplace les logiciels de planning traditionnels. Planning, congés, badgeuse et conformité légale en un seul outil.
-            </p>
-          </div>
-          <div className="space-y-5">
-            {BENEFITS.map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center flex-shrink-0">
-                  <Icon className="h-[18px] w-[18px] text-[#4F46E5]" />
-                </div>
-                <div>
-                  <p className="text-[14px] font-semibold text-[#18181B] dark:text-[#F0F2F8] leading-tight">{label}</p>
-                  <p className="text-[13px] text-[#6B7280] dark:text-[#8B90A7] leading-tight mt-0.5">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <p className="text-[12px] text-[#9CA3AF]">© 2026 Quartzbase by Quartz SAS</p>
-      </div>
-
-      {/* Colonne droite */}
-      <div className="flex flex-col items-center justify-center min-h-screen px-6 py-16 relative z-10">
-        <div className="lg:hidden mb-10 flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-[#4F46E5] flex items-center justify-center font-bold text-white text-[14px] select-none">Q</div>
-          <span className="text-[15px] font-semibold tracking-tight text-[#18181B] dark:text-[#F0F2F8]">Quartzbase</span>
-        </div>
-
-        <div className="w-full max-w-[420px] bg-white dark:bg-[#1A1D27] rounded-[20px] border border-[#E5E7EB] dark:border-[#2A2D3A] shadow-[0_4px_32px_0_rgba(79,70,229,0.08)] px-9 py-10">
-
-          {success ? (
-            <div className="text-center space-y-4 py-4">
-              <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-                <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h2 className="text-[22px] font-bold text-[#18181B] dark:text-[#F0F2F8]">Vérifiez vos emails</h2>
-              <p className="text-[14px] text-[#6B7280] dark:text-[#8B90A7]">
-                Un lien de confirmation a été envoyé à <strong>{email}</strong>. Cliquez dessus pour activer votre compte.
-              </p>
-              <Link href="/login" className="block text-[13px] text-[#4F46E5] hover:underline mt-2">
-                Retour à la connexion
-              </Link>
-            </div>
-          ) : (
-            <>
-              <div className="mb-8 text-center">
-                <h2 className="text-[26px] font-bold text-[#18181B] dark:text-[#F0F2F8] tracking-tight">Créer un compte</h2>
-                <p className="text-[14px] text-[#6B7280] dark:text-[#8B90A7] mt-1.5">14 jours d&apos;essai gratuit, sans carte bancaire</p>
-              </div>
-
-              {/* Google */}
-              <button
-                type="button"
-                onClick={handleGoogleRegister}
-                disabled={googleLoading || loading}
-                className={cn(
-                  'w-full flex items-center justify-center gap-2.5 mb-5',
-                  'px-4 py-3 rounded-xl text-[14px] font-medium text-[#374151] dark:text-[#F0F2F8]',
-                  'bg-white dark:bg-[#1A1D27] border border-[#E5E7EB] dark:border-[#2A2D3A]',
-                  'hover:bg-[#F9FAFB] dark:hover:bg-[#0F1117] transition-all duration-150',
-                  'disabled:opacity-60 disabled:cursor-not-allowed'
-                )}
-              >
-                {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
-                <span>Continuer avec Google</span>
-              </button>
-
-              <div className="flex items-center gap-3 mb-5">
-                <div className="flex-1 h-px bg-[#F3F4F6] dark:bg-[#2A2D3A]" />
-                <span className="text-[12px] text-[#9CA3AF] dark:text-[#4A4F66]">ou</span>
-                <div className="flex-1 h-px bg-[#F3F4F6] dark:bg-[#2A2D3A]" />
-              </div>
-
-              <form onSubmit={handleRegister} className="space-y-4">
-                {/* Nom complet */}
-                <div className="space-y-1.5">
-                  <label htmlFor="fullName" className="block text-[13px] font-medium text-[#374151] dark:text-[#F0F2F8]">Nom complet</label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-[#9CA3AF] pointer-events-none" />
-                    <input
-                      id="fullName" type="text" autoComplete="name" placeholder="Jean Dupont"
-                      value={fullName} onChange={e => setFullName(e.target.value)} required disabled={loading}
-                      className={cn('w-full pl-10 pr-4 py-3 text-[14px] text-[#18181B] dark:text-[#F0F2F8] placeholder:text-[#C4C9D4]', 'bg-white dark:bg-[#0F1117] border border-[#E5E7EB] dark:border-[#2A2D3A] rounded-xl outline-none', 'transition-all duration-150 hover:border-[#C7C8F0] focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10', 'disabled:opacity-50 disabled:cursor-not-allowed')}
-                    />
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div className="space-y-1.5">
-                  <label htmlFor="email" className="block text-[13px] font-medium text-[#374151] dark:text-[#F0F2F8]">Adresse email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-[#9CA3AF] pointer-events-none" />
-                    <input
-                      id="email" type="email" autoComplete="email" placeholder="vous@restaurant.fr"
-                      value={email} onChange={e => setEmail(e.target.value)} required disabled={loading}
-                      className={cn('w-full pl-10 pr-4 py-3 text-[14px] text-[#18181B] dark:text-[#F0F2F8] placeholder:text-[#C4C9D4]', 'bg-white dark:bg-[#0F1117] border border-[#E5E7EB] dark:border-[#2A2D3A] rounded-xl outline-none', 'transition-all duration-150 hover:border-[#C7C8F0] focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10', 'disabled:opacity-50 disabled:cursor-not-allowed')}
-                    />
-                  </div>
-                </div>
-
-                {/* Mot de passe */}
-                <div className="space-y-1.5">
-                  <label htmlFor="password" className="block text-[13px] font-medium text-[#374151] dark:text-[#F0F2F8]">Mot de passe</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-[#9CA3AF] pointer-events-none" />
-                    <input
-                      id="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="8 caractères minimum"
-                      value={password} onChange={e => setPassword(e.target.value)} required disabled={loading}
-                      className={cn('w-full pl-10 pr-11 py-3 text-[14px] text-[#18181B] dark:text-[#F0F2F8] placeholder:text-[#C4C9D4]', 'bg-white dark:bg-[#0F1117] border border-[#E5E7EB] dark:border-[#2A2D3A] rounded-xl outline-none', 'transition-all duration-150 hover:border-[#C7C8F0] focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10', 'disabled:opacity-50 disabled:cursor-not-allowed')}
-                    />
-                    <button type="button" tabIndex={-1} onClick={() => setShowPassword(v => !v)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors">
-                      {showPassword ? <EyeOff className="h-[15px] w-[15px]" /> : <Eye className="h-[15px] w-[15px]" />}
-                    </button>
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="flex gap-3 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
-                    <span className="text-red-400 text-[13px] mt-px flex-shrink-0">✕</span>
-                    <p className="text-[13px] text-red-600 leading-snug">{error}</p>
-                  </div>
-                )}
-
-                <button
-                  type="submit" disabled={loading}
-                  className={cn('w-full flex items-center justify-center gap-2 mt-1', 'px-4 py-3 rounded-xl text-[14px] font-semibold text-white', 'bg-[#4F46E5] hover:bg-[#4338CA] active:bg-[#3730A3]', 'transition-all duration-150 shadow-[0_2px_8px_0_rgba(79,70,229,0.35)]', 'disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none')}
-                >
-                  {loading ? <><Loader2 className="h-4 w-4 animate-spin" /><span>Création en cours…</span></> : <span>Créer mon compte</span>}
-                </button>
-              </form>
-
-              <p className="mt-6 text-center text-[13px] text-[#6B7280]">
-                Déjà un compte ?{' '}
-                <Link href="/login" className="text-[#4F46E5] hover:underline font-medium">Se connecter</Link>
-              </p>
-
-              <p className="mt-4 text-center text-[11px] text-[#C4C9D4]">
-                En créant un compte, vous acceptez nos{' '}
-                <Link href="/legal/cgu" className="underline">CGU</Link>
-                {' '}et notre{' '}
-                <Link href="/legal/confidentialite" className="underline">politique de confidentialité</Link>.
-              </p>
-            </>
-          )}
+      {/* Titre + badges */}
+      <div className="auth-cascade-1 flex flex-col items-center mb-7 text-center">
+        <h2
+          className="text-[22px] font-bold tracking-tight mb-3"
+          style={{ color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}
+        >
+          Démarrez votre essai gratuit
+        </h2>
+        <div className="flex flex-wrap justify-center gap-2">
+          {['14 jours', 'Sans carte bleue', 'Annulation libre'].map(badge => (
+            <span key={badge} className="auth-badge-success">{badge}</span>
+          ))}
         </div>
       </div>
+
+      {/* Bouton Google */}
+      <button
+        type="button"
+        onClick={handleGoogleRegister}
+        disabled={googleLoading || loading}
+        className="auth-cascade-2 auth-btn-google w-full flex items-center justify-center gap-2.5 mb-5"
+      >
+        {googleLoading
+          ? <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#9090a8' }} />
+          : <GoogleIcon />
+        }
+        <span style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '14px', color: '#f0f0f8' }}>
+          S&apos;inscrire avec Google
+        </span>
+      </button>
+
+      {/* Séparateur */}
+      <div className="auth-cascade-3 flex items-center gap-3 mb-5">
+        <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+        <span className="text-[12px]" style={{ color: '#5a5a72', fontFamily: 'var(--font-dm-sans)' }}>
+          ou continuer avec email
+        </span>
+        <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+      </div>
+
+      <form onSubmit={handleRegister} className="space-y-4">
+
+        {/* Nom complet */}
+        <div className="auth-cascade-4 space-y-1.5">
+          <label htmlFor="fullName" className="auth-label block">Nom complet</label>
+          <input
+            id="fullName"
+            type="text"
+            autoComplete="name"
+            placeholder="Jean Dupont"
+            value={fullName}
+            onChange={e => setFullName(e.target.value)}
+            required
+            disabled={loading}
+            className="auth-input w-full"
+          />
+        </div>
+
+        {/* Email */}
+        <div className="auth-cascade-5 space-y-1.5">
+          <label htmlFor="email" className="auth-label block">Adresse email</label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="vous@restaurant.fr"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            disabled={loading}
+            className="auth-input w-full"
+          />
+        </div>
+
+        {/* Mot de passe */}
+        <div className="auth-cascade-6 space-y-1.5">
+          <label htmlFor="password" className="auth-label block">Mot de passe</label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              placeholder="8 caractères minimum"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              disabled={loading}
+              className="auth-input w-full pr-11"
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors duration-150"
+              style={{ color: '#5a5a72' }}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Erreur */}
+        {error && (
+          <div
+            className="flex gap-3 px-4 py-3 rounded-xl"
+            style={{ background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.2)' }}
+          >
+            <span className="text-[13px] mt-px flex-shrink-0" style={{ color: '#FF6B6B' }}>✕</span>
+            <p className="text-[13px] leading-snug" style={{ color: '#FF6B6B' }}>{error}</p>
+          </div>
+        )}
+
+        {/* Submit + liens */}
+        <div className="auth-cascade-7 space-y-4 pt-1">
+          <button
+            type="submit"
+            disabled={loading}
+            className="auth-btn-primary w-full flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Création en cours...</span>
+              </>
+            ) : (
+              <span>Créer mon compte</span>
+            )}
+          </button>
+
+          <p className="text-center text-[13px]" style={{ color: '#9090a8', fontFamily: 'var(--font-dm-sans)' }}>
+            Déjà un compte ?{' '}
+            <Link
+              href="/login"
+              className="font-medium hover:underline transition-colors duration-150"
+              style={{ color: '#6C63FF' }}
+            >
+              Se connecter
+            </Link>
+          </p>
+
+          <p className="text-center text-[11px]" style={{ color: '#5a5a72', fontFamily: 'var(--font-dm-sans)' }}>
+            En créant un compte, vous acceptez nos{' '}
+            <Link href="/legal/cgu" className="underline" style={{ color: '#5a5a72' }}>CGU</Link>
+            {' '}et notre{' '}
+            <Link href="/legal/confidentialite" className="underline" style={{ color: '#5a5a72' }}>
+              politique de confidentialité
+            </Link>.
+          </p>
+        </div>
+      </form>
     </div>
   )
 }

@@ -197,6 +197,99 @@ html {
 }
 .auth-btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
 
+/* Badge succès (register) */
+.auth-badge-success {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-family: var(--font-dm-sans);
+  background: rgba(0,212,170,0.1);
+  color: #00D4AA;
+  border: 1px solid rgba(0,212,170,0.2);
+}
+
+/* Particles — position statique, animation gérée par prefers-reduced-motion */
+.auth-particle {
+  position: absolute;
+  border-radius: 50%;
+}
+
+/* ── Auth animations ─────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+
+  /* A — Card entrance */
+  @keyframes cardReveal {
+    from { opacity: 0; transform: translateY(24px) scale(0.98); filter: blur(4px); }
+    to   { opacity: 1; transform: translateY(0)     scale(1);    filter: blur(0);  }
+  }
+
+  /* B — Cascade éléments internes */
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .auth-cascade-1,
+  .auth-cascade-2,
+  .auth-cascade-3,
+  .auth-cascade-4,
+  .auth-cascade-5,
+  .auth-cascade-6,
+  .auth-cascade-7 { opacity: 0; animation: fadeSlideUp 0.4s ease forwards; }
+  .auth-cascade-1 { animation-delay: 50ms; }
+  .auth-cascade-2 { animation-delay: 100ms; }
+  .auth-cascade-3 { animation-delay: 150ms; }
+  .auth-cascade-4 { animation-delay: 200ms; }
+  .auth-cascade-5 { animation-delay: 250ms; }
+  .auth-cascade-6 { animation-delay: 300ms; }
+  .auth-cascade-7 { animation-delay: 350ms; }
+
+  /* C — Glow fond pulsé */
+  @keyframes glowPulse {
+    0%, 100% { opacity: 0.6; }
+    50%       { opacity: 1;   }
+  }
+  .auth-bg-glow { animation: glowPulse 4s ease-in-out infinite; }
+
+  /* D — Particules flottantes */
+  @keyframes float {
+    0%, 100% { transform: translateY(0)     translateX(0);    opacity: 0.3; }
+    33%       { transform: translateY(-20px) translateX(10px); opacity: 0.6; }
+    66%       { transform: translateY(10px)  translateX(-8px); opacity: 0.2; }
+  }
+  .auth-particle { animation: float linear infinite; }
+  .auth-particle-1 { width: 3px; height: 3px; background: rgba(108,99,255,0.6); top: 15%; left: 10%;   animation-duration: 8s;                  }
+  .auth-particle-2 { width: 2px; height: 2px; background: rgba(0,212,170,0.5);  top: 70%; left: 20%;   animation-duration: 11s; animation-delay: -3s;  }
+  .auth-particle-3 { width: 4px; height: 4px; background: rgba(108,99,255,0.4); top: 30%; right: 15%;  animation-duration: 9s;  animation-delay: -6s;  }
+  .auth-particle-4 { width: 2px; height: 2px; background: rgba(255,255,255,0.3); top: 80%; right: 25%; animation-duration: 13s; animation-delay: -2s;  }
+  .auth-particle-5 { width: 3px; height: 3px; background: rgba(0,212,170,0.4);  top: 50%; left: 5%;    animation-duration: 10s; animation-delay: -5s;  }
+
+  /* E — Aurora border animée */
+  @keyframes auroraMove {
+    0%   { background-position: 0%   50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  /* Card : entrance + aurora */
+  .auth-card {
+    animation:
+      cardReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+      auroraMove 3s linear infinite;
+  }
+
+  /* F — Shake sur erreur */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0);   }
+    20%       { transform: translateX(-8px); }
+    40%       { transform: translateX(8px);  }
+    60%       { transform: translateX(-5px); }
+    80%       { transform: translateX(5px);  }
+  }
+  .auth-card-error { animation: shake 0.4s ease !important; }
+}
+
 @layer components {
   .btn-primary {
     display: inline-flex;

@@ -6,9 +6,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       className="relative min-h-screen flex flex-col items-center justify-center px-4 py-12"
       style={{ backgroundColor: '#0a0a0f' }}
     >
-      {/* Gradients décoratifs superposés */}
+      {/* Gradients décoratifs — auth-bg-glow ajoute le pulse CSS */}
       <div
-        className="fixed inset-0 pointer-events-none"
+        className="auth-bg-glow fixed inset-0 pointer-events-none"
         aria-hidden
         style={{
           background: [
