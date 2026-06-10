@@ -8,9 +8,28 @@ const STATS = [
   { value: 'France',   label: 'Support en français', color: '#FFB347' },
 ]
 
+const TESTIMONIALS = [
+  {
+    quote: `Quartzbase m'a fait économiser 4 heures par semaine dès le premier mois.
+      Je fais mon planning le vendredi en 3 minutes, et mes employés reçoivent
+      leur semaine directement sur leur téléphone. Je n'aurais pas cru que c'était
+      possible avant d'essayer.`,
+    initials: 'TM',
+    name: 'Thomas M.',
+    detail: 'Boulangerie artisanale · Lyon · 12 employés',
+  },
+  {
+    quote: `Le remplacement IA nous a sauvé deux services en un mois.
+      Avant j'appelais tout le monde un par un. Maintenant c'est l'app qui gère.`,
+    initials: 'AM',
+    name: 'Armand M.',
+    detail: `Restaurant « Le Comptoir » · Bordeaux · 18 employés`,
+  },
+]
+
 export function SocialProofSection() {
-  const sectionRef  = useRef<HTMLDivElement>(null)
-  const statsRef    = useRef<(HTMLDivElement | null)[]>([])
+  const testimonialRefs = useRef<(HTMLDivElement | null)[]>([])
+  const statsRef        = useRef<(HTMLDivElement | null)[]>([])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -27,7 +46,7 @@ export function SocialProofSection() {
       { threshold: 0.15 }
     )
 
-    if (sectionRef.current) observer.observe(sectionRef.current)
+    testimonialRefs.current.forEach((el) => { if (el) observer.observe(el) })
     statsRef.current.forEach((el) => { if (el) observer.observe(el) })
 
     return () => observer.disconnect()
@@ -57,93 +76,102 @@ export function SocialProofSection() {
           </p>
         </div>
 
-        {/* Témoignage principal */}
-        <div
-          ref={sectionRef}
-          className="proof-card"
-          style={{
-            background: '#13121f',
-            border: '1px solid rgba(108,99,255,0.12)',
-            borderRadius: 16,
-            padding: '40px 48px',
-            maxWidth: 720,
-            margin: '0 auto 80px',
-            position: 'relative',
-          }}
-        >
-          {/* Guillemets décoratifs */}
-          <div style={{
-            position: 'absolute',
-            top: 28,
-            left: 40,
-            fontFamily: 'Georgia, serif',
-            fontSize: 80,
-            lineHeight: 1,
-            color: 'rgba(108,99,255,0.15)',
-            userSelect: 'none',
-            pointerEvents: 'none',
-          }} aria-hidden="true">
-            &ldquo;
-          </div>
+        {/* Témoignages */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 24,
+          maxWidth: 980,
+          margin: '0 auto 80px',
+        }} className="proof-testimonials-grid">
+          {TESTIMONIALS.map((t, ti) => (
+            <div
+              key={t.initials}
+              ref={(el) => { testimonialRefs.current[ti] = el }}
+              data-delay={ti * 120}
+              className="proof-card"
+              style={{
+                background: '#13121f',
+                border: '1px solid rgba(108,99,255,0.12)',
+                borderRadius: 16,
+                padding: '36px 36px',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {/* Guillemets décoratifs */}
+              <div style={{
+                position: 'absolute',
+                top: 24,
+                left: 30,
+                fontFamily: 'Georgia, serif',
+                fontSize: 72,
+                lineHeight: 1,
+                color: 'rgba(108,99,255,0.15)',
+                userSelect: 'none',
+                pointerEvents: 'none',
+              }} aria-hidden="true">
+                &ldquo;
+              </div>
 
-          {/* Citation */}
-          <blockquote style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 19,
-            lineHeight: 1.65,
-            color: 'rgba(255,255,255,0.82)',
-            fontStyle: 'italic',
-            margin: '0 0 32px',
-            paddingTop: 16,
-          }}>
-            {`Quartzbase m'a fait économiser 4 heures par semaine dès le premier mois.
-            Je fais mon planning le vendredi en 3 minutes, et mes employés reçoivent
-            leur semaine directement sur leur téléphone. Je n'aurais pas cru que c'était
-            possible avant d'essayer.`}
-          </blockquote>
+              {/* Citation */}
+              <blockquote style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 16,
+                lineHeight: 1.65,
+                color: 'rgba(255,255,255,0.82)',
+                fontStyle: 'italic',
+                margin: '0 0 28px',
+                paddingTop: 14,
+                flex: 1,
+              }}>
+                {t.quote}
+              </blockquote>
 
-          {/* Auteur */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {/* Avatar initiales */}
-            <div style={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #6C63FF, #00D4AA)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <span style={{
-                fontFamily: "'Syne', sans-serif",
-                fontWeight: 700,
-                fontSize: 15,
-                color: '#fff',
-              }}>
-                TM
-              </span>
+              {/* Auteur */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #6C63FF, #00D4AA)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <span style={{
+                    fontFamily: "'Syne', sans-serif",
+                    fontWeight: 700,
+                    fontSize: 15,
+                    color: '#fff',
+                  }}>
+                    {t.initials}
+                  </span>
+                </div>
+                <div>
+                  <p style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontWeight: 600,
+                    fontSize: 14,
+                    color: '#ffffff',
+                    margin: 0,
+                  }}>
+                    {t.name}
+                  </p>
+                  <p style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: 13,
+                    color: 'rgba(255,255,255,0.4)',
+                    margin: 0,
+                  }}>
+                    {t.detail}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 600,
-                fontSize: 14,
-                color: '#ffffff',
-                margin: 0,
-              }}>
-                Thomas M.
-              </p>
-              <p style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 13,
-                color: 'rgba(255,255,255,0.4)',
-                margin: 0,
-              }}>
-                Boulangerie artisanale · Lyon · 12 employés
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* 3 chiffres clés */}
@@ -225,7 +253,8 @@ export function SocialProofSection() {
         }
 
         @media (max-width: 767px) {
-          .proof-stats-grid {
+          .proof-stats-grid,
+          .proof-testimonials-grid {
             grid-template-columns: 1fr !important;
           }
         }
