@@ -4,40 +4,40 @@ import { useState } from 'react'
 
 const FAQ_ITEMS = [
   {
-    question: `C'est difficile à apprendre ?`,
-    answer: `15 minutes pour créer votre premier planning. Tout fonctionne sur téléphone. Vos employés reçoivent une invitation et créent leur compte en autonomie — vous n'avez rien à configurer pour eux.`,
-  },
-  {
-    question: `Pourquoi choisir Quartzbase plutôt qu'un logiciel traditionnel ?`,
-    answer: `Quartzbase coûte jusqu'à 4 fois moins cher et inclut une IA qui génère le planning automatiquement. La plupart des logiciels n'ont ni génération IA ni vérification légale automatique. Vous payez moins, et l'outil fait plus.`,
-  },
-  {
-    question: `L'essai est vraiment gratuit ?`,
-    answer: `Oui. 14 jours complets, toutes les fonctionnalités. Aucune carte bleue demandée. Si vous ne continuez pas, votre compte passe en lecture seule sans frais — vos données restent accessibles.`,
-  },
-  {
     question: `Est-ce vraiment conforme au Code du Travail ?`,
-    answer: `Quartzbase vérifie automatiquement 7 règles légales : repos quotidien, durée journalière et hebdomadaire, pauses obligatoires, jours consécutifs, travail du dimanche et travail de nuit. Vous recevez une alerte immédiate si une anomalie est détectée.`,
+    answer: `Oui. Quartzbase vérifie automatiquement 7 règles légales : repos quotidien minimum (11h), durée journalière, durée hebdomadaire, pauses obligatoires, jours consécutifs, travail du dimanche et travail de nuit. Vous recevez une alerte immédiate si une anomalie est détectée dans votre planning.`,
   },
   {
     question: `Mes employés ont besoin d'un ordinateur ?`,
-    answer: `Non. Tout fonctionne sur smartphone. Pointage, planning, congés — depuis leur iPhone ou Android. Aucune installation requise, tout passe par le navigateur.`,
+    answer: `Non. Tout fonctionne sur smartphone, sans installation. Pointage, consultation du planning, demandes de congés — depuis leur iPhone ou Android, directement dans le navigateur. Vous n'avez rien à configurer pour eux.`,
+  },
+  {
+    question: `En quoi Quartzbase est différent des logiciels de planning traditionnels ?`,
+    answer: `Quartzbase coûte 4 à 10 fois moins cher que les solutions classiques et inclut une IA qui génère le planning automatiquement. La plupart des logiciels traditionnels n'ont ni génération IA ni vérification légale automatique. Vous payez moins, et l'outil fait plus.`,
   },
   {
     question: `Puis-je annuler à tout moment ?`,
-    answer: `Oui. Un clic dans vos paramètres, sans pénalité, sans formulaire. Vos données restent accessibles jusqu'à la fin de la période payée, puis passent en lecture seule.`,
+    answer: `Oui, sans engagement. Un clic dans vos paramètres, sans pénalité, sans formulaire à remplir. Vos données restent accessibles en lecture seule jusqu'à la fin de la période payée.`,
+  },
+  {
+    question: `Comment fonctionne la période d'essai ?`,
+    answer: `14 jours complets avec toutes les fonctionnalités activées — planning, badgeuse, congés, conformité, IA. Aucune carte bancaire demandée. Si vous ne continuez pas, votre compte passe automatiquement en lecture seule sans frais.`,
   },
   {
     question: `Mes données sont-elles sécurisées ?`,
-    answer: `Vos données sont hébergées en Europe, chiffrées en transit et au repos, sauvegardées chaque jour. Vous pouvez les exporter ou les supprimer à tout moment — nous respectons le RGPD.`,
+    answer: `Vos données sont hébergées en Europe (conformité RGPD), chiffrées en transit et au repos, et sauvegardées chaque jour. Vous pouvez les exporter ou les supprimer à tout moment depuis vos paramètres.`,
   },
   {
     question: `Puis-je gérer plusieurs établissements ?`,
-    answer: `Oui, avec le plan Multi-site. Jusqu'à 3 établissements depuis un seul compte, avec un tableau de bord consolidé qui vous donne une vue d'ensemble en temps réel.`,
+    answer: `Oui, avec le plan Multi-site. Gérez plusieurs établissements depuis un seul compte avec des données strictement isolées par site et une vue d'ensemble consolidée.`,
   },
   {
-    question: `L'IA fonctionne vraiment pour mon type d'activité ?`,
-    answer: `Oui. L'IA analyse vos contrats, disponibilités et contraintes légales pour générer un planning adapté à votre établissement. Vous pouvez le modifier avant de le publier — l'IA propose, vous décidez.`,
+    question: `L'IA fonctionne vraiment pour générer le planning ?`,
+    answer: `Oui. L'IA analyse vos contrats, disponibilités, congés approuvés et contraintes légales pour générer un planning complet en quelques secondes. Vous prévisualisez le résultat avant de l'appliquer — l'IA propose, vous décidez. Plan Essentiel : 3 générations/mois. Plan Pro et Multi-site : illimité.`,
+  },
+  {
+    question: `Comment ajouter mes employés ?`,
+    answer: `Ajout manuel en renseignant nom, email, poste et type de contrat. L'employé reçoit automatiquement une invitation par email pour créer son compte et accéder à son planning depuis son téléphone. Aucun import de fichier requis.`,
   },
   {
     question: `Quel support est disponible ?`,
