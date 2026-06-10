@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import Link from 'next/link'
 
 /* Remplacer HERO_TITLE par le titre validé */
@@ -221,31 +222,24 @@ export function HeroSection() {
   )
 }
 
-/* ── SVG planning abstrait ─────────────────────────────────────────────── */
+/* ── Mockup planning réaliste — boulangerie ────────────────────────────── */
+const MOCK_DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven']
+const MOCK_ROWS = [
+  { name: 'Sophie',  role: 'Boulanger', hours: '6h–14h',  color: '#6C63FF', days: [1, 1, 1, 0, 1] },
+  { name: 'Lucas',   role: 'Vendeur',   hours: '14h–22h', color: '#00D4AA', days: [1, 0, 1, 1, 1] },
+  { name: 'Camille', role: 'Pâtissier', hours: '6h–14h',  color: '#FFB347', days: [1, 1, 0, 1, 1] },
+  { name: 'Marc',    role: 'Vendeur',   hours: '10h–18h', color: '#FF8C42', days: [0, 1, 1, 1, 1] },
+]
+
 function PlanningMockup() {
-  const days  = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-  const rows  = [
-    { name: 'Camille', shifts: [1,1,0,1,1,0,0], color: '#6C63FF' },
-    { name: 'Lucas',   shifts: [0,1,1,1,0,1,0], color: '#00D4AA' },
-    { name: 'Sophie',  shifts: [1,0,1,0,1,1,0], color: '#FFB347' },
-    { name: 'Marc',    shifts: [1,1,1,0,0,1,1], color: '#FF6B6B' },
-    { name: 'Léa',     shifts: [0,0,1,1,1,0,1], color: '#6C63FF' },
-  ]
-
-  const COL_W  = 44
-  const ROW_H  = 36
-  const LABEL_W = 64
-  const HEAD_H  = 28
-  const W = LABEL_W + days.length * COL_W + 24
-  const H = HEAD_H + rows.length * ROW_H + 32
-
+  const font = "'DM Sans', sans-serif"
   return (
     <div style={{
       background: 'rgba(255,255,255,0.03)',
       border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: 16,
       padding: 20,
-      maxWidth: 440,
+      maxWidth: 460,
       width: '100%',
     }}>
       {/* Barre de titre simulée */}
@@ -253,112 +247,53 @@ function PlanningMockup() {
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FF6B6B' }} />
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FFB347' }} />
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#00D4AA' }} />
-        <span style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 11,
-          color: 'rgba(255,255,255,0.3)',
-          marginLeft: 8,
-        }}>Planning — Semaine 24</span>
+        <span style={{ fontFamily: font, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>
+          Planning — Semaine 24
+        </span>
       </div>
 
-      <svg
-        width="100%"
-        viewBox={`0 0 ${W} ${H}`}
-        style={{ overflow: 'visible' }}
-        aria-hidden="true"
-      >
-        {/* En-têtes jours */}
-        {days.map((day, i) => (
-          <text
-            key={day}
-            x={LABEL_W + i * COL_W + COL_W / 2}
-            y={18}
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.3)"
-            fontSize={10}
-            fontFamily="'DM Sans', sans-serif"
-          >
+      {/* Grille planning */}
+      <div style={{ display: 'grid', gridTemplateColumns: '88px repeat(5, 1fr)', gap: 5 }}>
+        <div />
+        {MOCK_DAYS.map(day => (
+          <div key={day} style={{ fontFamily: font, fontSize: 10, color: 'rgba(255,255,255,0.35)', textAlign: 'center', paddingBottom: 4 }}>
             {day}
-          </text>
+          </div>
         ))}
 
-        {/* Lignes employés */}
-        {rows.map((row, ri) => {
-          const y = HEAD_H + ri * ROW_H
-          return (
-            <g key={row.name}>
-              {/* Fond de ligne alternée */}
-              {ri % 2 === 0 && (
-                <rect
-                  x={0}
-                  y={y + 2}
-                  width={W}
-                  height={ROW_H - 4}
-                  rx={4}
-                  fill="rgba(255,255,255,0.02)"
-                />
-              )}
-              {/* Nom employé */}
-              <text
-                x={LABEL_W - 8}
-                y={y + ROW_H / 2 + 4}
-                textAnchor="end"
-                fill="rgba(255,255,255,0.45)"
-                fontSize={10}
-                fontFamily="'DM Sans', sans-serif"
-              >
-                {row.name}
-              </text>
-              {/* Shifts */}
-              {row.shifts.map((active, di) => {
-                if (!active) return null
-                return (
-                  <rect
-                    key={di}
-                    x={LABEL_W + di * COL_W + 4}
-                    y={y + 6}
-                    width={COL_W - 8}
-                    height={ROW_H - 12}
-                    rx={4}
-                    fill={row.color}
-                    opacity={0.85}
-                  />
-                )
-              })}
-            </g>
-          )
-        })}
+        {MOCK_ROWS.map(row => (
+          <React.Fragment key={row.name}>
+            <div style={{ paddingRight: 6, alignSelf: 'center' }}>
+              <div style={{ fontFamily: font, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.75)', lineHeight: 1.3 }}>{row.name}</div>
+              <div style={{ fontFamily: font, fontSize: 9, color: 'rgba(255,255,255,0.32)' }}>{row.role}</div>
+            </div>
+            {row.days.map((worked, di) => worked ? (
+              <div key={di} style={{
+                background: row.color,
+                opacity: 0.9,
+                borderRadius: 6,
+                padding: '7px 2px',
+                textAlign: 'center',
+              }}>
+                <span style={{ fontFamily: font, fontSize: 8.5, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>
+                  {row.hours}
+                </span>
+              </div>
+            ) : (
+              <div key={di} style={{ border: '1px dashed rgba(255,255,255,0.07)', borderRadius: 6 }} />
+            ))}
+          </React.Fragment>
+        ))}
+      </div>
 
-        {/* Ligne de séparation header */}
-        <line
-          x1={0} y1={HEAD_H + 2}
-          x2={W}  y2={HEAD_H + 2}
-          stroke="rgba(255,255,255,0.06)"
-          strokeWidth={1}
-        />
-      </svg>
-
-      {/* Badge IA en bas */}
-      <div style={{
-        marginTop: 16,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '8px 12px',
-        background: 'rgba(108,99,255,0.1)',
-        borderRadius: 8,
-        border: '1px solid rgba(108,99,255,0.2)',
-      }}>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <circle cx="7" cy="7" r="6" stroke="#6C63FF" strokeWidth="1.2" />
-          <path d="M4.5 7l1.8 1.8L9.5 5" stroke="#6C63FF" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+      {/* Badge conformité */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
         <span style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 11,
-          color: 'rgba(255,255,255,0.5)',
+          fontFamily: font, fontSize: 10.5, fontWeight: 600, color: '#00D4AA',
+          background: 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.25)',
+          borderRadius: 100, padding: '4px 12px',
         }}>
-          {`Planning généré par l'IA · Conforme Code du Travail`}
+          ✓ Conforme Code du Travail
         </span>
       </div>
     </div>
