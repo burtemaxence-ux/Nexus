@@ -1,22 +1,43 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import type { Metadata } from 'next'
+import { PublicNavbar }       from '@/components/public/navbar'
+import { HeroSection }        from '@/components/public/hero-section'
+import { ProblemSection }     from '@/components/public/problem-section'
+import { SolutionSection }    from '@/components/public/solution-section'
+import { SocialProofSection } from '@/components/public/social-proof-section'
+import { PricingSection }     from '@/components/public/pricing-section'
+import { FaqSection }         from '@/components/public/faq'
+import { CtaFinalSection }    from '@/components/public/cta-section'
+import { PublicFooter }       from '@/components/public/footer'
 
-export default async function Home() {
-  const supabase = await createClient()
+export const metadata: Metadata = {
+  title: 'Quartzbase — Planning restauration intelligent',
+  description:
+    'Créez le planning de votre équipe en 2 minutes avec l\'IA. Conforme Code du Travail. 4× moins cher que Skello.',
+  openGraph: {
+    title: 'Quartzbase — Planning restauration intelligent',
+    description:
+      'Planning IA pour la restauration et l\'artisanat. Conformité automatique. 14 jours gratuits, sans carte bleue.',
+    url: 'https://quartzbase.fr',
+    siteName: 'Quartzbase',
+    locale: 'fr_FR',
+    type: 'website',
+  },
+}
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  const role = user.user_metadata?.role as string | undefined
-
-  if (role === 'manager') {
-    redirect('/manager')
-  } else {
-    redirect('/employee')
-  }
+export default function LandingPage() {
+  return (
+    <div style={{ background: '#0a0a0f', minHeight: '100vh' }}>
+      <PublicNavbar />
+      <main>
+        <HeroSection />
+        <ProblemSection />
+        <SolutionSection />
+        <SocialProofSection />
+        <PricingSection />
+        <FaqSection />
+        <CtaFinalSection />
+      </main>
+      <PublicFooter />
+    </div>
+  )
 }

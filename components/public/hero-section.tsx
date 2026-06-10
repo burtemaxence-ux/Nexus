@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 
 /* Remplacer HERO_TITLE par le titre validé */
@@ -70,7 +72,7 @@ export function HeroSection() {
             </span>
           </div>
 
-          {/* Titre */}
+          {/* ② Titre — gradient animé */}
           <h1
             className="hero-animate hero-delay-0"
             style={{
@@ -79,8 +81,12 @@ export function HeroSection() {
               fontSize: 'clamp(32px, 4.5vw, 54px)',
               lineHeight: 1.1,
               letterSpacing: '-0.03em',
-              color: '#ffffff',
               marginBottom: 24,
+              background: 'linear-gradient(90deg, #ffffff 0%, #c4c0ff 20%, #6C63FF 42%, #00D4AA 62%, #c4c0ff 82%, #ffffff 100%)',
+              backgroundSize: '200% auto',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
             }}
           >
             {HERO_TITLE}
@@ -106,6 +112,7 @@ export function HeroSection() {
             className="hero-animate hero-delay-2"
             style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}
           >
+            {/* ③ CTA — shimmer */}
             <Link
               href="/register"
               style={{
@@ -118,12 +125,23 @@ export function HeroSection() {
                 background: '#6C63FF',
                 borderRadius: 10,
                 display: 'inline-block',
+                position: 'relative',
+                overflow: 'hidden',
                 transition: 'background 200ms ease, transform 100ms ease',
               }}
               onMouseEnter={e => (e.currentTarget.style.background = '#5a52e0')}
               onMouseLeave={e => (e.currentTarget.style.background = '#6C63FF')}
             >
               Essai gratuit — 14 jours
+              <span className="cta-shimmer" aria-hidden="true" style={{
+                position: 'absolute',
+                top: 0,
+                left: '-80%',
+                width: '60%',
+                height: '100%',
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%)',
+                transform: 'skewX(-15deg)',
+              }} />
             </Link>
             <Link
               href="/demo"
@@ -148,12 +166,14 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* ── Colonne mockup SVG ───────────────────────────────── */}
+        {/* ── Colonne mockup SVG — ① lévitation ───────────────── */}
         <div
           className="hero-mockup hero-animate hero-delay-1"
           style={{ display: 'flex', justifyContent: 'center' }}
         >
-          <PlanningMockup />
+          <div className="mockup-float">
+            <PlanningMockup />
+          </div>
         </div>
       </div>
 
@@ -162,6 +182,34 @@ export function HeroSection() {
         @keyframes hero-fade-up {
           from { opacity: 0; transform: translateY(24px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ① Lévitation mockup */
+        @keyframes hero-float {
+          0%, 100% { transform: translateY(0px); }
+          50%       { transform: translateY(-10px); }
+        }
+        .mockup-float {
+          animation: hero-float 3s ease-in-out infinite;
+        }
+
+        /* ② Gradient titre */
+        @keyframes gradient-flow {
+          0%   { background-position: 0% center; }
+          100% { background-position: 200% center; }
+        }
+        h1.hero-animate {
+          animation: hero-fade-up 600ms ease-out forwards, gradient-flow 5s linear 600ms infinite;
+        }
+
+        /* ③ Shimmer CTA */
+        @keyframes cta-shimmer {
+          0%   { left: -80%; }
+          45%  { left: 150%; }
+          100% { left: 150%; }
+        }
+        .cta-shimmer {
+          animation: cta-shimmer 3.5s ease-in-out infinite;
         }
 
         .hero-animate {
@@ -174,10 +222,10 @@ export function HeroSection() {
         .hero-delay-3 { animation-delay: 450ms; }
 
         @media (prefers-reduced-motion: reduce) {
-          .hero-animate {
-            animation: none;
-            opacity: 1;
-          }
+          .hero-animate { animation: none; opacity: 1; }
+          h1.hero-animate { animation: none; opacity: 1; }
+          .mockup-float { animation: none; }
+          .cta-shimmer  { animation: none; }
         }
 
         @media (max-width: 767px) {
@@ -186,9 +234,7 @@ export function HeroSection() {
             gap: 48px !important;
             text-align: center;
           }
-          .hero-mockup {
-            order: 2;
-          }
+          .hero-mockup { order: 2; }
         }
       `}</style>
     </section>

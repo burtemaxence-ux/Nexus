@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { FAQ } from '@/components/public/faq'
 import {
   Calendar, Users, Clock, Zap, ArrowLeftRight, Scale,
   LineChart, BookOpen, ChevronDown, ChevronUp, ExternalLink,
@@ -629,6 +630,14 @@ export default function HelpPage() {
             <SectionCard key={section.id} section={section} />
           ))
         )}
+      </div>
+
+      {/* FAQ Quartzbase */}
+      <div className="mt-8">
+        <h2 className="text-[16px] font-semibold text-[var(--text-primary)] tracking-[-0.01em] mb-4">
+          Questions fréquentes
+        </h2>
+        <FAQ accentColor="var(--accent)" />
       </div>
 
       {/* Footer */}
