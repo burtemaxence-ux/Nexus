@@ -249,20 +249,31 @@ export function PricingSection() {
                 {plan.description}
               </p>
 
-              {/* Prix */}
-              <div style={{ marginBottom: 28 }}>
+              {/* Prix — key force le remount pour rejouer l'animation au switch */}
+              <div key={annual ? 'annual' : 'monthly'} className="price-swap" style={{ marginBottom: 28 }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'baseline',
-                  gap: 4,
+                  gap: 8,
                 }}>
+                  {annual && (
+                    <span style={{
+                      fontFamily: "'Syne', sans-serif",
+                      fontWeight: 700,
+                      fontSize: 22,
+                      color: 'rgba(255,255,255,0.25)',
+                      textDecoration: 'line-through',
+                      letterSpacing: '-0.02em',
+                    }}>
+                      {plan.monthlyPrice}€
+                    </span>
+                  )}
                   <span style={{
                     fontFamily: "'Syne', sans-serif",
                     fontWeight: 700,
                     fontSize: 42,
                     color: plan.popular ? '#6C63FF' : '#ffffff',
                     letterSpacing: '-0.03em',
-                    transition: 'color 300ms ease',
                   }}>
                     {annual
                       ? Math.round(plan.annualPrice / 12)
@@ -281,10 +292,10 @@ export function PricingSection() {
                   <p style={{
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: 12,
-                    color: 'rgba(255,255,255,0.3)',
+                    color: '#00D4AA',
                     marginTop: 4,
                   }}>
-                    {`soit ${plan.annualPrice}€ facturés annuellement`}
+                    {`Facturé ${plan.annualPrice}€/an — 2 mois offerts`}
                   </p>
                 )}
               </div>
@@ -355,6 +366,18 @@ export function PricingSection() {
       </div>
 
       <style>{`
+        @keyframes price-in {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .price-swap {
+          animation: price-in 200ms ease-out;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .price-swap { animation: none; }
+        }
+
         @media (max-width: 900px) {
           .pricing-grid {
             grid-template-columns: 1fr !important;
