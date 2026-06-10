@@ -128,7 +128,7 @@ export default function RegisterPage() {
               <span className="text-[#4F46E5]">maîtrisé.</span>
             </h1>
             <p className="text-[15px] leading-relaxed text-[#6B7280] dark:text-[#8B90A7] max-w-[360px]">
-              Quartzbase remplace Skello. Planning, congés, badgeuse et conformité légale en un seul outil.
+              Quartzbase remplace les logiciels de planning traditionnels. Planning, congés, badgeuse et conformité légale en un seul outil.
             </p>
           </div>
           <div className="space-y-5">

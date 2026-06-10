@@ -14,7 +14,7 @@ const dmSans = DM_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-
 export const metadata: Metadata = {
   metadataBase: new URL('https://quartzbase.fr'),
   title: 'Quartzbase — Gestion de planning pour la restauration',
-  description: 'Quartzbase remplace Skello. Planning, congés, badgeuse et IA.',
+  description: 'Quartzbase remplace les logiciels de planning traditionnels. Planning, congés, badgeuse et IA.',
   applicationName: 'Quartzbase',
   appleWebApp: {
     capable: true,
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   openGraph: {
     title: 'Quartzbase — Gestion de planning pour la restauration',
-    description: 'Quartzbase remplace Skello. Planning, congés, badgeuse et IA.',
+    description: 'Quartzbase remplace les logiciels de planning traditionnels. Planning, congés, badgeuse et IA.',
     url: 'https://quartzbase.fr',
     siteName: 'Quartzbase',
     locale: 'fr_FR',

@@ -12,7 +12,7 @@ import { PublicFooter }       from '@/components/public/footer'
 export const metadata: Metadata = {
   title: 'Quartzbase — Planning restauration intelligent',
   description:
-    'Créez le planning de votre équipe en 2 minutes avec l\'IA. Conforme Code du Travail. 4× moins cher que Skello.',
+    'Créez le planning de votre équipe en 2 minutes avec l\'IA. Conforme Code du Travail. Jusqu\'à 4 fois moins cher.',
   openGraph: {
     title: 'Quartzbase — Planning restauration intelligent',
     description:

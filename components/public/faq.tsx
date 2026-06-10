@@ -8,8 +8,8 @@ const FAQ_ITEMS = [
     answer: `15 minutes pour créer votre premier planning. Tout fonctionne sur téléphone. Vos employés reçoivent une invitation et créent leur compte en autonomie — vous n'avez rien à configurer pour eux.`,
   },
   {
-    question: `Quelle est la différence avec Skello ?`,
-    answer: `Quartzbase coûte 4 à 10 fois moins cher et inclut une IA qui génère le planning automatiquement. Skello n'a ni génération IA ni vérification légale automatique. Vous payez moins, et l'outil fait plus.`,
+    question: `Pourquoi choisir Quartzbase plutôt qu'un logiciel traditionnel ?`,
+    answer: `Quartzbase coûte jusqu'à 4 fois moins cher et inclut une IA qui génère le planning automatiquement. La plupart des logiciels n'ont ni génération IA ni vérification légale automatique. Vous payez moins, et l'outil fait plus.`,
   },
   {
     question: `L'essai est vraiment gratuit ?`,

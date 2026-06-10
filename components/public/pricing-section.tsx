@@ -112,7 +112,7 @@ export function PricingSection() {
             fontSize: 16,
             color: 'rgba(255,255,255,0.45)',
           }}>
-            4 à 10 fois moins cher que Skello. Sans engagement.
+            {`Jusqu'à 4 fois moins cher. Sans engagement.`}
           </p>
         </div>
 
