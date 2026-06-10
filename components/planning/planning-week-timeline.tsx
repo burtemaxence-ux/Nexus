@@ -23,16 +23,17 @@ import { ContextMenu, type CtxMenu } from './shift-card'
 import { GridCell } from './grid-cell'
 import { MetricCard, DonutChart, AlertRow, ActivityRow } from './planning-metrics'
 import { MobileManagerPlanning } from './mobile-planning'
+import { AiQuotaBadge } from '@/components/ui/ai-quota-badge'
 
 const AiPlanModal = dynamic(
   () => import('@/components/planning/ai-plan-modal').then(m => ({ default: m.AiPlanModal })),
   { ssr: false }
 )
 
-// ── Constants ──────────────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────────────────────
 const TICK_HOURS = [0, 6, 12, 18, 24]
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────────────────
 function timeToMinutes(t: string): number {
   const [h, m] = t.split(':').map(Number)
   return h * 60 + m
@@ -47,7 +48,7 @@ function shiftBarStyle(start: string, end: string): { left: string; width: strin
   return { left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// ── Main component ───────────────────────────────────────────────────────────────────────────
 export interface PlanningWeekTimelineProps {
   weekDates: Date[]
   employees: Profile[]
@@ -79,10 +80,11 @@ export function PlanningWeekTimeline({
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [filterPoste, setFilterPoste] = useState('')
   const [showAiPlanModal, setShowAiPlanModal] = useState(false)
+  const [aiQuotaKey, setAiQuotaKey] = useState(0)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
-  // ── Data maps ────────────────────────────────────────────────────────────────
+  // ── Data maps ──────────────────────────────────────────────────────────────────────────
   const shiftMap = useMemo(() => {
     const m = new Map<string, Shift[]>()
     for (const s of shifts) {
@@ -142,7 +144,7 @@ export function PlanningWeekTimeline({
     return { totalPlanned: total, coverage: cov, overtime: ot }
   }, [shifts, employees])
 
-  // ── Handlers ─────────────────────────────────────────────────────────────────
+  // ── Handlers ─────────────────────────────────────────────────────────────────────────────
   const handleWeekStatus = useCallback(async (payload: { published?: boolean; locked?: boolean }) => {
     setStatusLoading(true)
     try {
@@ -197,11 +199,11 @@ export function PlanningWeekTimeline({
     await copyShift(shift, targetEmpId, targetDate)
   }, [shifts, copyShift])
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────────────────────
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
 
-      {/* ── Mobile view ─────────────────────────────────────────────────────── */}
+      {/* ── Mobile view ─────────────────────────────────────────────────────────────────── */}
       <div className="block md:hidden">
         <MobileManagerPlanning
           weekDates={weekDates} employees={employees} shiftMap={shiftMap} absMap={absMap}
@@ -212,11 +214,11 @@ export function PlanningWeekTimeline({
         />
       </div>
 
-      {/* ── Desktop view ────────────────────────────────────────────────────── */}
+      {/* ── Desktop view ─────────────────────────────────────────────────────────────────── */}
       <div className="hidden md:block">
       <div className="space-y-4" onClick={() => setCtx(null)}>
 
-        {/* ── Toolbar ─────────────────────────────────────────────────────── */}
+        {/* ── Toolbar ─────────────────────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <Link href={`?week=${prevMonday}`}>
@@ -267,6 +269,7 @@ export function PlanningWeekTimeline({
             <Link href={`/manager/planning/print?week=${mondayStr}`} target="_blank">
               <button className="btn-secondary" style={{ padding: '7px 9px' }} title="Exporter PDF"><Printer size={13} /></button>
             </Link>
+            <AiQuotaBadge refreshKey={aiQuotaKey} />
             <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', borderColor: 'var(--accent)', color: 'var(--accent)' }}
               onClick={() => setShowAiPlanModal(true)} title="Générer le planning automatiquement avec l'IA">
               <Sparkles size={13} />Générer
@@ -279,7 +282,7 @@ export function PlanningWeekTimeline({
           </div>
         </div>
 
-        {/* ── Metric cards ─────────────────────────────────────────────────── */}
+        {/* ── Metric cards ─────────────────────────────────────────────────────────────────── */}
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <MetricCard icon={<Users size={18} />} iconBg="var(--accent-light)" iconColor="var(--accent)" value={totalPlanned > 0 ? formatHours(totalPlanned) : '0h'} label="Total planifiées" trend={totalPlanned > 0 ? 'up' : null} />
           <MetricCard icon={<UserCheck size={18} />} iconBg="#FFF7ED" iconColor="#EA580C" value="—" label="Total travaillées" trend={null} />
@@ -287,14 +290,14 @@ export function PlanningWeekTimeline({
           <MetricCard icon={<Clock size={18} />} iconBg="#F5F3FF" iconColor="#7C3AED" value={employees.length > 0 ? `${coverage}%` : '—'} label="Couverture" trend={coverage >= 80 ? 'up' : coverage > 0 ? 'down' : null} />
         </div>
 
-        {/* ── Empty state ──────────────────────────────────────────────────── */}
+        {/* ── Empty state ─────────────────────────────────────────────────────────────────── */}
         {employees.length === 0 ? (
           <div className="rounded-xl p-12 text-center" style={{ border: '0.5px dashed var(--border)', backgroundColor: 'var(--bg-card)' }}>
             <p className="text-[13px] mb-3" style={{ color: 'var(--text-secondary)' }}>Ajoutez des employés pour commencer à planifier</p>
             <Link href="/manager/employees"><button className="btn-secondary">Gérer les employés</button></Link>
           </div>
         ) : (
-          /* ── Timeline grid ─────────────────────────────────────────────── */
+          /* ── Timeline grid ─────────────────────────────────────────────────────────────────── */
           <div style={{ borderRadius: '12px', border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)', overflow: 'hidden', opacity: weekLocked ? 0.72 : 1, filter: weekLocked ? 'saturate(0.45)' : 'none', transition: 'opacity 300ms, filter 300ms' }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: '860px', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
@@ -411,7 +414,7 @@ export function PlanningWeekTimeline({
           </div>
         )}
 
-        {/* ── Bottom section ────────────────────────────────────────────────── */}
+        {/* ── Bottom section ─────────────────────────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginTop: '8px' }}>
           <div className="dp-card">
             <h3 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '16px' }}>Aperçu par service</h3>
@@ -465,7 +468,7 @@ export function PlanningWeekTimeline({
         </div>
       </div>
 
-      {/* ── Context menu ──────────────────────────────────────────────────── */}
+      {/* ── Context menu ─────────────────────────────────────────────────────────────────── */}
       {ctx && (
         <ContextMenu
           menu={ctx} weekDates={weekDates}
@@ -477,7 +480,7 @@ export function PlanningWeekTimeline({
       )}
       </div>
 
-      {/* ── Modaux ────────────────────────────────────────────────────────── */}
+      {/* ── Modaux ──────────────────────────────────────────────────────────────────────────────── */}
       <ShiftModal modalState={modal} onClose={() => setModal({ type: 'closed' })} postes={postes} employees={employees} weekDates={weekDates} shifts={shifts} />
 
       {sosState && (
@@ -488,7 +491,8 @@ export function PlanningWeekTimeline({
 
       {showAiPlanModal && (
         <AiPlanModal weekMonday={mondayStr} weekLabel={weekLabel} employees={employees} postes={postes}
-          onSuccess={() => router.refresh()} onClose={() => setShowAiPlanModal(false)} />
+          onSuccess={() => { router.refresh(); setAiQuotaKey(k => k + 1) }}
+          onClose={() => setShowAiPlanModal(false)} />
       )}
 
       <DragOverlay>
