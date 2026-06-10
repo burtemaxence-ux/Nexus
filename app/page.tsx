@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { PublicNavbar }       from '@/components/public/navbar'
+import { ReassuranceBar }     from '@/components/public/reassurance-bar'
 import { HeroSection }        from '@/components/public/hero-section'
 import { ProblemSection }     from '@/components/public/problem-section'
 import { SolutionSection }    from '@/components/public/solution-section'
@@ -28,6 +29,7 @@ export default function LandingPage() {
   return (
     <div style={{ background: '#0a0a0f', minHeight: '100vh' }}>
       <PublicNavbar />
+      <ReassuranceBar />
       <main>
         <HeroSection />
         <ProblemSection />

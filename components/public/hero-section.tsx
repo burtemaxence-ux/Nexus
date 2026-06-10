@@ -14,6 +14,7 @@ const TRUST_BADGE = '14 jours gratuits · Sans carte bleue · Conforme Code du T
 export function HeroSection() {
   return (
     <section
+      className="hero-section"
       style={{
         minHeight: '100vh',
         display: 'flex',
@@ -21,7 +22,7 @@ export function HeroSection() {
         position: 'relative',
         overflow: 'hidden',
         background: 'linear-gradient(135deg, #0d0b1f 0%, #0a0a0f 55%, #0a0a0f 100%)',
-        paddingTop: 64, /* hauteur navbar */
+        paddingTop: 101, /* navbar 64px + reassurance bar 37px */
       }}
     >
       {/* Glow violet en haut à gauche */}
@@ -216,6 +217,7 @@ export function HeroSection() {
             text-align: center;
           }
           .hero-mockup { order: 2; }
+          .hero-section { padding-top: 64px !important; }
         }
       `}</style>
     </section>
