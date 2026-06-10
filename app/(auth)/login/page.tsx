@@ -1,10 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Mail, Lock, Eye, EyeOff, Calendar, Clock, Users, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
 // ── Supabase auth logic — NE PAS MODIFIER ─────────────────────────────────────
@@ -63,82 +62,6 @@ function useLogin() {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function NexusLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
-  const s = size === 'md'
-  return (
-    <div className={cn('flex items-center', s ? 'gap-2.5' : 'gap-2')}>
-      <div className={cn(
-        'rounded-xl bg-[#4F46E5] flex items-center justify-center font-bold text-white select-none',
-        s ? 'w-9 h-9 text-[17px]' : 'w-7 h-7 text-[14px]'
-      )}>
-        Q
-      </div>
-      <span className={cn('font-semibold tracking-tight text-[#18181B] dark:text-[#F0F2F8]', s ? 'text-[17px]' : 'text-[15px]')}>
-        Quartzbase
-      </span>
-    </div>
-  )
-}
-
-const BENEFITS = [
-  {
-    icon: Calendar,
-    label: 'Planning intelligent',
-    desc: 'Créez vos plannings rapidement.',
-  },
-  {
-    icon: Clock,
-    label: 'Présences en temps réel',
-    desc: 'Suivez retards et pointages.',
-  },
-  {
-    icon: Users,
-    label: 'Congés synchronisés',
-    desc: "Centralisez les demandes d'absence.",
-  },
-]
-
-// Faux aperçu de l'interface planning — décoration bas de page gauche
-function AppMockup() {
-  return (
-    <div className="relative w-full max-w-[360px]">
-      {/* Card mockup */}
-      <div className="rounded-2xl border border-[#4F46E5]/10 bg-white/70 shadow-sm overflow-hidden">
-        {/* Header bar */}
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#4F46E5]/08 bg-white/50">
-          <div className="w-2 h-2 rounded-full bg-[#4F46E5]/30" />
-          <div className="h-1.5 w-20 rounded-full bg-[#4F46E5]/15" />
-          <div className="ml-auto h-1.5 w-10 rounded-full bg-[#4F46E5]/10" />
-        </div>
-        {/* Grid rows */}
-        <div className="px-4 py-3 space-y-2">
-          {[70, 50, 85, 60].map((w, i) => (
-            <div key={i} className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-md bg-[#4F46E5]/10 flex-shrink-0" />
-              <div className="flex gap-1.5 flex-1">
-                <div className="h-1.5 rounded-full bg-[#4F46E5]/20" style={{ width: `${w}%` }} />
-              </div>
-              <div className="h-4 w-8 rounded-md bg-[#4F46E5]/10 flex-shrink-0" />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Floating stat chip */}
-      <div className="absolute -right-4 top-6 bg-white dark:bg-[#1A1D27] border border-[#E5E7EB] dark:border-[#2A2D3A] rounded-xl px-3 py-2 shadow-sm flex items-center gap-2">
-        <div className="w-2 h-2 rounded-full bg-green-400" />
-        <span className="text-[11px] font-medium text-[#374151] dark:text-[#F0F2F8]">12 présents</span>
-      </div>
-
-      {/* Floating badge */}
-      <div className="absolute -left-2 -bottom-3 bg-white dark:bg-[#1A1D27] border border-[#E5E7EB] dark:border-[#2A2D3A] rounded-xl px-3 py-2 shadow-sm">
-        <span className="text-[11px] font-medium text-[#374151] dark:text-[#F0F2F8]">3 congés en attente</span>
-      </div>
-    </div>
-  )
-}
-
-// Google logo SVG (inline — pas de dépendance)
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -150,295 +73,167 @@ function GoogleIcon() {
   )
 }
 
-// ── Orbes de lumière (gradient mesh blobs) ────────────────────────────────────
-
-function MeshBackground() {
-  return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden>
-      {/* Orbe 1 — haut gauche, indigo doux */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: 600,
-          height: 600,
-          top: '-160px',
-          left: '-140px',
-          background: 'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%)',
-          filter: 'blur(40px)',
-        }}
-      />
-      {/* Orbe 2 — centre droit, violet */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: 500,
-          height: 500,
-          top: '30%',
-          right: '-100px',
-          background: 'radial-gradient(circle, rgba(139,92,246,0.14) 0%, transparent 70%)',
-          filter: 'blur(50px)',
-        }}
-      />
-      {/* Orbe 3 — bas gauche, bleu-indigo */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: 450,
-          height: 450,
-          bottom: '-80px',
-          left: '15%',
-          background: 'radial-gradient(circle, rgba(79,70,229,0.12) 0%, transparent 70%)',
-          filter: 'blur(60px)',
-        }}
-      />
-      {/* Orbe 4 — petit accent rose très subtil haut droit */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: 280,
-          height: 280,
-          top: '8%',
-          right: '30%',
-          background: 'radial-gradient(circle, rgba(167,139,250,0.10) 0%, transparent 70%)',
-          filter: 'blur(40px)',
-        }}
-      />
-    </div>
-  )
-}
-
 // ── Page principale ────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
   const { email, setEmail, password, setPassword, error, loading, handleLogin, googleLoading, handleGoogleLogin } = useLogin()
   const [showPassword, setShowPassword] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!error || !cardRef.current) return
+    const card = cardRef.current
+    card.classList.add('auth-card-error')
+    const timer = setTimeout(() => card.classList.remove('auth-card-error'), 400)
+    return () => clearTimeout(timer)
+  }, [error])
 
   return (
-    <div className="min-h-screen bg-[#EDEEFF] dark:bg-[#0F1117] lg:grid lg:grid-cols-2 relative">
-      <MeshBackground />
+    <div ref={cardRef} className="auth-card">
 
-      {/* ── COLONNE GAUCHE — Branding ───────────────────────────────────────── */}
-      <div className="hidden lg:flex flex-col justify-between px-16 py-14 relative z-10">
-
-        {/* Logo */}
-        <NexusLogo size="md" />
-
-        {/* Pitch central */}
-        <div className="space-y-10">
-
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#4F46E5]/20 bg-white/60 text-[#4F46E5] text-[12px] font-medium tracking-wide">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5]" />
-            Le logiciel de planning nouvelle génération
-          </div>
-
-          {/* Headline */}
-          <div className="space-y-4">
-            <h1 className="text-[2.6rem] leading-[1.15] font-bold text-[#18181B] dark:text-[#F0F2F8] tracking-tight">
-              Le planning d&apos;équipe,<br />
-              simplement{' '}
-              <span className="text-[#4F46E5]">maîtrisé.</span>
-            </h1>
-            <p className="text-[15px] leading-relaxed text-[#6B7280] dark:text-[#8B90A7] max-w-[360px]">
-              Gérez les horaires, absences et présences de votre établissement depuis une interface claire, rapide et fiable.
-            </p>
-          </div>
-
-          {/* Bénéfices */}
-          <div className="space-y-5">
-            {BENEFITS.map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-[#4F46E5]/10 flex items-center justify-center flex-shrink-0">
-                  <Icon className="h-[18px] w-[18px] text-[#4F46E5]" />
-                </div>
-                <div>
-                  <p className="text-[14px] font-semibold text-[#18181B] dark:text-[#F0F2F8] leading-tight">{label}</p>
-                  <p className="text-[13px] text-[#6B7280] dark:text-[#8B90A7] leading-tight mt-0.5">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Décoration bas */}
-        <div className="pt-4">
-          <AppMockup />
-        </div>
-      </div>
-
-      {/* ── COLONNE DROITE — Formulaire ─────────────────────────────────────── */}
-      <div className="flex flex-col items-center justify-center min-h-screen px-6 py-16 relative z-10">
-
-        {/* Logo mobile uniquement */}
-        <div className="lg:hidden mb-10">
-          <NexusLogo size="sm" />
-        </div>
-
-        {/* Card */}
-        <div className="w-full max-w-[420px] bg-white dark:bg-[#1A1D27] rounded-[20px] border border-[#E5E7EB] dark:border-[#2A2D3A] shadow-[0_4px_32px_0_rgba(79,70,229,0.08)] px-9 py-10">
-
-          {/* En-tête */}
-          <div className="mb-8 text-center">
-            <h2 className="text-[26px] font-bold text-[#18181B] dark:text-[#F0F2F8] tracking-tight">
-              Connexion
-            </h2>
-            <p className="text-[14px] text-[#6B7280] dark:text-[#8B90A7] mt-1.5">
-              Accédez à votre espace de gestion
-            </p>
-          </div>
-
-          {/* Formulaire */}
-          <form onSubmit={handleLogin} className="space-y-4">
-
-            {/* Email */}
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="block text-[13px] font-medium text-[#374151] dark:text-[#F0F2F8]">
-                Adresse email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-[#9CA3AF] pointer-events-none" />
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="votre@email.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  disabled={loading}
-                  className={cn(
-                    'w-full pl-10 pr-4 py-3 text-[14px] text-[#18181B] dark:text-[#F0F2F8] placeholder:text-[#C4C9D4]',
-                    'bg-white dark:bg-[#0F1117] border border-[#E5E7EB] dark:border-[#2A2D3A] rounded-xl outline-none',
-                    'transition-all duration-150',
-                    'hover:border-[#C7C8F0] dark:hover:border-[#4A5FD4]',
-                    'focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10',
-                    'disabled:opacity-50 disabled:cursor-not-allowed'
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Mot de passe */}
-            <div className="space-y-1.5">
-              <label htmlFor="password" className="block text-[13px] font-medium text-[#374151] dark:text-[#F0F2F8]">
-                Mot de passe
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[15px] w-[15px] text-[#9CA3AF] pointer-events-none" />
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                  className={cn(
-                    'w-full pl-10 pr-11 py-3 text-[14px] text-[#18181B] dark:text-[#F0F2F8] placeholder:text-[#C4C9D4]',
-                    'bg-white dark:bg-[#0F1117] border border-[#E5E7EB] dark:border-[#2A2D3A] rounded-xl outline-none',
-                    'transition-all duration-150',
-                    'hover:border-[#C7C8F0]',
-                    'focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10',
-                    'disabled:opacity-50 disabled:cursor-not-allowed'
-                  )}
-                />
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
-                >
-                  {showPassword
-                    ? <EyeOff className="h-[15px] w-[15px]" />
-                    : <Eye className="h-[15px] w-[15px]" />
-                  }
-                </button>
-              </div>
-              <div className="flex justify-end pt-0.5">
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  className="text-[12px] text-[#4F46E5] hover:text-[#4338CA] transition-colors"
-                >
-                  Mot de passe oublié ?
-                </button>
-              </div>
-            </div>
-
-            {/* Erreur */}
-            {error && (
-              <div className="flex gap-3 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
-                <span className="text-red-400 text-[13px] mt-px flex-shrink-0">✕</span>
-                <p className="text-[13px] text-red-600 leading-snug">{error}</p>
-              </div>
-            )}
-
-            {/* Bouton principal */}
-            <button
-              type="submit"
-              disabled={loading}
-              className={cn(
-                'w-full flex items-center justify-center gap-2 mt-1',
-                'px-4 py-3 rounded-xl text-[14px] font-semibold text-white',
-                'bg-[#4F46E5] hover:bg-[#4338CA] active:bg-[#3730A3]',
-                'transition-all duration-150',
-                'shadow-[0_2px_8px_0_rgba(79,70,229,0.35)]',
-                'hover:shadow-[0_4px_12px_0_rgba(79,70,229,0.4)]',
-                'disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none'
-              )}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Connexion en cours…</span>
-                </>
-              ) : (
-                <span>Se connecter</span>
-              )}
-            </button>
-          </form>
-
-          {/* Séparateur */}
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-[#F3F4F6] dark:bg-[#2A2D3A]" />
-            <span className="text-[12px] text-[#9CA3AF] dark:text-[#4A4F66]">ou</span>
-            <div className="flex-1 h-px bg-[#F3F4F6] dark:bg-[#2A2D3A]" />
-          </div>
-
-          {/* Bouton Google */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={googleLoading || loading}
-            className={cn(
-              'w-full flex items-center justify-center gap-2.5',
-              'px-4 py-3 rounded-xl text-[14px] font-medium text-[#374151] dark:text-[#F0F2F8]',
-              'bg-white dark:bg-[#1A1D27] border border-[#E5E7EB] dark:border-[#2A2D3A]',
-              'hover:bg-[#F9FAFB] dark:hover:bg-[#0F1117] transition-all duration-150',
-              'disabled:opacity-60 disabled:cursor-not-allowed'
-            )}
+      {/* Logo + sous-titre */}
+      <div className="auth-cascade-1 flex flex-col items-center mb-8 text-center">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-[17px] select-none"
+            style={{ backgroundColor: '#6C63FF', fontFamily: 'var(--font-syne)' }}
           >
-            {googleLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <GoogleIcon />
-            )}
-            <span>Se connecter avec Google</span>
-          </button>
-
-          {/* Lien inscription */}
-          <p className="mt-6 text-center text-[13px] text-[#6B7280]">
-            Pas encore de compte ?{' '}
-            <Link href="/register" className="text-[#4F46E5] hover:underline font-medium">Créer un compte</Link>
-          </p>
-
-          {/* Pied de carte */}
-          <p className="mt-4 text-center text-[11px] text-[#C4C9D4]">
-            Quartzbase — Gestion planning &amp; équipe
-          </p>
+            Q
+          </div>
+          <span
+            className="text-[18px] font-bold tracking-tight"
+            style={{ color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}
+          >
+            Quartzbase
+          </span>
         </div>
+        <p className="text-[13px]" style={{ color: '#5a5a72', fontFamily: 'var(--font-dm-sans)' }}>
+          Connectez-vous à votre espace
+        </p>
       </div>
+
+      <form onSubmit={handleLogin} className="space-y-4">
+
+        {/* Email */}
+        <div className="auth-cascade-2 space-y-1.5">
+          <label htmlFor="email" className="auth-label block">Adresse email</label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="votre@email.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            disabled={loading}
+            className="auth-input w-full"
+          />
+        </div>
+
+        {/* Mot de passe */}
+        <div className="auth-cascade-3 space-y-1.5">
+          <label htmlFor="password" className="auth-label block">Mot de passe</label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              disabled={loading}
+              className="auth-input w-full pr-11"
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors duration-150"
+              style={{ color: '#5a5a72' }}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <div className="flex justify-end pt-0.5">
+            <button
+              type="button"
+              tabIndex={-1}
+              className="text-[12px] transition-colors duration-150 hover:underline"
+              style={{ color: '#6C63FF', fontFamily: 'var(--font-dm-sans)' }}
+            >
+              Mot de passe oublié ?
+            </button>
+          </div>
+        </div>
+
+        {/* Erreur */}
+        {error && (
+          <div
+            className="flex gap-3 px-4 py-3 rounded-xl"
+            style={{ background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.2)' }}
+          >
+            <span className="text-[13px] mt-px flex-shrink-0" style={{ color: '#FF6B6B' }}>✕</span>
+            <p className="text-[13px] leading-snug" style={{ color: '#FF6B6B' }}>{error}</p>
+          </div>
+        )}
+
+        {/* Bouton submit */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="auth-cascade-4 auth-btn-primary w-full flex items-center justify-center gap-2 mt-1"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Connexion...</span>
+            </>
+          ) : (
+            <span>Se connecter</span>
+          )}
+        </button>
+      </form>
+
+      {/* Séparateur */}
+      <div className="auth-cascade-5 flex items-center gap-3 my-5">
+        <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+        <span className="text-[12px]" style={{ color: '#5a5a72', fontFamily: 'var(--font-dm-sans)' }}>
+          ou continuer avec
+        </span>
+        <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+      </div>
+
+      {/* Bouton Google */}
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        disabled={googleLoading || loading}
+        className="auth-cascade-6 auth-btn-google w-full flex items-center justify-center gap-2.5"
+      >
+        {googleLoading
+          ? <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#9090a8' }} />
+          : <GoogleIcon />
+        }
+        <span style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '14px', color: '#f0f0f8' }}>
+          Continuer avec Google
+        </span>
+      </button>
+
+      {/* Lien inscription */}
+      <p
+        className="auth-cascade-7 mt-6 text-center text-[13px]"
+        style={{ color: '#9090a8', fontFamily: 'var(--font-dm-sans)' }}
+      >
+        Pas encore de compte ?{' '}
+        <Link
+          href="/register"
+          className="font-medium transition-colors duration-150 hover:underline"
+          style={{ color: '#6C63FF' }}
+        >
+          Essai gratuit 14 jours →
+        </Link>
+      </p>
     </div>
   )
 }
