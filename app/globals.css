@@ -8,7 +8,7 @@ html {
 
 @layer base {
   :root {
-    /* ── Page & Surface ─────────────────────────── */
+    /* ── Page & Surface ─────────────────────────────────────── */
     --bg-page:        #0a0a0f;
     --bg-card:        #0f0f16;
     --bg-elevated:    #141420;
@@ -16,22 +16,22 @@ html {
     --border:         rgba(255,255,255,0.06);
     --border-hover:   rgba(255,255,255,0.12);
 
-    /* ── Text ───────────────────────────────────── */
+    /* ── Text ────────────────────────────────────────────── */
     --text-primary:   #f0f0f8;
     --text-secondary: #9090a8;
     --text-tertiary:  #5a5a72;
 
-    /* ── Accent ─────────────────────────────────── */
+    /* ── Accent ───────────────────────────────────────────── */
     --accent:         #6C63FF;
     --accent-hover:   #5B52E8;
     --accent-light:   rgba(108,99,255,0.1);
 
-    /* ── Status ─────────────────────────────────── */
+    /* ── Status ───────────────────────────────────────────── */
     --success:        #00D4AA;
     --warning:        #FFB347;
     --danger:         #FF6B6B;
 
-    /* ── shadcn/ui tokens (mapped) ──────────────── */
+    /* ── shadcn/ui tokens (mapped) ──────────────────────── */
     --background:     var(--bg-page);
     --foreground:     var(--text-primary);
     --card:           var(--bg-card);
@@ -111,7 +111,7 @@ html {
   }
 }
 
-/* ── Auth pages ──────────────────────────────────────────────────────────────── */
+/* ── Auth pages ───────────────────────────────────────────────────────────── */
 
 .auth-back-link {
   color: #5a5a72;
@@ -225,7 +225,7 @@ html {
   border-radius: 50%;
 }
 
-/* ── Auth animations ─────────────────────────────────────────────────────────── */
+/* ── Auth animations ──────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: no-preference) {
 
@@ -397,7 +397,7 @@ html {
     border-radius: 6px;
   }
 
-  /* ── Button press scale ─────────────────────────────────────── */
+  /* ── Button press scale ──────────────────────────────────────── */
   .btn-primary,
   .btn-secondary,
   .btn-danger {
@@ -409,7 +409,7 @@ html {
     transform: scale(0.97);
   }
 
-  /* ── Status dot (pulsing indicator) ────────────────────────── */
+  /* ── Status dot (pulsing indicator) ───────────────────────────── */
   .dp-status-dot {
     position: relative;
     display: inline-block;
@@ -433,7 +433,7 @@ html {
   .dp-status-dot.danger::after  { background-color: var(--danger); }
 }
 
-/* ── Safe area & mobile polish ───────────────────────────────────────────────── */
+/* ── Safe area & mobile polish ──────────────────────────────────────────────────── */
 
 /* Content area padding that accounts for notch safe area on iOS PWA */
 .content-safe-pt {
@@ -466,7 +466,7 @@ html {
   }
 }
 
-/* ── Keyframes ──────────────────────────────────────────────────────────────── */
+/* ── Keyframes ────────────────────────────────────────────────────────────── */
 @keyframes dp-fade-up {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -483,7 +483,7 @@ html {
   }
 }
 
-/* ── Legal prose ──────────────────────────────────────────────────────────── */
+/* ── Legal prose ───────────────────────────────────────────────────────────── */
 .prose-legal {
   color: var(--text-primary);
   font-size: 14px;
@@ -576,7 +576,7 @@ html {
   to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
-/* ── Dashboard motion design ─────────────────────────────────────────────────── */
+/* ── Dashboard motion design ────────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: no-preference) {
 
@@ -608,5 +608,34 @@ html {
 
   .alert-pulse {
     animation: alertPulse 2s ease infinite;
+  }
+
+  /* Badgeuse — dot pulsing badges */
+  @keyframes dotPulseGreen {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,212,170,0.4); }
+    50%       { box-shadow: 0 0 0 5px rgba(0,212,170,0); }
+  }
+  @keyframes dotPulseYellow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,179,71,0.4); }
+    50%       { box-shadow: 0 0 0 5px rgba(255,179,71,0); }
+  }
+  .dot-pulse-green  { animation: dotPulseGreen  1.8s ease infinite; }
+  .dot-pulse-yellow { animation: dotPulseYellow 1.8s ease infinite; }
+
+  /* Badgeuse — ripple on CTA click */
+  @keyframes rippleEffect {
+    from { transform: scale(0); opacity: 0.4; }
+    to   { transform: scale(4); opacity: 0;   }
+  }
+  .badgeuse-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.4);
+    width: 60px;
+    height: 60px;
+    margin-top: -30px;
+    margin-left: -30px;
+    animation: rippleEffect 600ms ease-out forwards;
+    pointer-events: none;
   }
 }
