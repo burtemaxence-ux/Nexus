@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Calendar, Users, Palmtree, MoreHorizontal,
-  Clock, User, X, BarChart3, Bell, Settings, LogOut, Sun, Moon,
+  Clock, User, Home, X, BarChart3, Bell, Settings, LogOut, Sun, Moon,
   AlertTriangle,
 } from 'lucide-react'
 import { NotificationsBell } from './notifications-bell'
@@ -16,7 +16,7 @@ function getInitials(name: string): string {
   return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────────────
 
 function isActive(href: string, pathname: string): boolean {
   if (href === '/manager') return pathname === '/manager'
@@ -25,7 +25,7 @@ function isActive(href: string, pathname: string): boolean {
   return pathname === href || pathname.startsWith(href + '/')
 }
 
-// ── Nav icon (visuel) ─────────────────────────────────────────────────────────
+// ── Nav icon (visuel) ──────────────────────────────────────────────────────────────
 
 function NavIcon({
   icon: Icon,
@@ -89,7 +89,7 @@ function NavIcon({
   )
 }
 
-// ── Drawer "Plus" manager ─────────────────────────────────────────────────────
+// ── Drawer "Plus" manager ──────────────────────────────────────────────────────────
 
 function ManagerMoreDrawer({
   onClose,
@@ -184,7 +184,7 @@ function ManagerMoreDrawer({
   )
 }
 
-// ── Mobile Header ─────────────────────────────────────────────────────────────
+// ── Mobile Header ─────────────────────────────────────────────────────────────────
 
 interface MobileHeaderProps {
   userName: string
@@ -296,7 +296,7 @@ export function MobileHeader({ userName, userEmail, establishmentName, role }: M
   )
 }
 
-// ── Bottom Nav ────────────────────────────────────────────────────────────────
+// ── Bottom Nav ─────────────────────────────────────────────────────────────────────
 
 interface BottomNavProps {
   role: 'manager' | 'employee' | 'supervisor'
@@ -337,6 +337,9 @@ export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0, compl
     borderTop: '0.5px solid var(--border)',
     height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
     paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    backgroundColor: 'rgba(15,15,22,0.92)',
   }
 
   if (role === 'manager' || role === 'supervisor') {
@@ -380,23 +383,23 @@ export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0, compl
     )
   }
 
-  // ── Employé ──────────────────────────────────────────────────────────────────
+  // ── Employé ──────────────────────────────────────────────────────────────────────────
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 flex md:hidden bg-[var(--bg-card)] items-stretch px-1"
+      className="fixed bottom-0 left-0 right-0 z-30 flex md:hidden items-stretch px-1"
       style={navBarStyle}
     >
-      <Link href="/employee/planning" className="flex-1 flex items-center justify-center">
-        <NavIcon icon={Calendar} label="Planning" active={isActive('/employee/planning', pathname)} />
+      <Link href="/employee" className="flex-1 flex items-center justify-center active:scale-90 transition-transform duration-100">
+        <NavIcon icon={Home} label="Accueil" active={pathname === '/employee'} />
       </Link>
-      <Link href="/employee/badgeuse" className="flex-1 flex items-center justify-center">
+      <Link href="/employee/badgeuse" className="flex-1 flex items-center justify-center active:scale-90 transition-transform duration-100">
         <NavIcon icon={Clock} label="Badgeuse" active={isActive('/employee/badgeuse', pathname)} accent />
       </Link>
-      <Link href="/employee/conges" className="flex-1 flex items-center justify-center">
-        <NavIcon icon={Palmtree} label="Congés" active={isActive('/employee/conges', pathname)} />
+      <Link href="/employee/planning" className="flex-1 flex items-center justify-center active:scale-90 transition-transform duration-100">
+        <NavIcon icon={Calendar} label="Planning" active={isActive('/employee/planning', pathname)} />
       </Link>
-      <Link href="/employee" className="flex-1 flex items-center justify-center">
-        <NavIcon icon={User} label="Profil" active={pathname === '/employee'} />
+      <Link href="/employee/conges" className="flex-1 flex items-center justify-center active:scale-90 transition-transform duration-100">
+        <NavIcon icon={Palmtree} label="Congés" active={isActive('/employee/conges', pathname)} />
       </Link>
     </nav>
   )
