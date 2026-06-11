@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -14,20 +14,21 @@ interface EmployeePlanningGridProps {
   shifts: Shift[]
   postes: Poste[]
   leaveRequests: LeaveRequest[]
+  isCurrentWeek?: boolean
 }
 
 const LEAVE_STYLES_LOCAL: Record<LeaveType, { style: React.CSSProperties; label: string }> = {
   CP:         { label: 'Congés payés',  style: { backgroundColor: 'var(--accent-light)', borderColor: 'var(--accent)', color: 'var(--accent)' } },
   RTT:        { label: 'RTT',           style: { backgroundColor: 'var(--accent-light)', borderColor: 'var(--accent)', color: 'var(--accent)' } },
-  maladie:    { label: 'Arrêt maladie', style: { backgroundColor: '#FEE2E2', borderColor: 'var(--danger)', color: 'var(--danger)' } },
+  maladie:    { label: 'Arrêt maladie', style: { backgroundColor: 'rgba(255,107,107,0.1)', borderColor: 'var(--danger)', color: 'var(--danger)' } },
   sans_solde: { label: 'Sans solde',    style: { backgroundColor: 'var(--bg-page)', borderColor: 'var(--border)', color: 'var(--text-secondary)' } },
-  autre:      { label: 'Autre',         style: { backgroundColor: '#FEF3C7', borderColor: 'var(--warning)', color: 'var(--warning)' } },
+  autre:      { label: 'Autre',         style: { backgroundColor: 'rgba(255,179,71,0.1)', borderColor: 'var(--warning)', color: 'var(--warning)' } },
 }
 
 function AbsenceBadge({ type }: { type: LeaveType }) {
   const s = LEAVE_STYLES_LOCAL[type]
   return (
-    <div className="rounded border px-1.5 py-1 text-[10px] font-semibold flex items-center gap-1" style={s.style}>
+    <div className="rounded-lg border px-2 py-1.5 text-[11px] font-semibold flex items-center gap-1" style={s.style}>
       <span>🏖</span>
       <span>{s.label}</span>
     </div>
@@ -43,7 +44,7 @@ function getDayLabel(date: Date): { weekday: string; dayMonth: string } {
   }
 }
 
-// ── Mobile planning view ───────────────────────────────────────────────────────
+// ── Mobile planning view ───────────────────────────────────────────────────
 
 interface MobilePlanningViewProps {
   weekDates: Date[]
@@ -52,14 +53,16 @@ interface MobilePlanningViewProps {
   absenceMap: Map<string, LeaveType>
   posteMap: Map<string, Poste>
   totalHours: number
+  totalDays: number
   prevWeekParam: string
   nextWeekParam: string
   weekLabel: string
+  isCurrentWeek: boolean
 }
 
 function MobilePlanningView({
   weekDates, employee, shiftMap, absenceMap, posteMap,
-  totalHours, prevWeekParam, nextWeekParam, weekLabel,
+  totalHours, totalDays, prevWeekParam, nextWeekParam, weekLabel, isCurrentWeek,
 }: MobilePlanningViewProps) {
   const todayIndex = weekDates.findIndex(d => isToday(d))
   const [selectedIndex, setSelectedIndex] = useState(todayIndex >= 0 ? todayIndex : 0)
@@ -77,16 +80,36 @@ function MobilePlanningView({
     <div className="space-y-3">
       {/* Week navigation */}
       <div className="flex items-center justify-between gap-2">
-        <Link href={`?week=${prevWeekParam}`} className="flex items-center justify-center w-9 h-9 rounded-xl transition-colors" style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border)', color: 'var(--text-secondary)' }}>
+        <Link
+          href={`?week=${prevWeekParam}`}
+          className="flex items-center justify-center w-9 h-9 rounded-xl transition-colors"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+        >
           <ChevronLeft className="h-4 w-4" />
         </Link>
-        <span className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{weekLabel}</span>
-        <Link href={`?week=${nextWeekParam}`} className="flex items-center justify-center w-9 h-9 rounded-xl transition-colors" style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border)', color: 'var(--text-secondary)' }}>
+        <div className="flex items-center gap-2">
+          <span className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+            {weekLabel}
+          </span>
+          {isCurrentWeek && (
+            <span
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+              style={{ color: 'var(--accent)', backgroundColor: 'var(--accent-light)', fontFamily: 'var(--font-dm-sans)' }}
+            >
+              Actuelle
+            </span>
+          )}
+        </div>
+        <Link
+          href={`?week=${nextWeekParam}`}
+          className="flex items-center justify-center w-9 h-9 rounded-xl transition-colors"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+        >
           <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
 
-      {/* Day cards grid */}
+      {/* Day selector grid */}
       <div className="grid grid-cols-7 gap-1">
         {weekDates.map((date, i) => {
           const dateStr = toISODate(date)
@@ -102,25 +125,19 @@ function MobilePlanningView({
               onClick={() => setSelectedIndex(i)}
               className="flex flex-col items-center py-2.5 px-0.5 rounded-xl transition-all duration-150 gap-0.5"
               style={{
-                background: selected
-                  ? 'var(--accent)'
-                  : today
-                  ? 'var(--accent-light)'
-                  : 'var(--bg-card)',
-                border: selected
-                  ? '0.5px solid var(--accent)'
-                  : '0.5px solid var(--border)',
+                background: selected ? 'var(--accent)' : today ? 'var(--accent-light)' : 'var(--bg-card)',
+                border: selected ? '1px solid var(--accent)' : '1px solid var(--border)',
               }}
             >
               <span
                 className="text-[9px] font-semibold uppercase tracking-wide"
-                style={{ color: selected ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary)' }}
+                style={{ fontFamily: 'var(--font-dm-sans)', color: selected ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary)' }}
               >
                 {wd}
               </span>
               <span
                 className="text-[16px] font-bold leading-none"
-                style={{ color: selected ? '#fff' : today ? 'var(--accent)' : 'var(--text-primary)' }}
+                style={{ fontFamily: 'var(--font-syne)', color: selected ? '#fff' : today ? 'var(--accent)' : 'var(--text-primary)' }}
               >
                 {dayNum}
               </span>
@@ -136,9 +153,18 @@ function MobilePlanningView({
       </div>
 
       {/* Day detail card */}
-      <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border)' }}>
-        <div className="px-4 py-3" style={{ borderBottom: '0.5px solid var(--border)' }}>
-          <h3 className="text-[14px] font-semibold capitalize" style={{ color: 'var(--text-primary)' }}>
+      <div
+        className="rounded-[14px] overflow-hidden"
+        style={{
+          background: 'var(--bg-card)',
+          border: isToday(selectedDate) ? '1px solid var(--accent)' : '1px solid var(--border)',
+        }}
+      >
+        <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
+          <h3
+            className="text-[14px] font-semibold capitalize"
+            style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+          >
             {selectedDayLabel}
           </h3>
         </div>
@@ -155,43 +181,57 @@ function MobilePlanningView({
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--bg-page)' }}>
                 <span className="text-[18px]">😴</span>
               </div>
-              <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>Repos</p>
+              <p className="text-[13px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>Repos</p>
             </div>
           ) : (
             <div className="space-y-2.5">
               {dayShifts.map((shift) => {
                 const poste = shift.poste_id ? posteMap.get(shift.poste_id) : null
-                const bgColor = poste ? `${poste.color}18` : 'var(--accent-light)'
-                const borderColor = poste?.color ?? 'var(--accent)'
-                const textColor = poste?.color ?? 'var(--accent)'
+                const accentColor = poste?.color ?? 'var(--accent)'
+                const bgColor = poste ? `${poste.color}10` : 'rgba(108,99,255,0.06)'
                 const hours = calcHours(shift.start_time, shift.end_time, shift.break_minutes)
 
                 return (
                   <div
                     key={shift.id}
-                    className="rounded-xl p-3.5"
-                    style={{ background: bgColor, border: `0.5px solid ${borderColor}` }}
+                    className="rounded-[12px] p-3.5 pl-4"
+                    style={{
+                      background: bgColor,
+                      borderTop: `1px solid ${accentColor}25`,
+                      borderRight: `1px solid ${accentColor}25`,
+                      borderBottom: `1px solid ${accentColor}25`,
+                      borderLeft: `3px solid ${accentColor}`,
+                    }}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[16px] font-bold" style={{ color: textColor }}>
+                      <span
+                        className="text-[17px] font-bold tabular-nums"
+                        style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+                      >
                         {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
                       </span>
-                      <span className="text-[12px] font-medium px-2 py-0.5 rounded-md" style={{ background: `${borderColor}20`, color: textColor }}>
+                      <span
+                        className="text-[11px] font-semibold px-2 py-0.5 rounded-md"
+                        style={{ background: `${accentColor}20`, color: accentColor, fontFamily: 'var(--font-dm-sans)' }}
+                      >
                         {formatHours(hours)}
                       </span>
                     </div>
                     {(shift.position ?? employee.position) && (
-                      <p className="text-[13px] mt-1 font-medium" style={{ color: textColor, opacity: 0.85 }}>
+                      <p
+                        className="text-[12px] mt-1 font-medium"
+                        style={{ fontFamily: 'var(--font-dm-sans)', color: accentColor, opacity: 0.85 }}
+                      >
                         {shift.position ?? employee.position}
                       </p>
                     )}
                     {shift.break_minutes > 0 && (
-                      <p className="text-[11px] mt-1.5 opacity-60" style={{ color: textColor }}>
+                      <p className="text-[11px] mt-1" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
                         Pause {shift.break_minutes} min
                       </p>
                     )}
                     {shift.notes && (
-                      <p className="text-[12px] mt-1 italic opacity-70" style={{ color: textColor }}>
+                      <p className="text-[12px] mt-1 italic" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
                         {shift.notes}
                       </p>
                     )}
@@ -202,21 +242,34 @@ function MobilePlanningView({
           )}
         </div>
 
-        {/* Weekly total */}
-        <div className="px-4 py-3 flex items-center justify-between" style={{ borderTop: '0.5px solid var(--border)' }}>
-          <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>Total semaine</span>
-          <span className="text-[13px] font-semibold" style={{ color: totalHours > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-            {totalHours > 0 ? formatHours(totalHours) : '—'}
-          </span>
+        {/* Week summary */}
+        <div className="px-4 py-3 flex items-center justify-between gap-4" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="text-center flex-1">
+            <p className="text-[18px] font-bold" style={{ fontFamily: 'var(--font-syne)', color: totalHours > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+              {totalHours > 0 ? formatHours(totalHours) : '—'}
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.06em] mt-0.5" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
+              Heures planifiées
+            </p>
+          </div>
+          <div className="w-px h-8" style={{ backgroundColor: 'var(--border)' }} />
+          <div className="text-center flex-1">
+            <p className="text-[18px] font-bold" style={{ fontFamily: 'var(--font-syne)', color: totalDays > 0 ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+              {totalDays > 0 ? totalDays : '—'}
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.06em] mt-0.5" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
+              Jours travaillés
+            </p>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// ── Main component ─────────────────────────────────────────────────────
 
-export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leaveRequests }: EmployeePlanningGridProps) {
+export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leaveRequests, isCurrentWeek = false }: EmployeePlanningGridProps) {
   const prevMonday = addDays(weekDates[0], -7)
   const nextMonday = addDays(weekDates[0], 7)
 
@@ -248,6 +301,8 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
     0
   )
 
+  const totalDays = new Set(shifts.map(s => s.date)).size
+
   return (
     <div>
       {/* Mobile view */}
@@ -259,9 +314,11 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
           absenceMap={absenceMap}
           posteMap={posteMap}
           totalHours={totalHours}
+          totalDays={totalDays}
           prevWeekParam={prevWeekParam}
           nextWeekParam={nextWeekParam}
           weekLabel={weekLabel}
+          isCurrentWeek={isCurrentWeek}
         />
       </div>
 
@@ -276,7 +333,22 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
             </Button>
           </Link>
 
-          <h2 className="text-[15px] font-medium" style={{ color: 'var(--text-primary)' }}>{weekLabel}</h2>
+          <div className="flex items-center gap-2">
+            <h2
+              className="text-[15px] font-semibold"
+              style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+            >
+              {weekLabel}
+            </h2>
+            {isCurrentWeek && (
+              <span
+                className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                style={{ color: 'var(--accent)', backgroundColor: 'var(--accent-light)', fontFamily: 'var(--font-dm-sans)' }}
+              >
+                Cette semaine
+              </span>
+            )}
+          </div>
 
           <Link href={`?week=${nextWeekParam}`}>
             <Button variant="outline" size="sm" className="gap-1">
@@ -287,12 +359,14 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
         </div>
 
         {/* Planning grid */}
-        <div className="overflow-x-auto rounded-xl" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
+        <div className="overflow-x-auto rounded-[14px]" style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
           <table className="w-full min-w-[700px] border-collapse">
             <thead>
               <tr>
-                <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] w-48 min-w-[180px]"
-                  style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)' }}>
+                <th
+                  className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] w-48 min-w-[180px]"
+                  style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', fontFamily: 'var(--font-dm-sans)' }}
+                >
                   Semaine
                 </th>
                 {weekDates.map((date) => {
@@ -301,36 +375,40 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
                   return (
                     <th
                       key={toISODate(date)}
-                      className="px-3 py-3 text-center text-[13px] font-medium"
+                      className="px-3 py-3 text-center"
                       style={{
-                        backgroundColor: today ? 'var(--accent-light)' : 'var(--bg-page)',
+                        backgroundColor: today ? 'rgba(108,99,255,0.08)' : 'var(--bg-page)',
                         color: today ? 'var(--accent)' : 'var(--text-secondary)',
-                        borderBottom: '0.5px solid var(--border)',
-                        borderRight: '0.5px solid var(--border)',
+                        borderBottom: '1px solid var(--border)',
+                        borderRight: '1px solid var(--border)',
                       }}
                     >
-                      <div className="font-semibold">{weekday}</div>
-                      <div className="text-[11px] font-normal mt-0.5" style={{ color: today ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+                      <div className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-syne)' }}>{weekday}</div>
+                      <div className="text-[11px] font-normal mt-0.5" style={{ fontFamily: 'var(--font-dm-sans)', color: today ? 'var(--accent)' : 'var(--text-tertiary)' }}>
                         {dayMonth}
                       </div>
                     </th>
                   )
                 })}
-                <th className="px-3 py-3 text-center text-[11px] font-medium uppercase tracking-[0.06em] w-20"
-                  style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', borderBottom: '0.5px solid var(--border)' }}>
+                <th
+                  className="px-3 py-3 text-center text-[11px] font-medium uppercase tracking-[0.06em] w-20"
+                  style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)', fontFamily: 'var(--font-dm-sans)' }}
+                >
                   Total
                 </th>
               </tr>
             </thead>
             <tbody>
               <tr style={{ backgroundColor: 'var(--bg-card)' }}>
-                <td className="px-4 py-3" style={{ borderRight: '0.5px solid var(--border)', borderBottom: '0.5px solid var(--border)' }}>
+                <td className="px-4 py-3" style={{ borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
                   <div>
-                    <p className="truncate text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                    <p className="truncate text-[13px] font-semibold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
                       {employee.full_name ?? employee.email}
                     </p>
                     {employee.position && (
-                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{employee.position}</p>
+                      <p className="text-[11px] mt-0.5" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>
+                        {employee.position}
+                      </p>
                     )}
                   </div>
                 </td>
@@ -347,39 +425,46 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
                       className="px-2 py-2 align-top"
                       style={{
                         minHeight: '80px',
-                        borderRight: '0.5px solid var(--border)',
-                        borderBottom: '0.5px solid var(--border)',
-                        backgroundColor: today ? 'var(--accent-light)' : undefined,
-                        opacity: today ? 0.85 : 1,
+                        borderRight: '1px solid var(--border)',
+                        borderBottom: '1px solid var(--border)',
+                        backgroundColor: today ? 'rgba(108,99,255,0.04)' : undefined,
                       }}
                     >
                       {dayShifts.length === 0 && !absenceType ? (
-                        <div className="min-h-[80px] rounded-sm" style={{ backgroundColor: 'var(--bg-page)', border: '0.5px solid var(--border)' }} />
+                        <div className="min-h-[80px] rounded-lg" style={{ backgroundColor: 'var(--bg-page)', border: '1px solid var(--border)' }} />
                       ) : (
                         <div className="min-h-[80px] space-y-1">
                           {absenceType && <AbsenceBadge type={absenceType} />}
                           {dayShifts.map((shift) => {
                             const poste = shift.poste_id ? posteMap.get(shift.poste_id) : null
-                            const bgColor = poste ? `${poste.color}20` : 'var(--accent-light)'
-                            const borderColor = poste?.color ?? 'var(--accent)'
-                            const textColor = poste?.color ?? 'var(--accent)'
+                            const accentColor = poste?.color ?? 'var(--accent)'
+                            const bgColor = poste ? `${poste.color}10` : 'rgba(108,99,255,0.06)'
                             return (
                               <div
                                 key={shift.id}
-                                style={{ backgroundColor: bgColor, borderColor, color: textColor, border: `0.5px solid ${borderColor}` }}
-                                className="rounded-md p-1.5 text-xs"
+                                className="rounded-md p-1.5 pl-2.5"
+                                style={{
+                                  backgroundColor: bgColor,
+                                  borderTop: `1px solid ${accentColor}25`,
+                                  borderRight: `1px solid ${accentColor}25`,
+                                  borderBottom: `1px solid ${accentColor}25`,
+                                  borderLeft: `3px solid ${accentColor}`,
+                                  color: accentColor,
+                                }}
                               >
-                                <p className="font-semibold">
+                                <p className="font-semibold text-[12px]" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
                                   {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
                                 </p>
-                                <p className="truncate" style={{ color: textColor, opacity: 0.85 }}>
+                                <p className="truncate text-[11px]" style={{ fontFamily: 'var(--font-dm-sans)', color: accentColor, opacity: 0.85 }}>
                                   {shift.position ?? employee.position}
                                 </p>
                                 {shift.break_minutes > 0 && (
-                                  <p className="opacity-60 text-[10px]">pause {shift.break_minutes}min</p>
+                                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                                    pause {shift.break_minutes}min
+                                  </p>
                                 )}
                                 {shift.notes && (
-                                  <p className="truncate mt-0.5 italic" style={{ color: textColor, opacity: 0.7 }}>
+                                  <p className="truncate mt-0.5 italic text-[10px]" style={{ color: accentColor, opacity: 0.7 }}>
                                     {shift.notes}
                                   </p>
                                 )}
@@ -392,8 +477,11 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
                   )
                 })}
 
-                <td className="px-3 py-3 text-center align-middle" style={{ borderBottom: '0.5px solid var(--border)' }}>
-                  <span className="text-[13px] font-semibold" style={{ color: totalHours > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+                <td className="px-3 py-3 text-center align-middle" style={{ borderBottom: '1px solid var(--border)' }}>
+                  <span
+                    className="text-[14px] font-bold"
+                    style={{ fontFamily: 'var(--font-syne)', color: totalHours > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+                  >
                     {totalHours > 0 ? formatHours(totalHours) : '—'}
                   </span>
                 </td>

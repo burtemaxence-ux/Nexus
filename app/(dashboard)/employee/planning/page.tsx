@@ -24,11 +24,9 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
     redirect('/login')
   }
 
-  // Resolve searchParams (Next.js 14 async searchParams)
   const params = await searchParams
   const weekParam = params.week
 
-  // Determine the Monday of the target week
   let referenceDate: Date
   if (weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam)) {
     referenceDate = new Date(weekParam + 'T00:00:00')
@@ -41,15 +39,17 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
   const sunday = weekDates[6]
 
   const mondayStr = toISODate(monday)
+  const sundayStr = toISODate(sunday)
 
-  // Build iCal subscription URL
+  // Check if viewing current week
+  const currentWeekMonday = toISODate(getWeekDates(new Date())[0])
+  const isCurrentWeek = mondayStr === currentWeekMonday
+
   const reqHeaders = await headers()
   const host = reqHeaders.get('host') ?? 'localhost:3000'
   const protocol = host.startsWith('localhost') ? 'http' : 'https'
   const calendarUrl = `${protocol}://${host}/api/calendar/${generateCalendarToken(user.id)}`
-  const sundayStr = toISODate(sunday)
 
-  // Fetch the employee's profile
   const { data: profileData } = await supabase
     .from('profiles')
     .select('id, email, full_name, role, position, created_at')
@@ -65,9 +65,6 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
     created_at: new Date().toISOString(),
   }
 
-  const firstName = employee.full_name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'Employé'
-
-  // Vérifier si la semaine est publiée
   const { data: weekStatusData } = await supabase
     .from('week_status')
     .select('published')
@@ -76,10 +73,8 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
 
   const isPublished = weekStatusData?.published ?? false
 
-  // Fetch shifts uniquement si la semaine est publiée
   const shifts: Shift[] = []
   const postes: Poste[] = []
-
   const leaveRequests: LeaveRequest[] = []
 
   if (isPublished) {
@@ -94,51 +89,71 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
   }
 
   return (
-    <div className="container mx-auto px-4 py-4 md:py-8 max-w-7xl">
+    <div className="container mx-auto px-4 py-4 md:py-8 max-w-7xl" style={{ backgroundColor: 'var(--bg-page)' }}>
       <div className="hidden md:block mb-6">
         <Link
           href="/employee"
           className="inline-flex items-center gap-1 text-[13px] transition-colors duration-150"
-          style={{ color: 'var(--text-secondary)' }}
+          style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-dm-sans)' }}
         >
           <ChevronLeft className="h-4 w-4" />
           Mon espace
         </Link>
       </div>
 
-      <div className="mb-4">
-        <h1 className="text-[18px] md:text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
-          Bonjour {firstName}
-        </h1>
-        <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-          Planning de la semaine
-        </p>
-      </div>
-
-      <div className="mb-4 md:mb-6">
+      <div className="mb-5 dashboard-s0 flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1
+              className="text-[20px] font-bold tracking-[-0.02em]"
+              style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+            >
+              Mon planning
+            </h1>
+            {isCurrentWeek && (
+              <span
+                className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                style={{ color: 'var(--accent)', backgroundColor: 'var(--accent-light)', fontFamily: 'var(--font-dm-sans)' }}
+              >
+                Cette semaine
+              </span>
+            )}
+          </div>
+          <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-dm-sans)' }}>
+            Planning en lecture seule
+          </p>
+        </div>
         <ICalCopyButton url={calendarUrl} />
       </div>
 
       {!isPublished ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="h-16 w-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'var(--bg-page)' }}>
+        <div className="flex flex-col items-center justify-center py-24 text-center dashboard-s1">
+          <div
+            className="h-16 w-16 rounded-full flex items-center justify-center mb-4"
+            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          >
             <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--text-tertiary)' }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
             </svg>
           </div>
-          <h2 className="text-[15px] font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Planning en cours de préparation</h2>
-          <p className="text-[13px] max-w-sm" style={{ color: 'var(--text-secondary)' }}>
+          <h2 className="text-[15px] font-semibold mb-2" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+            Planning en cours de préparation
+          </h2>
+          <p className="text-[13px] max-w-sm" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-dm-sans)' }}>
             Votre responsable n&apos;a pas encore publié le planning pour cette semaine. Revenez bientôt.
           </p>
         </div>
       ) : (
-        <EmployeePlanningGrid
-          weekDates={weekDates}
-          employee={employee}
-          shifts={shifts}
-          postes={postes}
-          leaveRequests={leaveRequests}
-        />
+        <div className="dashboard-s1">
+          <EmployeePlanningGrid
+            weekDates={weekDates}
+            employee={employee}
+            shifts={shifts}
+            postes={postes}
+            leaveRequests={leaveRequests}
+            isCurrentWeek={isCurrentWeek}
+          />
+        </div>
       )}
     </div>
   )
