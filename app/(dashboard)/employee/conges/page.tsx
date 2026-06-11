@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, Plus, Trash2, Clock, CheckCircle, XCircle, Loader2, X } from 'lucide-react'
+import { ChevronLeft, Plus, Trash2, X, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -17,20 +17,41 @@ const LEAVE_TYPES: { value: LeaveType; label: string }[] = [
   { value: 'autre', label: 'Autre' },
 ]
 
-function statusBadge(status: string) {
+function StatusBadge({ status }: { status: string }) {
   if (status === 'approved') return (
-    <span className="dp-badge-success inline-flex items-center gap-1">
-      <CheckCircle className="h-3 w-3" /> Validé
+    <span
+      className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
+      style={{ backgroundColor: 'rgba(0,212,170,0.12)', color: 'var(--success)', fontFamily: 'var(--font-dm-sans)' }}
+    >
+      ✓ Validé
     </span>
   )
   if (status === 'rejected') return (
-    <span className="dp-badge-danger inline-flex items-center gap-1">
-      <XCircle className="h-3 w-3" /> Refusé
+    <span
+      className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
+      style={{ backgroundColor: 'rgba(255,107,107,0.12)', color: 'var(--danger)', fontFamily: 'var(--font-dm-sans)' }}
+    >
+      ✕ Refusé
     </span>
   )
   return (
-    <span className="dp-badge-warning inline-flex items-center gap-1">
-      <Clock className="h-3 w-3" /> En attente
+    <span
+      className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
+      style={{ backgroundColor: 'rgba(255,179,71,0.12)', color: 'var(--warning)', fontFamily: 'var(--font-dm-sans)' }}
+    >
+      ◷ En attente
+    </span>
+  )
+}
+
+function LeaveTypeBadge({ type }: { type: LeaveType }) {
+  const label = LEAVE_TYPES.find(t => t.value === type)?.label ?? type
+  return (
+    <span
+      className="text-[10px] font-medium uppercase tracking-[0.06em]"
+      style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}
+    >
+      {label}
     </span>
   )
 }
@@ -44,21 +65,14 @@ function countDays(start: string, end: string) {
   return Math.round(ms / 86400000) + 1
 }
 
-// ── Leave form (shared desktop inline + mobile bottom sheet) ──────────────────
+// ── Leave form ────────────────────────────────────────────────────────────────
 
 interface LeaveFormProps {
-  startDate: string
-  endDate: string
-  type: LeaveType
-  comment: string
-  submitting: boolean
-  formError: string | null
-  onStartDate(v: string): void
-  onEndDate(v: string): void
-  onType(v: LeaveType): void
-  onComment(v: string): void
-  onSubmit(e: React.FormEvent): void
-  onCancel(): void
+  startDate: string; endDate: string; type: LeaveType; comment: string
+  submitting: boolean; formError: string | null
+  onStartDate(v: string): void; onEndDate(v: string): void
+  onType(v: LeaveType): void; onComment(v: string): void
+  onSubmit(e: React.FormEvent): void; onCancel(): void
 }
 
 function LeaveForm({
@@ -69,47 +83,50 @@ function LeaveForm({
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="start">Date de début</Label>
-          <Input id="start" type="date" value={startDate} onChange={e => onStartDate(e.target.value)} required style={{ fontSize: '16px' }} />
+          <Label htmlFor="start" style={{ fontFamily: 'var(--font-dm-sans)' }}>Date de début</Label>
+          <Input id="start" type="date" value={startDate} onChange={e => onStartDate(e.target.value)} required style={{ fontSize: '16px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="end">Date de fin</Label>
-          <Input id="end" type="date" value={endDate} min={startDate} onChange={e => onEndDate(e.target.value)} required style={{ fontSize: '16px' }} />
+          <Label htmlFor="end" style={{ fontFamily: 'var(--font-dm-sans)' }}>Date de fin</Label>
+          <Input id="end" type="date" value={endDate} min={startDate} onChange={e => onEndDate(e.target.value)} required style={{ fontSize: '16px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label>{"Type d'absence"}</Label>
+        <Label style={{ fontFamily: 'var(--font-dm-sans)' }}>{"Type d'absence"}</Label>
         <Select value={type} onValueChange={v => onType(v as LeaveType)}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectTrigger style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             {LEAVE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="comment">Commentaire (optionnel)</Label>
+        <Label htmlFor="comment" style={{ fontFamily: 'var(--font-dm-sans)' }}>Commentaire (optionnel)</Label>
         <Textarea
           id="comment"
           value={comment}
           onChange={e => onComment(e.target.value)}
           placeholder="Précisions..."
           rows={2}
-          style={{ fontSize: '16px' }}
+          style={{ fontSize: '16px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
         />
       </div>
       {formError && (
-        <p className="text-[13px]" style={{ color: 'var(--danger)' }}>{formError}</p>
+        <p className="text-[13px]" style={{ color: 'var(--danger)', fontFamily: 'var(--font-dm-sans)' }}>{formError}</p>
       )}
       <div className="flex gap-2">
         <button
           type="submit"
           disabled={submitting}
           className="btn-primary flex items-center justify-center gap-1.5 disabled:opacity-50 flex-1 md:flex-none"
+          style={{ fontFamily: 'var(--font-syne)' }}
         >
           {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {submitting ? 'Envoi...' : 'Envoyer la demande'}
         </button>
-        <button type="button" onClick={onCancel} disabled={submitting} className="btn-secondary">
+        <button type="button" onClick={onCancel} disabled={submitting} className="btn-secondary" style={{ fontFamily: 'var(--font-dm-sans)' }}>
           Annuler
         </button>
       </div>
@@ -170,14 +187,8 @@ export default function EmployeeCongesPage() {
     fetchRequests()
   }
 
-  function openForm() {
-    setShowForm(true)
-    setFormError(null)
-  }
-
-  function closeForm() {
-    if (!submitting) setShowForm(false)
-  }
+  function openForm() { setShowForm(true); setFormError(null) }
+  function closeForm() { if (!submitting) setShowForm(false) }
 
   const formProps: LeaveFormProps = {
     startDate, endDate, type, comment, submitting, formError,
@@ -187,23 +198,32 @@ export default function EmployeeCongesPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-4 md:px-6 md:py-8">
+    <div className="max-w-3xl mx-auto px-4 py-4 md:px-6 md:py-8" style={{ backgroundColor: 'var(--bg-page)', minHeight: '100vh' }}>
       {/* Back link — desktop only */}
       <div className="hidden md:block mb-6">
-        <Link href="/employee" className="inline-flex items-center gap-1 text-[13px] transition-colors duration-150" style={{ color: 'var(--text-secondary)' }}>
+        <Link href="/employee" className="inline-flex items-center gap-1 text-[13px] transition-colors duration-150" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-dm-sans)' }}>
           <ChevronLeft className="h-4 w-4" /> Mon espace
         </Link>
       </div>
 
-      <div className="flex items-center justify-between mb-6 md:mb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6 md:mb-8 dashboard-s0">
         <div>
-          <h1 className="text-[18px] md:text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Mes congés</h1>
-          <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>Soumettez et suivez vos demandes d&apos;absence</p>
+          <h1
+            className="text-[20px] font-bold tracking-[-0.02em]"
+            style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+          >
+            Mes congés
+          </h1>
+          <p className="text-[13px] mt-0.5" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>
+            Soumettez et suivez vos demandes d&apos;absence
+          </p>
         </div>
         <button
           onClick={openForm}
           disabled={showForm}
           className="btn-primary flex items-center gap-1.5 disabled:opacity-50"
+          style={{ fontFamily: 'var(--font-syne)' }}
         >
           <Plus className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Nouvelle demande</span>
@@ -213,8 +233,13 @@ export default function EmployeeCongesPage() {
 
       {/* Desktop: inline form */}
       {showForm && (
-        <div className="hidden md:block mb-6 p-5 rounded-xl" style={{ border: '0.5px solid var(--accent)', backgroundColor: 'var(--accent-light)' }}>
-          <p className="text-[13px] font-medium mb-4" style={{ color: 'var(--text-primary)' }}>Nouvelle demande d&apos;absence</p>
+        <div
+          className="hidden md:block mb-6 p-5 rounded-[14px] dashboard-s1"
+          style={{ border: '1px solid var(--accent)', backgroundColor: 'rgba(108,99,255,0.06)' }}
+        >
+          <p className="text-[13px] font-semibold mb-4" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+            Nouvelle demande d&apos;absence
+          </p>
           <LeaveForm {...formProps} />
         </div>
       )}
@@ -222,16 +247,18 @@ export default function EmployeeCongesPage() {
       {/* Mobile: bottom sheet */}
       {showForm && (
         <div className="md:hidden">
-          <div className="fixed inset-0 bg-black/40 z-40" onClick={closeForm} />
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={closeForm} />
           <div
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl"
-            style={{ background: 'var(--bg-card)', paddingBottom: 'max(20px, env(safe-area-inset-bottom, 0px))' }}
+            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-[20px]"
+            style={{ background: 'var(--bg-card)', paddingBottom: 'max(20px, env(safe-area-inset-bottom, 0px))', border: '1px solid var(--border)' }}
           >
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border)' }} />
+              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-hover)' }} />
             </div>
-            <div className="flex items-center justify-between px-5 py-2" style={{ borderBottom: '0.5px solid var(--border)' }}>
-              <span className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>Nouvelle demande</span>
+            <div className="flex items-center justify-between px-5 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
+              <span className="text-[14px] font-semibold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+                Nouvelle demande
+              </span>
               <button onClick={closeForm} className="p-1.5 rounded-lg" style={{ color: 'var(--text-tertiary)' }}>
                 <X className="h-4 w-4" />
               </button>
@@ -249,37 +276,55 @@ export default function EmployeeCongesPage() {
           <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--text-secondary)' }} />
         </div>
       ) : requests.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-[13px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Aucune demande</p>
-          <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+        <div className="flex flex-col items-center justify-center py-16 text-center dashboard-s1">
+          <p className="text-[13px] font-semibold mb-1" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-secondary)' }}>
+            Aucune demande
+          </p>
+          <p className="text-[12px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
             Cliquez sur &quot;Nouvelle demande&quot; pour soumettre votre première absence.
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 dashboard-s1">
           {requests.map(req => (
             <div
               key={req.id}
-              className="rounded-xl p-4 flex items-start justify-between gap-3"
-              style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
+              className="rounded-[14px] p-4 flex items-start justify-between gap-3 transition-all duration-150"
+              style={{
+                border: '1px solid var(--border)',
+                backgroundColor: 'var(--bg-card)',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border-hover)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  {statusBadge(req.status)}
-                  <span className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
-                    {LEAVE_TYPES.find(t => t.value === req.type)?.label}
-                  </span>
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <StatusBadge status={req.status} />
+                  <LeaveTypeBadge type={req.type as LeaveType} />
                 </div>
-                <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                <p
+                  className="text-[14px] font-bold"
+                  style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+                >
                   {formatDate(req.start_date)}
-                  {req.start_date !== req.end_date && <> → {formatDate(req.end_date)}</>}
-                  <span className="ml-2 font-normal text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                  {req.start_date !== req.end_date && (
+                    <span className="font-normal mx-1.5" style={{ color: 'var(--text-tertiary)' }}>→</span>
+                  )}
+                  {req.start_date !== req.end_date && formatDate(req.end_date)}
+                  <span
+                    className="ml-2 text-[12px] font-normal"
+                    style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}
+                  >
                     ({countDays(req.start_date, req.end_date)} j)
                   </span>
                 </p>
-                {req.comment && <p className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>{req.comment}</p>}
+                {req.comment && (
+                  <p className="text-[12px] mt-1" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>
+                    {req.comment}
+                  </p>
+                )}
                 {req.manager_comment && (
-                  <p className="text-[12px] mt-1 italic" style={{ color: 'var(--text-secondary)' }}>
+                  <p className="text-[12px] mt-1 italic" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>
                     Réponse : &quot;{req.manager_comment}&quot;
                   </p>
                 )}
@@ -289,7 +334,7 @@ export default function EmployeeCongesPage() {
                 <button
                   onClick={() => handleDelete(req.id)}
                   disabled={deleteLoading === req.id}
-                  className="flex-shrink-0 flex items-center gap-1.5 rounded-lg transition-colors duration-150 disabled:opacity-50 p-1.5 md:p-1.5"
+                  className="flex-shrink-0 flex items-center gap-1.5 rounded-lg p-1.5 transition-colors disabled:opacity-50"
                   style={{ color: 'var(--danger)' }}
                   title="Annuler la demande"
                 >
@@ -297,7 +342,7 @@ export default function EmployeeCongesPage() {
                     ? <Loader2 className="h-4 w-4 animate-spin" />
                     : <Trash2 className="h-4 w-4" />
                   }
-                  <span className="text-[12px] font-medium md:hidden">Annuler</span>
+                  <span className="text-[12px] font-medium md:hidden" style={{ fontFamily: 'var(--font-dm-sans)' }}>Annuler</span>
                 </button>
               )}
             </div>
