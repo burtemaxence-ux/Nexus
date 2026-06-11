@@ -44,7 +44,7 @@ function getDayLabel(date: Date): { weekday: string; dayMonth: string } {
   }
 }
 
-// ── Mobile planning view ───────────────────────────────────────────────────
+// ── Mobile planning view ────────────────────────────────────────────────────────────
 
 interface MobilePlanningViewProps {
   weekDates: Date[]
@@ -158,6 +158,7 @@ function MobilePlanningView({
         style={{
           background: 'var(--bg-card)',
           border: isToday(selectedDate) ? '1px solid var(--accent)' : '1px solid var(--border)',
+          backgroundColor: isToday(selectedDate) ? 'linear-gradient(135deg, rgba(108,99,255,0.06) 0%, var(--bg-card) 100%)' : undefined,
         }}
       >
         <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
@@ -267,7 +268,7 @@ function MobilePlanningView({
   )
 }
 
-// ── Main component ─────────────────────────────────────────────────────
+// ── Main component ──────────────────────────────────────────────────────────────
 
 export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leaveRequests, isCurrentWeek = false }: EmployeePlanningGridProps) {
   const prevMonday = addDays(weekDates[0], -7)

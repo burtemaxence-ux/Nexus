@@ -41,7 +41,6 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
   const mondayStr = toISODate(monday)
   const sundayStr = toISODate(sunday)
 
-  // Check if viewing current week
   const currentWeekMonday = toISODate(getWeekDates(new Date())[0])
   const isCurrentWeek = mondayStr === currentWeekMonday
 
