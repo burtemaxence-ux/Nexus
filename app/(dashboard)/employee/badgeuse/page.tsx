@@ -112,7 +112,7 @@ export default function BadgeusePage() {
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(new Date())
 
-  const [hm, setHm] = useState(nowHM())
+  const [hm, setHm] = useState<{ hour: number; minute: number }>(nowHM())
   const [confirmed, setConfirmed] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -357,8 +357,8 @@ export default function BadgeusePage() {
                 </p>
                 <TimePicker
                   hour={hm.hour} minute={hm.minute}
-                  onHour={h => setHm(v => ({ ...v, hour: h }))}
-                  onMinute={m => setHm(v => ({ ...v, minute: m }))}
+                  onHour={h => setHm((v: { hour: number; minute: number }) => ({ ...v, hour: h }))}
+                  onMinute={m => setHm((v: { hour: number; minute: number }) => ({ ...v, minute: m }))}
                 />
               </div>
             )}
@@ -449,8 +449,8 @@ function RippleBtn({ color, icon, label, action, loading, onPress }: {
       const x = e.clientX - rect.left
       const y = e.clientY - rect.top
       const id = Date.now()
-      setRipples(r => [...r, { id, x, y }])
-      setTimeout(() => setRipples(r => r.filter(rp => rp.id !== id)), 700)
+      setRipples((r: { id: number; x: number; y: number }[]) => [...r, { id, x, y }])
+      setTimeout(() => setRipples((r: { id: number; x: number; y: number }[]) => r.filter(rp => rp.id !== id)), 700)
     }
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(25)
     onPress(action)

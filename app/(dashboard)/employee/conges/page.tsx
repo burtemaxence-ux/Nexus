@@ -39,7 +39,7 @@ function StatusBadge({ status }: { status: string }) {
       className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full"
       style={{ backgroundColor: 'rgba(255,179,71,0.12)', color: 'var(--warning)', fontFamily: 'var(--font-dm-sans)' }}
     >
-      ▷ En attente
+      ◷ En attente
     </span>
   )
 }
@@ -84,16 +84,16 @@ function LeaveForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="start" style={{ fontFamily: 'var(--font-dm-sans)' }}>Date de début</Label>
-          <Input id="start" type="date" value={startDate} onChange={e => onStartDate(e.target.value)} required style={{ fontSize: '16px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
+          <Input id="start" type="date" value={startDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => onStartDate(e.target.value)} required style={{ fontSize: '16px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="end" style={{ fontFamily: 'var(--font-dm-sans)' }}>Date de fin</Label>
-          <Input id="end" type="date" value={endDate} min={startDate} onChange={e => onEndDate(e.target.value)} required style={{ fontSize: '16px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
+          <Input id="end" type="date" value={endDate} min={startDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => onEndDate(e.target.value)} required style={{ fontSize: '16px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
         </div>
       </div>
       <div className="space-y-1.5">
         <Label style={{ fontFamily: 'var(--font-dm-sans)' }}>{"Type d'absence"}</Label>
-        <Select value={type} onValueChange={v => onType(v as LeaveType)}>
+        <Select value={type} onValueChange={(v: string) => onType(v as LeaveType)}>
           <SelectTrigger style={{ backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
             <SelectValue />
           </SelectTrigger>
@@ -107,7 +107,7 @@ function LeaveForm({
         <Textarea
           id="comment"
           value={comment}
-          onChange={e => onComment(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onComment(e.target.value)}
           placeholder="Précisions..."
           rows={2}
           style={{ fontSize: '16px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
@@ -134,7 +134,7 @@ function LeaveForm({
   )
 }
 
-// ── Page ────────────────────────────────────────────────────────────────────────────────
+// ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function EmployeeCongesPage() {
   const [requests, setRequests] = useState<LeaveRequest[]>([])
@@ -286,7 +286,7 @@ export default function EmployeeCongesPage() {
         </div>
       ) : (
         <div className="space-y-2 dashboard-s1">
-          {requests.map(req => (
+          {requests.map((req: LeaveRequest) => (
             <div
               key={req.id}
               className="rounded-[14px] p-4 flex items-start justify-between gap-3 transition-all duration-150"
@@ -294,8 +294,8 @@ export default function EmployeeCongesPage() {
                 border: '1px solid var(--border)',
                 backgroundColor: 'var(--bg-card)',
               }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border-hover)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+              onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.borderColor = 'var(--border-hover)')}
+              onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.borderColor = 'var(--border)')}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1.5 flex-wrap">

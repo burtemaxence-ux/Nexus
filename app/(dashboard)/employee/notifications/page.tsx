@@ -62,8 +62,8 @@ export default function EmployeeNotificationsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
     })
-    setNotifications(n => n.map(notif => notif.id === id ? { ...notif, read: true } : notif))
-    setUnreadCount(c => Math.max(0, c - 1))
+    setNotifications((n: Notification[]) => n.map((notif: Notification) => notif.id === id ? { ...notif, read: true } : notif))
+    setUnreadCount((c: number) => Math.max(0, c - 1))
   }
 
   async function markAllRead() {
@@ -73,7 +73,7 @@ export default function EmployeeNotificationsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ all: true }),
     })
-    setNotifications(n => n.map(notif => ({ ...notif, read: true })))
+    setNotifications((n: Notification[]) => n.map((notif: Notification) => ({ ...notif, read: true })))
     setUnreadCount(0)
     setMarkingAll(false)
   }
@@ -146,7 +146,7 @@ export default function EmployeeNotificationsPage() {
         </div>
       ) : (
         <div className="space-y-2 dashboard-s1">
-          {notifications.map(notif => {
+          {notifications.map((notif: Notification) => {
             const Wrapper = notif.action_url ? Link : 'div'
             const wrapperProps = notif.action_url ? { href: notif.action_url } : {}
 

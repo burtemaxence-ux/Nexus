@@ -16,7 +16,7 @@ function getInitials(name: string): string {
   return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function isActive(href: string, pathname: string): boolean {
   if (href === '/manager') return pathname === '/manager'
@@ -25,7 +25,7 @@ function isActive(href: string, pathname: string): boolean {
   return pathname === href || pathname.startsWith(href + '/')
 }
 
-// ── Nav icon (visuel) ──────────────────────────────────────────────────────────────
+// ── Nav icon (visuel) ─────────────────────────────────────────────────────────
 
 function NavIcon({
   icon: Icon,
@@ -89,7 +89,7 @@ function NavIcon({
   )
 }
 
-// ── Drawer "Plus" manager ──────────────────────────────────────────────────────────
+// ── Drawer "Plus" manager ─────────────────────────────────────────────────────
 
 function ManagerMoreDrawer({
   onClose,
@@ -184,7 +184,7 @@ function ManagerMoreDrawer({
   )
 }
 
-// ── Mobile Header ─────────────────────────────────────────────────────────────────
+// ── Mobile Header ─────────────────────────────────────────────────────────────
 
 interface MobileHeaderProps {
   userName: string
@@ -251,14 +251,14 @@ export function MobileHeader({ userName, userEmail, establishmentName, role }: M
           </span>
         )}
 
-        {/* Notifications cloche — mobile */}
+        {/* Notifications cloche — mobile (ml-auto quand pas d'établissement pour aligner à droite) */}
         <div className={cn(!showEstablishment && 'ml-auto')}>
           <NotificationsBell isMobile />
         </div>
 
         <div className={cn('flex-shrink-0 relative')} ref={ref}>
           <button
-            onClick={() => setMenuOpen(o => !o)}
+            onClick={() => setMenuOpen((o: boolean) => !o)}
             className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent-light)]"
           >
             <span className="text-[11px] font-semibold text-[var(--accent)]">
@@ -296,7 +296,7 @@ export function MobileHeader({ userName, userEmail, establishmentName, role }: M
   )
 }
 
-// ── Bottom Nav ─────────────────────────────────────────────────────────────────────
+// ── Bottom Nav ────────────────────────────────────────────────────────────────
 
 interface BottomNavProps {
   role: 'manager' | 'employee' | 'supervisor'
@@ -324,7 +324,7 @@ export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0, compl
         .from('leave_requests')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'pending')
-        .then(({ count }) => { if (active) setLivePendingLeaves(count ?? 0) })
+        .then(({ count }: { count: number | null }) => { if (active) setLivePendingLeaves(count ?? 0) })
     }
     const channel = supabase
       .channel('bottom-nav-leaves')
@@ -365,7 +365,7 @@ export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0, compl
             <NavIcon icon={Palmtree} label="Congés" active={isActive('/manager/conges', pathname)} badge={livePendingLeaves} />
           </Link>
           <button
-            onClick={() => setShowMore(o => !o)}
+            onClick={() => setShowMore((o: boolean) => !o)}
             className="flex-1 flex items-center justify-center"
           >
             <NavIcon icon={MoreHorizontal} label="Plus" active={moreActive || showMore} />
@@ -383,7 +383,7 @@ export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0, compl
     )
   }
 
-  // ── Employé ──────────────────────────────────────────────────────────────────────────
+  // ── Employé ──────────────────────────────────────────────────────────────────
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-30 flex md:hidden items-stretch px-1"
