@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Calendar, Users, Palmtree, MoreHorizontal,
-  Clock, User, Home, X, BarChart3, Bell, Settings, LogOut, Sun, Moon,
+  Clock, Home, X, BarChart3, Settings, LogOut, Sun, Moon,
   AlertTriangle,
 } from 'lucide-react'
 import { NotificationsBell } from './notifications-bell'
@@ -251,7 +251,7 @@ export function MobileHeader({ userName, userEmail, establishmentName, role }: M
           </span>
         )}
 
-        {/* Notifications cloche — mobile (ml-auto quand pas d'établissement pour aligner à droite) */}
+        {/* Notifications cloche — mobile */}
         <div className={cn(!showEstablishment && 'ml-auto')}>
           <NotificationsBell isMobile />
         </div>
