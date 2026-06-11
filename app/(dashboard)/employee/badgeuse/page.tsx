@@ -54,7 +54,7 @@ function fmtElapsed(from: string, to: Date): string {
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
 }
 
-// ── Mini time picker ──────────────────────────────────────────────
+// ── Mini time picker ──────────────────────────────────────────────────────────
 interface TimePickerProps { hour: number; minute: number; onHour(h: number): void; onMinute(m: number): void }
 function TimePicker({ hour, minute, onHour, onMinute }: TimePickerProps) {
   const btn = 'p-2 rounded-xl transition-all select-none hover:bg-white/8 active:scale-95'
@@ -409,7 +409,7 @@ export default function BadgeusePage() {
   )
 }
 
-// ── Ripple button ───────────────────────────────────────────────────
+// ── Ripple button ─────────────────────────────────────────────────────────────
 
 function RippleBtn({ color, icon, label, action, loading, onPress }: {
   color: 'accent' | 'success' | 'danger' | 'warning'
@@ -473,7 +473,7 @@ function RippleBtn({ color, icon, label, action, loading, onPress }: {
   )
 }
 
-// ── Sub-components ────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function Row({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
   return (
