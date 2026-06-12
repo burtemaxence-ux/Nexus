@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, ElementType } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, Bell, CheckCheck } from 'lucide-react'
 
@@ -147,7 +147,7 @@ export default function EmployeeNotificationsPage() {
       ) : (
         <div className="space-y-2 dashboard-s1">
           {notifications.map((notif: Notification) => {
-            const Wrapper = notif.action_url ? Link : 'div'
+            const Wrapper = (notif.action_url ? Link : 'div') as ElementType
             const wrapperProps = notif.action_url ? { href: notif.action_url } : {}
 
             return (

@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
         status: sub.status,
         current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
         cancel_at_period_end: sub.cancel_at_period_end,
+        trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'establishment_id' })
     }
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
         plan,
         current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
         cancel_at_period_end: sub.cancel_at_period_end,
+        trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'establishment_id' })
     }
