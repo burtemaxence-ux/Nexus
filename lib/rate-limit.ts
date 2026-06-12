@@ -7,6 +7,14 @@
  * Each key stores a JSON object { count, resetAt } with a TTL of windowMs/1000 seconds.
  */
 
+if (!process.env.KV_REST_API_URL) {
+  console.warn(
+    '[RateLimit] KV_REST_API_URL not configured — using in-memory store. ' +
+    'AI quota (3/month Essential plan) is NOT persistent across serverless instances. ' +
+    'Configure Vercel KV to enforce quotas reliably.'
+  )
+}
+
 // ── In-memory fallback ────────────────────────────────────────────────────────
 
 interface Window {
