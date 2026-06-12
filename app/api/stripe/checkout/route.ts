@@ -1,15 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
-import { getStripe, STRIPE_PRICES, type BillingInterval, type PlanId } from '@/lib/stripe'
+import { getStripe, STRIPE_PRICES } from '@/lib/stripe'
+
+const CheckoutSchema = z.object({
+  planId: z.enum(['essential', 'pro', 'multisite']),
+  interval: z.enum(['monthly', 'yearly']).default('monthly'),
+})
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { user, profile } = await requireManager(supabase)
 
-    const body = await request.json()
-    const { planId, interval } = body as { planId: PlanId; interval: BillingInterval }
+    const raw = await request.json()
+    const parsed = CheckoutSchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Données invalides', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+    const { planId, interval } = parsed.data
 
     const priceKey = `${planId}_${interval}`
     if (!(priceKey in STRIPE_PRICES)) {
