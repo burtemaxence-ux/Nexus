@@ -97,7 +97,7 @@ export async function POST(req: Request) {
   if ((marketplaceSlots ?? []).length > 0) alerts.push(`🔄 **${marketplaceSlots!.length} créneau(x) sur le marketplace** en attente de remplaçant`)
   if ((shiftExchanges ?? []).length > 0) alerts.push(`🔁 **${shiftExchanges!.length} échange(s) de shift** en attente d'approbation`)
 
-  const systemPrompt = `Tu es l'assistant IA intégré à Nexus, un logiciel de planning pour la restauration.
+  const systemPrompt = `Tu es l'assistant IA intégré à Quartzbase, un logiciel de planning pour la restauration.
 Tu aides le manager de l'établissement **${establishmentName}** à gérer son planning, ses employés et son activité.
 La date d'aujourd'hui est le ${today}.
 

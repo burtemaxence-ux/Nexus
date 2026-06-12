@@ -76,8 +76,8 @@ export function AiAssistant({
   useEffect(() => {
     if (open && messages.length === 0) {
       const greeting = mode === 'employee'
-        ? `Bonjour ${userName.split(' ')[0]} 👋 Je suis ton assistant Nexus.\n\nJe peux t'aider à consulter tes horaires, tes congés, tes droits et répondre à tes questions RH. Comment puis-je t'aider ?`
-        : `Bonjour ${userName.split(' ')[0]} 👋 Je suis votre assistant Nexus pour **${establishmentName}**.\n\nJe peux vous aider avec le planning, les employés, les documents RH, les congés et plus encore. Que puis-je faire pour vous ?`
+        ? `Bonjour ${userName.split(' ')[0]} 👋 Je suis ton assistant Quartzbase.\n\nJe peux t'aider à consulter tes horaires, tes congés, tes droits et répondre à tes questions RH. Comment puis-je t'aider ?`
+        : `Bonjour ${userName.split(' ')[0]} 👋 Je suis votre assistant Quartzbase pour **${establishmentName}**.\n\nJe peux vous aider avec le planning, les employés, les documents RH, les congés et plus encore. Que puis-je faire pour vous ?`
       setMessages([{ role: 'assistant', content: greeting }])
     }
   }, [open, messages.length, userName, establishmentName, mode])
@@ -208,7 +208,7 @@ export function AiAssistant({
               <Bot className="h-4 w-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-white">Assistant Nexus</p>
+              <p className="text-sm font-semibold text-white">Assistant Quartzbase</p>
               <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.7)' }}>Propulsé par Claude</p>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getSubscription, isActiveSubscription } from '@/lib/subscription'
 import { BillingClient } from './billing-client'
 
-export const metadata = { title: 'Abonnement — Nexus' }
+export const metadata = { title: 'Abonnement — Quartzbase' }
 
 export default async function BillingPage() {
   const supabase = await createClient()

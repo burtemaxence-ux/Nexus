@@ -25,7 +25,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
     ])
 
     const employeeName = profileData?.full_name ?? profileData?.email ?? 'Employé'
-    const orgName = orgData?.value ?? 'Nexus'
+    const orgName = orgData?.value ?? 'Quartzbase'
     const shifts = (shiftsData ?? []) as Shift[]
 
     const ics = generateICS(shifts, employeeName, orgName)

@@ -73,7 +73,7 @@ export function PwaInstallBanner() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                Installer Nexus
+                Installer Quartzbase
               </p>
               <p className="text-[12px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                 Appuyez sur{' '}
@@ -96,7 +96,7 @@ export function PwaInstallBanner() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                Installer Nexus
+                Installer Quartzbase
               </p>
               <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
                 Accès rapide à votre planning

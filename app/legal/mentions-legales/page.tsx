@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Mentions légales — Nexus',
+  title: 'Mentions légales — Quartzbase',
 }
 
 export default function MentionsLegalesPage() {
@@ -13,7 +13,7 @@ export default function MentionsLegalesPage() {
       <section>
         <h2>1. Éditeur du site</h2>
         <p>
-          Le site <strong>Nexus</strong> (ci-après « la Plateforme ») est édité par :
+          Le site <strong>Quartzbase</strong> (ci-après « la Plateforme ») est édité par :
         </p>
         <ul>
           <li><strong>Raison sociale :</strong> Quartz SAS</li>
@@ -47,7 +47,7 @@ export default function MentionsLegalesPage() {
       <section>
         <h2>4. Propriété intellectuelle</h2>
         <p>
-          L&apos;ensemble des éléments constituant la Plateforme Nexus (code source, interface graphique, textes, logos, icônes, architecture) est la propriété exclusive de Quartz SAS ou de ses partenaires et est protégé par les lois françaises et internationales relatives à la propriété intellectuelle.
+          L&apos;ensemble des éléments constituant la Plateforme Quartzbase (code source, interface graphique, textes, logos, icônes, architecture) est la propriété exclusive de Quartz SAS ou de ses partenaires et est protégé par les lois françaises et internationales relatives à la propriété intellectuelle.
         </p>
         <p>
           Toute reproduction, représentation, modification, publication ou transmission partielle ou totale des contenus de la Plateforme, par quelque procédé que ce soit, est interdite sans l&apos;autorisation préalable écrite de Quartz SAS.

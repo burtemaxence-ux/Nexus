@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!auth) {
     return NextResponse.json({ error: 'Token invalide ou manquant' }, {
       status: 401,
-      headers: { 'WWW-Authenticate': 'Bearer realm="Nexus API"' },
+      headers: { 'WWW-Authenticate': 'Bearer realm="Quartzbase API"' },
     })
   }
 

@@ -444,7 +444,7 @@ export default function IntegrationsPage() {
           Intégrations
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Connectez Nexus à vos outils pour automatiser votre workflow.
+          Connectez Quartzbase à vos outils pour automatiser votre workflow.
         </p>
       </div>
 

@@ -100,7 +100,7 @@ export function AvenantDocument({ documentText, employeeName, establishmentName,
           </View>
           <View>
             <Text style={styles.meta}>Document généré le {generatedDate}</Text>
-            <Text style={styles.meta}>Nexus — Gestion RH</Text>
+            <Text style={styles.meta}>Quartzbase — Gestion RH</Text>
           </View>
         </View>
 
@@ -128,7 +128,7 @@ export function AvenantDocument({ documentText, employeeName, establishmentName,
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text>Document généré par Nexus · {establishmentName}</Text>
+          <Text>Document généré par Quartzbase · {establishmentName}</Text>
           <Text>💡 À valider avec votre expert-comptable ou avocat RH</Text>
         </View>
       </Page>

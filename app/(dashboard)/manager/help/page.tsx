@@ -374,7 +374,7 @@ const SECTIONS: HelpSection[] = [
     color: '#6B7280',
     colorLight: '#F3F4F6',
     title: 'Intégrations & API',
-    description: 'Connectez Nexus à vos outils externes via webhooks ou l\'API REST.',
+    description: 'Connectez Quartzbase à vos outils externes via webhooks ou l\'API REST.',
     href: '/manager/settings/integrations',
     hrefLabel: 'Gérer les intégrations',
     blocks: [
@@ -406,7 +406,7 @@ const SECTIONS: HelpSection[] = [
       },
     ],
     tips: [
-      'Utilisez Make (ex-Integromat) ou Zapier pour connecter Nexus à votre SIRH',
+      'Utilisez Make (ex-Integromat) ou Zapier pour connecter Quartzbase à votre SIRH',
       'L\'API v1 est idéale pour alimenter un tableau de bord BI externe',
     ],
   },
@@ -575,7 +575,7 @@ export default function HelpPage() {
               Centre d&apos;aide
             </h1>
             <p className="text-[13px] text-[var(--text-secondary)]">
-              Guides et tutoriels pour maîtriser Nexus.
+              Guides et tutoriels pour maîtriser Quartzbase.
             </p>
           </div>
         </div>

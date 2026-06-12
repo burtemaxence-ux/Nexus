@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: "Conditions Générales d'Utilisation — Nexus",
+  title: "Conditions Générales d'Utilisation — Quartzbase",
 }
 
 export default function CguPage() {
@@ -13,7 +13,7 @@ export default function CguPage() {
       <section>
         <h2>1. Objet</h2>
         <p>
-          Les présentes Conditions Générales d&apos;Utilisation (ci-après « CGU ») définissent les modalités d&apos;accès et d&apos;utilisation de la Plateforme <strong>Nexus</strong>, éditée par Quartz SAS (ci-après « l&apos;Éditeur »).
+          Les présentes Conditions Générales d&apos;Utilisation (ci-après « CGU ») définissent les modalités d&apos;accès et d&apos;utilisation de la Plateforme <strong>Quartzbase</strong>, éditée par Quartz SAS (ci-après « l&apos;Éditeur »).
         </p>
         <p>
           Toute utilisation de la Plateforme implique l&apos;acceptation pleine et entière des présentes CGU. Si vous n&apos;acceptez pas ces conditions, vous devez cesser immédiatement d&apos;utiliser la Plateforme.
@@ -23,7 +23,7 @@ export default function CguPage() {
       <section>
         <h2>2. Description du service</h2>
         <p>
-          Nexus est une plateforme SaaS de gestion des ressources humaines destinée aux établissements de restauration. Elle permet notamment :
+          Quartzbase est une plateforme SaaS de gestion des ressources humaines destinée aux établissements de restauration. Elle permet notamment :
         </p>
         <ul>
           <li>La gestion du planning hebdomadaire et journalier des équipes</li>
@@ -79,7 +79,7 @@ export default function CguPage() {
       <section>
         <h2>6. Propriété intellectuelle</h2>
         <p>
-          La Plateforme Nexus, son code source, son interface et ses contenus sont la propriété exclusive de Quartz SAS. Aucune licence, droit de propriété intellectuelle ou droit d&apos;exploitation n&apos;est accordé à l&apos;utilisateur au-delà du droit d&apos;usage personnel de la Plateforme dans le cadre des présentes CGU.
+          La Plateforme Quartzbase, son code source, son interface et ses contenus sont la propriété exclusive de Quartz SAS. Aucune licence, droit de propriété intellectuelle ou droit d&apos;exploitation n&apos;est accordé à l&apos;utilisateur au-delà du droit d&apos;usage personnel de la Plateforme dans le cadre des présentes CGU.
         </p>
         <p>
           Les données saisies par l&apos;utilisateur (plannings, informations employés…) restent la propriété de l&apos;établissement concerné. L&apos;Éditeur n&apos;y accède qu&apos;à des fins techniques et de support.

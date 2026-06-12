@@ -54,7 +54,7 @@ export async function POST(req: Request) {
   const totalDaysEntitled = myContract?.paid_leave_days ?? 25
   const remainingLeave = Math.max(0, totalDaysEntitled - approvedLeaveDays)
 
-  const systemPrompt = `Tu es l'assistant IA de Nexus, dédié aux employés.
+  const systemPrompt = `Tu es l'assistant IA de Quartzbase, dédié aux employés.
 Tu parles à **${profile?.full_name ?? 'l\'employé(e)'}** qui occupe le poste de **${profile?.position ?? 'non défini'}**.
 La date d'aujourd'hui est le ${today}.
 

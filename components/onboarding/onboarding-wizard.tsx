@@ -12,7 +12,7 @@ const STEPS = [
     icon: Sparkles,
     color: '#2D3A8C',
     colorLight: '#EEF0FA',
-    title: 'Bienvenue sur Nexus',
+    title: 'Bienvenue sur Quartzbase',
     description: 'Votre outil de gestion RH & planning. Suivez ces étapes pour configurer votre établissement et démarrer rapidement.',
     cta: 'Commencer',
     href: null,
@@ -148,7 +148,7 @@ export function OnboardingWizard({ role }: OnboardingWizardProps) {
           >
             <Icon className="h-3.5 w-3.5" style={{ color: current.color }} />
           </div>
-          <span className="text-[12px] font-medium">Démarrage Nexus</span>
+          <span className="text-[12px] font-medium">Démarrage Quartzbase</span>
           <span
             className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
             style={{ backgroundColor: current.colorLight, color: current.color }}

@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
           .then(({ data: phonesData }) => {
             for (const row of phonesData ?? []) {
               if (row.phone) {
-                sendSms(row.phone, `Nexus : votre planning de la semaine du ${weekLabel} est disponible. Ouvrez l'app pour consulter vos horaires.`).catch(() => {})
+                sendSms(row.phone, `Quartzbase : votre planning de la semaine du ${weekLabel} est disponible. Ouvrez l'app pour consulter vos horaires.`).catch(() => {})
               }
             }
           })

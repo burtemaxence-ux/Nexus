@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Politique de confidentialité — Nexus',
+  title: 'Politique de confidentialité — Quartzbase',
 }
 
 export default function ConfidentialitePage() {
@@ -13,7 +13,7 @@ export default function ConfidentialitePage() {
       <section>
         <h2>1. Responsable du traitement</h2>
         <p>
-          Le responsable du traitement des données personnelles collectées via la Plateforme Nexus est :
+          Le responsable du traitement des données personnelles collectées via la Plateforme Quartzbase est :
         </p>
         <ul>
           <li><strong>Quartz SAS</strong>, Paris, France</li>

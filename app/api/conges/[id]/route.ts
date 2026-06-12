@@ -84,8 +84,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     // SMS if phone number available
     if (emp?.phone) {
       const smsBody = status === 'approved'
-        ? `Nexus : votre congé du ${dateFmt(data.start_date)} au ${dateFmt(data.end_date)} a été approuvé.`
-        : `Nexus : votre demande de congé du ${dateFmt(data.start_date)} au ${dateFmt(data.end_date)} a été refusée.`
+        ? `Quartzbase : votre congé du ${dateFmt(data.start_date)} au ${dateFmt(data.end_date)} a été approuvé.`
+        : `Quartzbase : votre demande de congé du ${dateFmt(data.start_date)} au ${dateFmt(data.end_date)} a été refusée.`
       sendSms(emp.phone, smsBody).catch(() => {})
     }
 

@@ -110,7 +110,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const systemPrompt = `Tu es l'assistant IA de Nexus, expert en génération de plannings pour la restauration française.
+  const systemPrompt = `Tu es l'assistant IA de Quartzbase, expert en génération de plannings pour la restauration française.
 
 ## Établissement : ${settingsMap.establishment_name ?? 'Non renseigné'}
 - Convention collective : ${settingsMap.collective_agreement ?? 'Non définie — applique les règles générales'}

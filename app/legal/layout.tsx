@@ -15,7 +15,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
       <header style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
         <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="text-[15px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            Nexus
+            Quartzbase
           </Link>
           <nav className="flex items-center gap-4">
             {LEGAL_LINKS.map(l => (
@@ -35,7 +35,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
       {/* Footer */}
       <footer className="max-w-3xl mx-auto px-6 py-8" style={{ borderTop: '0.5px solid var(--border)' }}>
         <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-          © {new Date().getFullYear()} Quartz. Tous droits réservés. Nexus est propulsé par Quartz.
+          © {new Date().getFullYear()} Quartz. Tous droits réservés. Quartzbase est propulsé par Quartz.
         </p>
       </footer>
     </div>

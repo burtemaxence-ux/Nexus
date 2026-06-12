@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Politique de cookies — Nexus',
+  title: 'Politique de cookies — Quartzbase',
 }
 
 export default function CookiesPage() {
@@ -18,7 +18,7 @@ export default function CookiesPage() {
       </section>
 
       <section>
-        <h2>2. Cookies utilisés par Nexus</h2>
+        <h2>2. Cookies utilisés par Quartzbase</h2>
 
         <h3>2.1 Cookies strictement nécessaires</h3>
         <p>
@@ -65,13 +65,13 @@ export default function CookiesPage() {
           <tbody>
             <tr>
               <td><code>dp-theme</code></td>
-              <td>Nexus (localStorage)</td>
+              <td>Quartzbase (localStorage)</td>
               <td>Mémorisation du thème choisi (clair / sombre)</td>
               <td>Persistant (localStorage)</td>
             </tr>
             <tr>
               <td><code>nexus-onboarding-step</code></td>
-              <td>Nexus (localStorage)</td>
+              <td>Quartzbase (localStorage)</td>
               <td>Progression du tutoriel de démarrage</td>
               <td>Jusqu&apos;à la fin du tutoriel (suppression automatique)</td>
             </tr>
@@ -80,7 +80,7 @@ export default function CookiesPage() {
 
         <h3>2.3 Cookies analytiques</h3>
         <p>
-          À ce jour, la Plateforme Nexus <strong>n&apos;utilise pas de cookies analytiques ou publicitaires</strong>. Aucun outil de tracking tiers (Google Analytics, Hotjar, Mixpanel…) n&apos;est déployé.
+          À ce jour, la Plateforme Quartzbase <strong>n&apos;utilise pas de cookies analytiques ou publicitaires</strong>. Aucun outil de tracking tiers (Google Analytics, Hotjar, Mixpanel…) n&apos;est déployé.
         </p>
         <p>
           Si cela venait à changer, cette politique serait mise à jour et votre consentement explicite serait recueilli conformément aux recommandations de la CNIL.

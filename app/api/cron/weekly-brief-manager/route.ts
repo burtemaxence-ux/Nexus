@@ -49,7 +49,7 @@ Réponds uniquement avec les 5 phrases, séparées par un saut de ligne. Pas de 
     const block = msg.content[0]
     return block.type === 'text' ? block.text.trim() : contextData
   } catch {
-    return 'Brief non disponible cette semaine — données collectées et disponibles dans Nexus.'
+    return 'Brief non disponible cette semaine — données collectées et disponibles dans Quartzbase.'
   }
 }
 

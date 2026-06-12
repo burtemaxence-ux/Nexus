@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import MarketplaceManagerClient from './marketplace-manager-client'
 
-export const metadata = { title: 'Marketplace remplaçants — Nexus' }
+export const metadata = { title: 'Marketplace remplaçants — Quartzbase' }
 
 export default async function MarketplaceManagerPage() {
   const supabase = await createClient()

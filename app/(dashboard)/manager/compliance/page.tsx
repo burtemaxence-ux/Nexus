@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ComplianceClient from './compliance-client'
 
-export const metadata = { title: 'Conformité légale — Nexus' }
+export const metadata = { title: 'Conformité légale — Quartzbase' }
 
 export default async function CompliancePage() {
   const supabase = await createClient()

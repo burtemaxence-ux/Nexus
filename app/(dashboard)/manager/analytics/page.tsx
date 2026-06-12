@@ -8,7 +8,7 @@ const AnalyticsClient = dynamic(() => import('./analytics-client'), {
   loading: () => <div className="animate-pulse h-96 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]" />,
 })
 
-export const metadata = { title: 'Analytiques RH — Nexus' }
+export const metadata = { title: 'Analytiques RH — Quartzbase' }
 
 export default async function AnalyticsPage() {
   const supabase = await createClient()

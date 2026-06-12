@@ -98,7 +98,7 @@ export default async function PrintPage({ searchParams }: PrintPageProps) {
         <div className="page">
           <div className="header">
             <div>
-              <h1>Nexus — Planning</h1>
+              <h1>Quartzbase — Planning</h1>
               <p>Imprimé le {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
             <div className="week-label">{weekLabel}</div>
@@ -165,7 +165,7 @@ export default async function PrintPage({ searchParams }: PrintPageProps) {
           </table>
 
           <div className="footer">
-            <span>Nexus Planning · {weekLabel}</span>
+            <span>Quartzbase Planning · {weekLabel}</span>
             <span>{employees.length} employé{employees.length !== 1 ? 's' : ''} · {shifts.length} créneau{shifts.length !== 1 ? 'x' : ''}</span>
           </div>
         </div>

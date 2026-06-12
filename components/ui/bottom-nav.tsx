@@ -242,7 +242,7 @@ export function MobileHeader({ userName, userEmail, establishmentName, role }: M
           href={role === 'employee' ? '/employee' : '/manager'}
           className="text-[16px] font-medium tracking-[-0.03em] text-[var(--text-primary)] flex-shrink-0"
         >
-          Nexus
+          Quartzbase
         </Link>
 
         {showEstablishment && (
