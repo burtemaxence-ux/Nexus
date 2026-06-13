@@ -69,7 +69,7 @@ export function PwaInstallBanner() {
               className="h-9 w-9 flex-shrink-0 rounded-xl flex items-center justify-center"
               style={{ backgroundColor: 'var(--accent-light)' }}
             >
-              <span className="text-base font-bold" style={{ color: 'var(--accent)' }}>N</span>
+              <span className="text-base font-bold" style={{ color: 'var(--accent)' }}>Q</span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -79,7 +79,7 @@ export function PwaInstallBanner() {
                 Appuyez sur{' '}
                 <Share className="inline h-3.5 w-3.5 align-text-bottom" />
                 {' '}puis{' '}
-                <strong>{"« Sur l'écran d'accueil »"}</strong>
+                <strong>{"« Sur l'écran d'accueil »"}</strong>
               </p>
             </div>
             <button onClick={dismiss} className="flex-shrink-0 p-1" style={{ color: 'var(--text-tertiary)' }}>
@@ -92,7 +92,7 @@ export function PwaInstallBanner() {
               className="h-9 w-9 flex-shrink-0 rounded-xl flex items-center justify-center"
               style={{ backgroundColor: 'var(--accent-light)' }}
             >
-              <span className="text-base font-bold" style={{ color: 'var(--accent)' }}>N</span>
+              <span className="text-base font-bold" style={{ color: 'var(--accent)' }}>Q</span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>

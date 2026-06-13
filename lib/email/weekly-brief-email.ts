@@ -32,7 +32,7 @@ function buildHtml(data: WeeklyBriefData): string {
         <!-- Header -->
         <tr>
           <td style="background:#111827;padding:28px 32px;">
-            <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;">Nexus · RH Manager</p>
+            <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;">Quartzbase · RH Manager</p>
             <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">📊 Brief semaine</h1>
             <p style="margin:8px 0 0;color:#d1d5db;font-size:14px;">${weekLabel} · ${establishmentName}</p>
           </td>
@@ -58,7 +58,7 @@ function buildHtml(data: WeeklyBriefData): string {
           <td style="padding:0 32px 32px;">
             <a href="${siteUrl}/manager"
                style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px;">
-              Ouvrir Nexus →
+              Ouvrir Quartzbase →
             </a>
           </td>
         </tr>

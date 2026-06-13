@@ -22,8 +22,8 @@ function buildSlackMessage(event: WebhookEvent, payload: WebhookPayload): object
     'exchange.approved':  `🔄 *Échange approuvé* — ${payload.proposerName} ↔ ${payload.acceptorName}\n${payload.date} · ${payload.startTime}–${payload.endTime}`,
   }
   return {
-    text: templates[event] ?? `Nexus — ${event}`,
-    blocks: [{ type: 'section', text: { type: 'mrkdwn', text: templates[event] ?? `Nexus — ${event}` } }],
+    text: templates[event] ?? `Quartzbase — ${event}`,
+    blocks: [{ type: 'section', text: { type: 'mrkdwn', text: templates[event] ?? `Quartzbase — ${event}` } }],
   }
 }
 
@@ -99,8 +99,8 @@ export async function fireWebhook(
 export async function testWebhook(url: string, type: 'generic' | 'slack'): Promise<{ ok: boolean; status?: number }> {
   try {
     const body = type === 'slack'
-      ? { text: '✅ *Test Nexus* — connexion Slack opérationnelle', blocks: [{ type: 'section', text: { type: 'mrkdwn', text: '✅ *Test Nexus* — connexion Slack opérationnelle' } }] }
-      : { event: 'test', timestamp: new Date().toISOString(), message: 'Connexion webhook Nexus opérationnelle' }
+      ? { text: '✅ *Test Quartzbase* — connexion Slack opérationnelle', blocks: [{ type: 'section', text: { type: 'mrkdwn', text: '✅ *Test Quartzbase* — connexion Slack opérationnelle' } }] }
+      : { event: 'test', timestamp: new Date().toISOString(), message: 'Connexion webhook Quartzbase opérationnelle' }
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Nexus-Event': 'test' },
