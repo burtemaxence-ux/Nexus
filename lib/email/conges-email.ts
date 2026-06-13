@@ -46,7 +46,7 @@ function buildHtml({
 
         <tr>
           <td style="background:#111827;padding:28px 32px;">
-            <p style="margin:0 0 4px;color:#9ca3af;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Nexus by Quartz</p>
+            <p style="margin:0 0 4px;color:#9ca3af;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Quartzbase</p>
             <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">${statusLabel}</h1>
           </td>
         </tr>
@@ -92,7 +92,7 @@ function buildHtml({
           <td style="padding:0 32px 28px;border-top:1px solid #f3f4f6;">
             <p style="margin:20px 0 0;color:#9ca3af;font-size:12px;line-height:1.5;">
               Cet email a été envoyé automatiquement — merci de ne pas y répondre.<br>
-              <span style="color:#d1d5db;">Nexus by Quartz</span>
+              <span style="color:#d1d5db;">Quartzbase</span>
             </p>
           </td>
         </tr>
