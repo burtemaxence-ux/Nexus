@@ -1,0 +1,10 @@
+{
+  "presenceRate": 87,
+  "activeEmployees": 7,
+  "totalEmployees": 8,
+  "pendingLeaves": 2,
+  "lateCount": 1,
+  "complianceScore": 94,
+  "weeklyHours": 127,
+  "sparkline": [85, 90, 88, 0, 87, 92, 0]
+}

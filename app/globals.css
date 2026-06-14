@@ -1,0 +1,369 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+@layer base {
+  :root {
+    --bg-page:        #0a0a0f;
+    --bg-card:        #0f0f16;
+    --bg-elevated:    #141420;
+    --bg-input:       #111118;
+    --border:         rgba(255,255,255,0.06);
+    --border-hover:   rgba(255,255,255,0.12);
+
+    --text-primary:   #f0f0f8;
+    --text-secondary: #9090a8;
+    --text-tertiary:  #5a5a72;
+
+    --accent:         #6C63FF;
+    --accent-hover:   #5B52E8;
+    --accent-light:   rgba(108,99,255,0.1);
+
+    --success:        #00D4AA;
+    --warning:        #FFB347;
+    --danger:         #FF6B6B;
+
+    --background:     var(--bg-page);
+    --foreground:     var(--text-primary);
+    --card:           var(--bg-card);
+    --card-foreground:var(--text-primary);
+    --popover:        var(--bg-elevated);
+    --popover-foreground: var(--text-primary);
+    --primary:        var(--accent);
+    --primary-foreground: #FFFFFF;
+    --secondary:      var(--bg-card);
+    --secondary-foreground: var(--text-primary);
+    --muted:          #141420;
+    --muted-foreground: var(--text-secondary);
+    --accent-ui:      var(--accent-light);
+    --accent-ui-foreground: var(--accent);
+    --destructive:    var(--danger);
+    --destructive-foreground: #FFFFFF;
+    --input:          rgba(255,255,255,0.08);
+    --ring:           var(--accent);
+    --radius:         0.5rem;
+  }
+
+  .dark {
+    --bg-page:        #060609;
+    --bg-card:        #0d0d14;
+    --bg-elevated:    #121220;
+    --bg-input:       #0f0f1a;
+    --border:         rgba(255,255,255,0.08);
+    --border-hover:   rgba(255,255,255,0.15);
+    --text-primary:   #f0f0f8;
+    --text-secondary: #9090a8;
+    --text-tertiary:  #5a5a72;
+    --accent:         #7B73FF;
+    --accent-hover:   #6A62EE;
+    --accent-light:   rgba(123,115,255,0.12);
+    --success:        #00D4AA;
+    --warning:        #FFB347;
+    --danger:         #FF6B6B;
+
+    --background:     var(--bg-page);
+    --foreground:     var(--text-primary);
+    --card:           var(--bg-card);
+    --card-foreground:var(--text-primary);
+    --popover:        var(--bg-elevated);
+    --popover-foreground: var(--text-primary);
+    --primary:        var(--accent);
+    --primary-foreground: #FFFFFF;
+    --secondary:      var(--bg-card);
+    --secondary-foreground: var(--text-primary);
+    --muted:          #121220;
+    --muted-foreground: var(--text-secondary);
+    --accent-ui:      var(--accent-light);
+    --accent-ui-foreground: var(--accent);
+    --destructive:    var(--danger);
+    --destructive-foreground: #FFFFFF;
+    --input:          rgba(255,255,255,0.1);
+    --ring:           var(--accent);
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.6;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--accent);
+    color: #FFFFFF;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    transition: background-color 150ms ease;
+  }
+  .btn-primary:hover {
+    background-color: var(--accent-hover);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: transparent;
+    color: var(--text-primary);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    transition: background-color 150ms ease;
+  }
+  .btn-secondary:hover {
+    background-color: rgba(255,255,255,0.04);
+  }
+
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--danger);
+    color: #FFFFFF;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    transition: background-color 150ms ease;
+  }
+  .btn-danger:hover {
+    background-color: #B91C1C;
+  }
+
+  .dp-card {
+    background-color: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+
+  .dp-input {
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    outline: none;
+    width: 100%;
+    transition: border-color 150ms ease;
+  }
+  .dp-input:focus {
+    border-color: var(--accent);
+  }
+
+  .dp-badge-warning {
+    background-color: rgba(255,179,71,0.12);
+    color: var(--warning);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .dp-badge-success {
+    background-color: rgba(0,212,170,0.12);
+    color: var(--success);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .dp-badge-danger {
+    background-color: rgba(255,107,107,0.12);
+    color: var(--danger);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .dp-badge-info {
+    background-color: var(--accent-light);
+    color: var(--accent);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    transition: background-color 150ms ease, transform 100ms ease;
+  }
+  .btn-primary:active,
+  .btn-secondary:active,
+  .btn-danger:active {
+    transform: scale(0.97);
+  }
+
+  .dp-status-dot {
+    position: relative;
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dp-status-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    animation: dp-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  .dp-status-dot.active  { background-color: var(--success); }
+  .dp-status-dot.active::after  { background-color: var(--success); }
+  .dp-status-dot.warning { background-color: var(--warning); }
+  .dp-status-dot.warning::after { background-color: var(--warning); }
+  .dp-status-dot.danger  { background-color: var(--danger); }
+  .dp-status-dot.danger::after  { background-color: var(--danger); }
+}
+
+.content-safe-pt {
+  padding-top: 56px;
+  padding-top: calc(56px + env(safe-area-inset-top, 0px));
+}
+@media (min-width: 768px) {
+  .content-safe-pt {
+    padding-top: 44px;
+  }
+}
+
+@media (max-width: 767px) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    min-height: 44px;
+  }
+  .dp-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 639px) {
+  [role="dialog"] {
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@keyframes dp-fade-up {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes dp-ping {
+  0%        { transform: scale(1);   opacity: 0.7; }
+  75%, 100% { transform: scale(2.2); opacity: 0;   }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: dp-fade-up 220ms ease-out both;
+  }
+}
+
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+
+  @keyframes dashboardFadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .dashboard-content {
+    animation: dashboardFadeIn 0.4s ease forwards;
+  }
+
+  .dashboard-s0 { opacity: 0; animation: dashboardFadeIn 0.4s ease   0ms forwards; }
+  .dashboard-s1 { opacity: 0; animation: dashboardFadeIn 0.4s ease  80ms forwards; }
+  .dashboard-s2 { opacity: 0; animation: dashboardFadeIn 0.4s ease 160ms forwards; }
+  .dashboard-s3 { opacity: 0; animation: dashboardFadeIn 0.4s ease 240ms forwards; }
+
+  .dashboard-card:hover {
+    box-shadow:
+      0 0 0 1px rgba(108,99,255,0.2),
+      0 8px 24px rgba(0,0,0,0.3),
+      0 0 40px rgba(108,99,255,0.06);
+  }
+
+  @keyframes alertPulse {
+    0%, 100% { box-shadow: 0 0 0 0   rgba(255,107,107,0.3); }
+    50%       { box-shadow: 0 0 0 6px rgba(255,107,107,0);   }
+  }
+
+  .alert-pulse {
+    animation: alertPulse 2s ease infinite;
+  }
+
+  @keyframes dotPulseGreen {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,212,170,0.4); }
+    50%       { box-shadow: 0 0 0 5px rgba(0,212,170,0); }
+  }
+  @keyframes dotPulseYellow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,179,71,0.4); }
+    50%       { box-shadow: 0 0 0 5px rgba(255,179,71,0); }
+  }
+  .dot-pulse-green  { animation: dotPulseGreen  1.8s ease infinite; }
+  .dot-pulse-yellow { animation: dotPulseYellow 1.8s ease infinite; }
+
+  @keyframes rippleEffect {
+    from { transform: scale(0); opacity: 0.4; }
+    to   { transform: scale(4); opacity: 0;   }
+  }
+  .badgeuse-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.4);
+    width: 60px;
+    height: 60px;
+    margin-top: -30px;
+    margin-left: -30px;
+    animation: rippleEffect 600ms ease-out forwards;
+    pointer-events: none;
+  }
+}
+
+/* DEMO OVERLAY */
+.demo-overlay {
+  pointer-events: none;
+  opacity: 0.6;
+  filter: grayscale(20%);
+}
+.demo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255,179,71,0.15);
+  color: #FFB347;
+  border: 1px solid rgba(255,179,71,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

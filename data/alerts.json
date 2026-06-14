@@ -1,0 +1,24 @@
+[
+  {
+    "id": "1",
+    "severity": "warning",
+    "ruleName": "Pause obligatoire",
+    "employeeName": "Sophie Martin",
+    "date": "2026-06-09",
+    "description": "Journée de 8h sans pause enregistrée le lundi 09/06. Une pause de 20 min est obligatoire au-delà de 6h de travail (Art. L3121-16 CT).",
+    "legalRef": "Art. L3121-16 CT",
+    "ruleDescription": "Tout salarié bénéficie d'un temps de pause d'au moins 20 minutes consécutives dès que son temps de travail quotidien atteint 6 heures.",
+    "suggestedFix": "Ajuster le shift du 09/06 pour inclure une pause déjeuner de 20 min."
+  },
+  {
+    "id": "2",
+    "severity": "info",
+    "ruleName": "Contrat CDD à renouveler",
+    "employeeName": "Léa Durand",
+    "date": "2026-06-30",
+    "description": "Le CDD de Léa Durand expire le 30/06/2026. Pensez à anticiper le renouvellement ou la fin de contrat.",
+    "legalRef": "Art. L1242-8 CT",
+    "ruleDescription": "La durée totale du CDD, renouvellement inclus, ne peut excéder 18 mois.",
+    "suggestedFix": "Contacter Léa Durand avant le 20/06 pour décider du renouvellement."
+  }
+]

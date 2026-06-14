@@ -1,0 +1,14 @@
+{
+  "id": "2",
+  "name": "Lucas Dubois",
+  "initials": "LD",
+  "role": "Vendeur",
+  "shift": {
+    "start": "14:00",
+    "end": "22:00",
+    "label": "Vendeur"
+  },
+  "clockInHour": 14,
+  "clockInMinute": 2,
+  "status": "working"
+}

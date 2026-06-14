@@ -1,0 +1,40 @@
+[
+  {
+    "id": "1",
+    "employee": "Sophie Martin",
+    "initials": "SM",
+    "type": "CP",
+    "typeLabel": "Congés payés",
+    "startDate": "2026-06-20",
+    "endDate": "2026-06-27",
+    "days": 8,
+    "status": "pending",
+    "comment": "Vacances d'été en famille"
+  },
+  {
+    "id": "2",
+    "employee": "Thomas Moreau",
+    "initials": "TM",
+    "type": "RTT",
+    "typeLabel": "RTT",
+    "startDate": "2026-06-16",
+    "endDate": "2026-06-16",
+    "days": 1,
+    "status": "approved",
+    "comment": "",
+    "managerComment": "Validé, bonne journée !"
+  },
+  {
+    "id": "3",
+    "employee": "Emma Laurent",
+    "initials": "EL",
+    "type": "maladie",
+    "typeLabel": "Arrêt maladie",
+    "startDate": "2026-06-11",
+    "endDate": "2026-06-12",
+    "days": 2,
+    "status": "refused",
+    "comment": "Arrêt médical",
+    "managerComment": "Merci de fournir un certificat médical."
+  }
+]
