@@ -5,6 +5,7 @@ import { isEntitledStatus } from '@/lib/subscription'
 import { AppShell } from '@/components/ui/app-shell'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { PaywallGate } from '@/components/ui/paywall-gate'
+import { PastDueBanner } from '@/components/ui/past-due-banner'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient()
@@ -90,6 +91,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const isBillingPage = currentPathname.includes('/settings/billing')
 
   let paywallGate: ReactNode | null = null
+  let pastDueBanner: ReactNode | null = null
   if (isManagerOrSupervisor && activeEstablishmentId && !isBillingPage) {
     const { data: sub } = await supabase
       .from('subscriptions')
@@ -106,6 +108,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       if (!inTrial) {
         paywallGate = <PaywallGate trialDaysLeft={sub ? undefined : 0} />
       }
+    } else if (sub?.status === 'past_due' && role === 'manager') {
+      pastDueBanner = <PastDueBanner />
     }
   }
 
@@ -123,6 +127,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       activeEstablishmentId={activeEstablishmentId}
     >
       <ErrorBoundary>
+        {pastDueBanner}
         {paywallGate ?? children}
       </ErrorBoundary>
     </AppShell>
