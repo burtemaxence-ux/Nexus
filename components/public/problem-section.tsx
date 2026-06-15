@@ -61,7 +61,7 @@ export function ProblemSection() {
 
   return (
     <section
-      id="fonctionnalites"
+      id="problemes"
       style={{
         background: '#0a0a0f',
         padding: '96px 24px',

@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 const PLANS = [
   {
-    id: 'essentiel',
+    id: 'essential',
     name: 'Essentiel',
     monthlyPrice: 49,
     annualPrice: 490,

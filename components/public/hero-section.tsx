@@ -145,6 +145,41 @@ export function HeroSection() {
                 transform: 'skewX(-15deg)',
               }} />
             </Link>
+
+            {/* CTA secondaire — démo live */}
+            <a
+              href="https://demo.quartzbase.fr"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 600,
+                fontSize: 15,
+                color: 'rgba(255,255,255,0.85)',
+                textDecoration: 'none',
+                padding: '13px 26px',
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.18)',
+                borderRadius: 10,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                transition: 'border-color 200ms ease, color 200ms ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'rgba(108,99,255,0.6)'
+                e.currentTarget.style.color = '#fff'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M5 3.5l7 4.5-7 4.5v-9z" fill="currentColor" />
+              </svg>
+              Voir la démo
+            </a>
           </div>
         </div>
 

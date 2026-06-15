@@ -8,6 +8,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { getInitials, getEstablishmentInitials } from '@/lib/planning-utils'
+import { APP_VERSION } from '@/lib/version'
 import {
   Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap, BookOpen,
   Palmtree, AlertTriangle, Upload, FileText,
@@ -219,7 +220,7 @@ export function Sidebar({
             <p className="font-semibold text-sidebar-foreground-active text-sm leading-tight truncate">
               Quartzbase
             </p>
-            <p className="text-[10px] text-sidebar-foreground/60 leading-tight">Gestion RH & Planning</p>
+            <p className="text-[10px] text-sidebar-foreground/60 leading-tight">Gestion RH &amp; Planning · v{APP_VERSION}</p>
           </div>
         )}
       </div>

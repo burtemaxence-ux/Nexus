@@ -14,7 +14,6 @@ const FEATURES = [
     title: 'Planning fait en 2 minutes',
     description:
       `Dites à l'IA vos contraintes de la semaine. Elle génère un planning complet, que vous validez ou ajustez avant de l'envoyer à votre équipe.`,
-    linkTo: '#dimanche-soir',
     delay: 0,
   },
   {
@@ -30,7 +29,6 @@ const FEATURES = [
     title: 'Remplaçant trouvé en 1 clic',
     description:
       `Un absent au dernier moment ? L'application envoie automatiquement la demande aux disponibles. Vous confirmez le remplaçant depuis votre téléphone.`,
-    linkTo: '#absent',
     delay: 100,
   },
   {
@@ -45,7 +43,6 @@ const FEATURES = [
     title: 'Conformité vérifiée automatiquement',
     description:
       'Repos quotidien, durée maximale, pauses, dimanches — 7 règles du Code du Travail vérifiées à chaque planning. Alerte immédiate si anomalie.',
-    linkTo: '#controle',
     delay: 200,
   },
 ]

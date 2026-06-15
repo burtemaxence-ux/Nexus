@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { APP_VERSION } from '@/lib/version'
 
 const LEGAL_LINKS = [
   { label: 'CGU',                href: '/legal/cgu' },
@@ -143,7 +144,7 @@ export function PublicFooter() {
           margin: 0,
           letterSpacing: '0.02em',
         }}>
-          © 2026 Quartzbase · Fait en France 🇫🇷
+          © 2026 Quartzbase · Fait en France 🇫🇷 · v{APP_VERSION}
         </p>
       </div>
 
