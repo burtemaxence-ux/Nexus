@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
-const NAV_LINKS = [
+const NAV_LINKS: { label: string; href: string; external?: boolean }[] = [
   { label: 'Fonctionnalités', href: '#fonctionnalites' },
   { label: 'Tarifs',          href: '#tarifs' },
+  { label: 'Démo',            href: 'https://demo.quartzbase.fr', external: true },
   { label: 'FAQ',             href: '#faq' },
 ]
 
@@ -87,6 +88,7 @@ export function PublicNavbar() {
               <Link
                 key={link.href}
                 href={link.href}
+                {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                 style={{
                   fontFamily: "'DM Sans', sans-serif",
                   fontSize: 14,
@@ -229,6 +231,7 @@ export function PublicNavbar() {
           <Link
             key={link.href}
             href={link.href}
+            {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
             onClick={() => setDrawer(false)}
             style={{
               fontFamily: "'DM Sans', sans-serif",
