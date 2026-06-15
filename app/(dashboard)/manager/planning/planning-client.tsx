@@ -60,6 +60,7 @@ interface Props {
   weekLocked: boolean
   weekPublished: boolean
   postes: Poste[]
+  hourlyRateMap: Record<string, number>
 }
 
 export function PlanningClientWrapper(props: Props) {

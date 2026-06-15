@@ -140,17 +140,29 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
   const mondayStr = toISODate(monday)
   const sundayStr = toISODate(sunday)
 
-  const [{ data: shiftsData, error: shiftsError }, { data: leaveData }] = await Promise.all([
+  const [{ data: shiftsData, error: shiftsError }, { data: leaveData }, { data: contractsData }] = await Promise.all([
     supabase.from('shifts').select('*').gte('date', mondayStr).lte('date', sundayStr),
     supabase.from('leave_requests').select('*')
       .eq('status', 'approved')
       .lte('start_date', sundayStr)
       .gte('end_date', mondayStr),
+    supabase.from('contracts')
+      .select('employee_id, hourly_rate, start_date')
+      .not('hourly_rate', 'is', null)
+      .order('start_date', { ascending: false }),
   ])
 
   if (shiftsError) console.error('Error fetching shifts:', shiftsError)
   const shifts: Shift[] = (shiftsData ?? []) as Shift[]
   const leaveRequests: LeaveRequest[] = (leaveData ?? []) as LeaveRequest[]
+
+  // Taux horaire brut le plus récent par employé (RLS limite aux contrats de l'établissement).
+  const hourlyRateMap: Record<string, number> = {}
+  for (const c of (contractsData ?? []) as { employee_id: string; hourly_rate: number | null }[]) {
+    if (c.hourly_rate != null && hourlyRateMap[c.employee_id] === undefined) {
+      hourlyRateMap[c.employee_id] = Number(c.hourly_rate)
+    }
+  }
 
   const { data: weekStatusData } = await supabase
     .from('week_status')
@@ -180,6 +192,7 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
           weekLocked={weekStatus.locked}
           weekPublished={weekStatus.published}
           postes={postes}
+          hourlyRateMap={hourlyRateMap}
         />
       </ErrorBoundary>
     </div>

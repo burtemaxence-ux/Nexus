@@ -7,7 +7,7 @@ import {
   ChevronLeft, ChevronRight, Copy, Lock, Unlock, X,
   Mail, Share2, Check, AlertTriangle, Filter,
   Calendar, ChevronDown, SlidersHorizontal,
-  Users, UserCheck, Clock, CopyPlus, Printer, Sparkles,
+  Users, UserCheck, Clock, CopyPlus, Printer, Sparkles, Euro,
 } from 'lucide-react'
 import { type Profile, type Shift, type Poste, type LeaveRequest } from '@/types'
 import { SosReplacementModal } from '@/components/planning/sos-replacement-modal'
@@ -39,6 +39,10 @@ function timeToMinutes(t: string): number {
   return h * 60 + m
 }
 
+function formatEuros(n: number): string {
+  return `${Math.round(n).toLocaleString('fr-FR')} €`
+}
+
 function shiftBarStyle(start: string, end: string): { left: string; width: string } {
   const startMin = timeToMinutes(start)
   let endMin = timeToMinutes(end)
@@ -57,10 +61,11 @@ export interface PlanningWeekTimelineProps {
   weekLocked: boolean
   weekPublished: boolean
   postes: Poste[]
+  hourlyRateMap: Record<string, number>
 }
 
 export function PlanningWeekTimeline({
-  weekDates, employees, shifts, leaveRequests, weekLocked, weekPublished, postes,
+  weekDates, employees, shifts, leaveRequests, weekLocked, weekPublished, postes, hourlyRateMap,
 }: PlanningWeekTimelineProps) {
   const router = useRouter()
   const mondayStr = toISODate(weekDates[0])
@@ -135,14 +140,25 @@ export function PlanningWeekTimeline({
     return m
   }, [shifts])
 
-  const { totalPlanned, coverage, overtime } = useMemo(() => {
+  const { totalPlanned, coverage, overtime, totalCost } = useMemo(() => {
     const total = shifts.reduce((sum, s) => sum + calcHours(s.start_time, s.end_time, s.break_minutes), 0)
     const withShift = new Set(shifts.map(s => s.employee_id)).size
     const cov = employees.length > 0 ? Math.round((withShift / employees.length) * 100) : 0
     const hasHours = employees.some(e => e.weekly_hours != null)
     const ot = hasHours ? Math.max(0, total - employees.reduce((sum, e) => sum + (e.weekly_hours ?? 35), 0)) : null
-    return { totalPlanned: total, coverage: cov, overtime: ot }
-  }, [shifts, employees])
+
+    // Coût salarial brut estimé : heures × taux horaire (fallback : coût horaire du poste).
+    let cost = 0
+    let hasRate = false
+    for (const s of shifts) {
+      const rate = hourlyRateMap[s.employee_id] ?? posteMap.get(s.poste_id ?? '')?.hourly_cost ?? 0
+      if (rate > 0) {
+        hasRate = true
+        cost += calcHours(s.start_time, s.end_time, s.break_minutes) * rate
+      }
+    }
+    return { totalPlanned: total, coverage: cov, overtime: ot, totalCost: hasRate ? cost : null }
+  }, [shifts, employees, hourlyRateMap, posteMap])
 
   // ── Handlers ─────────────────────────────────────────────────────────────────────────────
   const handleWeekStatus = useCallback(async (payload: { published?: boolean; locked?: boolean }) => {
@@ -288,6 +304,7 @@ export function PlanningWeekTimeline({
           <MetricCard icon={<UserCheck size={18} />} iconBg="#FFF7ED" iconColor="#EA580C" value="—" label="Total travaillées" trend={null} />
           <MetricCard icon={<Clock size={18} />} iconBg="#F5F5F5" iconColor="var(--text-secondary)" value={overtime != null ? formatHours(overtime) : '—'} label="Heures supp." trend={overtime != null && overtime > 0 ? 'up' : null} />
           <MetricCard icon={<Clock size={18} />} iconBg="#F5F3FF" iconColor="#7C3AED" value={employees.length > 0 ? `${coverage}%` : '—'} label="Couverture" trend={coverage >= 80 ? 'up' : coverage > 0 ? 'down' : null} />
+          <MetricCard icon={<Euro size={18} />} iconBg="#ECFDF5" iconColor="#059669" value={totalCost != null ? formatEuros(totalCost) : '—'} label={totalCost != null ? 'Coût salarial (brut)' : 'Coût — ajoutez les taux horaires'} trend={null} />
         </div>
 
         {/* ── Empty state ─────────────────────────────────────────────────────────────────── */}
