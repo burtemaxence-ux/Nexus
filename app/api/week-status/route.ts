@@ -6,6 +6,7 @@ import { sendPlanningPublishedEmails } from '@/lib/email/planning-email'
 import { sendPushToMany } from '@/lib/push'
 import { sendSms } from '@/lib/sms'
 import { createNotification } from '@/lib/notifications/create'
+import { checkCompliance, RULES } from '@/lib/compliance/rules'
 import type { Profile, Shift } from '@/types'
 
 async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -92,10 +93,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { week_monday, published, locked } = body as {
+    const { week_monday, published, locked, acknowledge_violations } = body as {
       week_monday: string
       published?: boolean
       locked?: boolean
+      acknowledge_violations?: boolean
     }
 
     if (!week_monday) {
@@ -108,6 +110,52 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('week_monday', week_monday)
       .single()
+
+    // ── Blocage doux conformité ─────────────────────────────────────────────
+    // À la publication, on bloque s'il existe des infractions CRITIQUES au Code
+    // du Travail tant que le manager ne les a pas explicitement assumées.
+    if (published === true && !existing?.published && !acknowledge_violations) {
+      const weekEnd = new Date(new Date(week_monday + 'T00:00:00').getTime() + 6 * 86400000)
+        .toISOString().split('T')[0]
+      // J-1 pour vérifier le repos quotidien du premier jour
+      const fetchFrom = new Date(new Date(week_monday + 'T00:00:00').getTime() - 86400000)
+        .toISOString().split('T')[0]
+
+      const { data: weekShifts } = await supabase
+        .from('shifts')
+        .select('id, employee_id, date, start_time, end_time, break_minutes')
+        .gte('date', fetchFrom)
+        .lte('date', weekEnd)
+        .is('deleted_at', null)
+
+      const violations = checkCompliance((weekShifts ?? []).map(s => ({
+        id: s.id,
+        employeeId: s.employee_id,
+        date: s.date,
+        startTime: s.start_time,
+        endTime: s.end_time,
+        breakMinutes: s.break_minutes ?? 0,
+      })))
+
+      const critical = violations.filter(v => RULES[v.ruleId].severity === 'critical')
+      if (critical.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'compliance_blocked',
+            message: `Ce planning contient ${critical.length} infraction(s) critique(s) au Code du Travail. Confirmez la publication pour les assumer.`,
+            violations: critical.map(v => ({
+              ruleId: v.ruleId,
+              ruleName: RULES[v.ruleId].name,
+              legalRef: RULES[v.ruleId].legalRef,
+              employeeId: v.employeeId,
+              date: v.date,
+              description: v.description,
+            })),
+          },
+          { status: 409 }
+        )
+      }
+    }
 
     const upsertData: Record<string, unknown> = {
       establishment_id: profile!.establishment_id,

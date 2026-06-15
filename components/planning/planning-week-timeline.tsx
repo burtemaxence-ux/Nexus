@@ -161,10 +161,25 @@ export function PlanningWeekTimeline({
   }, [shifts, employees, hourlyRateMap, posteMap])
 
   // ── Handlers ─────────────────────────────────────────────────────────────────────────────
-  const handleWeekStatus = useCallback(async (payload: { published?: boolean; locked?: boolean }) => {
+  const handleWeekStatus = useCallback(async (payload: { published?: boolean; locked?: boolean; acknowledge_violations?: boolean }) => {
     setStatusLoading(true)
     try {
-      await fetch('/api/week-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ week_monday: mondayStr, ...payload }) })
+      const res = await fetch('/api/week-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ week_monday: mondayStr, ...payload }) })
+
+      // Blocage doux conformité : le serveur refuse la publication tant que les
+      // infractions critiques ne sont pas explicitement assumées.
+      if (res.status === 409) {
+        const data = await res.json().catch(() => null) as { error?: string; violations?: { ruleName: string; legalRef: string; date: string; description: string }[] } | null
+        if (data?.error === 'compliance_blocked') {
+          const lines = (data.violations ?? []).slice(0, 8).map(v => `• ${v.ruleName} (${v.date}) — ${v.legalRef}`).join('\n')
+          const ok = window.confirm(
+            `⚠️ Ce planning contient ${data.violations?.length ?? 0} infraction(s) critique(s) au Code du Travail :\n\n${lines}\n\nEn publiant, vous assumez la responsabilité de ces écarts. Confirmer la publication ?`
+          )
+          if (ok) {
+            await fetch('/api/week-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ week_monday: mondayStr, ...payload, acknowledge_violations: true }) })
+          }
+        }
+      }
       router.refresh()
     } finally { setStatusLoading(false) }
   }, [mondayStr, router])
