@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { CreditCard, Check, Zap, Building2, Loader2, AlertTriangle } from 'lucide-react'
-import type { SubscriptionRow } from '@/lib/subscription'
+import { isEntitledStatus, type SubscriptionRow } from '@/lib/subscription'
 import { type BillingInterval, type PlanId, PLAN_META } from '@/lib/stripe'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -74,7 +74,7 @@ export function BillingClient({ subscription, trialDaysLeft }: Props) {
   const [loading, setLoading] = useState<string | null>(null)
   const [interval, setInterval] = useState<BillingInterval>('monthly')
 
-  const isActive = subscription?.status === 'active' || subscription?.status === 'trialing'
+  const isActive = isEntitledStatus(subscription?.status)
   const periodEnd = subscription?.current_period_end
     ? new Date(subscription.current_period_end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     : null

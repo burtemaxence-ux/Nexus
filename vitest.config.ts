@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig, configDefaults } from 'vitest/config'
 
 // Scope test discovery to the application. The vendored skill collection under
@@ -6,5 +7,11 @@ import { defineConfig, configDefaults } from 'vitest/config'
 export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, '.agents/**'],
+  },
+  resolve: {
+    // Mirror the tsconfig "@/*" -> "./*" path alias so tests can import app modules.
+    alias: {
+      '@': fileURLToPath(new URL('.', import.meta.url)).replace(/\/$/, ''),
+    },
   },
 })

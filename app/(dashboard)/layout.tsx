@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { isEntitledStatus } from '@/lib/subscription'
 import { AppShell } from '@/components/ui/app-shell'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { PaywallGate } from '@/components/ui/paywall-gate'
@@ -96,7 +97,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       .eq('establishment_id', activeEstablishmentId)
       .maybeSingle()
 
-    const isActive = sub?.status === 'active' || sub?.status === 'trialing'
+    const isActive = isEntitledStatus(sub?.status)
     if (!isActive) {
       const trialEnd = user
         ? new Date(new Date(user.created_at).getTime() + 14 * 24 * 60 * 60 * 1000)

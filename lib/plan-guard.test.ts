@@ -31,12 +31,19 @@ describe('getPlanTier', () => {
     expect(getPlanTier(sub('pro', 'trialing'))).toBe('pro')
   })
 
-  it('rétrograde en free pour tout statut non actif', () => {
-    // Comportement actuel : past_due / canceled / unpaid coupent l'accès immédiatement.
-    expect(getPlanTier(sub('pro', 'past_due'))).toBe('free')
+  it('conserve le palier pendant past_due (période de grâce / dunning)', () => {
+    // Un paiement de renouvellement échoué ne doit pas couper l'accès
+    // immédiatement : Stripe relance pendant past_due.
+    expect(getPlanTier(sub('pro', 'past_due'))).toBe('pro')
+    expect(getPlanTier(sub('multisite', 'past_due'))).toBe('multisite')
+  })
+
+  it('rétrograde en free aux statuts terminaux/non payés', () => {
     expect(getPlanTier(sub('pro', 'canceled'))).toBe('free')
     expect(getPlanTier(sub('multisite', 'unpaid'))).toBe('free')
     expect(getPlanTier(sub('pro', 'incomplete'))).toBe('free')
+    expect(getPlanTier(sub('pro', 'incomplete_expired'))).toBe('free')
+    expect(getPlanTier(sub('pro', 'paused'))).toBe('free')
   })
 
   it('renvoie free pour un plan inconnu même actif', () => {
