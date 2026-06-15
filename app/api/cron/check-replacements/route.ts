@@ -178,10 +178,21 @@ export async function GET(request: NextRequest) {
       console.log(`[check-replacements] expired=${expiredCount} rr ids: ${expiredIds.join(', ')}`)
     }
 
+    // ── 3. Expiration des créneaux marketplace dépassés ──────────────────────
+    // Les slots ouverts dont expires_at est passé restaient 'open' (filtrés
+    // seulement à la lecture). On les passe explicitement en 'expired'.
+    const { data: expiredSlots } = await supabaseAdmin
+      .from('marketplace_slots')
+      .update({ status: 'expired' })
+      .eq('status', 'open')
+      .lt('expires_at', nowIso)
+      .select('id')
+
     return NextResponse.json({
       ok: true,
       relance_notifications: relanceCount,
       expired: expiredCount,
+      marketplace_expired: expiredSlots?.length ?? 0,
       checked_at: nowIso,
     })
   } catch (err) {
