@@ -25,6 +25,7 @@ type PresenceRow = {
   break_start: string | null
   break_end: string | null
   break_minutes_used: number
+  needs_review?: boolean
 }
 
 type ShiftRow = {
@@ -479,6 +480,9 @@ function PresenceTableRow({
           )}
           {isOnTime && (
             <span className="dp-badge-success whitespace-nowrap">À l&apos;heure</span>
+          )}
+          {presence?.needs_review && (
+            <span className="dp-badge-warning whitespace-nowrap" title="Durée anormale (oubli de pointage probable) — à corriger">⚠ À vérifier</span>
           )}
         </div>
       </td>

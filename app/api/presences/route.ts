@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('presences')
-      .select('id, employee_id, date, clock_in, clock_out, break_start, break_end, break_minutes_used')
+      .select('id, employee_id, date, clock_in, clock_out, break_start, break_end, break_minutes_used, needs_review')
       .gte('date', from)
       .lte('date', to)
       .order('date', { ascending: true })
