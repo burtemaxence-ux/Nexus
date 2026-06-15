@@ -360,7 +360,7 @@ export function PricingSection() {
           marginTop: 36,
           letterSpacing: '0.01em',
         }}>
-          {`14 jours gratuits · Sans carte bleue · Annulation en 1 clic`}
+          {`30 jours gratuits · Sans carte bleue · Annulation en 1 clic`}
         </p>
 
       </div>

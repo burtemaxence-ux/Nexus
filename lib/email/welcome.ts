@@ -14,7 +14,7 @@ function buildHtml(firstName: string): string {
           <td style="background:#111827;padding:28px 32px;">
             <p style="margin:0 0 4px;color:#9ca3af;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Quartzbase</p>
             <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">Bienvenue sur Quartzbase 🎉</h1>
-            <p style="margin:8px 0 0;color:#d1d5db;font-size:15px;">Vos 14 jours d'essai démarrent maintenant</p>
+            <p style="margin:8px 0 0;color:#d1d5db;font-size:15px;">Vos 30 jours d'essai démarrent maintenant</p>
           </td>
         </tr>
 
@@ -23,7 +23,7 @@ function buildHtml(firstName: string): string {
           <td style="padding:28px 32px 20px;">
             <p style="margin:0 0 8px;color:#111827;font-size:15px;">Bonjour <strong>${firstName}</strong>,</p>
             <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">
-              Votre compte Quartzbase est prêt. Vous disposez de <strong style="color:#374151;">14 jours d'essai gratuit</strong> pour explorer toutes les fonctionnalités — sans carte bancaire.
+              Votre compte Quartzbase est prêt. Vous disposez de <strong style="color:#374151;">30 jours d'essai gratuit</strong> pour explorer toutes les fonctionnalités — sans carte bancaire.
             </p>
           </td>
         </tr>
@@ -125,7 +125,7 @@ export async function sendWelcomeEmail(email: string, fullName: string): Promise
     await resend.emails.send({
       from,
       to: email,
-      subject: 'Bienvenue sur Quartzbase 🎉 — Vos 14 jours démarrent maintenant',
+      subject: 'Bienvenue sur Quartzbase 🎉 — Vos 30 jours démarrent maintenant',
       html: buildHtml(firstName),
     })
   } catch (err) {

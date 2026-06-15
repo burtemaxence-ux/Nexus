@@ -1,5 +1,5 @@
 const ITEMS = [
-  '14 jours gratuits',
+  '30 jours gratuits',
   'Sans carte bleue',
   'Annulation en 1 clic',
   'Support français',

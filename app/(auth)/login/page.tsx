@@ -231,7 +231,7 @@ export default function LoginPage() {
           className="font-medium transition-colors duration-150 hover:underline"
           style={{ color: '#6C63FF' }}
         >
-          Essai gratuit 14 jours →
+          Essai gratuit 30 jours →
         </Link>
       </p>
     </div>

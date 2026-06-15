@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 
 const STATS = [
-  { value: '14 jours', label: 'Essai gratuit', color: '#6C63FF' },
+  { value: '30 jours', label: 'Essai gratuit', color: '#6C63FF' },
   { value: 'Sans CB',  label: 'Aucune carte bleue requise', color: '#00D4AA' },
   { value: 'France',   label: 'Support en français', color: '#FFB347' },
 ]
@@ -21,7 +21,7 @@ const TESTIMONIALS = [
   {
     quote: `Quartzbase vient de se lancer. Vous n'aurez pas 200 avis clients ici —
       mais un accès direct au fondateur, une conformité vérifiée automatiquement,
-      et aucun engagement. Testez 14 jours : si ça ne vous fait pas gagner du temps,
+      et aucun engagement. Testez 30 jours : si ça ne vous fait pas gagner du temps,
       vous partez en un clic.`,
     initials: '✓',
     name: 'Notre engagement',

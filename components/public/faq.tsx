@@ -21,7 +21,7 @@ const FAQ_ITEMS = [
   },
   {
     question: `Comment fonctionne la période d'essai ?`,
-    answer: `14 jours complets avec toutes les fonctionnalités activées — planning, badgeuse, congés, conformité, IA. Aucune carte bancaire demandée. Si vous ne continuez pas, votre compte passe automatiquement en lecture seule sans frais.`,
+    answer: `30 jours complets avec toutes les fonctionnalités activées — planning, badgeuse, congés, conformité, IA. Aucune carte bancaire demandée. Si vous ne continuez pas, votre compte passe automatiquement en lecture seule sans frais.`,
   },
   {
     question: `Mes données sont-elles sécurisées ?`,

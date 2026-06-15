@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Quartzbase — Planning restauration intelligent',
     description:
-      'Planning IA pour la restauration et l\'artisanat. Conformité automatique. 14 jours gratuits, sans carte bleue.',
+      'Planning IA pour la restauration et l\'artisanat. Conformité automatique. 30 jours gratuits, sans carte bleue.',
     url: 'https://quartzbase.fr',
     siteName: 'Quartzbase',
     locale: 'fr_FR',

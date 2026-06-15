@@ -44,12 +44,16 @@ export async function POST(req: Request) {
   const tier = getPlanTier(sub)
 
   if (tier === 'essential') {
-    const rlMonthly = await checkRateLimit({
-      key: `ai-plan-monthly:${estId}`,
-      limit: 3,
-      windowMs: 30 * 24 * 60 * 60 * 1000,
-    })
-    if (!rlMonthly.allowed) {
+    // DB-backed monthly quota: authoritative and persistent (unlike KV/in-memory,
+    // which was bypassable across serverless instances).
+    const { data: quota, error: quotaErr } = await supabase.rpc('consume_ai_credit', { p_limit: 3 })
+    if (quotaErr) {
+      return Response.json(
+        { error: "Impossible de vérifier votre quota IA pour le moment. Réessayez dans un instant." },
+        { status: 503 }
+      )
+    }
+    if (quota && (quota as { allowed: boolean }).allowed === false) {
       return Response.json(
         { error: 'Quota IA atteint', upgrade_url: '/manager/settings/billing' },
         { status: 402 }

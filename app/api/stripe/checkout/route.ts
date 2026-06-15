@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
 import { getStripe, STRIPE_PRICES } from '@/lib/stripe'
+import { TRIAL_DAYS } from '@/lib/subscription'
 
 const CheckoutSchema = z.object({
   planId: z.enum(['essential', 'pro', 'multisite']),
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
       metadata: { establishment_id: estId, user_id: user.id },
       subscription_data: {
         metadata: { establishment_id: estId, user_id: user.id },
-        ...(isFirstSubscription ? { trial_period_days: 14 } : {}),
+        ...(isFirstSubscription ? { trial_period_days: TRIAL_DAYS } : {}),
       },
       allow_promotion_codes: true,
     })
