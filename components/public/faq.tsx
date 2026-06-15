@@ -13,7 +13,7 @@ const FAQ_ITEMS = [
   },
   {
     question: `En quoi Quartzbase est différent des logiciels de planning traditionnels ?`,
-    answer: `Quartzbase coûte 4 à 10 fois moins cher que les solutions classiques et inclut une IA qui génère le planning automatiquement. La plupart des logiciels traditionnels n'ont ni génération IA ni vérification légale automatique. Vous payez moins, et l'outil fait plus.`,
+    answer: `Quartzbase démarre à 49€/mois, là où beaucoup de solutions classiques se situent souvent entre 150 et 200€/mois, et inclut une IA qui génère le planning automatiquement. La plupart des logiciels traditionnels n'ont ni génération IA ni vérification légale automatique. Vous payez moins, et l'outil fait plus.`,
   },
   {
     question: `Puis-je annuler à tout moment ?`,

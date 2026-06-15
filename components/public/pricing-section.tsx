@@ -112,7 +112,7 @@ export function PricingSection() {
             fontSize: 16,
             color: 'rgba(255,255,255,0.45)',
           }}>
-            {`Jusqu'à 4 fois moins cher. Sans engagement.`}
+            {`À partir de 49€/mois, sans engagement.`}
           </p>
         </div>
 

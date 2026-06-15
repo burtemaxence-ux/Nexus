@@ -7,7 +7,7 @@ import Link from 'next/link'
 const HERO_TITLE = 'Fini les dimanches soir à galérer sur le planning.'
 
 const HERO_SUBTITLE =
-  `Générez le planning de votre équipe en 2 minutes avec l'IA. Jusqu'à 4 fois moins cher, conforme Code du Travail.`
+  `Un planning conforme au Code du Travail, généré en quelques minutes par l'IA, avec une alerte avant chaque infraction. À partir de 49€/mois, sans engagement.`
 
 const TRUST_BADGE = '14 jours gratuits · Sans carte bleue · Conforme Code du Travail'
 

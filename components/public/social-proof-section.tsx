@@ -10,20 +10,22 @@ const STATS = [
 
 const TESTIMONIALS = [
   {
-    quote: `Quartzbase m'a fait économiser 4 heures par semaine dès le premier mois.
-      Je fais mon planning le vendredi en 3 minutes, et mes employés reçoivent
-      leur semaine directement sur leur téléphone. Je n'aurais pas cru que c'était
-      possible avant d'essayer.`,
-    initials: 'TM',
-    name: 'Thomas M.',
-    detail: 'Boulangerie artisanale · Lyon · 12 employés',
+    quote: `J'ai 19 ans et je code Quartzbase seul. Je l'ai construit parce que
+      faire un planning à la main, le dimanche soir, c'est une perte de temps —
+      et un planning non conforme au Code du Travail peut coûter cher.
+      Mon objectif : que vous repreniez 4 heures par semaine, en règle.`,
+    initials: 'MB',
+    name: 'Maxence, fondateur',
+    detail: 'Quartzbase · Développeur',
   },
   {
-    quote: `Le remplacement IA nous a sauvé deux services en un mois.
-      Avant j'appelais tout le monde un par un. Maintenant c'est l'app qui gère.`,
-    initials: 'AM',
-    name: 'Armand M.',
-    detail: `Restaurant « Le Comptoir » · Bordeaux · 18 employés`,
+    quote: `Quartzbase vient de se lancer. Vous n'aurez pas 200 avis clients ici —
+      mais un accès direct au fondateur, une conformité vérifiée automatiquement,
+      et aucun engagement. Testez 14 jours : si ça ne vous fait pas gagner du temps,
+      vous partez en un clic.`,
+    initials: '✓',
+    name: 'Notre engagement',
+    detail: 'Transparence · Sans engagement',
   },
 ]
 
@@ -72,7 +74,7 @@ export function SocialProofSection() {
             textTransform: 'uppercase',
             color: 'rgba(255,255,255,0.3)',
           }}>
-            Ils ont changé leur façon de gérer
+            Une jeune solution, un engagement clair
           </p>
         </div>
 
@@ -226,7 +228,7 @@ export function SocialProofSection() {
           textAlign: 'center',
           letterSpacing: '0.02em',
         }}>
-          {`Utilisé par les premiers artisans qui ont modernisé leur planning`}
+          {`Lancement 2026 — soyez parmi les premiers à moderniser votre planning`}
         </p>
 
       </div>

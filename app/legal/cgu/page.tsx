@@ -111,6 +111,9 @@ export default function CguPage() {
         <p>
           La responsabilité de l&apos;Éditeur est limitée au montant total des sommes versées par l&apos;établissement au cours des 12 derniers mois précédant le sinistre.
         </p>
+        <p>
+          <strong>Conformité des plannings.</strong> La Plateforme fournit des outils d&apos;aide à la détection des anomalies au regard du Code du Travail (durées de repos, durées maximales, pauses, jours consécutifs, etc.). Ces outils constituent une aide à la décision et non un conseil juridique. L&apos;utilisateur reste seul responsable de la légalité des plannings qu&apos;il établit, valide et publie, ainsi que du respect de sa convention collective applicable. L&apos;Éditeur ne saurait être tenu responsable des conséquences d&apos;un planning publié malgré une alerte de non-conformité.
+        </p>
       </section>
 
       <section>
