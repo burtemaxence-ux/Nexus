@@ -11,6 +11,7 @@ function resolvePlan(priceId: string): string {
   return 'free'
 }
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { markFirstMonthGranted, churnReferral, applyReferralDiscount } from '@/lib/referral'
 
 const RELEVANT_EVENTS = new Set([
   'checkout.session.completed',
@@ -70,6 +71,13 @@ export async function POST(request: NextRequest) {
         trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'establishment_id' })
+
+      // Filleul reward: confirm the "first month free" grant once checkout
+      // succeeds. Also (re)apply the parrain's discount if this user is one.
+      if (userId) {
+        await markFirstMonthGranted(userId)
+        await applyReferralDiscount(userId)
+      }
     }
 
     if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
@@ -93,6 +101,15 @@ export async function POST(request: NextRequest) {
         trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'establishment_id' })
+
+      // Referral churn sync: when a filleul's subscription ends, drop their
+      // referral to 'churned' and refresh the parrain's discount.
+      const referredUserId = sub.metadata?.user_id
+      const churned = event.type === 'customer.subscription.deleted'
+        || sub.status === 'canceled' || sub.status === 'unpaid'
+      if (referredUserId && churned) {
+        await churnReferral(referredUserId)
+      }
     }
 
     if (event.type === 'invoice.payment_failed') {

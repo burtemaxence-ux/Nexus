@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
 import { getStripe, STRIPE_PRICES } from '@/lib/stripe'
 import { TRIAL_DAYS } from '@/lib/subscription'
+import { getPendingFirstMonth, firstMonthCouponId } from '@/lib/referral'
 
 const CheckoutSchema = z.object({
   planId: z.enum(['essential', 'pro', 'multisite']),
@@ -67,6 +68,12 @@ export async function POST(request: NextRequest) {
 
     const isFirstSubscription = !sub?.stripe_subscription_id
 
+    // Filleul reward: first month free (100%-off-once coupon) for a referred
+    // user who hasn't been granted it yet. Stripe forbids combining `discounts`
+    // with `allow_promotion_codes`, so we apply one or the other.
+    const firstMonth = isFirstSubscription ? await getPendingFirstMonth(user.id) : null
+    const referralDiscount = firstMonth ? [{ coupon: await firstMonthCouponId(stripe) }] : null
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -78,7 +85,7 @@ export async function POST(request: NextRequest) {
         metadata: { establishment_id: estId, user_id: user.id },
         ...(isFirstSubscription ? { trial_period_days: TRIAL_DAYS } : {}),
       },
-      allow_promotion_codes: true,
+      ...(referralDiscount ? { discounts: referralDiscount } : { allow_promotion_codes: true }),
     })
 
     return NextResponse.json({ url: session.url })
