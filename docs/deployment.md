@@ -281,9 +281,9 @@ STRIPE_PRICE_MULTISITE_YEARLY=price_ccc
    - `invoice.payment_failed`
 4. Copier le **Webhook signing secret** (`whsec_...`) → `STRIPE_WEBHOOK_SECRET`
 
-### Essai gratuit 14 jours
+### Essai gratuit 30 jours
 
-La route `/api/stripe/checkout` applique automatiquement `trial_period_days: 14` à la **première** souscription d'un établissement. Les souscriptions suivantes (changement de plan) ne déclenchent pas de nouvel essai.
+La route `/api/stripe/checkout` applique automatiquement `trial_period_days: 30` (`TRIAL_DAYS`) à la **première** souscription d'un établissement. Les souscriptions suivantes (changement de plan) ne déclenchent pas de nouvel essai. Un filleul bénéficiant du « 1er mois offert » (coupon 100 %) ne reçoit **pas** d'essai en plus, pour que le cadeau vaille exactement un mois.
 
 ---
 

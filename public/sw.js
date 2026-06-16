@@ -1,4 +1,4 @@
-/* Nexus PWA — Service Worker (cache + push notifications) */
+/* Quartzbase PWA — Service Worker (cache + push notifications) */
 const CACHE = 'nexus-v1'
 const OFFLINE = '/offline'
 
@@ -67,7 +67,7 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   let data = {}
   try { data = e.data?.json() ?? {} } catch {}
-  const title = data.title ?? 'Nexus'
+  const title = data.title ?? 'Quartzbase'
   const options = {
     body:    data.body  ?? '',
     icon:    data.icon  ?? '/api/pwa/icon?size=192',
