@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
   Calendar, Users, Clock, Settings, BarChart3,
-  ArrowRight, AlertTriangle, Palmtree,
+  ArrowRight, AlertTriangle, Palmtree, Timer,
 } from 'lucide-react'
 import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
 import type { ElementType } from 'react'
@@ -74,6 +74,7 @@ interface Metrics {
   pendingCount: number
   presenceRate: number | null
   totalShifts: number
+  plannedHours: number
   presentCount: number
   latenessCount: number
   sparklineData: number[]
@@ -262,7 +263,7 @@ export function ManagerMetricsClient() {
         supabase.from('profiles').select('id').eq('role', 'employee').eq('archived', false),
         supabase.from('leave_requests').select('id').eq('status', 'pending'),
         supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
-        supabase.from('shifts').select('employee_id, date').gte('date', weekStart).lte('date', weekEnd).is('deleted_at', null),
+        supabase.from('shifts').select('employee_id, date, start_time, end_time, break_minutes').gte('date', weekStart).lte('date', weekEnd).is('deleted_at', null),
         supabase.from('presences').select('employee_id, date').gte('date', weekStart).lte('date', weekEnd).not('clock_in', 'is', null),
         supabase.from('lateness_records').select('id').gte('date', monthStart),
         supabase.from('shifts').select('id').is('deleted_at', null).limit(1),
@@ -277,6 +278,20 @@ export function ManagerMetricsClient() {
       const presentCount = (weekPresences ?? []).filter((p: { employee_id: string; date: string }) => shiftKeys.has(`${p.employee_id}_${p.date}`)).length
       const presenceRate = totalShifts > 0 ? Math.round(presentCount / totalShifts * 100) : null
       const latenessCount = monthLateness?.length ?? 0
+
+      // Heures planifiées cette semaine (durée des shifts - pauses). Toujours
+      // exact, sans dépendre des taux horaires (qui vivent côté contrats).
+      const plannedHours = Math.round(
+        (weekShifts ?? []).reduce((sum: number, s: { start_time?: string | null; end_time?: string | null; break_minutes?: number | null }) => {
+          if (!s.start_time || !s.end_time) return sum
+          const [sh, sm] = s.start_time.split(':').map(Number)
+          const [eh, em] = s.end_time.split(':').map(Number)
+          let mins = (eh * 60 + em) - (sh * 60 + sm)
+          if (mins <= 0) mins += 24 * 60 // shift de nuit
+          mins -= s.break_minutes ?? 0
+          return sum + Math.max(0, mins) / 60
+        }, 0)
+      )
 
       const weekDates: string[] = []
       for (let i = 0; i < 7; i++) {
@@ -337,6 +352,7 @@ export function ManagerMetricsClient() {
         pendingCount,
         presenceRate,
         totalShifts,
+        plannedHours,
         presentCount,
         latenessCount,
         sparklineData,
@@ -356,7 +372,7 @@ export function ManagerMetricsClient() {
 
   if (!metrics) return <MetricsSkeleton />
 
-  const { employeeCount, pendingCount, presenceRate, totalShifts, presentCount, latenessCount, sparklineData, onboardingSteps, onboardingAllDone } = metrics
+  const { employeeCount, pendingCount, presenceRate, totalShifts, plannedHours, presentCount, latenessCount, sparklineData, onboardingSteps, onboardingAllDone } = metrics
 
   const presence = presenceRate === null
     ? { color: '#5a5a72', iconBg: 'rgba(90,90,114,0.15)', label: 'Aucun shift planifié' }
@@ -377,7 +393,7 @@ export function ManagerMetricsClient() {
       )}
 
       {/* ── KPI CARDS ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 dashboard-s1">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 dashboard-s1">
         <KpiCard
           label={`Présence · S${getCurrentWeek()}`}
           value={presenceRate ?? 0}
@@ -390,6 +406,16 @@ export function ManagerMetricsClient() {
           subLabelColored
           isNull={presenceRate === null}
           sparkline={sparklineData}
+        />
+        <KpiCard
+          label={`Heures · S${getCurrentWeek()}`}
+          value={plannedHours}
+          suffix="h"
+          color="#00D4AA"
+          icon={Timer}
+          iconBg="rgba(0,212,170,0.15)"
+          progressPct={Math.min(plannedHours / 2, 100)}
+          subLabel="planifiées cette semaine"
         />
         <KpiCard
           label="Équipe"
