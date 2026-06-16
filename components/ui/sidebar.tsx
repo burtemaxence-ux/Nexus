@@ -213,7 +213,7 @@ export function Sidebar({
         'flex items-center h-14 border-b border-sidebar-border px-3 flex-shrink-0',
         collapsed ? 'justify-center' : 'gap-2.5'
       )}>
-        <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#4F46E5] flex-shrink-0">
+        <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#6C63FF] flex-shrink-0">
           <UtensilsCrossed className="h-3.5 w-3.5 text-white" />
         </div>
         {!collapsed && (
@@ -273,7 +273,7 @@ export function Sidebar({
                           'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all duration-150 group',
                           collapsed ? 'justify-center' : '',
                           active
-                            ? 'bg-[#4F46E5]/10 text-[#4F46E5] font-semibold'
+                            ? 'bg-[#6C63FF]/10 text-[#6C63FF] font-semibold'
                             : 'text-sidebar-foreground hover:bg-white/5 hover:text-sidebar-foreground-active'
                         )}
                         title={collapsed ? item.label : undefined}
@@ -281,7 +281,7 @@ export function Sidebar({
                         <Icon className={cn(
                           'h-4 w-4 flex-shrink-0 transition-colors',
                           active
-                            ? 'text-[#4F46E5]'
+                            ? 'text-[#6C63FF]'
                             : 'text-sidebar-foreground/70 group-hover:text-sidebar-foreground-active'
                         )} />
                         {!collapsed && (
@@ -333,8 +333,8 @@ export function Sidebar({
                   <Image src={orgLogoUrl} alt={establishmentName} width={28} height={28} className="object-cover w-full h-full" />
                 </div>
               ) : (
-                <div className="h-7 w-7 rounded-lg bg-[#4F46E5]/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-[10px] font-bold text-[#4F46E5]">
+                <div className="h-7 w-7 rounded-lg bg-[#6C63FF]/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-[10px] font-bold text-[#6C63FF]">
                     {getEstablishmentInitials(establishmentName)}
                   </span>
                 </div>
@@ -358,8 +358,8 @@ export function Sidebar({
                     onClick={() => handleSwitch(est.id)}
                     className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-white/5 transition-colors"
                   >
-                    <div className="h-5 w-5 rounded-md bg-[#4F46E5]/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-[8px] font-bold text-[#4F46E5]">
+                    <div className="h-5 w-5 rounded-md bg-[#6C63FF]/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[8px] font-bold text-[#6C63FF]">
                         {getEstablishmentInitials(est.name)}
                       </span>
                     </div>
@@ -367,7 +367,7 @@ export function Sidebar({
                       {est.name}
                     </span>
                     {est.id === activeEstablishmentId && (
-                      <Check className="h-3 w-3 text-[#4F46E5] flex-shrink-0" />
+                      <Check className="h-3 w-3 text-[#6C63FF] flex-shrink-0" />
                     )}
                   </button>
                 ))}
@@ -401,8 +401,8 @@ export function Sidebar({
                 <Image src={orgLogoUrl} alt={establishmentName} width={28} height={28} className="object-cover w-full h-full" />
               </div>
             ) : (
-              <div className="h-7 w-7 rounded-lg bg-[#4F46E5]/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-[10px] font-bold text-[#4F46E5]">
+              <div className="h-7 w-7 rounded-lg bg-[#6C63FF]/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-[10px] font-bold text-[#6C63FF]">
                   {getEstablishmentInitials(establishmentName)}
                 </span>
               </div>
@@ -420,8 +420,8 @@ export function Sidebar({
           'flex items-center px-3 py-3 gap-2.5',
           collapsed ? 'justify-center' : ''
         )}>
-          <div className="flex items-center justify-center w-7 h-7 rounded-full bg-[#4F46E5]/20 flex-shrink-0">
-            <span className="text-[10px] font-bold text-[#4F46E5]">
+          <div className="flex items-center justify-center w-7 h-7 rounded-full bg-[#6C63FF]/20 flex-shrink-0">
+            <span className="text-[10px] font-bold text-[#6C63FF]">
               {getInitials(userName || userEmail)}
             </span>
           </div>
@@ -436,7 +436,7 @@ export function Sidebar({
                     <span className={cn(
                       'shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none',
                       role === 'manager'
-                        ? 'bg-[#4F46E5]/20 text-[#4F46E5]'
+                        ? 'bg-[#6C63FF]/20 text-[#6C63FF]'
                         : 'bg-amber-500/20 text-amber-600'
                     )}>
                       {role === 'manager' ? 'Manager' : 'Superviseur'}

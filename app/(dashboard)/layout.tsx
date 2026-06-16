@@ -92,13 +92,21 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   let paywallGate: ReactNode | null = null
   let pastDueBanner: ReactNode | null = null
-  if (isManagerOrSupervisor && activeEstablishmentId && !isBillingPage) {
+  let currentPlan: string | undefined
+  if (isManagerOrSupervisor && activeEstablishmentId) {
     const { data: sub } = await supabase
       .from('subscriptions')
-      .select('status, trial_end')
+      .select('status, trial_end, plan')
       .eq('establishment_id', activeEstablishmentId)
       .maybeSingle()
 
+    // Plan label shown in the account menu.
+    const planLabels: Record<string, string> = { essential: 'Essentiel', pro: 'Pro', multisite: 'Multi-site' }
+    currentPlan = sub?.status === 'trialing'
+      ? 'Essai'
+      : (sub?.plan && planLabels[sub.plan]) ? planLabels[sub.plan] : 'Gratuit'
+
+    if (!isBillingPage) {
     const isActive = isEntitledStatus(sub?.status)
     if (!isActive) {
       // Prefer Stripe's authoritative trial_end when a subscription exists;
@@ -116,6 +124,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     } else if (sub?.status === 'past_due' && role === 'manager') {
       pastDueBanner = <PastDueBanner />
     }
+    }
   }
 
   return (
@@ -125,6 +134,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       userEmail={userEmail}
       establishmentName={establishmentName}
       orgLogoUrl={orgLogoUrl}
+      currentPlan={currentPlan}
       pendingLeavesCount={pendingLeavesCount}
       alertsCount={alertsCount}
       complianceAlertsCount={complianceAlertsCount}
