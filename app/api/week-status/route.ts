@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 import { fireWebhook } from '@/lib/integrations/webhook'
 import { getWeekLabel, getWeekDates } from '@/lib/utils/dates'
@@ -113,8 +114,10 @@ export async function POST(request: NextRequest) {
 
     // ── Blocage doux conformité ─────────────────────────────────────────────
     // À la publication, on bloque s'il existe des infractions CRITIQUES au Code
-    // du Travail tant que le manager ne les a pas explicitement assumées.
-    if (published === true && !existing?.published && !acknowledge_violations) {
+    // du Travail tant que le manager ne les a pas explicitement assumées. Quand
+    // il les assume (acknowledge_violations), on trace l'override dans le journal
+    // d'audit pour conserver une preuve de la décision (cf. CGU art. 9).
+    if (published === true && !existing?.published) {
       const weekEnd = new Date(new Date(week_monday + 'T00:00:00').getTime() + 6 * 86400000)
         .toISOString().split('T')[0]
       // J-1 pour vérifier le repos quotidien du premier jour
@@ -138,22 +141,42 @@ export async function POST(request: NextRequest) {
       })))
 
       const critical = violations.filter(v => RULES[v.ruleId].severity === 'critical')
-      if (critical.length > 0) {
+      const criticalPayload = critical.map(v => ({
+        ruleId: v.ruleId,
+        ruleName: RULES[v.ruleId].name,
+        legalRef: RULES[v.ruleId].legalRef,
+        employeeId: v.employeeId,
+        date: v.date,
+        description: v.description,
+      }))
+
+      if (critical.length > 0 && !acknowledge_violations) {
         return NextResponse.json(
           {
             error: 'compliance_blocked',
             message: `Ce planning contient ${critical.length} infraction(s) critique(s) au Code du Travail. Confirmez la publication pour les assumer.`,
-            violations: critical.map(v => ({
-              ruleId: v.ruleId,
-              ruleName: RULES[v.ruleId].name,
-              legalRef: RULES[v.ruleId].legalRef,
-              employeeId: v.employeeId,
-              date: v.date,
-              description: v.description,
-            })),
+            violations: criticalPayload,
           },
           { status: 409 }
         )
+      }
+
+      if (critical.length > 0 && acknowledge_violations) {
+        // Preuve légale : le manager a explicitement assumé les infractions.
+        const { error: auditErr } = await supabaseAdmin.from('audit_log').insert({
+          table_name: 'week_status',
+          record_id: existing?.id ?? null,
+          action: 'UPDATE',
+          new_data: {
+            event: 'compliance_override',
+            week_monday,
+            critical_count: critical.length,
+            violations: criticalPayload,
+            acknowledged_at: new Date().toISOString(),
+          },
+          performed_by: user.id,
+        })
+        if (auditErr) console.error('[week-status] audit override insert failed', auditErr)
       }
     }
 
