@@ -29,6 +29,7 @@ export type ReferralRow = {
   activated_at: string | null
   discount_pct: number
   created_at: string
+  flagged: boolean
 }
 
 export async function getReferralStats(
@@ -57,14 +58,16 @@ export async function getReferralStats(
   // Read actual referrals (rows with a referred_id) via RLS-safe client
   const { data } = await supabase
     .from('referrals')
-    .select('id, referred_id, status, activated_at, discount_pct, created_at')
+    .select('id, referred_id, status, activated_at, discount_pct, created_at, flagged')
     .eq('referral_code', code)
     .not('referred_id', 'is', null)
 
   const filleuls = (data ?? []) as ReferralRow[]
   const active = filleuls.filter(r => r.status === 'active').length
   const pending = filleuls.filter(r => r.status === 'pending').length
-  const discount = referralDiscountPct(active)
+  // La remise ne compte que les filleuls actifs non signalés (anti-abus).
+  const activeForDiscount = filleuls.filter(r => r.status === 'active' && !r.flagged).length
+  const discount = referralDiscountPct(activeForDiscount)
 
   return { active, pending, discount, filleuls }
 }
@@ -95,11 +98,25 @@ export async function createReferralFromCode(
 
   if (alreadyReferred) return
 
+  // Anti-abus : si ce parrain a créé beaucoup de filleuls très récemment
+  // (> 3 sur 14 jours), on signale le nouveau filleul pour revue manuelle.
+  // Un filleul signalé n'entre pas dans le calcul de remise (cf. applyReferralDiscount).
+  const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+  const { count: recentCount } = await supabaseAdmin
+    .from('referrals')
+    .select('id', { count: 'exact', head: true })
+    .eq('referrer_id', seed.referrer_id)
+    .not('referred_id', 'is', null)
+    .gte('created_at', since)
+  const flagged = (recentCount ?? 0) >= 3
+
   await supabaseAdmin.from('referrals').insert({
     referrer_id: seed.referrer_id,
     referred_id: referredUserId,
     referral_code: referralCode,
     status: 'pending',
+    flagged,
+    flag_reason: flagged ? 'velocity:>3 filleuls en 14j' : null,
   })
 }
 
@@ -165,6 +182,7 @@ export async function applyReferralDiscount(referrerUserId: string): Promise<voi
       .select('id', { count: 'exact', head: true })
       .eq('referrer_id', referrerUserId)
       .eq('status', 'active')
+      .eq('flagged', false)
 
     const pct = referralDiscountPct(count ?? 0)
 
