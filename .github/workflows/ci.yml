@@ -34,5 +34,12 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Garde-fou marque (pas de "Nexus" visible côté utilisateur)
+        run: |
+          if grep -rn "Nexus" public/sw.js lib/email components/public 2>/dev/null; then
+            echo "::error::Référence 'Nexus' visible par l'utilisateur détectée — utiliser 'Quartzbase'."
+            exit 1
+          fi
+
       - name: Build
         run: npm run build
