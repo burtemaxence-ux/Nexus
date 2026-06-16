@@ -69,7 +69,7 @@ export default function OpengraphImage() {
               padding: '8px 22px',
             }}
           >
-            14 jours gratuits · sans carte bleue
+            30 jours gratuits · sans carte bleue
           </div>
         </div>
       </div>

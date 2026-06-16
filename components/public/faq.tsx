@@ -13,7 +13,7 @@ const FAQ_ITEMS = [
   },
   {
     question: `En quoi Quartzbase est différent des logiciels de planning traditionnels ?`,
-    answer: `Quartzbase coûte 4 à 10 fois moins cher que les solutions classiques et inclut une IA qui génère le planning automatiquement. La plupart des logiciels traditionnels n'ont ni génération IA ni vérification légale automatique. Vous payez moins, et l'outil fait plus.`,
+    answer: `Quartzbase démarre à 49€/mois, là où beaucoup de solutions classiques se situent souvent entre 150 et 200€/mois, et inclut une IA qui génère le planning automatiquement. La plupart des logiciels traditionnels n'ont ni génération IA ni vérification légale automatique. Vous payez moins, et l'outil fait plus.`,
   },
   {
     question: `Puis-je annuler à tout moment ?`,
@@ -21,7 +21,7 @@ const FAQ_ITEMS = [
   },
   {
     question: `Comment fonctionne la période d'essai ?`,
-    answer: `14 jours complets avec toutes les fonctionnalités activées — planning, badgeuse, congés, conformité, IA. Aucune carte bancaire demandée. Si vous ne continuez pas, votre compte passe automatiquement en lecture seule sans frais.`,
+    answer: `30 jours complets avec toutes les fonctionnalités activées — planning, badgeuse, congés, conformité, IA. Aucune carte bancaire demandée. Si vous ne continuez pas, votre compte passe automatiquement en lecture seule sans frais.`,
   },
   {
     question: `Mes données sont-elles sécurisées ?`,

@@ -44,7 +44,7 @@ export function FloatingMobileCta() {
             boxShadow: '0 8px 32px rgba(108,99,255,0.45)',
           }}
         >
-          {`Essai gratuit — 14 jours`}
+          {`Essai gratuit — 30 jours`}
         </Link>
       </div>
 

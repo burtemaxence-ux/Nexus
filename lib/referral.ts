@@ -1,8 +1,25 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getStripe } from '@/lib/stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type Stripe from 'stripe'
+
+// ── Economics ───────────────────────────────────────────────────────────────
+// -15% per active filleul, cumulable up to ×2 (max -30%). The previous -75%
+// cap was financially unsustainable (a Pro client referring 5 paid less than
+// the AI/compute it consumes).
+export const REFERRAL_DISCOUNT_PER_ACTIVE = 15
+export const REFERRAL_MAX_ACTIVE = 2
+export const REFERRAL_MAX_DISCOUNT = REFERRAL_DISCOUNT_PER_ACTIVE * REFERRAL_MAX_ACTIVE
+// A filleul must stay a paying customer this long before the parrain's
+// discount activates (anti-abuse against instant sign-up/churn).
+export const REFERRAL_ACTIVATION_DAYS = 30
 
 export function generateReferralCode(userId: string): string {
   return 'QTZ-' + userId.replace(/-/g, '').slice(0, 6).toUpperCase()
+}
+
+export function referralDiscountPct(activeCount: number): number {
+  return Math.min(activeCount, REFERRAL_MAX_ACTIVE) * REFERRAL_DISCOUNT_PER_ACTIVE
 }
 
 export type ReferralRow = {
@@ -47,7 +64,7 @@ export async function getReferralStats(
   const filleuls = (data ?? []) as ReferralRow[]
   const active = filleuls.filter(r => r.status === 'active').length
   const pending = filleuls.filter(r => r.status === 'pending').length
-  const discount = Math.min(active * 15, 75)
+  const discount = referralDiscountPct(active)
 
   return { active, pending, discount, filleuls }
 }
@@ -66,6 +83,9 @@ export async function createReferralFromCode(
 
   if (!seed) return
 
+  // Anti-abuse: a user cannot refer themselves.
+  if (seed.referrer_id === referredUserId) return
+
   // Prevent duplicate referrals for the same user
   const { data: alreadyReferred } = await supabaseAdmin
     .from('referrals')
@@ -83,9 +103,117 @@ export async function createReferralFromCode(
   })
 }
 
-export async function applyReferralDiscount(
-  _establishmentId: string,
-  _discountPct: number
-): Promise<void> {
-  // Réduction appliquée via Stripe coupon — à implémenter lors de l'intégration Stripe
+// ── Filleul: first month free ─────────────────────────────────────────────────
+
+/**
+ * Returns the referral row for a referred user if they are eligible for the
+ * "first month free" reward (referred and not yet granted), else null.
+ */
+export async function getPendingFirstMonth(referredUserId: string): Promise<{ id: string } | null> {
+  const { data } = await supabaseAdmin
+    .from('referrals')
+    .select('id')
+    .eq('referred_id', referredUserId)
+    .eq('first_month_granted', false)
+    .maybeSingle()
+  return data ?? null
+}
+
+export async function markFirstMonthGranted(referredUserId: string): Promise<void> {
+  await supabaseAdmin
+    .from('referrals')
+    .update({ first_month_granted: true, updated_at: new Date().toISOString() })
+    .eq('referred_id', referredUserId)
+    .eq('first_month_granted', false)
+}
+
+// ── Stripe coupons ─────────────────────────────────────────────────────────────
+
+async function getOrCreateCoupon(stripe: Stripe, id: string, params: Stripe.CouponCreateParams): Promise<string> {
+  try {
+    await stripe.coupons.retrieve(id)
+    return id
+  } catch {
+    const created = await stripe.coupons.create({ id, ...params })
+    return created.id
+  }
+}
+
+/** 100% off the first invoice — the filleul's first month free. */
+export async function firstMonthCouponId(stripe: Stripe): Promise<string> {
+  return getOrCreateCoupon(stripe, 'qz-referral-firstmonth', {
+    percent_off: 100,
+    duration: 'once',
+    name: 'Parrainage — 1er mois offert',
+  })
+}
+
+// ── Parrain: apply the cumulative recurring discount ────────────────────────────
+
+/**
+ * Recomputes the parrain's active-filleul discount and applies it to their
+ * Stripe subscription as a single recurring coupon (Stripe does not stack
+ * coupons, so we replace it with one of the right percentage). Removes the
+ * discount when it drops to 0. Safe no-op if the parrain has no subscription
+ * or Stripe is not configured.
+ */
+export async function applyReferralDiscount(referrerUserId: string): Promise<void> {
+  try {
+    // Count active filleuls for this referrer.
+    const { count } = await supabaseAdmin
+      .from('referrals')
+      .select('id', { count: 'exact', head: true })
+      .eq('referrer_id', referrerUserId)
+      .eq('status', 'active')
+
+    const pct = referralDiscountPct(count ?? 0)
+
+    const { data: sub } = await supabaseAdmin
+      .from('subscriptions')
+      .select('stripe_subscription_id')
+      .eq('user_id', referrerUserId)
+      .not('stripe_subscription_id', 'is', null)
+      .maybeSingle()
+
+    const subId = sub?.stripe_subscription_id
+    if (!subId) return // No subscription yet — will be picked up once they subscribe.
+
+    const stripe = getStripe()
+
+    if (pct <= 0) {
+      await stripe.subscriptions.update(subId, { discounts: [] })
+      return
+    }
+
+    const couponId = await getOrCreateCoupon(stripe, `qz-referral-${pct}pct`, {
+      percent_off: pct,
+      duration: 'forever',
+      name: `Parrainage — ${pct}% de réduction`,
+    })
+    await stripe.subscriptions.update(subId, { discounts: [{ coupon: couponId }] })
+  } catch (err) {
+    console.error('[referral] applyReferralDiscount failed for', referrerUserId, err)
+  }
+}
+
+/**
+ * Marks a referred user's referral as churned (if it was active) and refreshes
+ * the parrain's discount. Returns the referrer id when a change occurred.
+ */
+export async function churnReferral(referredUserId: string): Promise<string | null> {
+  const { data: ref } = await supabaseAdmin
+    .from('referrals')
+    .select('id, referrer_id, status')
+    .eq('referred_id', referredUserId)
+    .maybeSingle()
+
+  if (!ref || ref.status === 'churned') return null
+
+  await supabaseAdmin
+    .from('referrals')
+    .update({ status: 'churned', updated_at: new Date().toISOString() })
+    .eq('id', ref.id)
+
+  await applyReferralDiscount(ref.referrer_id)
+  return ref.referrer_id
 }

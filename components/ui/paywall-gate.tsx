@@ -17,7 +17,7 @@ export function PaywallGate({ trialDaysLeft }: { trialDaysLeft?: number }) {
           </h2>
           <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed">
             {trialDaysLeft === 0
-              ? "Votre essai gratuit de 14 jours est terminé. Souscrivez à un plan Pro pour continuer."
+              ? "Votre essai gratuit de 30 jours est terminé. Souscrivez à un plan Pro pour continuer."
               : "Votre abonnement est inactif. Réactivez-le pour accéder à votre tableau de bord."
             }
           </p>

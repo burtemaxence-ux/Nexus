@@ -11,7 +11,7 @@ import { getInitials, getEstablishmentInitials } from '@/lib/planning-utils'
 import { APP_VERSION } from '@/lib/version'
 import {
   Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap, BookOpen,
-  Palmtree, AlertTriangle, Upload, FileText,
+  Palmtree, AlertTriangle, Upload, FileText, CreditCard,
   Settings, ChevronLeft, ChevronRight, LogOut,
   UtensilsCrossed, ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight,
 } from 'lucide-react'
@@ -91,6 +91,7 @@ function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
     {
       group: 'Configuration',
       items: [
+        { label: 'Abonnement', icon: CreditCard, href: '/manager/settings/billing' },
         { label: 'Paramètres', icon: Settings,  href: '/manager/settings' },
         { label: 'Aide',       icon: BookOpen,  href: '/manager/help' },
       ],

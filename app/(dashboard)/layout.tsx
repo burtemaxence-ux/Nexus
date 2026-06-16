@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
-import { isEntitledStatus } from '@/lib/subscription'
+import { isEntitledStatus, TRIAL_DAYS } from '@/lib/subscription'
 import { AppShell } from '@/components/ui/app-shell'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { PaywallGate } from '@/components/ui/paywall-gate'
@@ -95,14 +95,19 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   if (isManagerOrSupervisor && activeEstablishmentId && !isBillingPage) {
     const { data: sub } = await supabase
       .from('subscriptions')
-      .select('status')
+      .select('status, trial_end')
       .eq('establishment_id', activeEstablishmentId)
       .maybeSingle()
 
     const isActive = isEntitledStatus(sub?.status)
     if (!isActive) {
-      const trialEnd = user
-        ? new Date(new Date(user.created_at).getTime() + 14 * 24 * 60 * 60 * 1000)
+      // Prefer Stripe's authoritative trial_end when a subscription exists;
+      // otherwise fall back to the pre-subscription window (account creation
+      // + TRIAL_DAYS), using a single shared trial length.
+      const trialEnd = sub?.trial_end
+        ? new Date(sub.trial_end)
+        : user
+        ? new Date(new Date(user.created_at).getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
         : new Date(0)
       const inTrial = Date.now() < trialEnd.getTime()
       if (!inTrial) {

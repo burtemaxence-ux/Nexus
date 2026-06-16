@@ -22,7 +22,7 @@ function No() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-label="Non">
       <circle cx="10" cy="10" r="9.5" fill="rgba(255,255,255,0.05)" />
-      <path d="M7 7l6 6M13 7l-6 6" stroke="rgba(255,255,255,0.2)" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M7 7l6 6M13 7l-6 6" stroke="rgba(255,255,255,0.45)" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 }

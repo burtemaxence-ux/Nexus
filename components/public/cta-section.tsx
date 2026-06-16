@@ -53,7 +53,7 @@ export function CtaFinalSection() {
           marginBottom: 40,
           lineHeight: 1.6,
         }}>
-          {`14 jours gratuits · Sans carte bleue · Annulation en 1 clic`}
+          {`30 jours gratuits · Sans carte bleue · Annulation en 1 clic`}
         </p>
 
         <Link
@@ -82,7 +82,7 @@ export function CtaFinalSection() {
             e.currentTarget.style.transform = 'translateY(0)'
           }}
         >
-          {`Démarrer gratuitement — 14 jours sans CB`}
+          {`Démarrer gratuitement — 30 jours sans CB`}
         </Link>
 
         <p style={{

@@ -38,7 +38,7 @@ Structure :
 - Phrase 2 : point d'attention si anomalie (absence imprévue, retard récurrent, dépassement budget) — si aucune anomalie, phrase positive sur la régularité
 - Phrase 3 : alerte légale si active (conformité contractuelle) — sinon "Aucune alerte contractuelle active cette semaine."
 - Phrase 4 : point positif si existant — sinon "Semaine dans les normes."
-- Phrase 5 : 1 recommandation concrète et courte pour la semaine
+- Phrase 5 : 1 recommandation concrète et courte pour la semaine (si le planning de la semaine prochaine n'est pas encore préparé, le signaler en priorité)
 
 Données :
 ${contextData}
@@ -67,6 +67,8 @@ export async function GET(request: NextRequest) {
   const lastSun = lastEnd.toISOString().slice(0, 10)
   const thisMon = thisStart.toISOString().slice(0, 10)
   const thisSun = thisEnd.toISOString().slice(0, 10)
+  const nextMon = addDays(thisStart, 7).toISOString().slice(0, 10)
+  const nextSun = addDays(thisEnd, 7).toISOString().slice(0, 10)
   const lastMonDate = new Date(lastMon + 'T00:00:00')
   const weekLabel = isoWeekLabel(lastMonDate)
 
@@ -123,6 +125,7 @@ export async function GET(request: NextRequest) {
         { count: pendingLeavesCount },
         { data: shiftsThisWeek },
         { data: leavesThisWeek },
+        { count: nextWeekShiftsCount },
       ] = await Promise.all([
         // Shifts publiés semaine passée
         supabaseAdmin.from('shifts').select('id, employee_id, start_time, end_time, break_minutes').in('employee_id', employeeIds).gte('date', lastMon).lte('date', lastSun).eq('status', 'published'),
@@ -140,6 +143,8 @@ export async function GET(request: NextRequest) {
         supabaseAdmin.from('shifts').select('id, employee_id').in('employee_id', employeeIds).gte('date', thisMon).lte('date', thisSun).eq('status', 'published'),
         // Congés approuvés semaine en cours
         supabaseAdmin.from('leave_requests').select('id, employee_id').in('employee_id', employeeIds).eq('status', 'approved').lte('start_date', thisSun).gte('end_date', thisMon),
+        // Shifts publiés semaine prochaine (anticipation : planning préparé ?)
+        supabaseAdmin.from('shifts').select('id', { count: 'exact', head: true }).in('employee_id', employeeIds).gte('date', nextMon).lte('date', nextSun).eq('status', 'published'),
       ])
 
       const totalShifts = shiftsLastWeek?.length ?? 0
@@ -193,6 +198,9 @@ export async function GET(request: NextRequest) {
         `Shifts planifiés cette semaine : ${shiftsThisCount}`,
         `Employés en congé approuvé : ${leavesThisCount}`,
         `Congés en attente de validation : ${pendingLeavesCount ?? 0}`,
+        ``,
+        `=== SEMAINE PROCHAINE (anticipation) ===`,
+        `Shifts publiés semaine prochaine : ${nextWeekShiftsCount ?? 0}${(nextWeekShiftsCount ?? 0) === 0 ? ' — ⚠️ planning pas encore préparé' : ''}`,
       ].join('\n')
 
       // ── Génération brief via Claude ─────────────────────────────────────

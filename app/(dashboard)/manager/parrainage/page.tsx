@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { generateReferralCode, getReferralStats } from '@/lib/referral'
+import { generateReferralCode, getReferralStats, REFERRAL_MAX_ACTIVE, REFERRAL_MAX_DISCOUNT, REFERRAL_DISCOUNT_PER_ACTIVE } from '@/lib/referral'
 import { redirect } from 'next/navigation'
 import { Gift, Users, TrendingDown, Clock, CheckCircle2 } from 'lucide-react'
 import { CopyButton } from './copy-button'
@@ -8,9 +8,9 @@ const BASE_URL = process.env.NEXT_PUBLIC_URL ?? 'https://quartzbase.fr'
 
 const STEPS = [
   { label: 'Partagez votre lien unique', desc: 'Envoyez-le à vos collègues restaurateurs.' },
-  { label: 'Ils essaient Quartzbase', desc: 'Leur 1er mois est offert grâce à votre code.' },
-  { label: 'Ils restent abonnés', desc: 'Leur abonnement passe en actif après 30 jours.' },
-  { label: 'Vous touchez la réduction', desc: '-15% par filleul actif, jusqu\'à -75%.' },
+  { label: 'Ils essaient Quartzbase', desc: 'Leur 1er mois est offert dès leur inscription avec votre code.' },
+  { label: 'Ils restent abonnés', desc: 'Leur parrainage passe en actif après 30 jours d\'abonnement payé.' },
+  { label: 'Vous touchez la réduction', desc: `-${REFERRAL_DISCOUNT_PER_ACTIVE}% par filleul actif, jusqu'à -${REFERRAL_MAX_DISCOUNT}%.` },
 ]
 
 export default async function ParrainagePage() {
@@ -22,7 +22,7 @@ export default async function ParrainagePage() {
   const stats = await getReferralStats(supabase, user.id)
   const link = `${BASE_URL}/register?ref=${code}`
 
-  const maxActive = 5
+  const maxActive = REFERRAL_MAX_ACTIVE
   const progressPct = Math.min((stats.active / maxActive) * 100, 100)
 
   return (
@@ -66,7 +66,7 @@ export default async function ParrainagePage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingDown className="h-4 w-4 text-[var(--accent)]" />
-            <p className="text-[14px] font-medium text-[var(--text-primary)]">Progression vers -75%</p>
+            <p className="text-[14px] font-medium text-[var(--text-primary)]">Progression vers -{REFERRAL_MAX_DISCOUNT}%</p>
           </div>
           <p className="text-[13px] font-semibold text-[var(--text-secondary)]">
             {stats.active}/{maxActive} filleuls actifs
@@ -82,9 +82,9 @@ export default async function ParrainagePage() {
           />
         </div>
         <div className="flex justify-between text-[10px] text-[var(--text-tertiary)]">
-          {[1, 2, 3, 4, 5].map(n => (
+          {Array.from({ length: REFERRAL_MAX_ACTIVE }, (_, i) => i + 1).map(n => (
             <span key={n} className={stats.active >= n ? 'text-[var(--accent)] font-semibold' : ''}>
-              -{n * 15}%
+              -{n * REFERRAL_DISCOUNT_PER_ACTIVE}%
             </span>
           ))}
         </div>
@@ -138,8 +138,8 @@ export default async function ParrainagePage() {
             <ul className="text-[11px] text-[var(--text-secondary)] space-y-0.5 list-disc list-inside">
               <li>La réduction s&apos;active après 30 jours de paiement actif du filleul</li>
               <li>La réduction est liée aux filleuls actifs — elle diminue si un filleul résilie</li>
-              <li>Le filleul bénéficie de son 1er mois offert avec votre code</li>
-              <li>Maximum 5 filleuls actifs (-75% max)</li>
+              <li>Le filleul bénéficie de son 1er mois offert dès son inscription avec votre code</li>
+              <li>Maximum {REFERRAL_MAX_ACTIVE} filleuls actifs (-{REFERRAL_MAX_DISCOUNT}% max)</li>
             </ul>
           </div>
         </div>

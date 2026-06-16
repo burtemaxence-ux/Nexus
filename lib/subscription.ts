@@ -1,5 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+/**
+ * Free trial length, in days. Single source of truth shared by the Stripe
+ * checkout (`trial_period_days`) and the pre-subscription paywall window.
+ */
+export const TRIAL_DAYS = 30
+
 export type SubscriptionRow = {
   id: string
   plan: string

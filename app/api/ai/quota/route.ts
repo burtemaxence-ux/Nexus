@@ -5,7 +5,6 @@ import { getSubscription } from '@/lib/subscription'
 import { getPlanTier } from '@/lib/plan-guard'
 
 const ESSENTIAL_MONTHLY_LIMIT = 3
-const WINDOW_MS = 30 * 24 * 60 * 60 * 1000
 
 export async function GET() {
   const supabase = await createClient()
@@ -26,31 +25,20 @@ export async function GET() {
     return NextResponse.json({ used: 0, limit: -1, plan: tier, resetIn: null })
   }
 
-  // Essential: read from KV or in-memory rate-limit store
-  const kvKey = `rate_limit:ai-plan-monthly:${estId}`
-  const { used, resetAt } = await readUsage(kvKey)
-  const resetIn = resetAt ? Math.max(0, resetAt - Date.now()) : WINDOW_MS
+  // Essential: authoritative usage from the DB (resets on calendar month).
+  const { data: used } = await supabase.rpc('get_ai_usage')
 
   return NextResponse.json({
-    used,
+    used: typeof used === 'number' ? used : 0,
     limit: ESSENTIAL_MONTHLY_LIMIT,
     plan: tier,
-    resetIn,
+    resetIn: msUntilNextMonthUTC(),
   })
 }
 
-// ── Read current usage from KV or in-memory ───────────────────────────────────
-
-async function readUsage(key: string): Promise<{ used: number; resetAt: number | null }> {
-  if (process.env.KV_REST_API_URL) {
-    try {
-      const { kv } = await import('@vercel/kv')
-      const raw = await kv.get<{ count: number; resetAt: number }>(key)
-      if (raw) return { used: raw.count, resetAt: raw.resetAt }
-      return { used: 0, resetAt: null }
-    } catch {
-      // KV unavailable — fall through
-    }
-  }
-  return { used: 0, resetAt: null }
+// Milliseconds until the first day of next month (00:00 UTC) — the quota window.
+function msUntilNextMonthUTC(): number {
+  const now = new Date()
+  const next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0, 0)
+  return Math.max(0, next - now.getTime())
 }

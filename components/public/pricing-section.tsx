@@ -112,7 +112,7 @@ export function PricingSection() {
             fontSize: 16,
             color: 'rgba(255,255,255,0.45)',
           }}>
-            {`Jusqu'à 4 fois moins cher. Sans engagement.`}
+            {`À partir de 49€/mois, sans engagement.`}
           </p>
         </div>
 
@@ -360,7 +360,7 @@ export function PricingSection() {
           marginTop: 36,
           letterSpacing: '0.01em',
         }}>
-          {`14 jours gratuits · Sans carte bleue · Annulation en 1 clic`}
+          {`30 jours gratuits · Sans carte bleue · Annulation en 1 clic`}
         </p>
 
       </div>

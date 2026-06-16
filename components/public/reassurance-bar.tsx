@@ -1,5 +1,5 @@
 const ITEMS = [
-  '14 jours gratuits',
+  '30 jours gratuits',
   'Sans carte bleue',
   'Annulation en 1 clic',
   'Support français',
@@ -31,7 +31,7 @@ export function ReassuranceBar() {
           style={{
             fontFamily: "'DM Sans', sans-serif",
             fontSize: 12,
-            color: 'rgba(255,255,255,0.55)',
+            color: 'rgba(255,255,255,0.75)',
             display: 'flex',
             alignItems: 'center',
             gap: 6,

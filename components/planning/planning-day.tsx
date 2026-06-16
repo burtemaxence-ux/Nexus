@@ -89,7 +89,7 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
     [shifts]
   )
 
-  async function handleWeekStatus(payload: { published?: boolean; locked?: boolean }) {
+  async function handleWeekStatus(payload: { published?: boolean; locked?: boolean; acknowledge_violations?: boolean }) {
     setStatusLoading(true)
     try {
       const d = new Date(date)
@@ -97,11 +97,29 @@ export function PlanningDay({ date, employees, shifts, leaveRequests, weekLocked
       const diff = d.getDate() - day + (day === 0 ? -6 : 1)
       d.setDate(diff)
       const weekMonday = toISODate(d)
-      await fetch('/api/week-status', {
+      const res = await fetch('/api/week-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ week_monday: weekMonday, ...payload }),
       })
+
+      // Blocage doux conformité : confirmer pour assumer les infractions critiques.
+      if (res.status === 409) {
+        const data = await res.json().catch(() => null) as { error?: string; violations?: { ruleName: string; legalRef: string; date: string }[] } | null
+        if (data?.error === 'compliance_blocked') {
+          const lines = (data.violations ?? []).slice(0, 8).map(v => `• ${v.ruleName} (${v.date}) — ${v.legalRef}`).join('\n')
+          const ok = window.confirm(
+            `⚠️ Ce planning contient ${data.violations?.length ?? 0} infraction(s) critique(s) au Code du Travail :\n\n${lines}\n\nEn publiant, vous assumez la responsabilité de ces écarts. Confirmer la publication ?`
+          )
+          if (ok) {
+            await fetch('/api/week-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ week_monday: weekMonday, ...payload, acknowledge_violations: true }),
+            })
+          }
+        }
+      }
       router.refresh()
     } finally {
       setStatusLoading(false)
