@@ -8,12 +8,11 @@ import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { getInitials, getEstablishmentInitials } from '@/lib/planning-utils'
-import { APP_VERSION } from '@/lib/version'
 import {
   Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap, BookOpen,
   Palmtree, AlertTriangle, Upload, FileText, CreditCard,
-  Settings, ChevronLeft, ChevronRight, LogOut,
-  UtensilsCrossed, ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight,
+  Settings, ChevronLeft, ChevronRight, ChevronDown, LogOut,
+  ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -111,8 +110,6 @@ const employeeNav: NavGroup[] = [
   },
 ]
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 // ── Badge ─────────────────────────────────────────────────────────────────────
 
 function Badge({ count, color }: { count: number; color: 'orange' | 'red' }) {
@@ -156,6 +153,15 @@ export function Sidebar({
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [switching, setSwitching] = useState(false)
   const switcherRef = useRef<HTMLDivElement>(null)
+  // Collapsible groups — default open; persisted across sessions.
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('qb-sidebar-groups')
+      if (raw) setOpenGroups(JSON.parse(raw))
+    } catch { /* ignore */ }
+  }, [])
 
   useEffect(() => {
     function handleOutsideClick(e: MouseEvent) {
@@ -166,6 +172,15 @@ export function Sidebar({
     document.addEventListener('mousedown', handleOutsideClick)
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [])
+
+  function toggleGroup(name: string) {
+    setOpenGroups(prev => {
+      const next = { ...prev, [name]: prev[name] === false ? true : false }
+      try { localStorage.setItem('qb-sidebar-groups', JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+  }
+  const isGroupOpen = (name: string) => openGroups[name] !== false
 
   async function handleSwitch(id: string) {
     if (id === activeEstablishmentId || switching) return
@@ -182,6 +197,7 @@ export function Sidebar({
       setSwitching(false)
     }
   }
+
   const navGroups = (role === 'manager' || role === 'supervisor')
     ? buildManagerNav(pendingLeavesCount)
     : employeeNav
@@ -201,153 +217,59 @@ export function Sidebar({
     router.push('/login')
   }
 
+  const canSwitch = establishments.length > 1
+
+  // Establishment avatar (logo or initials) — reused in pill & collapsed rail.
+  const orgAvatar = (size: number, text: string) => (
+    orgLogoUrl ? (
+      <div className="rounded-lg overflow-hidden flex-shrink-0 bg-white border border-white/10" style={{ width: size, height: size }}>
+        <Image src={orgLogoUrl} alt={establishmentName} width={size} height={size} className="object-cover w-full h-full" />
+      </div>
+    ) : (
+      <div className="rounded-lg bg-[var(--accent-light)] flex items-center justify-center flex-shrink-0" style={{ width: size, height: size }}>
+        <span className={cn('font-bold text-[var(--accent)]', text)}>{getEstablishmentInitials(establishmentName)}</span>
+      </div>
+    )
+  )
+
   return (
     <aside
       className={cn(
         'flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out flex-shrink-0 relative z-20',
-        collapsed ? 'w-16' : 'w-[220px]'
+        collapsed ? 'w-16' : 'w-[248px]'
       )}
     >
-      {/* ── Brand / Logo ─────────────────────────────────────────────── */}
-      <div className={cn(
-        'flex items-center h-14 border-b border-sidebar-border px-3 flex-shrink-0',
-        collapsed ? 'justify-center' : 'gap-2.5'
-      )}>
-        <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#6C63FF] flex-shrink-0">
-          <UtensilsCrossed className="h-3.5 w-3.5 text-white" />
-        </div>
-        {!collapsed && (
-          <div className="overflow-hidden">
-            <p className="font-semibold text-sidebar-foreground-active text-sm leading-tight truncate">
-              Quartzbase
-            </p>
-            <p className="text-[10px] text-sidebar-foreground/60 leading-tight">Gestion RH &amp; Planning · v{APP_VERSION}</p>
-          </div>
-        )}
-      </div>
-
-      {/* ── Navigation ───────────────────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin">
-        {navGroups.map((group, gi) => (
-          <div key={gi} className={cn('mb-1', gi > 0 && 'mt-3')}>
-            {/* Group label */}
-            {!collapsed ? (
-              <p className="px-3 mb-1 text-[9px] font-bold tracking-[0.12em] text-sidebar-foreground/40 uppercase">
-                {group.group}
-              </p>
-            ) : (
-              gi > 0 && <div className="mx-3 mb-2 border-t border-sidebar-border/40" />
-            )}
-
-            <ul className="space-y-0.5 px-1.5">
-              {group.items.map((item) => {
-                const active = isActive(item.href)
-                const Icon = item.icon
-                const disabled = item.comingSoon
-
-                return (
-                  <li key={item.href}>
-                    {disabled ? (
-                      /* Coming soon — not clickable */
-                      <div
-                        className={cn(
-                          'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm opacity-40 cursor-not-allowed select-none',
-                          collapsed ? 'justify-center' : ''
-                        )}
-                        title={collapsed ? `${item.label} (bientôt)` : undefined}
-                      >
-                        <Icon className="h-4 w-4 flex-shrink-0 text-sidebar-foreground" />
-                        {!collapsed && (
-                          <>
-                            <span className="flex-1 truncate text-sidebar-foreground text-[13px]">{item.label}</span>
-                            <span className="text-[9px] font-semibold text-sidebar-foreground/60 uppercase tracking-wide bg-sidebar-foreground/10 px-1.5 py-0.5 rounded">
-                              Bientôt
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    ) : (
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all duration-150 group',
-                          collapsed ? 'justify-center' : '',
-                          active
-                            ? 'bg-[#6C63FF]/10 text-[#6C63FF] font-semibold'
-                            : 'text-sidebar-foreground hover:bg-white/5 hover:text-sidebar-foreground-active'
-                        )}
-                        title={collapsed ? item.label : undefined}
-                      >
-                        <Icon className={cn(
-                          'h-4 w-4 flex-shrink-0 transition-colors',
-                          active
-                            ? 'text-[#6C63FF]'
-                            : 'text-sidebar-foreground/70 group-hover:text-sidebar-foreground-active'
-                        )} />
-                        {!collapsed && (
-                          <>
-                            <span className="flex-1 truncate">{item.label}</span>
-                            {item.badge !== undefined && item.badgeColor && (
-                              <Badge count={item.badge} color={item.badgeColor} />
-                            )}
-                          </>
-                        )}
-                        {/* Dot indicator on collapsed when badge > 0 */}
-                        {collapsed && item.badge && item.badge > 0 ? (
-                          <span className={cn(
-                            'absolute top-1 right-1 h-2 w-2 rounded-full',
-                            item.badgeColor === 'orange' ? 'bg-orange-500' : 'bg-red-500'
-                          )} />
-                        ) : null}
-                      </Link>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
-      </nav>
-
-      {/* ── Bottom section ────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 border-t border-sidebar-border">
-
-        {/* Establishment row — switcher when multi-site */}
-        {establishments.length > 1 && !collapsed && (
-          <p className="px-3 pt-2.5 pb-0.5 text-[9px] font-bold tracking-[0.12em] text-sidebar-foreground/35 uppercase">
-            Établissement actif
-          </p>
-        )}
-        {establishments.length > 1 && !collapsed ? (
-          <div className="relative border-b border-sidebar-border/50" ref={switcherRef}>
+      {/* ── Establishment switcher (pill, top) ───────────────────────── */}
+      <div className="p-3 flex-shrink-0">
+        {collapsed ? (
+          <button
+            onClick={onToggle}
+            className="w-full flex items-center justify-center py-1.5 rounded-xl hover:bg-white/[0.04] transition-colors"
+            title={establishmentName}
+          >
+            {orgAvatar(30, 'text-[11px]')}
+          </button>
+        ) : (
+          <div className="relative" ref={switcherRef}>
             <button
-              onClick={() => setSwitcherOpen(o => !o)}
-              disabled={switching}
+              onClick={() => canSwitch && setSwitcherOpen(o => !o)}
+              disabled={switching || !canSwitch}
               className={cn(
-                'w-full flex items-center gap-2.5 px-3 py-3 hover:bg-white/5 transition-colors',
+                'w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl border border-white/[0.07] bg-white/[0.05] transition-colors',
+                canSwitch && 'hover:bg-white/[0.09] cursor-pointer',
                 switching && 'opacity-60'
               )}
             >
-              {orgLogoUrl ? (
-                <div className="h-7 w-7 rounded-lg overflow-hidden flex-shrink-0 bg-white border border-sidebar-border/30">
-                  <Image src={orgLogoUrl} alt={establishmentName} width={28} height={28} className="object-cover w-full h-full" />
-                </div>
-              ) : (
-                <div className="h-7 w-7 rounded-lg bg-[#6C63FF]/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-[10px] font-bold text-[#6C63FF]">
-                    {getEstablishmentInitials(establishmentName)}
-                  </span>
-                </div>
-              )}
-              <p className="flex-1 text-left text-[12px] font-medium text-sidebar-foreground-active truncate leading-tight">
+              {orgAvatar(30, 'text-[11px]')}
+              <span className="flex-1 text-left text-[13.5px] font-semibold text-sidebar-foreground-active truncate leading-tight">
                 {establishmentName}
-              </p>
-              <ChevronsUpDown className="h-3.5 w-3.5 text-sidebar-foreground/40 flex-shrink-0" />
+              </span>
+              {canSwitch && <ChevronsUpDown className="h-4 w-4 text-sidebar-foreground/40 flex-shrink-0" />}
             </button>
 
-            {switcherOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-1 bg-sidebar border border-sidebar-border rounded-lg shadow-lg overflow-hidden z-50">
-                <div className="px-2.5 pt-2 pb-1">
+            {switcherOpen && canSwitch && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 bg-[var(--bg-elevated)] border border-sidebar-border rounded-xl shadow-xl overflow-hidden z-50">
+                <div className="px-3 pt-2.5 pb-1">
                   <p className="text-[9px] font-bold tracking-[0.12em] text-sidebar-foreground/40 uppercase">
                     Changer d&apos;établissement
                   </p>
@@ -356,33 +278,33 @@ export function Sidebar({
                   <button
                     key={est.id}
                     onClick={() => handleSwitch(est.id)}
-                    className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-white/5 transition-colors"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-white/[0.05] transition-colors"
                   >
-                    <div className="h-5 w-5 rounded-md bg-[#6C63FF]/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-[8px] font-bold text-[#6C63FF]">
+                    <div className="h-6 w-6 rounded-md bg-[var(--accent-light)] flex items-center justify-center flex-shrink-0">
+                      <span className="text-[9px] font-bold text-[var(--accent)]">
                         {getEstablishmentInitials(est.name)}
                       </span>
                     </div>
-                    <span className="flex-1 text-[12px] text-sidebar-foreground-active truncate">
+                    <span className="flex-1 text-[13px] text-sidebar-foreground-active truncate">
                       {est.name}
                     </span>
                     {est.id === activeEstablishmentId && (
-                      <Check className="h-3 w-3 text-[#6C63FF] flex-shrink-0" />
+                      <Check className="h-3.5 w-3.5 text-[var(--accent)] flex-shrink-0" />
                     )}
                   </button>
                 ))}
                 {role === 'manager' && (
                   <>
-                    <div className="mx-2.5 my-1 border-t border-sidebar-border/40" />
+                    <div className="mx-3 my-1 border-t border-sidebar-border/50" />
                     <Link
                       href="/manager/settings/establishments"
                       onClick={() => setSwitcherOpen(false)}
-                      className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-white/5 transition-colors"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-white/[0.05] transition-colors"
                     >
-                      <div className="h-5 w-5 rounded-md bg-sidebar-foreground/10 flex items-center justify-center flex-shrink-0">
-                        <Plus className="h-3 w-3 text-sidebar-foreground/60" />
+                      <div className="h-6 w-6 rounded-md bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+                        <Plus className="h-3.5 w-3.5 text-sidebar-foreground/60" />
                       </div>
-                      <span className="text-[12px] text-sidebar-foreground/60">
+                      <span className="text-[13px] text-sidebar-foreground/70">
                         Gérer les établissements
                       </span>
                     </Link>
@@ -391,37 +313,114 @@ export function Sidebar({
               </div>
             )}
           </div>
-        ) : (
-          <div className={cn(
-            'flex items-center gap-2.5 px-3 py-3 border-b border-sidebar-border/50',
-            collapsed ? 'justify-center' : ''
-          )}>
-            {orgLogoUrl ? (
-              <div className="h-7 w-7 rounded-lg overflow-hidden flex-shrink-0 bg-white border border-sidebar-border/30">
-                <Image src={orgLogoUrl} alt={establishmentName} width={28} height={28} className="object-cover w-full h-full" />
-              </div>
-            ) : (
-              <div className="h-7 w-7 rounded-lg bg-[#6C63FF]/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-[10px] font-bold text-[#6C63FF]">
-                  {getEstablishmentInitials(establishmentName)}
-                </span>
-              </div>
-            )}
-            {!collapsed && (
-              <p className="text-[12px] font-medium text-sidebar-foreground-active truncate leading-tight">
-                {establishmentName}
-              </p>
-            )}
-          </div>
         )}
+      </div>
 
+      {/* ── Navigation ───────────────────────────────────────────────── */}
+      <nav className="flex-1 overflow-y-auto px-2.5 pb-3 scrollbar-thin">
+        {navGroups.map((group, gi) => {
+          const open = isGroupOpen(group.group)
+          return (
+            <div key={gi} className="mb-0.5">
+              {/* Group header */}
+              {!collapsed ? (
+                <button
+                  onClick={() => toggleGroup(group.group)}
+                  className="group/gh w-full flex items-center gap-1.5 px-3 pt-3.5 pb-1.5"
+                >
+                  <span className="flex-1 text-left text-[10.5px] font-semibold tracking-[0.1em] text-sidebar-foreground/45 uppercase group-hover/gh:text-sidebar-foreground/70 transition-colors">
+                    {group.group}
+                  </span>
+                  <ChevronDown className={cn(
+                    'h-3.5 w-3.5 text-sidebar-foreground/35 transition-transform duration-200',
+                    !open && '-rotate-90'
+                  )} />
+                </button>
+              ) : (
+                gi > 0 && <div className="mx-3 my-2 border-t border-sidebar-border/50" />
+              )}
+
+              {/* Items */}
+              {(collapsed || open) && (
+                <ul className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const active = isActive(item.href)
+                    const Icon = item.icon
+                    const disabled = item.comingSoon
+
+                    return (
+                      <li key={item.href}>
+                        {disabled ? (
+                          <div
+                            className={cn(
+                              'flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] opacity-40 cursor-not-allowed select-none',
+                              collapsed ? 'justify-center' : ''
+                            )}
+                            title={collapsed ? `${item.label} (bientôt)` : undefined}
+                          >
+                            <Icon className="h-[18px] w-[18px] flex-shrink-0 text-sidebar-foreground" />
+                            {!collapsed && (
+                              <>
+                                <span className="flex-1 truncate text-sidebar-foreground">{item.label}</span>
+                                <span className="text-[9px] font-semibold text-sidebar-foreground/60 uppercase tracking-wide bg-white/[0.06] px-1.5 py-0.5 rounded">
+                                  Bientôt
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <Link
+                            href={item.href}
+                            className={cn(
+                              'relative flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] transition-all duration-150 group',
+                              collapsed ? 'justify-center' : '',
+                              active
+                                ? 'bg-white/[0.06] border border-white/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.35)] text-sidebar-foreground-active font-medium'
+                                : 'border border-transparent text-sidebar-foreground hover:bg-white/[0.035] hover:text-sidebar-foreground-active'
+                            )}
+                            title={collapsed ? item.label : undefined}
+                          >
+                            <Icon className={cn(
+                              'h-[18px] w-[18px] flex-shrink-0 transition-colors',
+                              active
+                                ? 'text-[var(--accent)]'
+                                : 'text-sidebar-foreground/65 group-hover:text-sidebar-foreground-active'
+                            )} />
+                            {!collapsed && (
+                              <>
+                                <span className="flex-1 truncate">{item.label}</span>
+                                {item.badge !== undefined && item.badgeColor && (
+                                  <Badge count={item.badge} color={item.badgeColor} />
+                                )}
+                              </>
+                            )}
+                            {collapsed && item.badge && item.badge > 0 ? (
+                              <span className={cn(
+                                'absolute top-1 right-1 h-2 w-2 rounded-full',
+                                item.badgeColor === 'orange' ? 'bg-orange-500' : 'bg-red-500'
+                              )} />
+                            ) : null}
+                          </Link>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          )
+        })}
+      </nav>
+
+      {/* ── Bottom section ────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 border-t border-sidebar-border p-2">
         {/* User row */}
         <div className={cn(
-          'flex items-center px-3 py-3 gap-2.5',
+          'flex items-center rounded-xl gap-2.5 px-2 py-2',
           collapsed ? 'justify-center' : ''
         )}>
-          <div className="flex items-center justify-center w-7 h-7 rounded-full bg-[#6C63FF]/20 flex-shrink-0">
-            <span className="text-[10px] font-bold text-[#6C63FF]">
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent-light)] flex-shrink-0">
+            <span className="text-[11px] font-bold text-[var(--accent)]">
               {getInitials(userName || userEmail)}
             </span>
           </div>
@@ -429,28 +428,28 @@ export function Sidebar({
             <>
               <div className="flex-1 overflow-hidden min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <p className="text-[12px] font-medium text-sidebar-foreground-active truncate leading-tight">
+                  <p className="text-[12.5px] font-medium text-sidebar-foreground-active truncate leading-tight">
                     {userName || 'Utilisateur'}
                   </p>
                   {role !== 'employee' && (
                     <span className={cn(
                       'shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none',
                       role === 'manager'
-                        ? 'bg-[#6C63FF]/20 text-[#6C63FF]'
-                        : 'bg-amber-500/20 text-amber-600'
+                        ? 'bg-[var(--accent-light)] text-[var(--accent)]'
+                        : 'bg-amber-500/20 text-amber-500'
                     )}>
                       {role === 'manager' ? 'Manager' : 'Superviseur'}
                     </span>
                   )}
                 </div>
-                <p className="text-[10px] text-sidebar-foreground/60 truncate leading-tight">{userEmail}</p>
+                <p className="text-[10.5px] text-sidebar-foreground/55 truncate leading-tight">{userEmail}</p>
               </div>
               <button
                 onClick={handleSignOut}
-                className="flex-shrink-0 p-1.5 rounded-md text-sidebar-foreground/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                className="flex-shrink-0 p-1.5 rounded-lg text-sidebar-foreground/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                 title="Se déconnecter"
               >
-                <LogOut className="h-3.5 w-3.5" />
+                <LogOut className="h-4 w-4" />
               </button>
             </>
           )}
@@ -459,14 +458,14 @@ export function Sidebar({
         {/* Collapse toggle */}
         <button
           onClick={onToggle}
-          className="w-full flex items-center justify-center py-2 text-sidebar-foreground/40 hover:text-sidebar-foreground-active hover:bg-white/5 transition-colors border-t border-sidebar-border/40"
+          className="mt-1 w-full flex items-center justify-center py-2 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground-active hover:bg-white/[0.04] transition-colors"
           title={collapsed ? 'Déplier' : 'Replier'}
         >
           {collapsed
-            ? <ChevronRight className="h-3.5 w-3.5" />
+            ? <ChevronRight className="h-4 w-4" />
             : (
-              <span className="flex items-center gap-1 text-[10px] font-medium tracking-wide">
-                <ChevronLeft className="h-3 w-3" />
+              <span className="flex items-center gap-1 text-[11px] font-medium tracking-wide">
+                <ChevronLeft className="h-3.5 w-3.5" />
                 Replier
               </span>
             )
