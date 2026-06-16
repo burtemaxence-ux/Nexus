@@ -92,7 +92,10 @@ export async function POST(request: NextRequest) {
 
       await supabaseAdmin.from('subscriptions').upsert({
         establishment_id: establishmentId,
-        stripe_subscription_id: sub.id,
+        // Sur résiliation, on efface l'ID d'abonnement Stripe (il n'existe plus) :
+        // évite que applyReferralDiscount tente d'écrire sur un abonnement mort
+        // (cas du churn d'un parrain) et permet une réactivation propre.
+        stripe_subscription_id: event.type === 'customer.subscription.deleted' ? null : sub.id,
         stripe_customer_id: sub.customer as string,
         status: sub.status,
         plan,

@@ -14,6 +14,37 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     const todayStr = now.toISOString().slice(0, 10)
 
+    // ── Clôture forcée des pointages oubliés des jours précédents ────────────
+    // Un pointage resté ouvert d'un jour passé fausse les heures : on le clôt
+    // sur l'heure de fin du shift correspondant et on le marque « à revoir ».
+    const { data: staleOpen } = await supabaseAdmin
+      .from('presences')
+      .select('id, employee_id, date, clock_in')
+      .is('clock_out', null)
+      .lt('date', todayStr)
+
+    let forceClosed = 0
+    for (const p of (staleOpen ?? []) as { id: string; employee_id: string; date: string; clock_in: string }[]) {
+      const { data: shift } = await supabaseAdmin
+        .from('shifts')
+        .select('end_time')
+        .eq('employee_id', p.employee_id)
+        .eq('date', p.date)
+        .is('deleted_at', null)
+        .order('end_time', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      const endTime = (shift?.end_time as string | undefined)?.slice(0, 5) ?? '23:59'
+      let clockOutMs = new Date(`${p.date}T${endTime}:00Z`).getTime()
+      const clockInMs = new Date(p.clock_in).getTime()
+      if (clockOutMs <= clockInMs) clockOutMs += 24 * 60 * 60 * 1000 // shift de nuit
+      await supabaseAdmin
+        .from('presences')
+        .update({ clock_out: new Date(clockOutMs).toISOString(), needs_review: true })
+        .eq('id', p.id)
+      forceClosed++
+    }
+
     // Find shifts whose end_time was 15+ minutes ago and have no clock_out today.
     // We compare shift end_time (TIME) to current UTC time.
     // Grace window: 15 min after end_time. Re-notify window: 30 min cooldown.
@@ -39,7 +70,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!shifts?.length) {
-      return NextResponse.json({ checked: 0, notified: 0 })
+      return NextResponse.json({ checked: 0, notified: 0, forceClosed })
     }
 
     // Get employees who already clocked out today
@@ -75,7 +106,7 @@ export async function GET(request: NextRequest) {
     )
 
     if (!toNotify.length) {
-      return NextResponse.json({ checked: shifts.length, notified: 0 })
+      return NextResponse.json({ checked: shifts.length, notified: 0, forceClosed })
     }
 
     // Create in-app notifications + push for each employee
@@ -106,8 +137,8 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    console.log(`[check-missing-clockout] checked=${shifts.length} notified=${notified}`)
-    return NextResponse.json({ checked: shifts.length, notified })
+    console.log(`[check-missing-clockout] checked=${shifts.length} notified=${notified} forceClosed=${forceClosed}`)
+    return NextResponse.json({ checked: shifts.length, notified, forceClosed })
   } catch (err) {
     captureError(err, { cron: 'check-missing-clockout' })
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
