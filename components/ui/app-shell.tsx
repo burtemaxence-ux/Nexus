@@ -1,8 +1,12 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { Topbar } from './topbar'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { Sidebar } from './sidebar'
+import { AccountDropdown } from './topbar'
+import { NotificationsBell } from './notifications-bell'
 import { MobileHeader, BottomNav } from './bottom-nav'
 import { AiAssistant } from './ai-assistant'
 import { BreadcrumbNav } from './breadcrumb-nav'
@@ -20,6 +24,7 @@ interface AppShellProps {
   userEmail: string
   establishmentName: string
   orgLogoUrl?: string
+  currentPlan?: string
   pendingLeavesCount?: number
   alertsCount?: number
   complianceAlertsCount?: number
@@ -28,51 +33,102 @@ interface AppShellProps {
   children: ReactNode
 }
 
+// Smooth premium backdrop behind the whole app (softer than flat near-black).
+const APP_BG =
+  'radial-gradient(1100px 520px at 0% -5%, rgba(108,99,255,0.07), transparent 60%), ' +
+  'radial-gradient(900px 500px at 100% 0%, rgba(0,212,170,0.035), transparent 55%), ' +
+  'var(--bg-page)'
+
 export function AppShell({
   role, userName, userEmail, establishmentName,
+  orgLogoUrl, currentPlan,
   pendingLeavesCount = 0,
   alertsCount = 0,
   complianceAlertsCount = 0,
   establishments = [], activeEstablishmentId = '',
   children,
 }: AppShellProps) {
+  const [collapsed, setCollapsed] = useState(false)
+  const router = useRouter()
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
   return (
-    <div className="min-h-screen bg-[var(--bg-page)]">
+    <div className="min-h-screen" style={{ background: APP_BG }}>
+      <div className="md:flex">
 
-      {/* Topbar — desktop uniquement */}
-      <div className="hidden md:block">
-        <Topbar
-          role={role}
-          userName={userName}
-          userEmail={userEmail}
-          establishmentName={establishmentName}
-          pendingLeavesCount={pendingLeavesCount}
-          alertsCount={alertsCount}
-          complianceAlertsCount={complianceAlertsCount}
-          establishments={establishments}
-          activeEstablishmentId={activeEstablishmentId}
-        />
+        {/* Sidebar — desktop only, pinned */}
+        <div className="hidden md:block md:sticky md:top-0 md:h-screen flex-shrink-0">
+          <Sidebar
+            role={role}
+            userName={userName}
+            userEmail={userEmail}
+            establishmentName={establishmentName}
+            orgLogoUrl={orgLogoUrl}
+            pendingLeavesCount={pendingLeavesCount}
+            establishments={establishments}
+            activeEstablishmentId={activeEstablishmentId}
+            collapsed={collapsed}
+            onToggle={() => setCollapsed(c => !c)}
+          />
+        </div>
+
+        {/* Right column */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-screen">
+
+          {/* Header mobile — mobile only */}
+          <MobileHeader
+            userName={userName}
+            userEmail={userEmail}
+            establishmentName={establishmentName}
+            role={role}
+          />
+
+          {/* Slim header — desktop only */}
+          <header
+            className="hidden md:flex items-center justify-end gap-3 h-12 px-5 sticky top-0 z-30 flex-shrink-0 backdrop-blur-md"
+            style={{ backgroundColor: 'rgba(11,11,18,0.7)', borderBottom: '1px solid var(--border)' }}
+          >
+            <NotificationsBell />
+            <AccountDropdown
+              userName={userName}
+              userEmail={userEmail}
+              role={role}
+              currentPlan={currentPlan}
+              onSignOut={handleSignOut}
+            />
+          </header>
+
+          {/* Main content — content-safe-pt offsets the fixed mobile header; removed on desktop */}
+          <div className="content-safe-pt md:!pt-0 flex flex-col flex-1 pb-[calc(60px+env(safe-area-inset-bottom,0px))] md:pb-0">
+            <BreadcrumbNav />
+            <main className="flex-1">
+              <PageTransition>{children}</PageTransition>
+            </main>
+
+            {/* Footer légal — desktop only */}
+            <footer className="hidden md:flex px-6 py-4 items-center justify-center gap-4 flex-wrap" style={{ borderTop: '0.5px solid var(--border)' }}>
+              {[
+                { href: '/legal/mentions-legales', label: 'Mentions légales' },
+                { href: '/legal/confidentialite',  label: 'Confidentialité' },
+                { href: '/legal/cgu',              label: 'CGU' },
+                { href: '/legal/cookies',          label: 'Cookies' },
+              ].map(l => (
+                <Link key={l.href} href={l.href} className="text-[11px] transition-colors duration-150" style={{ color: 'var(--text-tertiary)' }}>
+                  {l.label}
+                </Link>
+              ))}
+              <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>Powered by Quartz</span>
+            </footer>
+          </div>
+        </div>
       </div>
 
-      {/* Header mobile — mobile uniquement */}
-      <MobileHeader
-        userName={userName}
-        userEmail={userEmail}
-        establishmentName={establishmentName}
-        role={role}
-      />
-
-      {/* Contenu principal */}
-      {/* content-safe-pt = 56px + env(safe-area-inset-top) on mobile, 44px on desktop */}
-      {/* pb mobile = bottom nav (60px) + safe area */}
-      <div className="content-safe-pt flex flex-col min-h-screen pb-[calc(60px+env(safe-area-inset-bottom,0px))] md:pb-0">
-        <BreadcrumbNav />
-        <main className="flex-1">
-          <PageTransition>{children}</PageTransition>
-        </main>
-      </div>
-
-      {/* AI Assistant — repositionné au-dessus de la bottom nav sur mobile */}
+      {/* AI Assistant */}
       {(role === 'manager' || role === 'supervisor') && (
         <AiAssistant
           establishmentName={establishmentName}
@@ -93,22 +149,7 @@ export function AppShell({
       )}
       <OnboardingWizard role={role} />
 
-      {/* Footer légal — desktop uniquement */}
-      <footer className="hidden md:flex px-6 py-4 items-center justify-center gap-4 flex-wrap" style={{ borderTop: '0.5px solid var(--border)' }}>
-        {[
-          { href: '/legal/mentions-legales', label: 'Mentions légales' },
-          { href: '/legal/confidentialite',  label: 'Confidentialité' },
-          { href: '/legal/cgu',              label: 'CGU' },
-          { href: '/legal/cookies',          label: 'Cookies' },
-        ].map(l => (
-          <Link key={l.href} href={l.href} className="text-[11px] transition-colors duration-150" style={{ color: 'var(--text-tertiary)' }}>
-            {l.label}
-          </Link>
-        ))}
-        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>Powered by Quartz</span>
-      </footer>
-
-      {/* Bottom nav — mobile uniquement */}
+      {/* Bottom nav — mobile only */}
       <BottomNav
         role={role}
         pendingLeavesCount={pendingLeavesCount}

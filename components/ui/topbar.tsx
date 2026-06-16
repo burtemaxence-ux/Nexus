@@ -55,10 +55,11 @@ const employeeNav: NavItem[] = [
 
 // ── Account dropdown ──────────────────────────────────────────────────────────
 
-function AccountDropdown({ userName, userEmail, role, onSignOut }: {
+export function AccountDropdown({ userName, userEmail, role, currentPlan, onSignOut }: {
   userName: string
   userEmail: string
   role: 'manager' | 'employee' | 'supervisor'
+  currentPlan?: string
   onSignOut: () => void
 }) {
   const [open, setOpen] = useState(false)
@@ -142,19 +143,21 @@ function AccountDropdown({ userName, userEmail, role, onSignOut }: {
             </Link>
           )}
 
-          {/* Plan */}
+          {/* Abonnement — plan actuel + lien vers la facturation */}
           {(role === 'manager' || role === 'supervisor') && (
-            <button
+            <Link
+              href="/manager/settings/billing"
               onClick={() => setOpen(false)}
-              disabled
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-tertiary)] cursor-not-allowed opacity-60"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] hover:text-[var(--text-primary)] transition-colors duration-150"
             >
-              <CreditCard className="h-3.5 w-3.5" />
-              Changer de plan
-              <span className="ml-auto text-[10px] bg-[var(--accent-light)] text-[var(--accent)] px-1.5 py-0.5 rounded-full font-medium">
-                Bientôt
-              </span>
-            </button>
+              <CreditCard className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+              Gérer mon abonnement
+              {currentPlan && (
+                <span className="ml-auto text-[10px] bg-[var(--accent-light)] text-[var(--accent)] px-1.5 py-0.5 rounded-full font-medium">
+                  {currentPlan}
+                </span>
+              )}
+            </Link>
           )}
 
           <div className="mx-3 my-1 border-t border-[var(--border)]" />

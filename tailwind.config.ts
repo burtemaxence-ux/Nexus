@@ -31,6 +31,12 @@ const config: Config = {
         "dp-warning":    "var(--warning)",
         "dp-danger":     "var(--danger)",
 
+        /* ── Sidebar (rgb triplets → /opacity support) ── */
+        "sidebar":                   "rgb(var(--sidebar) / <alpha-value>)",
+        "sidebar-border":            "rgb(var(--sidebar-border) / <alpha-value>)",
+        "sidebar-foreground":        "rgb(var(--sidebar-foreground) / <alpha-value>)",
+        "sidebar-foreground-active": "rgb(var(--sidebar-foreground-active) / <alpha-value>)",
+
         /* ── shadcn/ui compatibility ────────────── */
         border:      "var(--border)",
         input:       "var(--input)",

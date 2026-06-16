@@ -9,12 +9,18 @@ html {
 @layer base {
   :root {
     /* ── Page & Surface ────────────────────────────── */
-    --bg-page:        #0a0a0f;
-    --bg-card:        #0f0f16;
-    --bg-elevated:    #141420;
+    --bg-page:        #0b0b12;
+    --bg-card:        #13131c;
+    --bg-elevated:    #1a1a26;
     --bg-input:       #111118;
     --border:         rgba(255,255,255,0.06);
     --border-hover:   rgba(255,255,255,0.12);
+
+    /* ── Sidebar (rgb triplets for /opacity support) ── */
+    --sidebar:                   17 17 25;
+    --sidebar-border:            42 42 56;
+    --sidebar-foreground:        152 154 170;
+    --sidebar-foreground-active: 244 244 250;
 
     /* ── Text ─────────────────────────────────────── */
     --text-primary:   #f0f0f8;
@@ -54,12 +60,18 @@ html {
   }
 
   .dark {
-    --bg-page:        #060609;
-    --bg-card:        #0d0d14;
-    --bg-elevated:    #121220;
+    --bg-page:        #08080e;
+    --bg-card:        #101017;
+    --bg-elevated:    #16161f;
     --bg-input:       #0f0f1a;
     --border:         rgba(255,255,255,0.08);
     --border-hover:   rgba(255,255,255,0.15);
+
+    /* ── Sidebar ────────────────────────────────────── */
+    --sidebar:                   15 15 22;
+    --sidebar-border:            40 40 54;
+    --sidebar-foreground:        150 152 168;
+    --sidebar-foreground-active: 244 244 250;
     --text-primary:   #f0f0f8;
     --text-secondary: #9090a8;
     --text-tertiary:  #5a5a72;
