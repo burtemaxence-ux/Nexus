@@ -134,11 +134,12 @@ Vérification directe sur le projet prod (`euvvibqzrhbleztqfdbu`) via inspection
 | 052 | harden_ai_functions.sql | Durcissement fonctions IA | ✅ |
 | **053** | **shift_exchanges_tenant_isolation.sql** | **`establishment_id` + RLS scopées sur `shift_exchanges`** | **✅ appliquée le 2026-06-16 (col NOT NULL, 3 policies scopées, trigger)** |
 | **054** | **referrals_abuse_flag.sql** | **`referrals.flagged` + `flag_reason` (anti-abus vélocité)** | **✅ appliquée le 2026-06-16 (colonnes additives)** |
+| **055** | **fk_indexes.sql** | **17 index sur clés étrangères non couvertes (advisor perf)** | **✅ appliquée le 2026-06-16 (0 FK non indexée restante)** |
 
 > Note : 034 n'existe pas (saut 033 → 035, numéro non utilisé).
 > Les migrations 042/044/045 (sécurité), 048 (quota IA) et 049/050 sont **confirmées appliquées** en prod.
 
 ## Note sur les futures migrations
 
-La prochaine migration sera nommée **055_xxx.sql**.
-Ne pas réutiliser les numéros 017-021 ni 053-054 — ils sont tous appliqués en prod.
+La prochaine migration sera nommée **056_xxx.sql**.
+Ne pas réutiliser les numéros 017-021 ni 053-055 — ils sont tous appliqués en prod.
