@@ -7,7 +7,61 @@ html {
 }
 
 @layer base {
+  /* ── Light theme (default :root) — Dhonu-style ─────────────────────── */
   :root {
+    /* ── Page & Surface ────────────────────────────── */
+    --bg-page:        #f4f5f9;
+    --bg-card:        #ffffff;
+    --bg-elevated:    #ffffff;
+    --bg-input:       #ffffff;
+    --border:         rgba(15,23,42,0.08);
+    --border-hover:   rgba(15,23,42,0.16);
+
+    /* ── Sidebar (rgb triplets for /opacity support) ── */
+    --sidebar:                   255 255 255;
+    --sidebar-border:            232 235 240;
+    --sidebar-foreground:        100 112 133;
+    --sidebar-foreground-active:  30  41  59;
+
+    /* ── Text ─────────────────────────────────────── */
+    --text-primary:   #1f2430;
+    --text-secondary: #667085;
+    --text-tertiary:  #98a2b3;
+
+    /* ── Accent ───────────────────────────────────── */
+    --accent:         #6C63FF;
+    --accent-hover:   #5B52E8;
+    --accent-light:   rgba(108,99,255,0.10);
+
+    /* ── Status ───────────────────────────────────── */
+    --success:        #12b886;
+    --warning:        #f08c00;
+    --danger:         #fa5252;
+
+    /* ── shadcn/ui tokens (mapped) ────────────────────── */
+    --background:     var(--bg-page);
+    --foreground:     var(--text-primary);
+    --card:           var(--bg-card);
+    --card-foreground:var(--text-primary);
+    --popover:        var(--bg-elevated);
+    --popover-foreground: var(--text-primary);
+    --primary:        var(--accent);
+    --primary-foreground: #FFFFFF;
+    --secondary:      #f1f3f7;
+    --secondary-foreground: var(--text-primary);
+    --muted:          #f1f3f7;
+    --muted-foreground: var(--text-secondary);
+    --accent-ui:      var(--accent-light);
+    --accent-ui-foreground: var(--accent);
+    --destructive:    var(--danger);
+    --destructive-foreground: #FFFFFF;
+    --input:          rgba(15,23,42,0.10);
+    --ring:           var(--accent);
+    --radius:         0.5rem;
+  }
+
+  /* ── Dark theme (.dark) — current default look, unchanged ──────────── */
+  .dark {
     /* ── Page & Surface ────────────────────────────── */
     --bg-page:        #0b0b12;
     --bg-card:        #13131c;
@@ -55,50 +109,6 @@ html {
     --destructive:    var(--danger);
     --destructive-foreground: #FFFFFF;
     --input:          rgba(255,255,255,0.08);
-    --ring:           var(--accent);
-    --radius:         0.5rem;
-  }
-
-  .dark {
-    --bg-page:        #08080e;
-    --bg-card:        #101017;
-    --bg-elevated:    #16161f;
-    --bg-input:       #0f0f1a;
-    --border:         rgba(255,255,255,0.08);
-    --border-hover:   rgba(255,255,255,0.15);
-
-    /* ── Sidebar ────────────────────────────────────── */
-    --sidebar:                   21 21 31;
-    --sidebar-border:            44 44 60;
-    --sidebar-foreground:        164 166 182;
-    --sidebar-foreground-active: 245 246 251;
-    --text-primary:   #f0f0f8;
-    --text-secondary: #9090a8;
-    --text-tertiary:  #5a5a72;
-    --accent:         #7B73FF;
-    --accent-hover:   #6A62EE;
-    --accent-light:   rgba(123,115,255,0.12);
-    --success:        #00D4AA;
-    --warning:        #FFB347;
-    --danger:         #FF6B6B;
-
-    --background:     var(--bg-page);
-    --foreground:     var(--text-primary);
-    --card:           var(--bg-card);
-    --card-foreground:var(--text-primary);
-    --popover:        var(--bg-elevated);
-    --popover-foreground: var(--text-primary);
-    --primary:        var(--accent);
-    --primary-foreground: #FFFFFF;
-    --secondary:      var(--bg-card);
-    --secondary-foreground: var(--text-primary);
-    --muted:          #121220;
-    --muted-foreground: var(--text-secondary);
-    --accent-ui:      var(--accent-light);
-    --accent-ui-foreground: var(--accent);
-    --destructive:    var(--danger);
-    --destructive-foreground: #FFFFFF;
-    --input:          rgba(255,255,255,0.1);
     --ring:           var(--accent);
   }
 }
