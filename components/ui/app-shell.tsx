@@ -8,6 +8,9 @@ import { Sidebar } from './sidebar'
 import { AccountDropdown } from './topbar'
 import { NotificationsBell } from './notifications-bell'
 import { ThemeToggle } from './theme-toggle'
+import { TopbarSearch } from './topbar-search'
+import { FullscreenToggle } from './fullscreen-toggle'
+import { Settings } from 'lucide-react'
 import { MobileHeader, BottomNav } from './bottom-nav'
 import { AiAssistant } from './ai-assistant'
 import { BreadcrumbNav } from './breadcrumb-nav'
@@ -99,13 +102,26 @@ export function AppShell({
             role={role}
           />
 
-          {/* Slim header — desktop only */}
+          {/* Topbar — desktop only (style Dhonu) */}
           <header
-            className="hidden md:flex items-center justify-end gap-2 h-12 px-5 sticky top-0 z-30 flex-shrink-0 backdrop-blur-md bg-white/70 dark:bg-[#0b0b12]/70"
+            className="hidden md:flex items-center gap-2 h-14 px-5 sticky top-0 z-30 flex-shrink-0 backdrop-blur-md bg-white/80 dark:bg-[#0b0b12]/70"
             style={{ borderBottom: '1px solid var(--border)' }}
           >
+            <TopbarSearch role={role} />
+            <div className="flex-1" />
+            {(role === 'manager' || role === 'supervisor') && (
+              <Link
+                href="/manager/settings"
+                aria-label="Paramètres"
+                title="Paramètres"
+                className="flex items-center justify-center h-9 w-9 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors"
+              >
+                <Settings className="h-[18px] w-[18px]" />
+              </Link>
+            )}
             <ThemeToggle />
             <NotificationsBell />
+            <FullscreenToggle />
             <AccountDropdown
               userName={userName}
               userEmail={userEmail}
