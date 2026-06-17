@@ -86,7 +86,7 @@ export async function fireWebhook(
   const promises: Promise<void>[] = []
 
   if (webhookOn && webhookUrl && (enabledEvents[event] !== false)) {
-    promises.push(deliver(webhookUrl, body, { 'X-Nexus-Event': event }, event, 'webhook', opts?.establishmentId))
+    promises.push(deliver(webhookUrl, body, { 'X-Nexus-Event': event, 'X-Quartzbase-Event': event }, event, 'webhook', opts?.establishmentId))
   }
 
   if (slackOn && slackUrl) {
@@ -103,7 +103,7 @@ export async function testWebhook(url: string, type: 'generic' | 'slack'): Promi
       : { event: 'test', timestamp: new Date().toISOString(), message: 'Connexion webhook Quartzbase opérationnelle' }
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Nexus-Event': 'test' },
+      headers: { 'Content-Type': 'application/json', 'X-Nexus-Event': 'test', 'X-Quartzbase-Event': 'test' },
       body: JSON.stringify(body),
     })
     return { ok: res.ok, status: res.status }

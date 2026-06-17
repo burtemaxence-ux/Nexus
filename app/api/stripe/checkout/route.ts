@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       metadata: { establishment_id: estId, user_id: user.id },
       subscription_data: {
         metadata: { establishment_id: estId, user_id: user.id },
-        ...(isFirstSubscription ? { trial_period_days: TRIAL_DAYS } : {}),
+        ...(isFirstSubscription && !firstMonth ? { trial_period_days: TRIAL_DAYS } : {}),
       },
       ...(referralDiscount ? { discounts: referralDiscount } : { allow_promotion_codes: true }),
     })

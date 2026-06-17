@@ -107,7 +107,39 @@ supabase migration up
 
 ---
 
+## Migrations 034 → 053 — état vérifié en prod (2026-06-16)
+
+Vérification directe sur le projet prod (`euvvibqzrhbleztqfdbu`) via inspection du schéma
+(`pg_policies`, `pg_proc`, `information_schema.columns`) le 2026-06-16 :
+
+| # | Fichier | Contenu | Statut prod |
+|---|---------|---------|-------------|
+| 035 | storage_buckets.sql | Buckets stockage | ✅ |
+| 036 | stripe_subscriptions.sql | Abonnements Stripe | ✅ (`referrals`/subs OK) |
+| 037 | rls_replacement_requests_fix.sql | Fix RLS remplacements | ✅ |
+| 038 | establishments_is_active.sql | `establishments.is_active` | ✅ |
+| 039 | fix_pin_column.sql | Type PIN | ✅ |
+| 040 | fix_rls_establishments.sql | Fix RLS établissements | ✅ |
+| 041 | referrals.sql | Table `referrals` | ✅ (table présente) |
+| 042 | fix_api_tokens_policy.sql | Scoping `api_tokens` | ✅ (`managers_read_own_tokens` présent) |
+| 043 | fix_storage_policies.sql | Policies logos | ✅ |
+| 044 | fix_settings_rls.sql | RLS `settings` read/write | ✅ (`settings_read/write/update/delete`) |
+| 045 | fix_user_establishments_rls.sql | RLS `user_establishments` | ✅ (`managers_manage_own_memberships`) |
+| 046 | harden_functions_and_webhook_logs.sql | Durcissement fonctions | ✅ |
+| 047 | logos_bucket_no_listing.sql | Bucket logos no-listing | ✅ |
+| 048 | ai_usage.sql | Table `ai_usage` + `consume_ai_credit`/`get_ai_usage` | ✅ (table + fonctions présentes) |
+| 049 | presence_needs_review.sql | `presences.needs_review` | ✅ (colonne présente) |
+| 050 | referrals_activation.sql | `referrals.first_month_granted` | ✅ (colonne présente) |
+| 051 | perf_indexes.sql | Index performance | ✅ (présumé — fonctions/colonnes liées OK) |
+| 052 | harden_ai_functions.sql | Durcissement fonctions IA | ✅ |
+| **053** | **shift_exchanges_tenant_isolation.sql** | **`establishment_id` + RLS scopées sur `shift_exchanges`** | **✅ appliquée le 2026-06-16 (col NOT NULL, 3 policies scopées, trigger)** |
+| **054** | **referrals_abuse_flag.sql** | **`referrals.flagged` + `flag_reason` (anti-abus vélocité)** | **✅ appliquée le 2026-06-16 (colonnes additives)** |
+| **055** | **fk_indexes.sql** | **17 index sur clés étrangères non couvertes (advisor perf)** | **✅ appliquée le 2026-06-16 (0 FK non indexée restante)** |
+
+> Note : 034 n'existe pas (saut 033 → 035, numéro non utilisé).
+> Les migrations 042/044/045 (sécurité), 048 (quota IA) et 049/050 sont **confirmées appliquées** en prod.
+
 ## Note sur les futures migrations
 
-La prochaine migration sera nommée **034_xxx.sql**.
-Ne pas réutiliser les numéros 017-021 — ils sont tous appliqués en prod.
+La prochaine migration sera nommée **056_xxx.sql**.
+Ne pas réutiliser les numéros 017-021 ni 053-055 — ils sont tous appliqués en prod.

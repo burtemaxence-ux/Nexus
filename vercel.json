@@ -17,16 +17,16 @@
       "schedule": "0 7 * * 1"
     },
     {
-      "path": "/api/cron/weekly-summary-employee",
-      "schedule": "0 18 * * 5"
-    },
-    {
       "path": "/api/cron/trial-reminder",
       "schedule": "0 9 * * *"
     },
     {
       "path": "/api/cron/referral-activation",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/shift-reminder",
+      "schedule": "0 17 * * *"
     }
   ]
 }
