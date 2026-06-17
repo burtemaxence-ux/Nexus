@@ -6,8 +6,7 @@
 **Légende qui :** 🤖 = je peux le coder maintenant · 🧑 = décision/action de Maxence · 🤝 = décision Maxence puis code par moi.
 
 > ✅ **MISE À JOUR 2026-06-16 :** Vague 0 + l'essentiel des Vagues 1-3 sont **faits et poussés**.
-> Voir les bilans : `.claude/completions/2026-06-16-vague-0-corrections.md` et
-> `.claude/completions/2026-06-16-vagues-1-3-corrections.md` (avec les items différés + recommandations).
+> Voir le bilan durable (tracké git) : `docs/2026-06-16-etat-corrections.md` (fait + reste à faire + recommandations).
 
 > ⚠️ **Mise à jour vs audit du 13 juin :** les « Nexus » des emails sont **déjà corrigés**. L'état réel est moins large qu'annoncé côté branding, mais plus grave côté migrations (034→052 non tracées) et billing (double essai).
 
