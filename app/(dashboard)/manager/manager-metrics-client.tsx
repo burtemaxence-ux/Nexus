@@ -200,7 +200,7 @@ function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progres
         {isNull ? '—' : `${animated}${suffix}`}
       </p>
       {subLabel && (
-        <p style={{ fontSize: '12px', color: subLabelColored ? color : '#9090a8', margin: 0 }}>{subLabel}</p>
+        <p style={{ fontSize: '12px', color: subLabelColored ? color : 'var(--text-secondary)', margin: 0 }}>{subLabel}</p>
       )}
       {sparkline && (
         <div style={{ marginTop: '4px' }}>
