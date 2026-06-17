@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/api-auth'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 import { InviteSchema, validationError } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications/create'
+import { sendSms } from '@/lib/sms'
 import { getSubscription } from '@/lib/subscription'
 import { getPlanTier, PLAN_EMPLOYEE_LIMITS } from '@/lib/plan-guard'
 import { NextRequest, NextResponse } from 'next/server'
@@ -86,6 +87,16 @@ export async function POST(request: NextRequest) {
     const inviteLink = data.properties?.action_link
     if (!inviteLink) {
       return NextResponse.json({ error: 'Impossible de générer le lien' }, { status: 500 })
+    }
+
+    // Best-effort : envoie aussi le lien d'invitation par SMS si un téléphone est
+    // fourni — réduit la friction d'adoption côté employé (mobile-first).
+    // No-op si Twilio n'est pas configuré.
+    if (phone?.trim()) {
+      sendSms(
+        phone.trim(),
+        `Quartzbase — Vous êtes invité(e) à rejoindre l'équipe de votre établissement. Activez votre compte : ${inviteLink}`
+      ).catch(() => {})
     }
 
     // Enrich the profile created by the DB trigger

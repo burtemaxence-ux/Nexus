@@ -3,6 +3,7 @@ const ITEMS = [
   'Sans carte bleue',
   'Annulation en 1 clic',
   'Support français',
+  'Hébergé en UE · RGPD',
 ]
 
 export function ReassuranceBar() {
