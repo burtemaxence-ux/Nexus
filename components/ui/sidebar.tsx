@@ -244,7 +244,7 @@ export function Sidebar({
         {collapsed ? (
           <button
             onClick={onToggle}
-            className="w-full flex items-center justify-center py-1.5 rounded-xl hover:bg-white/[0.04] transition-colors"
+            className="w-full flex items-center justify-center py-1.5 rounded-xl hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
             title={establishmentName}
           >
             {orgAvatar(30, 'text-[11px]')}
@@ -255,8 +255,8 @@ export function Sidebar({
               onClick={() => canSwitch && setSwitcherOpen(o => !o)}
               disabled={switching || !canSwitch}
               className={cn(
-                'w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl border border-white/[0.07] bg-white/[0.05] transition-colors',
-                canSwitch && 'hover:bg-white/[0.09] cursor-pointer',
+                'w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl border border-black/[0.06] dark:border-white/[0.07] bg-black/[0.02] dark:bg-white/[0.05] transition-colors',
+                canSwitch && 'hover:bg-black/[0.04] dark:hover:bg-white/[0.09] cursor-pointer',
                 switching && 'opacity-60'
               )}
             >
@@ -278,7 +278,7 @@ export function Sidebar({
                   <button
                     key={est.id}
                     onClick={() => handleSwitch(est.id)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-white/[0.05] transition-colors"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-colors"
                   >
                     <div className="h-6 w-6 rounded-md bg-[var(--accent-light)] flex items-center justify-center flex-shrink-0">
                       <span className="text-[9px] font-bold text-[var(--accent)]">
@@ -299,9 +299,9 @@ export function Sidebar({
                     <Link
                       href="/manager/settings/establishments"
                       onClick={() => setSwitcherOpen(false)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-white/[0.05] transition-colors"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-colors"
                     >
-                      <div className="h-6 w-6 rounded-md bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+                      <div className="h-6 w-6 rounded-md bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center flex-shrink-0">
                         <Plus className="h-3.5 w-3.5 text-sidebar-foreground/60" />
                       </div>
                       <span className="text-[13px] text-sidebar-foreground/70">
@@ -362,7 +362,7 @@ export function Sidebar({
                             {!collapsed && (
                               <>
                                 <span className="flex-1 truncate text-sidebar-foreground">{item.label}</span>
-                                <span className="text-[9px] font-semibold text-sidebar-foreground/60 uppercase tracking-wide bg-white/[0.06] px-1.5 py-0.5 rounded">
+                                <span className="text-[9px] font-semibold text-sidebar-foreground/60 uppercase tracking-wide bg-black/[0.05] dark:bg-white/[0.06] px-1.5 py-0.5 rounded">
                                   Bientôt
                                 </span>
                               </>
@@ -375,8 +375,8 @@ export function Sidebar({
                               'relative flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] transition-all duration-150 group',
                               collapsed ? 'justify-center' : '',
                               active
-                                ? 'bg-white/[0.06] border border-white/[0.07] shadow-[0_1px_3px_rgba(0,0,0,0.35)] text-sidebar-foreground-active font-medium'
-                                : 'border border-transparent text-sidebar-foreground hover:bg-white/[0.035] hover:text-sidebar-foreground-active'
+                                ? 'bg-[var(--accent-light)] text-[var(--accent)] font-medium'
+                                : 'text-sidebar-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-sidebar-foreground-active'
                             )}
                             title={collapsed ? item.label : undefined}
                           >
@@ -458,7 +458,7 @@ export function Sidebar({
         {/* Collapse toggle */}
         <button
           onClick={onToggle}
-          className="mt-1 w-full flex items-center justify-center py-2 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground-active hover:bg-white/[0.04] transition-colors"
+          className="mt-1 w-full flex items-center justify-center py-2 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground-active hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
           title={collapsed ? 'Déplier' : 'Replier'}
         >
           {collapsed
