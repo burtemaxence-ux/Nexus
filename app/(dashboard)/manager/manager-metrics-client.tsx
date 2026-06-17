@@ -88,7 +88,7 @@ function MetricsSkeleton() {
       {/* KPI cards skeleton */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[0, 1, 2, 3].map(i => (
-          <div key={i} className="rounded-[14px] p-5 flex flex-col gap-3" style={{ backgroundColor: '#0f0f16', border: '1px solid rgba(255,255,255,0.06)', minHeight: '170px' }}>
+          <div key={i} className="rounded-[14px] p-5 flex flex-col gap-3" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', minHeight: '170px' }}>
             <div className="w-9 h-9 rounded-[10px] animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
             <div className="h-2 w-20 rounded animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
             <div className="h-8 w-16 rounded animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
@@ -128,7 +128,7 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
             width={barW}
             height={barH}
             rx={2}
-            fill={val > 0 ? color : 'rgba(255,255,255,0.06)'}
+            fill={val > 0 ? color : 'var(--border)'}
             opacity={val > 0 ? 0.7 : 1}
           />
         )
@@ -178,12 +178,12 @@ function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progres
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        backgroundColor: '#0f0f16',
-        border: `1px solid ${hovered ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'}`,
+        backgroundColor: 'var(--bg-card)',
+        border: `1px solid ${hovered ? 'var(--border-hover)' : 'var(--border)'}`,
         borderRadius: '14px',
         padding: '20px 22px',
         transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
-        boxShadow: hovered ? '0 0 0 1px rgba(108,99,255,0.2), 0 8px 24px rgba(0,0,0,0.3), 0 0 40px rgba(108,99,255,0.06)' : 'none',
+        boxShadow: hovered ? '0 0 0 1px rgba(108,99,255,0.2), 0 10px 30px rgba(16,24,40,0.12), 0 0 40px rgba(108,99,255,0.06)' : '0 1px 3px rgba(16,24,40,0.06)',
         transition: 'all 200ms ease',
         display: 'flex',
         flexDirection: 'column',
@@ -193,7 +193,7 @@ function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progres
       <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Icon className="h-4 w-4" style={{ color }} />
       </div>
-      <p style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5a5a72', fontFamily: 'var(--font-dm-sans)', margin: 0 }}>
+      <p style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: 'var(--font-dm-sans)', margin: 0 }}>
         {label}
       </p>
       <p style={{ fontSize: '32px', fontWeight: 700, lineHeight: 1, color, fontFamily: 'var(--font-syne)', margin: 0 }}>
@@ -208,7 +208,7 @@ function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progres
         </div>
       )}
       <div style={{ marginTop: 'auto', paddingTop: '8px' }}>
-        <div style={{ height: '5px', borderRadius: '99px', backgroundColor: 'rgba(255,255,255,0.04)', overflow: 'hidden' }}>
+        <div style={{ height: '5px', borderRadius: '99px', backgroundColor: 'var(--border)', overflow: 'hidden' }}>
           <div style={{
             height: '100%',
             borderRadius: '99px',
@@ -375,7 +375,7 @@ export function ManagerMetricsClient() {
   const { employeeCount, pendingCount, presenceRate, totalShifts, plannedHours, presentCount, latenessCount, sparklineData, onboardingSteps, onboardingAllDone } = metrics
 
   const presence = presenceRate === null
-    ? { color: '#5a5a72', iconBg: 'rgba(90,90,114,0.15)', label: 'Aucun shift planifié' }
+    ? { color: 'var(--text-tertiary)', iconBg: 'rgba(90,90,114,0.15)', label: 'Aucun shift planifié' }
     : presenceRate >= 80
     ? { color: '#00D4AA', iconBg: 'rgba(0,212,170,0.15)', label: 'Bonne présence' }
     : presenceRate >= 50
@@ -455,7 +455,7 @@ export function ManagerMetricsClient() {
                 style={{ backgroundColor: 'rgba(255,179,71,0.08)', border: '1px solid rgba(255,179,71,0.2)', borderRadius: '10px' }}
               >
                 <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" style={{ color: '#FFB347' }} />
-                <p className="flex-1 text-[13px]" style={{ color: '#f0f0f8', fontFamily: 'var(--font-dm-sans)' }}>
+                <p className="flex-1 text-[13px]" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-dm-sans)' }}>
                   {pendingCount} demande{pendingCount !== 1 ? 's' : ''} de congé{pendingCount !== 1 ? 's' : ''} en attente de validation
                 </p>
                 <span className="text-[12px] font-medium flex-shrink-0" style={{ color: '#FFB347' }}>Traiter →</span>
@@ -468,7 +468,7 @@ export function ManagerMetricsClient() {
                 style={{ backgroundColor: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.2)', borderRadius: '10px' }}
               >
                 <Clock className="h-3.5 w-3.5 flex-shrink-0" style={{ color: '#FF6B6B' }} />
-                <p className="flex-1 text-[13px]" style={{ color: '#f0f0f8', fontFamily: 'var(--font-dm-sans)' }}>
+                <p className="flex-1 text-[13px]" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-dm-sans)' }}>
                   {latenessCount} retard{latenessCount !== 1 ? 's' : ''} enregistré{latenessCount !== 1 ? 's' : ''} ce mois
                 </p>
                 <span className="text-[12px] font-medium flex-shrink-0" style={{ color: '#FF6B6B' }}>Voir →</span>
@@ -480,7 +480,7 @@ export function ManagerMetricsClient() {
 
       {/* ── MODULES ───────────────────────────────────────────────────────── */}
       <div className="space-y-3">
-        <p className="text-[11px] uppercase tracking-[0.06em]" style={{ color: '#5a5a72', fontFamily: 'var(--font-dm-sans)' }}>
+        <p className="text-[11px] uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-dm-sans)' }}>
           Modules
         </p>
 
@@ -498,12 +498,12 @@ export function ManagerMetricsClient() {
             onMouseEnter={() => setHoveredModule('/manager/planning')}
             onMouseLeave={() => setHoveredModule(null)}
             style={{
-              backgroundColor: '#0f0f16',
-              border: `1px solid ${hoveredModule === '/manager/planning' ? '#6C63FF' : 'rgba(255,255,255,0.06)'}`,
+              backgroundColor: 'var(--bg-card)',
+              border: `1px solid ${hoveredModule === '/manager/planning' ? '#6C63FF' : 'var(--border)'}`,
               borderRadius: '14px',
               padding: '18px 20px',
               transform: hoveredModule === '/manager/planning' ? 'translateY(-3px)' : 'translateY(0)',
-              boxShadow: hoveredModule === '/manager/planning' ? '0 0 0 1px rgba(108,99,255,0.2), 0 8px 24px rgba(0,0,0,0.3), 0 0 40px rgba(108,99,255,0.06)' : 'none',
+              boxShadow: hoveredModule === '/manager/planning' ? '0 0 0 1px rgba(108,99,255,0.2), 0 10px 30px rgba(16,24,40,0.12), 0 0 40px rgba(108,99,255,0.06)' : '0 1px 3px rgba(16,24,40,0.06)',
               transition: 'all 200ms ease',
             }}
           >
@@ -514,7 +514,7 @@ export function ManagerMetricsClient() {
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}>Planning</p>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>Planning</p>
                     <span style={{
                       fontSize: '10px', padding: '2px 8px', borderRadius: '6px', letterSpacing: '0.04em', fontFamily: 'var(--font-syne)',
                       backgroundColor: 'rgba(108,99,255,0.15)', color: '#6C63FF', border: '1px solid rgba(108,99,255,0.3)',
@@ -522,7 +522,7 @@ export function ManagerMetricsClient() {
                       Principal
                     </span>
                   </div>
-                  <p style={{ fontSize: '12px', color: '#9090a8', marginTop: '2px', fontFamily: 'var(--font-dm-sans)' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px', fontFamily: 'var(--font-dm-sans)' }}>
                     Créez, modifiez et publiez les horaires de votre équipe.
                   </p>
                 </div>
@@ -555,13 +555,13 @@ export function ManagerMetricsClient() {
                   onMouseEnter={() => setHoveredModule(href)}
                   onMouseLeave={() => setHoveredModule(null)}
                   style={{
-                    backgroundColor: '#0f0f16',
-                    border: `1px solid ${hoveredModule === href ? '#6C63FF' : 'rgba(255,255,255,0.06)'}`,
+                    backgroundColor: 'var(--bg-card)',
+                    border: `1px solid ${hoveredModule === href ? '#6C63FF' : 'var(--border)'}`,
                     borderRadius: '14px',
                     padding: '18px 20px',
                     height: '100%',
                     transform: hoveredModule === href ? 'translateY(-3px)' : 'translateY(0)',
-                    boxShadow: hoveredModule === href ? '0 0 0 1px rgba(108,99,255,0.2), 0 8px 24px rgba(0,0,0,0.3), 0 0 40px rgba(108,99,255,0.06)' : 'none',
+                    boxShadow: hoveredModule === href ? '0 0 0 1px rgba(108,99,255,0.2), 0 10px 30px rgba(16,24,40,0.12), 0 0 40px rgba(108,99,255,0.06)' : '0 1px 3px rgba(16,24,40,0.06)',
                     transition: 'all 200ms ease',
                   }}
                 >
@@ -575,8 +575,8 @@ export function ManagerMetricsClient() {
                       </span>
                     )}
                   </div>
-                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}>{title}</p>
-                  <p style={{ fontSize: '12px', color: '#9090a8', marginTop: '4px', fontFamily: 'var(--font-dm-sans)' }}>{description}</p>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>{title}</p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', fontFamily: 'var(--font-dm-sans)' }}>{description}</p>
                   <div style={{
                     marginTop: '12px', display: 'flex', alignItems: 'center', gap: '4px',
                     fontSize: '12px', fontWeight: 500, color: '#6C63FF',
