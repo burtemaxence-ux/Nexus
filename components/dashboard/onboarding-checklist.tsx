@@ -21,6 +21,7 @@ export function OnboardingChecklist({ steps }: OnboardingChecklistProps) {
 
   const doneCount = steps.filter(s => s.done).length
   const allDone = doneCount === steps.length
+  const nextStep = steps.find(s => !s.done)
 
   if (allDone) return null
 
@@ -94,6 +95,29 @@ export function OnboardingChecklist({ steps }: OnboardingChecklistProps) {
           }
         </div>
       </button>
+
+      {/* Prochaine étape — toujours accessible, même replié */}
+      {collapsed && nextStep && (
+        <Link href={nextStep.href} style={{ display: 'block', textDecoration: 'none' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '12px 20px',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+            backgroundColor: 'rgba(108,99,255,0.08)',
+          }}>
+            <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: '#6C63FF', flexShrink: 0 }}>
+              Prochaine étape
+            </span>
+            <span style={{ fontSize: '13px', color: '#f0f0f8', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {nextStep.title}
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 500, color: '#6C63FF', flexShrink: 0 }}>
+              {nextStep.cta}
+              <ArrowRight size={11} />
+            </span>
+          </div>
+        </Link>
+      )}
 
       {/* Steps list */}
       {!collapsed && (
