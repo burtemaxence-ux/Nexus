@@ -33,6 +33,8 @@ sur le projet Supabase `euvvibqzrhbleztqfdbu`.
 - **L1** hero landing recentré conformité (« protège des prud'hommes »).
 - **M3** navigation des paramètres : 12 liens à plat → **5 catégories**.
 - **M1** onboarding : « prochaine étape » accessible en 1 tap même replié.
+- **E3 (version sûre)** invitation employé envoyée **aussi par SMS** (le lien est déjà un magic link Supabase) — onboarding mobile en 1 tap, sans toucher à l'auth. No-op si Twilio non configuré.
+- **L4 (partiel)** badge « Hébergé en UE · RGPD » ajouté à la barre de réassurance (véridique).
 
 ### Déjà conformes (vérifié, rien à faire)
 - Landing : CTA « 30 jours sans CB » (L2), comparatif sans nommer Skello (L5), copy parrainage déjà −30 %.
@@ -54,8 +56,8 @@ laisserait ces zones noires sur fond clair. Plan propre (~½-1 j, à valider en 
 (`auth_rls_initplan` ×41 + `multiple_permissive_policies` ×149) ; nettoyage des index inutilisés
 (16) et doublons (2).
 
-**Décisions produit restantes** : **E3** invitation employé par SMS + lien magique (touche l'auth).
+**Optionnel (plus tard)** : **E3** login 100 % passwordless par SMS (au-delà de l'invitation
+déjà couverte) — chantier auth à part, seulement si tu le juges utile.
 
-**Business / contenu (pas du code)** : vidéo démo (L3) ; garantie remboursement (L4 — et tout
-badge d'hébergement doit dire « UE », pas « France ») ; support formalisé (R3) ; registre RGPD
-(R4) ; plan de sauvegarde Supabase (R5).
+**Business / contenu (pas du code)** : vidéo démo (L3) ; garantie remboursement (décision
+commerciale) ; support formalisé (R3) ; registre RGPD (R4) ; plan de sauvegarde Supabase (R5).
