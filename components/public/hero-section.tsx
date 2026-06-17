@@ -3,11 +3,11 @@
 import React from 'react'
 import Link from 'next/link'
 
-/* Remplacer HERO_TITLE par le titre validé */
-const HERO_TITLE = 'Fini les dimanches soir à galérer sur le planning.'
+/* Hero — angle conformité (protection juridique) */
+const HERO_TITLE = "Un planning qui vous protège des prud'hommes."
 
 const HERO_SUBTITLE =
-  `Un planning conforme au Code du Travail, généré en quelques minutes par l'IA, avec une alerte avant chaque infraction. À partir de 49€/mois, sans engagement.`
+  `Quartzbase vérifie automatiquement les règles du Code du Travail — repos, durées maximales, pauses — et vous alerte avant chaque infraction. Vos plannings, l'esprit tranquille. À partir de 49€/mois, sans engagement.`
 
 const TRUST_BADGE = '30 jours gratuits · Sans carte bleue · Conforme Code du Travail'
 
