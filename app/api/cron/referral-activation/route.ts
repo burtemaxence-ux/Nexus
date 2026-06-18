@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('[cron/referral-activation] query error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 
   let activated = 0

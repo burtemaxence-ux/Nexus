@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('[cron/trial-reminder] Erreur query:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 
   let sent = 0

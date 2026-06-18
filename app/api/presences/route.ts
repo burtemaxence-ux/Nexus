@@ -38,6 +38,6 @@ export async function GET(request: NextRequest) {
     .eq('employee_id', user.id)
     .eq('date', today)
     .maybeSingle()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   return NextResponse.json(data)
 }

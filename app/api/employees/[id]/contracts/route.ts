@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       .eq('employee_id', params.id)
       .is('deleted_at', null)
       .order('start_date', { ascending: false })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     return NextResponse.json(data)
   } catch (e) {
     if (e instanceof Response) return e as NextResponse

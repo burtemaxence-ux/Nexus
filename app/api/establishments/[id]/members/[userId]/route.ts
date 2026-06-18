@@ -52,6 +52,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     .eq('user_id', userId)
     .eq('establishment_id', id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   return NextResponse.json({ success: true })
 }

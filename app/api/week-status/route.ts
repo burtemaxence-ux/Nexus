@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     if (error && error.code !== 'PGRST116') {
       // PGRST116 = no rows found, which is fine (week not yet created)
       console.error('[week-status GET] error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
 
     // Si pas encore de statut, retourner les valeurs par défaut
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erreur inconnue'
     console.error('[week-status GET] exception:', message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
 
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[week-status POST] error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
 
     // Fire webhook + send emails when planning is published for the first time
@@ -279,6 +279,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erreur inconnue'
     console.error('[week-status POST] exception:', message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }

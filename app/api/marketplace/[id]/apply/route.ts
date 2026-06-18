@@ -95,7 +95,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   // Notify manager
   const fmtDate = new Date(shift.date + 'T00:00:00').toLocaleDateString('fr-FR', {

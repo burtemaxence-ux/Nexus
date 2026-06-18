@@ -36,7 +36,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       `)
       .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
     // Si approuvé : supprimer les shifts de l'employé pendant la période de congé
     if (status === 'approved') {
@@ -124,6 +124,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     .eq('employee_id', user.id)
     .eq('status', 'pending')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   return NextResponse.json({ success: true })
 }

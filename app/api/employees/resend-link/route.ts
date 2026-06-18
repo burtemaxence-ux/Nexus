@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     options: { redirectTo: `${siteUrl}/auth/set-password` },
   })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   const link = data.properties?.action_link
   if (!link) return NextResponse.json({ error: 'Impossible de générer le lien' }, { status: 500 })

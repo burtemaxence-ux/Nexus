@@ -7,7 +7,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const newPin = generatePin()
   const pinHash = await hashPin(newPin)
   const { error } = await supabase.from('profiles').update({ pin: pinHash }).eq('id', params.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   // Return the plain PIN once for display — never return the hash
   return NextResponse.json({ pin: newPin })
 }

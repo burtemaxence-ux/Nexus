@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[shift-reminder] query error:', error.message)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
     if (!shifts?.length) return NextResponse.json({ reminded: 0 })
 

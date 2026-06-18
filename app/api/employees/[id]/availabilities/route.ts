@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       .select('*')
       .eq('employee_id', params.id)
       .order('day_of_week')
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     return NextResponse.json(data)
   } catch (e) {
     if (e instanceof Response) return e as NextResponse
@@ -55,7 +55,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       const { error } = await supabase.from('availabilities').insert(
         body.map(a => ({ employee_id: params.id, day_of_week: a.day_of_week, start_time: a.start_time, end_time: a.end_time }))
       )
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
     return NextResponse.json({ success: true })
   } catch (e) {

@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     .select('id, name, created_at')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   // Return the raw token ONCE — never stored
   return NextResponse.json({ ...data, raw_token: raw }, { status: 201 })

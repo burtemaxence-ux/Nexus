@@ -13,7 +13,7 @@ export async function GET() {
     if (estId) query = query.eq('establishment_id', estId) as typeof query
 
     const { data, error } = await query
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
     const map: Record<string, string> = {}
     for (const row of data ?? []) map[row.key] = row.value

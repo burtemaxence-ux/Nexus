@@ -15,7 +15,7 @@ export async function POST() {
 
   // Ignore "already exists" error
   if (error && !error.message.includes('already exists')) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })

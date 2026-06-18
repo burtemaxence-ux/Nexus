@@ -15,7 +15,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     .eq('employee_id', params.id)
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   // Generate signed URLs (valid 1 hour)
   const docs = await Promise.all(

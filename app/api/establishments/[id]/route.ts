@@ -31,6 +31,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     .update({ name: name.trim(), updated_at: new Date().toISOString() })
     .eq('id', id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   return NextResponse.json({ success: true })
 }

@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { data: slots, error } = await slotsQuery
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   if (!slots || slots.length === 0) return NextResponse.json({ slots: [] })
 
@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   // Find eligible employees and notify them
   notifyEligibleEmployees(supabase, establishmentId, shift, slot.id).catch(() => {})
