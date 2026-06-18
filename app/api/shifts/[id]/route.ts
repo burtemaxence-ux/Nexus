@@ -6,19 +6,20 @@ async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) return { user: null, error: 'Non authentifié', status: 401 }
+  if (!user) return { user: null, estId: null, error: 'Non authentifié', status: 401 }
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, establishment_id, active_establishment_id')
     .eq('id', user.id)
     .single()
 
   if (profileError || !profile || !['manager', 'supervisor'].includes(profile.role)) {
-    return { user: null, error: 'Accès refusé', status: 403 }
+    return { user: null, estId: null, error: 'Accès refusé', status: 403 }
   }
 
-  return { user, error: null, status: 200 }
+  const estId = profile.active_establishment_id ?? profile.establishment_id ?? null
+  return { user, estId, error: null, status: 200 }
 }
 
 export async function PATCH(
@@ -27,10 +28,13 @@ export async function PATCH(
 ) {
   try {
     const supabase = await createClient()
-    const { user, error: authError, status: authStatus } = await getManagerUser(supabase)
+    const { user, estId, error: authError, status: authStatus } = await getManagerUser(supabase)
 
     if (!user) {
       return NextResponse.json({ error: authError }, { status: authStatus })
+    }
+    if (!estId) {
+      return NextResponse.json({ error: 'Établissement introuvable' }, { status: 400 })
     }
 
     const { id } = await params
@@ -69,6 +73,7 @@ export async function PATCH(
       .from('shifts')
       .update(updateData)
       .eq('id', id)
+      .eq('establishment_id', estId)
 
     if (error) {
       console.error('[shifts PATCH] error:', error)
@@ -89,10 +94,13 @@ export async function DELETE(
 ) {
   try {
     const supabase = await createClient()
-    const { user, error: authError, status: authStatus } = await getManagerUser(supabase)
+    const { user, estId, error: authError, status: authStatus } = await getManagerUser(supabase)
 
     if (!user) {
       return NextResponse.json({ error: authError }, { status: authStatus })
+    }
+    if (!estId) {
+      return NextResponse.json({ error: 'Établissement introuvable' }, { status: 400 })
     }
 
     const { id } = await params
@@ -106,6 +114,7 @@ export async function DELETE(
       .from('shifts')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
+      .eq('establishment_id', estId)
       .is('deleted_at', null)
 
     if (error) {
