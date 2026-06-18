@@ -30,6 +30,6 @@ export async function GET(request: NextRequest) {
   if (justifiedFilter === 'false') query = query.eq('justified', false)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   return NextResponse.json(data ?? [])
 }

@@ -26,7 +26,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .select('user_id, role, profiles(id, full_name, email)')
     .eq('establishment_id', id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   type Row = { user_id: string; role: string; profiles: { id: string; full_name: string | null; email: string } | { id: string; full_name: string | null; email: string }[] | null }
   const members = (data as Row[] ?? []).map(row => {
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     .from('user_establishments')
     .insert({ user_id: target.id, establishment_id: id, role })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   return NextResponse.json({ user_id: target.id, full_name: target.full_name, email: target.email, role }, { status: 201 })
 }

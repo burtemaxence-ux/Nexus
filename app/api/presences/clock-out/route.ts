@@ -49,6 +49,6 @@ export async function POST(_request: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   return NextResponse.json({ ...data, needs_review: needsReview })
 }

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         console.error('[notifications/read POST all]', error)
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
       }
       return NextResponse.json({ success: true })
     }
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[notifications/read POST id]', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })

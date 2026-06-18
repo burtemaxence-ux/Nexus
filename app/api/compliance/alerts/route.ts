@@ -28,7 +28,7 @@ export async function GET(_req: NextRequest) {
     .or(`ignored_until.is.null,ignored_until.lt.${now}`)
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   // Tri : CRITICAL → WARNING → INFO
   const levelOrder: Record<string, number> = { CRITICAL: 0, WARNING: 1, INFO: 2 }
@@ -64,7 +64,7 @@ export async function PATCH(req: NextRequest) {
       .eq('id', id)
       .eq('establishment_id', establishmentId)
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     return NextResponse.json({ ok: true, ignored_until: ignoredUntil })
   }
 
@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest) {
       .eq('id', id)
       .eq('establishment_id', establishmentId)
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     return NextResponse.json({ ok: true })
   }
 

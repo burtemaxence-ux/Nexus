@@ -12,7 +12,7 @@ export async function GET() {
       .select('establishment_id, role, establishments(id, name)')
       .eq('user_id', user.id)
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
     const establishments = (data ?? []).map(row => {
       const est = (Array.isArray(row.establishments) ? row.establishments[0] : row.establishments) as

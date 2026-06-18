@@ -35,7 +35,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('id', params.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

@@ -13,7 +13,7 @@ export async function GET() {
     if (estId) query = query.eq('establishment_id', estId) as typeof query
 
     const { data, error } = await query
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     return NextResponse.json(data)
   } catch (e) {
     if (e instanceof Response) return e as NextResponse
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     return NextResponse.json(data, { status: 201 })
   } catch (e) {
     if (e instanceof Response) return e as NextResponse

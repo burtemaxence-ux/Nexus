@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
 
   query = query.order('created_at', { ascending: false })
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   return NextResponse.json(data ?? [])
 }
 
@@ -79,6 +79,6 @@ export async function POST(req: NextRequest) {
     .select(SELECT)
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }
