@@ -8,6 +8,7 @@ import {
   ArrowRight, AlertTriangle, Palmtree, Timer,
 } from 'lucide-react'
 import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
+import { ComplianceOverview } from '@/components/dashboard/compliance-overview'
 import type { ElementType } from 'react'
 
 interface ModuleConfig {
@@ -444,6 +445,11 @@ export function ManagerMetricsClient() {
           progressPct={Math.min(latenessCount * 10, 100)}
           subLabel="enregistrés"
         />
+      </div>
+
+      {/* ── CONFORMITÉ (différenciateur Quartzbase) ───────────────────────── */}
+      <div className="dashboard-s2">
+        <ComplianceOverview />
       </div>
 
       {/* ── ALERTES ───────────────────────────────────────────────────────── */}
