@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
 import { ComplianceOverview } from '@/components/dashboard/compliance-overview'
+import { WeekLoadChart, type DayLoad } from '@/components/dashboard/week-load-chart'
 import type { ElementType } from 'react'
 
 interface ModuleConfig {
@@ -70,6 +71,21 @@ function getCurrentWeek() {
   return Math.ceil((days + startOfYear.getDay() + 1) / 7)
 }
 
+const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+
+type ShiftRow = { date?: string; start_time?: string | null; end_time?: string | null; break_minutes?: number | null }
+
+// Durée d'un shift en heures (gère les shifts de nuit et déduit la pause).
+function shiftHours(s: ShiftRow): number {
+  if (!s.start_time || !s.end_time) return 0
+  const [sh, sm] = s.start_time.split(':').map(Number)
+  const [eh, em] = s.end_time.split(':').map(Number)
+  let mins = (eh * 60 + em) - (sh * 60 + sm)
+  if (mins <= 0) mins += 24 * 60
+  mins -= s.break_minutes ?? 0
+  return Math.max(0, mins) / 60
+}
+
 interface Metrics {
   employeeCount: number
   pendingCount: number
@@ -79,6 +95,7 @@ interface Metrics {
   presentCount: number
   latenessCount: number
   sparklineData: number[]
+  weekLoad: DayLoad[]
   onboardingSteps: { title: string; description: string; done: boolean; href: string; cta: string }[]
   onboardingAllDone: boolean
 }
@@ -283,15 +300,7 @@ export function ManagerMetricsClient() {
       // Heures planifiées cette semaine (durée des shifts - pauses). Toujours
       // exact, sans dépendre des taux horaires (qui vivent côté contrats).
       const plannedHours = Math.round(
-        (weekShifts ?? []).reduce((sum: number, s: { start_time?: string | null; end_time?: string | null; break_minutes?: number | null }) => {
-          if (!s.start_time || !s.end_time) return sum
-          const [sh, sm] = s.start_time.split(':').map(Number)
-          const [eh, em] = s.end_time.split(':').map(Number)
-          let mins = (eh * 60 + em) - (sh * 60 + sm)
-          if (mins <= 0) mins += 24 * 60 // shift de nuit
-          mins -= s.break_minutes ?? 0
-          return sum + Math.max(0, mins) / 60
-        }, 0)
+        (weekShifts ?? []).reduce((sum: number, s: ShiftRow) => sum + shiftHours(s), 0)
       )
 
       const weekDates: string[] = []
@@ -308,6 +317,16 @@ export function ManagerMetricsClient() {
         ).length
         return Math.round((dayPresent / dayShifts) * 100)
       })
+
+      const todayStr = today.toISOString().split('T')[0]
+      const weekLoad: DayLoad[] = weekDates.map((date, i) => ({
+        day: DAY_LABELS[i],
+        hours: Math.round(
+          (weekShifts ?? []).filter((s: ShiftRow) => s.date === date).reduce((sum: number, s: ShiftRow) => sum + shiftHours(s), 0)
+        ),
+        isToday: date === todayStr,
+      }))
+
       const isDefaultName = !nameRow?.value || nameRow.value === 'Mon établissement'
 
       const onboardingSteps = [
@@ -357,6 +376,7 @@ export function ManagerMetricsClient() {
         presentCount,
         latenessCount,
         sparklineData,
+        weekLoad,
         onboardingSteps,
         onboardingAllDone: onboardingSteps.every(s => s.done),
       })
@@ -373,7 +393,7 @@ export function ManagerMetricsClient() {
 
   if (!metrics) return <MetricsSkeleton />
 
-  const { employeeCount, pendingCount, presenceRate, totalShifts, plannedHours, presentCount, latenessCount, sparklineData, onboardingSteps, onboardingAllDone } = metrics
+  const { employeeCount, pendingCount, presenceRate, totalShifts, plannedHours, presentCount, latenessCount, sparklineData, weekLoad, onboardingSteps, onboardingAllDone } = metrics
 
   const presence = presenceRate === null
     ? { color: 'var(--text-tertiary)', iconBg: 'rgba(90,90,114,0.15)', label: 'Aucun shift planifié' }
@@ -450,6 +470,20 @@ export function ManagerMetricsClient() {
       {/* ── CONFORMITÉ (différenciateur Quartzbase) ───────────────────────── */}
       <div className="dashboard-s2">
         <ComplianceOverview />
+      </div>
+
+      {/* ── SEMAINE EN COURS ──────────────────────────────────────────────── */}
+      <div
+        className="dashboard-s2 rounded-[14px] border overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+      >
+        <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
+          <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>Charge de la semaine</p>
+          <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{plannedHours} h planifiées</span>
+        </div>
+        <div className="px-3 py-4">
+          <WeekLoadChart data={weekLoad} />
+        </div>
       </div>
 
       {/* ── ALERTES ───────────────────────────────────────────────────────── */}
