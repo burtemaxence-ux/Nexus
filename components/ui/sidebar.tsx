@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { getInitials, getEstablishmentInitials } from '@/lib/planning-utils'
 import {
-  Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap, BookOpen,
+  Home, Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap, BookOpen,
   Palmtree, AlertTriangle, Upload, CreditCard,
   Settings, ChevronLeft, ChevronRight, ChevronDown, LogOut,
   ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight,
@@ -41,18 +41,17 @@ interface NavGroup {
 function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
   return [
     {
-      group: 'Gestion',
+      group: 'Pilotage',
       items: [
-        { label: 'Planning',     icon: Calendar,   href: '/manager/planning' },
-        { label: 'Employés',     icon: Users,      href: '/manager/employees' },
-        { label: 'Rapport',      icon: BarChart3,  href: '/manager/rapport' },
-        { label: 'Analytiques',  icon: LineChart,  href: '/manager/analytics' },
-        { label: 'Badgeuse',     icon: Clock,      href: '/manager/presences' },
+        { label: 'Accueil',  icon: Home,     href: '/manager' },
+        { label: 'Planning', icon: Calendar, href: '/manager/planning' },
+        { label: 'Badgeuse', icon: Clock,    href: '/manager/presences' },
       ],
     },
     {
-      group: 'Demandes',
+      group: 'Équipe & demandes',
       items: [
+        { label: 'Employés',    icon: Users,          href: '/manager/employees' },
         {
           label: 'Congés',
           icon: Palmtree,
@@ -60,38 +59,27 @@ function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
           badge: pendingLeavesCount,
           badgeColor: 'orange',
         },
-        {
-          label: 'Échanges',
-          icon: ArrowLeftRight,
-          href: '/manager/echanges',
-        },
-        {
-          label: 'Marketplace',
-          icon: Zap,
-          href: '/manager/marketplace',
-        },
-        {
-          label: 'Alertes',
-          icon: AlertTriangle,
-          href: '/manager/alertes',
-          badgeColor: 'red',
-        },
+        { label: 'Échanges',    icon: ArrowLeftRight, href: '/manager/echanges' },
+        { label: 'Marketplace', icon: Zap,            href: '/manager/marketplace' },
       ],
     },
     {
-      group: 'Outils',
+      group: 'Conformité & analyse',
       items: [
-        { label: 'Conformité', icon: Scale,        href: '/manager/compliance' },
-        { label: 'Exports',    icon: Upload,       href: '/manager/settings/exports' },
-        { label: 'Journal',    icon: ShieldCheck,  href: '/manager/audit-log' },
+        { label: 'Conformité',  icon: Scale,         href: '/manager/compliance' },
+        { label: 'Alertes',     icon: AlertTriangle, href: '/manager/alertes', badgeColor: 'red' },
+        { label: 'Rapport',     icon: BarChart3,     href: '/manager/rapport' },
+        { label: 'Analytiques', icon: LineChart,     href: '/manager/analytics' },
+        { label: 'Journal',     icon: ShieldCheck,   href: '/manager/audit-log' },
       ],
     },
     {
-      group: 'Configuration',
+      group: 'Paramètres',
       items: [
+        { label: 'Paramètres', icon: Settings,   href: '/manager/settings' },
+        { label: 'Exports',    icon: Upload,     href: '/manager/settings/exports' },
         { label: 'Abonnement', icon: CreditCard, href: '/manager/settings/billing' },
-        { label: 'Paramètres', icon: Settings,  href: '/manager/settings' },
-        { label: 'Aide',       icon: BookOpen,  href: '/manager/help' },
+        { label: 'Aide',       icon: BookOpen,   href: '/manager/help' },
       ],
     },
   ]
@@ -203,9 +191,11 @@ export function Sidebar({
 
   function isActive(href: string) {
     if (href === '#') return false
+    if (href === '/manager') return pathname === '/manager'
     if (href === '/manager/settings') {
       return pathname.startsWith('/manager/settings') &&
-        !pathname.startsWith('/manager/settings/exports')
+        !pathname.startsWith('/manager/settings/exports') &&
+        !pathname.startsWith('/manager/settings/billing')
     }
     return pathname === href || pathname.startsWith(href + '/')
   }
