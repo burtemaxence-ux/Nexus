@@ -14,6 +14,11 @@ const anthropic = new Anthropic()
 type AlertType = 'hours_exceeded' | 'trial_ending' | 'cdd_ending' | 'requalification_risk'
 type AlertLevel = 'INFO' | 'WARNING' | 'CRITICAL'
 
+// Types d'alertes gérés (créés ET auto-résolus) par ce cron. On ne touche jamais
+// aux alertes d'un type qu'on ne sait pas évaluer (sécurité si d'autres systèmes
+// en créent à l'avenir).
+const MANAGED_ALERT_TYPES: string[] = ['hours_exceeded', 'trial_ending', 'cdd_ending', 'requalification_risk']
+
 interface DetectedAlert {
   employee_id: string
   establishment_id: string
@@ -324,7 +329,7 @@ export async function GET(request: NextRequest) {
   }
 
   const now = new Date()
-  const results = { establishments: 0, alerts_created: 0, errors: 0 }
+  const results = { establishments: 0, alerts_created: 0, alerts_resolved: 0, errors: 0 }
 
   try {
     const { data: establishments, error: estErr } = await supabaseAdmin
@@ -408,39 +413,59 @@ export async function GET(request: NextRequest) {
         // Pré-fetch de toutes les alertes actives en un seul batch (évite N+1)
         const { data: existingAlerts } = await supabaseAdmin
           .from('compliance_alerts')
-          .select('employee_id, type')
+          .select('id, employee_id, type')
           .eq('establishment_id', est.id)
           .eq('status', 'active')
           .in('employee_id', employeeIds)
 
         const activeAlertSet = buildActiveAlertSet(existingAlerts ?? [])
+        const activeAlertsByEmployee = new Map<string, { id: string; type: string }[]>()
+        for (const a of (existingAlerts ?? []) as { id: string; employee_id: string; type: string }[]) {
+          const arr = activeAlertsByEmployee.get(a.employee_id) ?? []
+          arr.push({ id: a.id, type: a.type })
+          activeAlertsByEmployee.set(a.employee_id, arr)
+        }
 
         // Analyser chaque employé
         for (const employee of employees as EmployeeRow[]) {
           // Forcer l'establishment_id de l'itération courante
           const emp = { ...employee, establishment_id: est.id }
           const empContracts = contractsByEmployee.get(emp.id) ?? []
-          if (empContracts.length === 0) continue
-
-          // Contrat de référence (priorité CDI > CDD > Apprentissage > Stage > Extra)
-          // pour le calcul heures réelles vs contractuelles.
-          const primaryContract = empContracts
-            .slice()
-            .sort((a, b) => contractRank(a.type) - contractRank(b.type))[0]
-
           const empPresences = presencesByEmployee.get(emp.id) ?? []
           const empShifts = shiftsByEmployee.get(emp.id) ?? []
 
-          // Heures vs contrat : une seule fois sur le contrat de référence.
+          // Heures vs contrat : une seule fois sur le contrat de référence
+          // (priorité CDI > CDD > Apprentissage > Stage > Extra).
           // Essai / fin de contrat / requalification : par contrat (spécifiques au
           // type) afin de ne masquer aucune alerte d'un employé multi-contrats.
-          const candidates: Array<DetectedAlert | null> = [
-            await analyseHoursExceeded(emp, primaryContract, empPresences),
-          ]
-          for (const c of empContracts) {
-            candidates.push(await analyseTrialEnding(emp, c, now))
-            candidates.push(await analyseCddEnding(emp, c, now))
-            candidates.push(await analyseRequalificationRisk(emp, c, empShifts, now))
+          const candidates: Array<DetectedAlert | null> = []
+          if (empContracts.length > 0) {
+            const primaryContract = empContracts
+              .slice()
+              .sort((a, b) => contractRank(a.type) - contractRank(b.type))[0]
+            candidates.push(await analyseHoursExceeded(emp, primaryContract, empPresences))
+            for (const c of empContracts) {
+              candidates.push(await analyseTrialEnding(emp, c, now))
+              candidates.push(await analyseCddEnding(emp, c, now))
+              candidates.push(await analyseRequalificationRisk(emp, c, empShifts, now))
+            }
+          }
+
+          // ── Auto-résolution ──────────────────────────────────────────────
+          // Une alerte gérée encore "active" dont la condition n'est plus vraie
+          // (CDD renouvelé, heures revenues à la normale, contrat supprimé…) passe
+          // automatiquement en "resolved".
+          const shouldBeActive = new Set<string>(
+            candidates.filter((c): c is DetectedAlert => c !== null).map(c => c.type)
+          )
+          for (const a of activeAlertsByEmployee.get(emp.id) ?? []) {
+            if (MANAGED_ALERT_TYPES.includes(a.type) && !shouldBeActive.has(a.type)) {
+              const { error: resolveErr } = await supabaseAdmin
+                .from('compliance_alerts')
+                .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+                .eq('id', a.id)
+              if (!resolveErr) results.alerts_resolved++
+            }
           }
 
           for (const alert of candidates) {
