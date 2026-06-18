@@ -10,6 +10,7 @@ import {
 import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
 import { ComplianceOverview } from '@/components/dashboard/compliance-overview'
 import { WeekLoadChart, type DayLoad } from '@/components/dashboard/week-load-chart'
+import { TodayRoster } from '@/components/dashboard/today-roster'
 import type { ElementType } from 'react'
 
 interface ModuleConfig {
@@ -474,6 +475,11 @@ export function ManagerMetricsClient() {
       {/* ── CONFORMITÉ (différenciateur Quartzbase) ───────────────────────── */}
       <div className="dashboard-s2">
         <ComplianceOverview />
+      </div>
+
+      {/* ── SERVICE DU JOUR (live) ────────────────────────────────────────── */}
+      <div className="dashboard-s2">
+        <TodayRoster />
       </div>
 
       {/* ── SEMAINE EN COURS ──────────────────────────────────────────────── */}
