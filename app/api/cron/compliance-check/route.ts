@@ -89,6 +89,19 @@ function buildActiveAlertSet(alerts: { employee_id: string; type: string }[]): S
   return new Set(alerts.map(a => `${a.employee_id}__${a.type}`))
 }
 
+// Priorité du contrat « principal » (référence pour le calcul heures réelles vs
+// contractuelles, qui suppose un seul contrat) : CDI > CDD > Apprentissage >
+// Stage > Extra. Les types sont libres (« CDI 35h », « CDD »…) → match par préfixe.
+function contractRank(type: string): number {
+  const t = (type || '').toLowerCase()
+  if (t.startsWith('cdi')) return 0
+  if (t.startsWith('cdd')) return 1
+  if (t.startsWith('appren')) return 2
+  if (t.startsWith('stage')) return 3
+  if (t.startsWith('extra')) return 4
+  return 5
+}
+
 async function getManagerIds(establishment_id: string): Promise<string[]> {
   const { data } = await supabaseAdmin
     .from('profiles')
@@ -349,12 +362,13 @@ export async function GET(request: NextRequest) {
 
         if (!contracts?.length) continue
 
-        // Contrat actif par employé (le plus récent)
-        const contractByEmployee = new Map<string, ContractRow>()
+        // Tous les contrats actifs par employé (un employé peut en avoir plusieurs
+        // simultanément : ex. CDI + Extra). On les analyse tous pour ne rien masquer.
+        const contractsByEmployee = new Map<string, ContractRow[]>()
         for (const c of contracts as ContractRow[]) {
-          if (!contractByEmployee.has(c.employee_id)) {
-            contractByEmployee.set(c.employee_id, c)
-          }
+          const arr = contractsByEmployee.get(c.employee_id) ?? []
+          arr.push(c)
+          contractsByEmployee.set(c.employee_id, arr)
         }
 
         // Presences des 12 dernières semaines
@@ -405,18 +419,29 @@ export async function GET(request: NextRequest) {
         for (const employee of employees as EmployeeRow[]) {
           // Forcer l'establishment_id de l'itération courante
           const emp = { ...employee, establishment_id: est.id }
-          const contract = contractByEmployee.get(emp.id)
-          if (!contract) continue
+          const empContracts = contractsByEmployee.get(emp.id) ?? []
+          if (empContracts.length === 0) continue
+
+          // Contrat de référence (priorité CDI > CDD > Apprentissage > Stage > Extra)
+          // pour le calcul heures réelles vs contractuelles.
+          const primaryContract = empContracts
+            .slice()
+            .sort((a, b) => contractRank(a.type) - contractRank(b.type))[0]
 
           const empPresences = presencesByEmployee.get(emp.id) ?? []
           const empShifts = shiftsByEmployee.get(emp.id) ?? []
 
-          const candidates: Array<DetectedAlert | null> = await Promise.all([
-            analyseHoursExceeded(emp, contract, empPresences),
-            analyseTrialEnding(emp, contract, now),
-            analyseCddEnding(emp, contract, now),
-            analyseRequalificationRisk(emp, contract, empShifts, now),
-          ])
+          // Heures vs contrat : une seule fois sur le contrat de référence.
+          // Essai / fin de contrat / requalification : par contrat (spécifiques au
+          // type) afin de ne masquer aucune alerte d'un employé multi-contrats.
+          const candidates: Array<DetectedAlert | null> = [
+            await analyseHoursExceeded(emp, primaryContract, empPresences),
+          ]
+          for (const c of empContracts) {
+            candidates.push(await analyseTrialEnding(emp, c, now))
+            candidates.push(await analyseCddEnding(emp, c, now))
+            candidates.push(await analyseRequalificationRisk(emp, c, empShifts, now))
+          }
 
           for (const alert of candidates) {
             if (!alert) continue
@@ -449,6 +474,9 @@ export async function GET(request: NextRequest) {
             }
 
             results.alerts_created++
+            // Dédup intra-run : un employé multi-contrats ne doit pas générer
+            // deux alertes du même type dans la même exécution.
+            activeAlertSet.add(`${alert.employee_id}__${alert.type}`)
 
             // Notifier les managers
             if (managerIds.length) {
