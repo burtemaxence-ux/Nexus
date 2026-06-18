@@ -11,6 +11,7 @@ import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist
 import { ComplianceOverview } from '@/components/dashboard/compliance-overview'
 import { WeekLoadChart, type DayLoad } from '@/components/dashboard/week-load-chart'
 import { TodayRoster } from '@/components/dashboard/today-roster'
+import { WeeklyBriefCard } from '@/components/dashboard/weekly-brief-card'
 import type { ElementType } from 'react'
 
 interface ModuleConfig {
@@ -415,6 +416,11 @@ export function ManagerMetricsClient() {
 
   return (
     <div className="space-y-6">
+
+      {/* ── BRIEFING IA (lundi) ───────────────────────────────────────────── */}
+      <div className="dashboard-s0">
+        <WeeklyBriefCard />
+      </div>
 
       {/* ── ONBOARDING ────────────────────────────────────────────────────── */}
       {!onboardingAllDone && (

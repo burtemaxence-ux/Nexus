@@ -12,6 +12,10 @@ function formatTime(iso: string | null): string {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 
+function formatDateShort(date: string): string {
+  return new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
 function shiftProgress(startTime: string, endTime: string): number {
   const now = new Date()
   const [sh, sm] = startTime.split(':').map(Number)
@@ -37,17 +41,20 @@ export default async function EmployeeDashboard() {
     { data: todayShifts },
     { data: presence },
     { count: pendingLeaves },
+    { data: upcomingShifts },
   ] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', user.id).single(),
     supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
     supabase.from('shifts').select('start_time, end_time, position').eq('employee_id', user.id).eq('date', today).limit(1),
     supabase.from('presences').select('clock_in, clock_out, break_start, break_end').eq('employee_id', user.id).eq('date', today).maybeSingle(),
     supabase.from('leave_requests').select('id', { count: 'exact', head: true }).eq('employee_id', user.id).eq('status', 'pending'),
+    supabase.from('shifts').select('date, start_time, end_time, position').eq('employee_id', user.id).gt('date', today).order('date', { ascending: true }).limit(1),
   ])
 
   const firstName = profile?.full_name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'Employé'
   const establishment = settingsRow?.value && settingsRow.value !== 'Mon établissement' ? settingsRow.value : null
   const shift = todayShifts?.[0] ?? null
+  const nextShift = upcomingShifts?.[0] ?? null
 
   const p = presence ?? null
   const isWorking = !!p?.clock_in && !p?.clock_out && !(p?.break_start && !p?.break_end)
@@ -140,7 +147,7 @@ export default async function EmployeeDashboard() {
               </p>
               {/* Progress bar */}
               <div className="mt-3 space-y-1.5">
-                <div className="w-full rounded-full overflow-hidden" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                <div className="w-full rounded-full overflow-hidden" style={{ height: '4px', backgroundColor: 'var(--border)' }}>
                   <div
                     className="h-full rounded-full transition-all"
                     style={{ width: `${progress}%`, backgroundColor: progress >= 100 ? 'var(--success)' : 'var(--accent)' }}
@@ -151,6 +158,17 @@ export default async function EmployeeDashboard() {
                 </p>
               </div>
             </>
+          ) : nextShift ? (
+            <div>
+              <p className="text-[13px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
+                Repos aujourd&apos;hui · prochain service
+              </p>
+              <p className="text-[18px] font-bold tracking-[-0.02em] mt-1" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+                <span className="capitalize">{formatDateShort(nextShift.date)}</span>
+                <span className="text-[14px] font-normal mx-1.5" style={{ color: 'var(--text-tertiary)' }}>·</span>
+                {nextShift.start_time.slice(0, 5)} → {nextShift.end_time.slice(0, 5)}
+              </p>
+            </div>
           ) : (
             <p className="text-[14px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
               Pas de shift planifié aujourd&apos;hui
