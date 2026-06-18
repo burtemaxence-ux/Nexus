@@ -49,23 +49,28 @@ export function TodayRoster() {
   useEffect(() => {
     let active = true
     const supabase = createClient()
-    const today = new Date().toISOString().split('T')[0]
-    Promise.all([
-      supabase
-        .from('shifts')
-        .select('id, employee_id, start_time, end_time, position, profiles:employee_id(full_name)')
-        .eq('date', today)
-        .is('deleted_at', null)
-        .order('start_time'),
-      supabase
-        .from('presences')
-        .select('employee_id, clock_in, clock_out')
-        .eq('date', today),
-    ]).then(([s, p]) => {
-      if (!active) return
-      setData({ shifts: (s.data ?? []) as ShiftRow[], presences: (p.data ?? []) as PresenceRow[] })
-    })
-    return () => { active = false }
+    function load() {
+      const today = new Date().toISOString().split('T')[0]
+      Promise.all([
+        supabase
+          .from('shifts')
+          .select('id, employee_id, start_time, end_time, position, profiles:employee_id(full_name)')
+          .eq('date', today)
+          .is('deleted_at', null)
+          .order('start_time'),
+        supabase
+          .from('presences')
+          .select('employee_id, clock_in, clock_out')
+          .eq('date', today),
+      ]).then(([s, p]) => {
+        if (!active) return
+        setData({ shifts: (s.data ?? []) as ShiftRow[], presences: (p.data ?? []) as PresenceRow[] })
+      })
+    }
+    load()
+    // Cockpit live : rafraîchit les pointages au fil du service.
+    const id = setInterval(load, 60_000)
+    return () => { active = false; clearInterval(id) }
   }, [])
 
   if (data === null) {
@@ -98,8 +103,11 @@ export function TodayRoster() {
           <CalendarClock className="h-5 w-5" style={{ color: 'var(--accent)' }} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+          <p className="text-[14px] font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
             Service du jour
+            {shifts.length > 0 && (
+              <span className="w-1.5 h-1.5 rounded-full dot-pulse-green" style={{ backgroundColor: 'var(--success)' }} title="En direct" />
+            )}
           </p>
           <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
             {shifts.length === 0 ? 'Aucun service planifié' : `${here}/${shifts.length} présent${here !== 1 ? 's' : ''}`}
