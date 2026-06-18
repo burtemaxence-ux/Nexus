@@ -17,7 +17,7 @@ interface OnboardingChecklistProps {
 }
 
 export function OnboardingChecklist({ steps }: OnboardingChecklistProps) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
 
   const doneCount = steps.filter(s => s.done).length
   const allDone = doneCount === steps.length

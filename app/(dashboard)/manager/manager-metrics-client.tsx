@@ -66,13 +66,6 @@ const SECONDARY_MODULES: ModuleConfig[] = [
   },
 ]
 
-function getCurrentWeek() {
-  const now = new Date()
-  const startOfYear = new Date(now.getFullYear(), 0, 1)
-  const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000))
-  return Math.ceil((days + startOfYear.getDay() + 1) / 7)
-}
-
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
 type ShiftRow = { date?: string; start_time?: string | null; end_time?: string | null; break_minutes?: number | null }
@@ -114,7 +107,6 @@ function MetricsSkeleton() {
             <div className="w-9 h-9 rounded-[10px] animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
             <div className="h-2 w-20 rounded animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
             <div className="h-8 w-16 rounded animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
-            <div className="mt-auto h-[5px] rounded-full" style={{ backgroundColor: 'var(--muted)' }} />
           </div>
         ))}
       </div>
@@ -185,14 +177,13 @@ interface KpiCardProps {
   icon: ElementType
   iconBg: string
   suffix?: string
-  progressPct: number
   subLabel?: string
   subLabelColored?: boolean
   isNull?: boolean
   sparkline?: number[]
 }
 
-function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progressPct, subLabel, subLabelColored = false, isNull = false, sparkline }: KpiCardProps) {
+function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', subLabel, subLabelColored = false, isNull = false, sparkline }: KpiCardProps) {
   const animated = useCountUp(value)
   const [hovered, setHovered] = useState(false)
   return (
@@ -203,43 +194,41 @@ function KpiCard({ label, value, color, icon: Icon, iconBg, suffix = '', progres
         backgroundColor: 'var(--bg-card)',
         border: `1px solid ${hovered ? 'var(--border-hover)' : 'var(--border)'}`,
         borderRadius: '14px',
-        padding: '20px 22px',
+        padding: '18px 20px',
         transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
         boxShadow: hovered ? '0 0 0 1px rgba(108,99,255,0.2), 0 10px 30px rgba(16,24,40,0.12), 0 0 40px rgba(108,99,255,0.06)' : '0 1px 3px rgba(16,24,40,0.06)',
         transition: 'all 200ms ease',
         display: 'flex',
         flexDirection: 'column',
-        gap: '10px',
+        gap: '8px',
       }}
     >
-      <div style={{ width: '36px', height: '36px', borderRadius: '10px', backgroundColor: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon className="h-4 w-4" style={{ color }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        <p style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', fontFamily: 'var(--font-dm-sans)', margin: 0 }}>
+          {label}
+        </p>
+        <div style={{ width: '30px', height: '30px', borderRadius: '9px', backgroundColor: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon className="h-[15px] w-[15px]" style={{ color }} />
+        </div>
       </div>
-      <p style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontFamily: 'var(--font-dm-sans)', margin: 0 }}>
-        {label}
-      </p>
-      <p style={{ fontSize: '32px', fontWeight: 700, lineHeight: 1, color, fontFamily: 'var(--font-syne)', margin: 0 }}>
-        {isNull ? '—' : `${animated}${suffix}`}
+      <p style={{ fontSize: '30px', fontWeight: 700, lineHeight: 1.05, color, fontFamily: 'var(--font-syne)', margin: 0, fontVariantNumeric: 'tabular-nums lining-nums' }}>
+        {isNull ? '—' : (
+          <>
+            {animated}
+            {suffix && (
+              <span style={{ fontSize: '17px', fontWeight: 600, marginLeft: '3px', color: 'var(--text-tertiary)' }}>{suffix}</span>
+            )}
+          </>
+        )}
       </p>
       {subLabel && (
         <p style={{ fontSize: '12px', color: subLabelColored ? color : 'var(--text-secondary)', margin: 0 }}>{subLabel}</p>
       )}
       {sparkline && (
-        <div style={{ marginTop: '4px' }}>
+        <div style={{ marginTop: '2px' }}>
           <MiniSparkline data={sparkline} color={color} />
         </div>
       )}
-      <div style={{ marginTop: 'auto', paddingTop: '8px' }}>
-        <div style={{ height: '5px', borderRadius: '99px', backgroundColor: 'var(--border)', overflow: 'hidden' }}>
-          <div style={{
-            height: '100%',
-            borderRadius: '99px',
-            width: `${Math.min(Math.max(progressPct, 0), 100)}%`,
-            backgroundColor: color,
-            transition: 'width 700ms ease',
-          }} />
-        </div>
-      </div>
     </div>
   )
 }
@@ -432,26 +421,24 @@ export function ManagerMetricsClient() {
       {/* ── KPI CARDS ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 dashboard-s1">
         <KpiCard
-          label={`Présence · S${getCurrentWeek()}`}
+          label="Présence"
           value={presenceRate ?? 0}
           suffix="%"
           color={presence.color}
           icon={BarChart3}
           iconBg={presence.iconBg}
-          progressPct={presenceRate ?? 0}
           subLabel={presence.label}
           subLabelColored
           isNull={presenceRate === null}
           sparkline={sparklineData}
         />
         <KpiCard
-          label={`Heures · S${getCurrentWeek()}`}
+          label="Heures"
           value={plannedHours}
           suffix="h"
           color="#00D4AA"
           icon={Timer}
           iconBg="rgba(0,212,170,0.15)"
-          progressPct={Math.min(plannedHours / 2, 100)}
           subLabel="planifiées cette semaine"
         />
         <KpiCard
@@ -460,7 +447,6 @@ export function ManagerMetricsClient() {
           color="#6C63FF"
           icon={Users}
           iconBg="rgba(108,99,255,0.15)"
-          progressPct={Math.min(employeeCount * 5, 100)}
           subLabel="employés actifs"
         />
         <KpiCard
@@ -469,7 +455,6 @@ export function ManagerMetricsClient() {
           color="#FFB347"
           icon={Palmtree}
           iconBg="rgba(255,179,71,0.15)"
-          progressPct={Math.min(pendingCount * 20, 100)}
           subLabel="demandes"
         />
         <KpiCard
@@ -478,7 +463,6 @@ export function ManagerMetricsClient() {
           color="#FF6B6B"
           icon={Clock}
           iconBg="rgba(255,107,107,0.15)"
-          progressPct={Math.min(latenessCount * 10, 100)}
           subLabel="enregistrés"
         />
       </div>

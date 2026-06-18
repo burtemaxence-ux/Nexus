@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
@@ -24,6 +25,7 @@ function getInitials(name: string | null, email: string | null): string {
 }
 
 export default function ManagerCongesPage() {
+  const router = useRouter()
   const [listRef] = useAutoAnimate()
   const [requests, setRequests] = useState<LeaveRequestWithEmployee[]>([])
   const [loading, setLoading] = useState(true)
@@ -64,6 +66,7 @@ export default function ManagerCongesPage() {
       setActionId(null)
       setManagerComment('')
       fetchRequests()
+      router.refresh() // rafraîchit le badge congés de la sidebar (layout serveur)
     }
     setActionLoading(false)
   }
