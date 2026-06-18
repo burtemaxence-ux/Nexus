@@ -339,7 +339,6 @@ export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0, compl
     paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
-    backgroundColor: 'rgba(15,15,22,0.92)',
   }
 
   if (role === 'manager' || role === 'supervisor') {
@@ -349,7 +348,7 @@ export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0, compl
     return (
       <>
         <nav
-          className="fixed bottom-0 left-0 right-0 z-30 flex md:hidden bg-[var(--bg-card)] items-stretch px-1"
+          className="fixed bottom-0 left-0 right-0 z-30 flex md:hidden bg-white/90 dark:bg-[#13131c]/90 items-stretch px-1"
           style={navBarStyle}
         >
           <Link href="/manager" className="flex-1 flex items-center justify-center">
@@ -386,7 +385,7 @@ export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0, compl
   // ── Employé ──────────────────────────────────────────────────────────────────
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 flex md:hidden items-stretch px-1"
+      className="fixed bottom-0 left-0 right-0 z-30 flex md:hidden bg-white/90 dark:bg-[#13131c]/90 items-stretch px-1"
       style={navBarStyle}
     >
       <Link href="/employee" className="flex-1 flex items-center justify-center active:scale-90 transition-transform duration-100">

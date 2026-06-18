@@ -1,12 +1,16 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Sidebar } from './sidebar'
 import { AccountDropdown } from './topbar'
 import { NotificationsBell } from './notifications-bell'
+import { ThemeToggle } from './theme-toggle'
+import { TopbarSearch } from './topbar-search'
+import { FullscreenToggle } from './fullscreen-toggle'
+import { Settings } from 'lucide-react'
 import { MobileHeader, BottomNav } from './bottom-nav'
 import { AiAssistant } from './ai-assistant'
 import { BreadcrumbNav } from './breadcrumb-nav'
@@ -51,6 +55,16 @@ export function AppShell({
   const [collapsed, setCollapsed] = useState(false)
   const router = useRouter()
 
+  // Apply the user's chosen theme inside the app (default dark). On unmount
+  // — i.e. navigating out to the landing/auth pages, which are dark-only —
+  // restore dark so the marketing surface keeps its brand look.
+  useEffect(() => {
+    try {
+      document.documentElement.classList.toggle('dark', localStorage.getItem('dp-theme') !== 'light')
+    } catch { /* ignore */ }
+    return () => { document.documentElement.classList.add('dark') }
+  }, [])
+
   async function handleSignOut() {
     const supabase = createClient()
     await supabase.auth.signOut()
@@ -88,12 +102,26 @@ export function AppShell({
             role={role}
           />
 
-          {/* Slim header — desktop only */}
+          {/* Topbar — desktop only (style Dhonu) */}
           <header
-            className="hidden md:flex items-center justify-end gap-3 h-12 px-5 sticky top-0 z-30 flex-shrink-0 backdrop-blur-md"
-            style={{ backgroundColor: 'rgba(11,11,18,0.7)', borderBottom: '1px solid var(--border)' }}
+            className="hidden md:flex items-center gap-2 h-14 px-5 sticky top-0 z-30 flex-shrink-0 backdrop-blur-md bg-white/80 dark:bg-[#0b0b12]/70"
+            style={{ borderBottom: '1px solid var(--border)' }}
           >
+            <TopbarSearch role={role} />
+            <div className="flex-1" />
+            {(role === 'manager' || role === 'supervisor') && (
+              <Link
+                href="/manager/settings"
+                aria-label="Paramètres"
+                title="Paramètres"
+                className="flex items-center justify-center h-9 w-9 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors"
+              >
+                <Settings className="h-[18px] w-[18px]" />
+              </Link>
+            )}
+            <ThemeToggle />
             <NotificationsBell />
+            <FullscreenToggle />
             <AccountDropdown
               userName={userName}
               userEmail={userEmail}

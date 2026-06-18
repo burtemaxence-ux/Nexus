@@ -12,6 +12,20 @@ function formatTime(iso: string | null): string {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
 
+function formatDateShort(date: string): string {
+  return new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+function shiftHoursOf(s: { start_time: string | null; end_time: string | null; break_minutes?: number | null }): number {
+  if (!s.start_time || !s.end_time) return 0
+  const [sh, sm] = s.start_time.split(':').map(Number)
+  const [eh, em] = s.end_time.split(':').map(Number)
+  let mins = (eh * 60 + em) - (sh * 60 + sm)
+  if (mins <= 0) mins += 24 * 60
+  mins -= s.break_minutes ?? 0
+  return Math.max(0, mins) / 60
+}
+
 function shiftProgress(startTime: string, endTime: string): number {
   const now = new Date()
   const [sh, sm] = startTime.split(':').map(Number)
@@ -30,6 +44,10 @@ export default async function EmployeeDashboard() {
   if (!user) redirect('/login')
 
   const today = todayISO()
+  const now = new Date()
+  const dow = now.getDay() || 7
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1).toISOString().slice(0, 10)
+  const weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 7).toISOString().slice(0, 10)
 
   const [
     { data: profile },
@@ -37,17 +55,37 @@ export default async function EmployeeDashboard() {
     { data: todayShifts },
     { data: presence },
     { count: pendingLeaves },
+    { data: upcomingShifts },
+    { data: weekShifts },
+    { data: contract },
+    { data: approvedCP },
+    { count: openSlots },
   ] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', user.id).single(),
     supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
     supabase.from('shifts').select('start_time, end_time, position').eq('employee_id', user.id).eq('date', today).limit(1),
     supabase.from('presences').select('clock_in, clock_out, break_start, break_end').eq('employee_id', user.id).eq('date', today).maybeSingle(),
     supabase.from('leave_requests').select('id', { count: 'exact', head: true }).eq('employee_id', user.id).eq('status', 'pending'),
+    supabase.from('shifts').select('date, start_time, end_time, position').eq('employee_id', user.id).gt('date', today).order('date', { ascending: true }).limit(1),
+    supabase.from('shifts').select('start_time, end_time, break_minutes').eq('employee_id', user.id).gte('date', weekStart).lte('date', weekEnd).is('deleted_at', null),
+    supabase.from('contracts').select('paid_leave_days').eq('employee_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('leave_requests').select('start_date, end_date').eq('employee_id', user.id).eq('status', 'approved').eq('type', 'CP'),
+    supabase.from('marketplace_slots').select('id', { count: 'exact', head: true }).eq('status', 'open'),
   ])
 
   const firstName = profile?.full_name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'Employé'
   const establishment = settingsRow?.value && settingsRow.value !== 'Mon établissement' ? settingsRow.value : null
   const shift = todayShifts?.[0] ?? null
+  const nextShift = upcomingShifts?.[0] ?? null
+
+  const weekHours = Math.round((weekShifts ?? []).reduce((sum, s) => sum + shiftHoursOf(s), 0))
+  const weekShiftCount = (weekShifts ?? []).length
+  const approvedCPDays = (approvedCP ?? []).reduce((acc, l) => {
+    const start = new Date(l.start_date); const end = new Date(l.end_date)
+    return acc + Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1
+  }, 0)
+  const leaveBalance = Math.max(0, (contract?.paid_leave_days ?? 25) - approvedCPDays)
+  const openSlotsCount = openSlots ?? 0
 
   const p = presence ?? null
   const isWorking = !!p?.clock_in && !p?.clock_out && !(p?.break_start && !p?.break_end)
@@ -140,7 +178,7 @@ export default async function EmployeeDashboard() {
               </p>
               {/* Progress bar */}
               <div className="mt-3 space-y-1.5">
-                <div className="w-full rounded-full overflow-hidden" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                <div className="w-full rounded-full overflow-hidden" style={{ height: '4px', backgroundColor: 'var(--border)' }}>
                   <div
                     className="h-full rounded-full transition-all"
                     style={{ width: `${progress}%`, backgroundColor: progress >= 100 ? 'var(--success)' : 'var(--accent)' }}
@@ -151,6 +189,17 @@ export default async function EmployeeDashboard() {
                 </p>
               </div>
             </>
+          ) : nextShift ? (
+            <div>
+              <p className="text-[13px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
+                Repos aujourd&apos;hui · prochain service
+              </p>
+              <p className="text-[18px] font-bold tracking-[-0.02em] mt-1" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+                <span className="capitalize">{formatDateShort(nextShift.date)}</span>
+                <span className="text-[14px] font-normal mx-1.5" style={{ color: 'var(--text-tertiary)' }}>·</span>
+                {nextShift.start_time.slice(0, 5)} → {nextShift.end_time.slice(0, 5)}
+              </p>
+            </div>
           ) : (
             <p className="text-[14px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
               Pas de shift planifié aujourd&apos;hui
@@ -195,6 +244,28 @@ export default async function EmployeeDashboard() {
             </div>
           </div>
         </Link>
+
+        {/* ── MA SEMAINE ── */}
+        <div className="grid grid-cols-3 gap-3 dashboard-s2">
+          {[
+            { value: `${weekHours}h`, label: 'Cette semaine' },
+            { value: `${weekShiftCount}`, label: weekShiftCount > 1 ? 'Services' : 'Service' },
+            { value: `${leaveBalance}j`, label: 'Solde congés' },
+          ].map((s, i) => (
+            <div
+              key={i}
+              className="dashboard-card rounded-[14px] p-3.5"
+              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            >
+              <p className="text-[20px] font-bold tracking-[-0.02em]" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+                {s.value}
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.05em] mt-0.5" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
+                {s.label}
+              </p>
+            </div>
+          ))}
+        </div>
 
         {/* ── MODULE CARDS (grille 2 colonnes) ── */}
         <div className="grid grid-cols-2 gap-3 dashboard-s3">
@@ -277,17 +348,27 @@ export default async function EmployeeDashboard() {
               className="dashboard-card rounded-[14px] p-4 h-full transition-transform duration-150 hover:-translate-y-0.5"
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
-              <div
-                className="w-9 h-9 rounded-[10px] flex items-center justify-center mb-3"
-                style={{ backgroundColor: 'rgba(108,99,255,0.1)' }}
-              >
-                <Zap className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+              <div className="flex items-start justify-between mb-3">
+                <div
+                  className="w-9 h-9 rounded-[10px] flex items-center justify-center"
+                  style={{ backgroundColor: 'rgba(108,99,255,0.1)' }}
+                >
+                  <Zap className="h-4 w-4" style={{ color: 'var(--accent)' }} />
+                </div>
+                {openSlotsCount > 0 && (
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}
+                  >
+                    {openSlotsCount}
+                  </span>
+                )}
               </div>
               <p className="text-[13px] font-semibold mb-0.5" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
                 Marketplace
               </p>
               <p className="text-[11px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>
-                Shifts disponibles
+                {openSlotsCount > 0 ? `${openSlotsCount} shift${openSlotsCount > 1 ? 's' : ''} à prendre` : 'Shifts disponibles'}
               </p>
             </div>
           </Link>
