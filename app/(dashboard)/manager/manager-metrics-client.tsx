@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
   Calendar, Users, Clock, Settings, BarChart3,
-  ArrowRight, AlertTriangle, Palmtree, Timer,
+  ArrowRight, AlertTriangle, Palmtree, Timer, ArrowLeftRight,
 } from 'lucide-react'
 import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
 import { ComplianceOverview } from '@/components/dashboard/compliance-overview'
@@ -94,6 +94,7 @@ interface Metrics {
   plannedHours: number
   presentCount: number
   latenessCount: number
+  exchangePending: number
   sparklineData: number[]
   weekLoad: DayLoad[]
   onboardingSteps: { title: string; description: string; done: boolean; href: string; cta: string }[]
@@ -277,6 +278,7 @@ export function ManagerMetricsClient() {
         { data: anyShift },
         { data: anyPublished },
         { count: postesCount },
+        { count: exchangePending },
       ] = await Promise.all([
         supabase.from('profiles').select('id').eq('role', 'employee').eq('archived', false),
         supabase.from('leave_requests').select('id').eq('status', 'pending'),
@@ -287,6 +289,7 @@ export function ManagerMetricsClient() {
         supabase.from('shifts').select('id').is('deleted_at', null).limit(1),
         supabase.from('week_status').select('id').eq('published', true).limit(1),
         supabase.from('postes').select('*', { count: 'exact', head: true }),
+        supabase.from('shift_exchanges').select('id', { count: 'exact', head: true }).eq('status', 'pending_approval'),
       ])
 
       const employeeCount = employees?.length ?? 0
@@ -375,6 +378,7 @@ export function ManagerMetricsClient() {
         plannedHours,
         presentCount,
         latenessCount,
+        exchangePending: exchangePending ?? 0,
         sparklineData,
         weekLoad,
         onboardingSteps,
@@ -393,7 +397,7 @@ export function ManagerMetricsClient() {
 
   if (!metrics) return <MetricsSkeleton />
 
-  const { employeeCount, pendingCount, presenceRate, totalShifts, plannedHours, presentCount, latenessCount, sparklineData, weekLoad, onboardingSteps, onboardingAllDone } = metrics
+  const { employeeCount, pendingCount, presenceRate, totalShifts, plannedHours, presentCount, latenessCount, exchangePending, sparklineData, weekLoad, onboardingSteps, onboardingAllDone } = metrics
 
   const presence = presenceRate === null
     ? { color: 'var(--text-tertiary)', iconBg: 'rgba(90,90,114,0.15)', label: 'Aucun shift planifié' }
@@ -487,7 +491,7 @@ export function ManagerMetricsClient() {
       </div>
 
       {/* ── ALERTES ───────────────────────────────────────────────────────── */}
-      {(pendingCount > 0 || latenessCount > 0) && (
+      {(pendingCount > 0 || latenessCount > 0 || exchangePending > 0) && (
         <div className="space-y-2 dashboard-s2">
           {pendingCount > 0 && (
             <Link href="/manager/conges">
@@ -512,6 +516,19 @@ export function ManagerMetricsClient() {
                   {latenessCount} retard{latenessCount !== 1 ? 's' : ''} enregistré{latenessCount !== 1 ? 's' : ''} ce mois
                 </p>
                 <span className="text-[12px] font-medium flex-shrink-0" style={{ color: '#FF6B6B' }}>Voir →</span>
+              </div>
+            </Link>
+          )}
+          {exchangePending > 0 && (
+            <Link href="/manager/echanges">
+              <div className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-[var(--accent-light)]"
+                style={{ backgroundColor: 'var(--accent-light)', border: '1px solid rgba(108,99,255,0.2)', borderRadius: '10px' }}
+              >
+                <ArrowLeftRight className="h-3.5 w-3.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                <p className="flex-1 text-[13px]" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-dm-sans)' }}>
+                  {exchangePending} échange{exchangePending !== 1 ? 's' : ''} de shift en attente de validation
+                </p>
+                <span className="text-[12px] font-medium flex-shrink-0" style={{ color: 'var(--accent)' }}>Valider →</span>
               </div>
             </Link>
           )}
