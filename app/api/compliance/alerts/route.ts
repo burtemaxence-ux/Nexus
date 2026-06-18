@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
+import { isUuid } from '@/lib/validations'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET  — liste des alertes conformité actives de l'établissement
@@ -52,9 +53,11 @@ export async function PATCH(req: NextRequest) {
   }
 
   const establishmentId = profile.active_establishment_id ?? profile.establishment_id
-  const { id, action, status } = await req.json()
+  const { id, action, status } = await req.json().catch(() => ({})) as { id?: string; action?: string; status?: string }
 
-  if (!id) return NextResponse.json({ error: 'id requis' }, { status: 400 })
+  if (!isUuid(id)) return NextResponse.json({ error: 'id invalide' }, { status: 400 })
+  if (action !== undefined && action !== 'ignore') return NextResponse.json({ error: 'action invalide' }, { status: 400 })
+  if (status !== undefined && !['active', 'resolved'].includes(status)) return NextResponse.json({ error: 'statut invalide' }, { status: 400 })
 
   if (action === 'ignore') {
     const ignoredUntil = new Date(Date.now() + 7 * 86400000).toISOString()
