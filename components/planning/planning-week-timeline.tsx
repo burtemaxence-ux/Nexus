@@ -255,6 +255,9 @@ export function PlanningWeekTimeline({
             <Link href={`?week=${prevMonday}`}>
               <button className="btn-secondary" style={{ padding: '7px 9px' }} aria-label="Semaine précédente"><ChevronLeft size={14} /></button>
             </Link>
+            <Link href={`?week=${nextMonday}`}>
+              <button className="btn-secondary" style={{ padding: '7px 9px' }} aria-label="Semaine suivante"><ChevronRight size={14} /></button>
+            </Link>
             <Link href="/manager/planning">
               <button className="btn-secondary" style={{ fontSize: '13px', padding: '7px 12px' }}>{"Aujourd'hui"}</button>
             </Link>
