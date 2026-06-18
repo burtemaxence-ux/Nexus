@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     .eq('archived', false)
     .order('full_name', { ascending: true })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   return NextResponse.json({ data: data ?? [], count: data?.length ?? 0 })
 }

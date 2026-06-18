@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   if (employeeId) query = query.eq('employee_id', employeeId)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   return NextResponse.json({ data: data ?? [], count: data?.length ?? 0 })
 }

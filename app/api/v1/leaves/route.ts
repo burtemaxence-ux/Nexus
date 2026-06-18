@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   if (to) query = query.lte('end_date', to)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
 
   return NextResponse.json({ data: data ?? [], count: data?.length ?? 0 })
 }
