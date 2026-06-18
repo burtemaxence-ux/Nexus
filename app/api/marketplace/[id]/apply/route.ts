@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendPushToUser } from '@/lib/push'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { NextRequest, NextResponse } from 'next/server'
 
 function timeToMin(t: string): number {
@@ -21,6 +22,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
+  const rl = await checkRateLimit({ key: `marketplace-apply:${user.id}`, limit: 20, windowMs: 60_000 })
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const { data: profile } = await supabase
     .from('profiles')

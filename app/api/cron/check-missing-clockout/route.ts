@@ -5,6 +5,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
 import { captureError } from '@/lib/logger'
 
+// L'app cible la France : les heures de shift (TIME) sont en heure locale
+// Europe/Paris. Le cron tourne en UTC sur Vercel → on dérive l'heure et la date
+// « murale » locale (DST-safe via Intl) pour aligner les fenêtres de comparaison.
+function parisHM(d: Date): string {
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hour12: false }).format(d)
+}
+function parisDate(d: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(d)
+}
+
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -12,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const now = new Date()
-    const todayStr = now.toISOString().slice(0, 10)
+    const todayStr = parisDate(now)
 
     // ── Clôture forcée des pointages oubliés des jours précédents ────────────
     // Un pointage resté ouvert d'un jour passé fausse les heures : on le clôt
@@ -51,8 +61,8 @@ export async function GET(request: NextRequest) {
     const cutoff15min = new Date(now.getTime() - 15 * 60 * 1000)
     const cutoff30min = new Date(now.getTime() - 30 * 60 * 1000)
 
-    const cutoff15Str = cutoff15min.toISOString().slice(11, 16) // HH:MM in UTC
-    const cutoff30Str = cutoff30min.toISOString().slice(11, 16)
+    const cutoff15Str = parisHM(cutoff15min) // HH:MM en heure locale Europe/Paris
+    const cutoff30Str = parisHM(cutoff30min)
 
     // Shifts published today, ending between 30min and 15min ago (i.e., missed the window)
     // to avoid double-sending in the same 15-min cron tick.

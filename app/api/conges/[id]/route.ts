@@ -5,6 +5,7 @@ import { fireWebhook } from '@/lib/integrations/webhook'
 import { sendPushToUser } from '@/lib/push'
 import { sendSms } from '@/lib/sms'
 import { createNotification } from '@/lib/notifications/create'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import type { LeaveType } from '@/types'
 
 // PATCH — manager approuve / refuse  OU  employé annule
@@ -12,6 +13,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
+  const rl = await checkRateLimit({ key: `conges-action:${user.id}`, limit: 30, windowMs: 60_000 })
+  if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   const body = await request.json()

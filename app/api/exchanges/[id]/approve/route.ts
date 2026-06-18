@@ -29,6 +29,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (exchange.status !== 'pending_approval') return NextResponse.json({ error: 'Statut invalide' }, { status: 409 })
   if (!exchange.acceptor_id) return NextResponse.json({ error: 'Aucun accepteur' }, { status: 400 })
 
+  // Re-vérifie le conflit AVANT le transfert : l'accepteur a pu recevoir un
+  // autre shift ce jour-là entre l'acceptation et l'approbation (race condition).
+  const shiftDate = (Array.isArray(exchange.shift) ? exchange.shift[0] : exchange.shift as { date: string } | null)?.date
+  if (shiftDate) {
+    const { data: conflicts } = await supabase
+      .from('shifts')
+      .select('id')
+      .eq('employee_id', exchange.acceptor_id)
+      .eq('date', shiftDate)
+      .neq('id', exchange.shift_id)
+      .is('deleted_at', null)
+      .limit(1)
+    if (conflicts && conflicts.length > 0) {
+      return NextResponse.json({ error: "L'employé a désormais un autre shift ce jour-là — transfert impossible." }, { status: 409 })
+    }
+  }
+
   // Transfer the shift to the acceptor
   const { error: shiftError } = await supabase
     .from('shifts')
