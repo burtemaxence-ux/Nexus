@@ -55,6 +55,12 @@ export const ContractSchema = z.object({
 
 export const pinSchema = z.string().regex(/^\d{4,6}$/, 'PIN doit être 4 à 6 chiffres')
 
+// Mise à jour partielle d'un shift (PATCH) — valide formats heures/dates/uuid.
+export const ShiftUpdateSchema = ShiftSchema.partial()
+
+export const isUuid = (v: unknown): v is string =>
+  typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
+
 export function validationError(err: ZodError) {
   const messages = err.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
   return Response.json({ error: `Données invalides — ${messages}` }, { status: 422 })

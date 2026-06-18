@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { ShiftUpdateSchema, validationError } from '@/lib/validations'
 import { NextRequest, NextResponse } from 'next/server'
 
 async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -43,27 +44,19 @@ export async function PATCH(
       return NextResponse.json({ error: 'ID du créneau requis' }, { status: 400 })
     }
 
-    const body = await request.json()
-    const { start_time, end_time, position, poste_id, break_minutes, notes, employee_id, date } = body as {
-      start_time?: string
-      end_time?: string
-      position?: string
-      poste_id?: string | null
-      break_minutes?: number
-      notes?: string
-      employee_id?: string
-      date?: string
-    }
+    const parsed = ShiftUpdateSchema.safeParse(await request.json())
+    if (!parsed.success) return validationError(parsed.error)
+    const v = parsed.data
 
     const updateData: Record<string, string | number | null> = {}
-    if (start_time !== undefined) updateData.start_time = start_time
-    if (end_time !== undefined) updateData.end_time = end_time
-    if (position !== undefined) updateData.position = position
-    if (poste_id !== undefined) updateData.poste_id = poste_id ?? null
-    if (break_minutes !== undefined) updateData.break_minutes = break_minutes
-    if (notes !== undefined) updateData.notes = notes || null
-    if (employee_id !== undefined) updateData.employee_id = employee_id
-    if (date !== undefined) updateData.date = date
+    if (v.start_time !== undefined) updateData.start_time = v.start_time
+    if (v.end_time !== undefined) updateData.end_time = v.end_time
+    if (v.position !== undefined) updateData.position = v.position
+    if (v.poste_id !== undefined) updateData.poste_id = v.poste_id ?? null
+    if (v.break_minutes !== undefined) updateData.break_minutes = v.break_minutes
+    if (v.notes !== undefined) updateData.notes = v.notes || null
+    if (v.employee_id !== undefined) updateData.employee_id = v.employee_id
+    if (v.date !== undefined) updateData.date = v.date
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'Aucune donnée à mettre à jour' }, { status: 400 })
