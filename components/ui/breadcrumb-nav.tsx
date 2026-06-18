@@ -57,6 +57,10 @@ const ROUTES: { pattern: RegExp; crumbs: (m: RegExpMatchArray) => Crumb[] }[] = 
     { label: 'Paramètres',    href: '/manager/settings' },
     { label: 'Intégrations',  href: '/manager/settings/integrations' },
   ]},
+  { pattern: /^\/manager\/settings\/billing$/, crumbs: () => [
+    { label: 'Paramètres', href: '/manager/settings' },
+    { label: 'Abonnement', href: '/manager/settings/billing' },
+  ]},
   { pattern: /^\/manager\/audit-log$/, crumbs: () => [
     { label: 'Accueil',          href: '/manager' },
     { label: "Journal d'audit",  href: '/manager/audit-log' },
@@ -86,6 +90,26 @@ const ROUTES: { pattern: RegExp; crumbs: (m: RegExpMatchArray) => Crumb[] }[] = 
     { label: 'Accueil',   href: '/manager' },
     { label: 'Alertes',   href: '/manager/alertes' },
   ]},
+  { pattern: /^\/manager\/echanges$/, crumbs: () => [
+    { label: 'Accueil',  href: '/manager' },
+    { label: 'Échanges', href: '/manager/echanges' },
+  ]},
+  { pattern: /^\/manager\/marketplace$/, crumbs: () => [
+    { label: 'Accueil',     href: '/manager' },
+    { label: 'Marketplace', href: '/manager/marketplace' },
+  ]},
+  { pattern: /^\/manager\/compliance$/, crumbs: () => [
+    { label: 'Accueil',    href: '/manager' },
+    { label: 'Conformité', href: '/manager/compliance' },
+  ]},
+  { pattern: /^\/manager\/analytics$/, crumbs: () => [
+    { label: 'Accueil',     href: '/manager' },
+    { label: 'Analytiques', href: '/manager/analytics' },
+  ]},
+  { pattern: /^\/manager\/help$/, crumbs: () => [
+    { label: 'Accueil', href: '/manager' },
+    { label: 'Aide',    href: '/manager/help' },
+  ]},
   { pattern: /^\/manager\/settings(\/.*)?$/, crumbs: () => [
     { label: 'Accueil',      href: '/manager' },
     { label: 'Paramètres',   href: '/manager/settings' },
@@ -102,6 +126,14 @@ const ROUTES: { pattern: RegExp; crumbs: (m: RegExpMatchArray) => Crumb[] }[] = 
   { pattern: /^\/employee\/badgeuse$/, crumbs: () => [
     { label: 'Accueil',   href: '/employee' },
     { label: 'Badgeuse',  href: '/employee/badgeuse' },
+  ]},
+  { pattern: /^\/employee\/echanges$/, crumbs: () => [
+    { label: 'Accueil',      href: '/employee' },
+    { label: 'Mes échanges', href: '/employee/echanges' },
+  ]},
+  { pattern: /^\/employee\/marketplace$/, crumbs: () => [
+    { label: 'Accueil',     href: '/employee' },
+    { label: 'Marketplace', href: '/employee/marketplace' },
   ]},
 ]
 
