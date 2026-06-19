@@ -8,10 +8,13 @@
 -- TO authenticated (supprime aussi le bruit anon/authenticator/dashboard_user).
 --
 -- TESTÉE par dry-run transactionnel (BEGIN ... ROLLBACK) contre le schéma
--- RÉEL de prod le 2026-06-19 : toutes les DROP/CREATE valides, 0 overlap
--- restant (table, action), 68 policies finales, rien persisté.
--- Ces policies portent l'isolation MULTI-TENANT sur 19 tables — avant le merge
--- définitif, vérifier en plus l'accès runtime employé / manager / cross-tenant.
+-- RÉEL de prod le 2026-06-19, rien persisté :
+--   1. SQL valide, 0 overlap restant (table, action), 68 policies finales ;
+--   2. accès runtime vérifié par impersonation JWT (manager + employé même
+--      établissement + employé autre établissement) → 0 différence du nombre
+--      de lignes visibles sur les 19 tables avant/après 061.
+-- Le branching Supabase (plan Pro) étant indisponible, ce double dry-run l'a
+-- remplacé. Reste à appliquer en prod via apply_migration après validation.
 --
 -- NOTE sécurité (hors périmètre perf, à traiter séparément) :
 --   push_subscriptions."service role reads all push subscriptions" a un USING
