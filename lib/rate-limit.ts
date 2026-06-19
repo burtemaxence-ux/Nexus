@@ -10,8 +10,10 @@
 if (!process.env.KV_REST_API_URL) {
   console.warn(
     '[RateLimit] KV_REST_API_URL not configured — using in-memory store. ' +
-    'AI quota (3/month Essential plan) is NOT persistent across serverless instances. ' +
-    'Configure Vercel KV to enforce quotas reliably.'
+    'This affects only the generic hourly rate limit, which is best-effort and ' +
+    'not shared across serverless instances. The monthly AI quota is DB-backed ' +
+    '(migration 048, consume_ai_credit) and remains authoritative regardless. ' +
+    'Configure Vercel KV for reliable hourly rate limiting.'
   )
 }
 
