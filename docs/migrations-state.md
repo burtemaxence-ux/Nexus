@@ -167,10 +167,12 @@ pour un objet représentatif de chaque migration marquée `-- APPLY MANUALLY`.
 
 Fusion des policies RLS permissives multiples (advisor `multiple_permissive_policies`
 ×149 sur 19 tables) en une policy par (table, action). `auth_rls_initplan` est
-déjà à 0 (corrigé en 059). **NON testée, NON appliquée** : à valider sur une
-branche Supabase (advisors = 0 + tests d'accès employé/manager/cross-tenant)
-avant tout merge en prod. Voir l'en-tête du fichier pour la procédure et la note
-sécurité sur `push_subscriptions`.
+déjà à 0 (corrigé en 059). **Testée par dry-run transactionnel (ROLLBACK)**
+contre le schéma réel de prod le 2026-06-19 : 0 overlap restant, 68 policies,
+rien persisté. Le branching Supabase nécessitant le plan Pro (indisponible),
+ce dry-run a remplacé le test sur branche. **NON encore appliquée** : reste à
+valider l'accès runtime employé/manager/cross-tenant avant le merge définitif.
+Voir l'en-tête du fichier + la note sécurité sur `push_subscriptions`.
 
 ## Note sur les futures migrations
 

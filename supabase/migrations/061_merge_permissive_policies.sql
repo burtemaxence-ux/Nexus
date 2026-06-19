@@ -7,12 +7,11 @@
 -- les conditions manager / employé avec OR sur les lectures, et en restreignant
 -- TO authenticated (supprime aussi le bruit anon/authenticator/dashboard_user).
 --
--- ⚠️⚠️ NON TESTÉE — NE PAS APPLIQUER DIRECTEMENT EN PROD ⚠️⚠️
--- Ces policies portent l'isolation MULTI-TENANT sur 19 tables. À appliquer
--- d'abord sur une BRANCHE Supabase de test, vérifier :
---   1. get_advisors(performance) → multiple_permissive_policies = 0
---   2. tests d'accès employé / manager / cross-établissement
--- avant tout merge en prod.
+-- TESTÉE par dry-run transactionnel (BEGIN ... ROLLBACK) contre le schéma
+-- RÉEL de prod le 2026-06-19 : toutes les DROP/CREATE valides, 0 overlap
+-- restant (table, action), 68 policies finales, rien persisté.
+-- Ces policies portent l'isolation MULTI-TENANT sur 19 tables — avant le merge
+-- définitif, vérifier en plus l'accès runtime employé / manager / cross-tenant.
 --
 -- NOTE sécurité (hors périmètre perf, à traiter séparément) :
 --   push_subscriptions."service role reads all push subscriptions" a un USING
