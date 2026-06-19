@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import MarketplaceManagerClient from './marketplace-manager-client'
+import { PageHeader } from '@/components/ui/page-header'
 
 export const metadata = { title: 'Marketplace remplaçants — Quartzbase' }
 
@@ -21,16 +22,10 @@ export default async function MarketplaceManagerPage() {
 
   return (
     <div className="px-6 py-5">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-semibold text-[var(--text-primary)] tracking-[-0.02em]">
-            Marketplace remplaçants
-          </h1>
-          <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">
-            Publiez des shifts disponibles et trouvez un remplaçant en quelques minutes.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Marketplace remplaçants"
+        subtitle="Publiez des shifts disponibles et trouvez un remplaçant en quelques minutes."
+      />
       <MarketplaceManagerClient />
     </div>
   )

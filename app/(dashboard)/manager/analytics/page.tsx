@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
+import { PageHeader } from '@/components/ui/page-header'
 
 const AnalyticsClient = dynamic(() => import('./analytics-client'), {
   ssr: false,
@@ -27,14 +28,10 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="px-6 py-5">
-      <div className="mb-5">
-        <h1 className="text-[22px] font-semibold text-[var(--text-primary)] tracking-[-0.02em]">
-          Analytiques RH
-        </h1>
-        <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">
-          Masse salariale, présence, absences et turnover sur la période sélectionnée.
-        </p>
-      </div>
+      <PageHeader
+        title="Analytiques RH"
+        subtitle="Masse salariale, présence, absences et turnover sur la période sélectionnée."
+      />
       <ErrorBoundary>
         <AnalyticsClient />
       </ErrorBoundary>
