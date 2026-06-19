@@ -139,7 +139,32 @@ Vérification directe sur le projet prod (`euvvibqzrhbleztqfdbu`) via inspection
 > Note : 034 n'existe pas (saut 033 → 035, numéro non utilisé).
 > Les migrations 042/044/045 (sécurité), 048 (quota IA) et 049/050 sont **confirmées appliquées** en prod.
 
+## Vérification automatisée « APPLY MANUALLY » (2026-06-19)
+
+Script : `npm run check:migrations` (`scripts/check-migrations.ts`, nécessite
+`SUPABASE_DB_URL`). Sonde `pg_policies` / `pg_indexes` / `information_schema`
+pour un objet représentatif de chaque migration marquée `-- APPLY MANUALLY`.
+
+État vérifié le **2026-06-19** sur `euvvibqzrhbleztqfdbu` :
+
+| Migration (APPLY MANUALLY) | Objet sondé | État |
+|---|---|---|
+| 042_fix_api_tokens_policy | policy `managers_read_own_tokens` | ✅ |
+| 043_fix_storage_policies | policies `logos_manager_*` ×3 | ✅ |
+| 044_fix_settings_rls | policies `settings_*` ×4 | ✅ |
+| 045_fix_user_establishments_rls | policy `managers_manage_own_memberships` | ✅ |
+| 048_ai_usage | table `ai_usage` + fn `consume_ai_credit` | ✅ |
+| 049_presence_needs_review | colonne `presences.needs_review` | ✅ |
+| 050_referrals_activation | colonne `referrals.first_month_granted` + index | ✅ |
+| 051_perf_indexes | index `idx_profiles_id_establishment`, `idx_marketplace_slots_establishment_status` | ✅ |
+| 052_harden_ai_functions | `anon` privé d'EXECUTE sur `consume_ai_credit` | ✅ |
+| 060_ai_usage_per_feature | colonne `ai_usage.feature` + `consume_ai_credit` 2-arg | ❌ **EN ATTENTE** |
+
+➡️ **Action requise** : appliquer `supabase/migrations/060_ai_usage_per_feature.sql`
+dans le SQL editor Supabase (sinon le quota chat IA renvoie un 503 propre, l'ancienne
+RPC ne connaissant pas `p_feature`). Relancer `npm run check:migrations` ensuite.
+
 ## Note sur les futures migrations
 
-La prochaine migration sera nommée **056_xxx.sql**.
-Ne pas réutiliser les numéros 017-021 ni 053-055 — ils sont tous appliqués en prod.
+La prochaine migration sera nommée **061_xxx.sql** (056→060 déjà présentes).
+Ne pas réutiliser les numéros 017-021 ni 053-060 — tous appliqués en prod sauf 060 (en attente).
