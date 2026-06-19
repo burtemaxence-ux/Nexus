@@ -34,7 +34,7 @@ export default async function ParrainagePage() {
           <Gift className="h-5 w-5 text-[var(--accent)]" />
         </div>
         <div>
-          <h1 className="text-[22px] font-semibold text-[var(--text-primary)] tracking-[-0.02em]">
+          <h1 className="text-[20px] font-medium text-[var(--text-primary)] tracking-[-0.02em]">
             Programme parrainage
           </h1>
           <p className="text-[13px] text-[var(--text-secondary)]">

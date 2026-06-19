@@ -492,7 +492,7 @@ function Row({ label, value, bold = false }: { label: string; value: string; bol
 function BreakBar({ used, limit }: { used: number; limit: number }) {
   const pct = Math.min(100, Math.round((used / limit) * 100))
   return (
-    <div className="w-full rounded-full overflow-hidden" style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.06)' }}>
+    <div className="w-full rounded-full overflow-hidden" style={{ height: '4px', backgroundColor: 'var(--border)' }}>
       <div
         className="h-full rounded-full transition-all"
         style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? 'var(--danger)' : 'var(--warning)' }}

@@ -11,6 +11,7 @@ import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist
 import { ComplianceOverview } from '@/components/dashboard/compliance-overview'
 import { WeekLoadChart, type DayLoad } from '@/components/dashboard/week-load-chart'
 import { TodayRoster } from '@/components/dashboard/today-roster'
+import { OpenSlots } from '@/components/dashboard/open-slots'
 import { WeeklyBriefCard } from '@/components/dashboard/weekly-brief-card'
 import type { ElementType } from 'react'
 
@@ -406,6 +407,11 @@ export function ManagerMetricsClient() {
       {/* ── SERVICE DU JOUR (live) ────────────────────────────────────────── */}
       <div className="dashboard-s2">
         <TodayRoster />
+      </div>
+
+      {/* ── POSTES À POURVOIR (contextuel, masqué si vide) ────────────────── */}
+      <div className="dashboard-s2">
+        <OpenSlots />
       </div>
 
       {/* ── SEMAINE EN COURS ──────────────────────────────────────────────── */}

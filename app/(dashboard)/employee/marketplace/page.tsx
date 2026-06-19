@@ -176,7 +176,7 @@ export default function EmployeeMarketplacePage() {
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-[20px] font-semibold text-[var(--text-primary)] tracking-[-0.02em]">
+        <h1 className="text-[20px] font-medium text-[var(--text-primary)] tracking-[-0.02em]">
           Shifts disponibles
         </h1>
         <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">
