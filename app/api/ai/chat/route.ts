@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import { requireAuth } from '@/lib/api-auth'
+import { requireManager } from '@/lib/api-auth'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { getSubscription } from '@/lib/subscription'
+import { getPlanTier } from '@/lib/plan-guard'
 
 const client = new Anthropic()
 
@@ -20,13 +22,37 @@ export async function POST(req: Request) {
 
   const supabase = await createClient()
   let authUser: { id: string }
+  let estId: string
   try {
-    const { user } = await requireAuth(supabase)
+    const { user, profile } = await requireManager(supabase)
     authUser = user
+    estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
   } catch (e) {
     if (e instanceof Response) return e
     throw e
   }
+
+  // ── Guard : quota chat IA mensuel pour le plan Essentiel ──────────
+  const sub  = await getSubscription(supabase, estId)
+  const tier = getPlanTier(sub)
+
+  if (tier === 'essential') {
+    // Compteur DB séparé du planning (feature 'chat') : 50 messages/mois.
+    const { data: quota, error: quotaErr } = await supabase.rpc('consume_ai_credit', { p_limit: 50, p_feature: 'chat' })
+    if (quotaErr) {
+      return Response.json(
+        { error: "Impossible de vérifier votre quota IA pour le moment. Réessayez dans un instant." },
+        { status: 503 }
+      )
+    }
+    if (quota && (quota as { allowed: boolean }).allowed === false) {
+      return Response.json(
+        { error: 'Quota chat IA atteint', upgrade_url: '/manager/settings/billing' },
+        { status: 402 }
+      )
+    }
+  }
+  // ──────────────────────────────────────────────────────────────────
 
   const rl = await checkRateLimit({ key: `ai-chat:${authUser.id}`, limit: 30, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
