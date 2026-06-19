@@ -1,5 +1,23 @@
 import { withSentryConfig } from '@sentry/nextjs'
 
+// Content-Security-Policy — report-only first. Observe violations in the
+// browser console / Sentry before switching to the enforcing header.
+// Domains: Stripe (checkout/billing), Supabase (REST + realtime wss),
+// Sentry ingest, Vercel analytics/speed-insights. Fonts are self-hosted by
+// next/font, so no external font domain is needed.
+const cspReportOnly = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://va.vercel-scripts.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://*.supabase.co",
+  "font-src 'self' data:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://api.stripe.com https://va.vercel-scripts.com",
+  "frame-src https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com",
+].join('; ')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
@@ -13,6 +31,7 @@ const nextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          { key: 'Content-Security-Policy-Report-Only', value: cspReportOnly },
         ],
       },
     ]
