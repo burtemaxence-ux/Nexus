@@ -163,22 +163,17 @@ pour un objet représentatif de chaque migration marquée `-- APPLY MANUALLY`.
 > 060 appliquée et vérifiée : `consume_ai_credit` n'a plus qu'une signature (2-arg),
 > `anon` privé d'EXECUTE, quota chat IA actif.
 
-## 061_merge_permissive_policies.sql — DRAFT NON APPLIQUÉ (2026-06-19)
+## 061_merge_permissive_policies.sql — APPLIQUÉE (2026-06-19)
 
 Fusion des policies RLS permissives multiples (advisor `multiple_permissive_policies`
 ×149 sur 19 tables) en une policy par (table, action). `auth_rls_initplan` est
-déjà à 0 (corrigé en 059). **Testée par double dry-run transactionnel (ROLLBACK)**
-contre le schéma réel de prod le 2026-06-19, rien persisté :
-- structure : 0 overlap restant, 68 policies finales ;
-- **accès runtime** : impersonation JWT (manager + employé même établissement +
-  employé autre établissement) → **0 différence** de lignes visibles sur les 19
-  tables avant/après. Équivalence d'accès prouvée empiriquement.
-
-Le branching Supabase nécessitant le plan Pro (indisponible), ce dry-run l'a
-remplacé. **NON encore appliquée** — prête pour `apply_migration` sur validation.
-Voir l'en-tête du fichier + la note sécurité sur `push_subscriptions`.
+déjà à 0 (corrigé en 059). Testée par double dry-run transactionnel (structure +
+accès runtime, 0 différence), puis **appliquée en prod via `apply_migration` le
+2026-06-19**. Advisor post-application : **`multiple_permissive_policies` = 0**
+(restent uniquement `unused_index` INFO et `duplicate_index` WARN, hors périmètre).
+Voir la note sécurité sur `push_subscriptions` dans l'en-tête du fichier.
 
 ## Note sur les futures migrations
 
-La prochaine migration sera nommée **062_xxx.sql** (056→060 appliquées, 061 en draft).
-Ne pas réutiliser les numéros 017-021 ni 053-060 — tous appliqués en prod.
+La prochaine migration sera nommée **062_xxx.sql** (056→061 appliquées).
+Ne pas réutiliser les numéros 017-021 ni 053-061 — tous appliqués en prod.
