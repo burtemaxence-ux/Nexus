@@ -158,13 +158,21 @@ pour un objet représentatif de chaque migration marquée `-- APPLY MANUALLY`.
 | 050_referrals_activation | colonne `referrals.first_month_granted` + index | ✅ |
 | 051_perf_indexes | index `idx_profiles_id_establishment`, `idx_marketplace_slots_establishment_status` | ✅ |
 | 052_harden_ai_functions | `anon` privé d'EXECUTE sur `consume_ai_credit` | ✅ |
-| 060_ai_usage_per_feature | colonne `ai_usage.feature` + `consume_ai_credit` 2-arg | ❌ **EN ATTENTE** |
+| 060_ai_usage_per_feature | colonne `ai_usage.feature` + `consume_ai_credit` 2-arg | ✅ appliquée le 2026-06-19 (via MCP) |
 
-➡️ **Action requise** : appliquer `supabase/migrations/060_ai_usage_per_feature.sql`
-dans le SQL editor Supabase (sinon le quota chat IA renvoie un 503 propre, l'ancienne
-RPC ne connaissant pas `p_feature`). Relancer `npm run check:migrations` ensuite.
+> 060 appliquée et vérifiée : `consume_ai_credit` n'a plus qu'une signature (2-arg),
+> `anon` privé d'EXECUTE, quota chat IA actif.
+
+## 061_merge_permissive_policies.sql — DRAFT NON APPLIQUÉ (2026-06-19)
+
+Fusion des policies RLS permissives multiples (advisor `multiple_permissive_policies`
+×149 sur 19 tables) en une policy par (table, action). `auth_rls_initplan` est
+déjà à 0 (corrigé en 059). **NON testée, NON appliquée** : à valider sur une
+branche Supabase (advisors = 0 + tests d'accès employé/manager/cross-tenant)
+avant tout merge en prod. Voir l'en-tête du fichier pour la procédure et la note
+sécurité sur `push_subscriptions`.
 
 ## Note sur les futures migrations
 
-La prochaine migration sera nommée **061_xxx.sql** (056→060 déjà présentes).
-Ne pas réutiliser les numéros 017-021 ni 053-060 — tous appliqués en prod sauf 060 (en attente).
+La prochaine migration sera nommée **062_xxx.sql** (056→060 appliquées, 061 en draft).
+Ne pas réutiliser les numéros 017-021 ni 053-060 — tous appliqués en prod.
