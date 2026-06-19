@@ -24,7 +24,8 @@ export async function middleware(request: NextRequest) {
     && !pathname.startsWith('/api/calendar/')
     && !pathname.startsWith('/api/v1/')
     && pathname !== '/api/health'
-    && pathname !== '/api/push/vapid-key') {
+    && pathname !== '/api/push/vapid-key'
+    && pathname !== '/api/csp-report') {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

@@ -16,6 +16,9 @@ const cspReportOnly = [
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://api.stripe.com https://va.vercel-scripts.com",
   "frame-src https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com",
+  // Violations are POSTed to /api/csp-report (legacy report-uri + modern report-to).
+  "report-uri /api/csp-report",
+  "report-to csp-endpoint",
 ].join('; ')
 
 /** @type {import('next').NextConfig} */
@@ -31,6 +34,7 @@ const nextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          { key: 'Reporting-Endpoints', value: 'csp-endpoint="/api/csp-report"' },
           { key: 'Content-Security-Policy-Report-Only', value: cspReportOnly },
         ],
       },
