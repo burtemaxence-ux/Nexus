@@ -173,7 +173,16 @@ accès runtime, 0 différence), puis **appliquée en prod via `apply_migration` 
 (restent uniquement `unused_index` INFO et `duplicate_index` WARN, hors périmètre).
 Voir la note sécurité sur `push_subscriptions` dans l'en-tête du fichier.
 
+## 062_push_security_and_dup_indexes.sql — APPLIQUÉE (2026-06-19)
+
+Hors-périmètre audit, post-corrections : (1) `push_subscriptions_select` restreinte
+de `USING (true)` à `USING (auth.uid() = user_id)` — l'envoi de notifs passe par
+service role (RLS bypassée), donc aucune régression ; (2) drop des 2 index dupliqués
+sur `subscriptions` (advisor `duplicate_index`). Les `unused_index` (INFO) sont
+**conservés** : ce sont majoritairement les index FK de la migration 055, « unused »
+= trafic pré-lancement et non inutiles. Appliquée via `apply_migration`.
+
 ## Note sur les futures migrations
 
-La prochaine migration sera nommée **062_xxx.sql** (056→061 appliquées).
-Ne pas réutiliser les numéros 017-021 ni 053-061 — tous appliqués en prod.
+La prochaine migration sera nommée **063_xxx.sql** (056→062 appliquées).
+Ne pas réutiliser les numéros 017-021 ni 053-062 — tous appliqués en prod.
