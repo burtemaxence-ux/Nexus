@@ -41,6 +41,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true })
   }
 
+  // Idempotence : ignore les redeliveries d'un même event (Stripe peut renvoyer
+  // le même event ; sans ça, coupon filleul / remise parrain pourraient être
+  // ré-appliqués). Verrou au niveau event.id.
+  const { error: seenErr } = await supabaseAdmin
+    .from('stripe_webhook_events')
+    .insert({ event_id: event.id, type: event.type })
+  if (seenErr) {
+    if (seenErr.code === '23505') return NextResponse.json({ received: true, duplicate: true })
+    // Échec non-duplicata : on traite quand même (ne pas perdre l'event).
+    console.error('[webhook] dedup insert error:', seenErr.message)
+  }
+
   try {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session
@@ -125,7 +137,9 @@ export async function POST(request: NextRequest) {
         .eq('stripe_customer_id', customerId)
     }
   } catch (err) {
-    console.error('[webhook] processing error:', err)
+    console.error('[webhook] processing error:', err instanceof Error ? err.message : 'unknown')
+    // Rollback du marqueur d'idempotence → permet à Stripe de retraiter l'event.
+    await supabaseAdmin.from('stripe_webhook_events').delete().eq('event_id', event.id)
     return NextResponse.json({ error: 'Processing error' }, { status: 500 })
   }
 
