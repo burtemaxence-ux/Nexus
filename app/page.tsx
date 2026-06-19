@@ -13,13 +13,13 @@ import { PublicFooter }       from '@/components/public/footer'
 import { FloatingMobileCta }  from '@/components/public/floating-mobile-cta'
 
 export const metadata: Metadata = {
-  title: 'Quartzbase — Planning restauration intelligent',
+  title: 'Quartzbase — Le planning qui vous protège des prud\'hommes',
   description:
-    'Créez le planning de votre équipe en 2 minutes avec l\'IA. Conforme Code du Travail. Jusqu\'à 4 fois moins cher.',
+    'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 30 jours gratuits, sans carte bleue.',
   openGraph: {
-    title: 'Quartzbase — Planning restauration intelligent',
+    title: 'Quartzbase — Le planning qui vous protège des prud\'hommes',
     description:
-      'Planning IA pour la restauration et l\'artisanat. Conformité automatique. 30 jours gratuits, sans carte bleue.',
+      'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 30 jours gratuits, sans carte bleue.',
     url: 'https://quartzbase.fr',
     siteName: 'Quartzbase',
     locale: 'fr_FR',
@@ -27,9 +27,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Quartzbase — Planning restauration intelligent',
+    title: 'Quartzbase — Le planning qui vous protège des prud\'hommes',
     description:
-      'Créez le planning de votre équipe en 2 minutes avec l\'IA. Conforme Code du Travail. Jusqu\'à 4 fois moins cher.',
+      'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 30 jours gratuits, sans carte bleue.',
   },
 }
 
