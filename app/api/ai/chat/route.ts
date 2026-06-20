@@ -197,16 +197,22 @@ Si c'est le début d'une conversation (premier message de l'utilisateur), commen
 - Sois précis et actionnable
 - Ne révèle pas les détails techniques de l'architecture`
 
+  // Bound the history sent to the model: the client posts the whole conversation
+  // each turn, so cap it to the most recent messages to keep token cost stable.
+  const recentMessages = messages.slice(-20)
+
   const stream = new ReadableStream({
     async start(controller) {
       try {
         const response = await client.messages.create({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 2048,
-          system: systemPrompt,
-          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          // cache_control: the large establishment system prompt is reused across
+          // the conversation's turns; cache it instead of re-billing it each time.
+          system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+          messages: recentMessages.map(m => ({ role: m.role, content: m.content })),
           stream: true,
-        })
+        }, { signal: req.signal })
 
         for await (const event of response) {
           if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
@@ -214,6 +220,11 @@ Si c'est le début d'une conversation (premier message de l'utilisateur), commen
           }
         }
       } catch (err) {
+        // Client pressed "Stop" / navigated away: the request was aborted, the
+        // upstream generation is now cancelled too — close quietly, no error.
+        if (req.signal.aborted || (err instanceof Error && err.name === 'AbortError')) {
+          return
+        }
         let msg = 'Erreur inconnue'
         if (err instanceof Anthropic.APIError) {
           if (err.status === 400 && String(err.message).includes('credit')) {
