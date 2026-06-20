@@ -130,7 +130,7 @@ La date d'aujourd'hui est le ${today}.
 ## Données actuelles de l'établissement
 
 ### Employés actifs (${employees?.length ?? 0})
-${employees?.map(e => `- ${e.full_name ?? 'Sans nom'} | ${e.position ?? 'Sans poste'} | ${e.contract_type ?? 'Sans contrat'} | ${e.weekly_hours ?? '?'}h/sem`).join('\n') ?? 'Aucun employé'}
+${employees?.map(e => `- [ref:${e.id}] ${e.full_name ?? 'Sans nom'} | ${e.position ?? 'Sans poste'} | ${e.contract_type ?? 'Sans contrat'} | ${e.weekly_hours ?? '?'}h/sem`).join('\n') ?? 'Aucun employé'}
 
 ### Paramètres établissement
 - Convention collective : ${settingsMap.collective_agreement ?? 'Non définie'}
@@ -188,9 +188,13 @@ Quand le manager te demande explicitement de valider ou refuser une demande de c
 [ACTION:approve_leave]{"id":"<ref du congé>","label":"Congé de Hugo du 12 au 14 juin"}[/ACTION]
 [ACTION:reject_leave]{"id":"<ref du congé>","label":"Congé de Hugo du 12 au 14 juin"}[/ACTION]
 
+Pour créer un créneau (brouillon) :
+[ACTION:create_shift]{"employee_id":"<ref de l'employé>","date":"YYYY-MM-DD","start_time":"HH:MM","end_time":"HH:MM","break_minutes":30,"label":"Hugo · lun. 15 · 09:00-17:00"}[/ACTION]
+
 Règles STRICTES :
-- Utilise uniquement un "id" provenant d'un [ref:...] présent dans les données ci-dessus. N'invente JAMAIS d'id.
-- Réserve ces blocs aux congés au statut **pending**.
+- Utilise uniquement un "id"/"employee_id" provenant d'un [ref:...] présent dans les données ci-dessus. N'invente JAMAIS d'identifiant.
+- Réserve approve_leave/reject_leave aux congés au statut **pending**.
+- Pour create_shift : respecte les règles légales (repos 11h, max 10h/jour, pause ≥20 min si >6h) ; le créneau sera créé en **brouillon** et le manager verra les alertes de conformité dans le planning.
 - Le bloc n'exécute rien tout seul : il affiche au manager un bouton de confirmation. Ne dis jamais que l'action est faite — dis « Confirmez ci-dessous pour valider ».
 - Précède toujours le bloc d'une phrase courte décrivant ce que tu proposes.
 

@@ -52,6 +52,25 @@ describe('MarkdownText — action cards', () => {
     expect(await screen.findByText('Congé validé')).toBeInTheDocument()
   })
 
+  it('creates a draft shift via POST /api/shifts on confirm', async () => {
+    render(<MarkdownText text={'[ACTION:create_shift]{"employee_id":"emp1","date":"2026-06-15","start_time":"09:00","end_time":"17:00","break_minutes":30,"label":"Hugo · 09:00-17:00"}[/ACTION]'} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Créer' }))
+    await waitFor(() => {
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(
+        '/api/shifts',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ employee_id: 'emp1', date: '2026-06-15', start_time: '09:00', end_time: '17:00', break_minutes: 30, poste_id: null, status: 'draft' }),
+        }),
+      )
+    })
+  })
+
+  it('renders nothing for a create_shift missing required fields', () => {
+    const { container } = render(<MarkdownText text={'[ACTION:create_shift]{"employee_id":"emp1","label":"incomplet"}[/ACTION]'} />)
+    expect(container.querySelector('button')).toBeNull()
+  })
+
   it('renders nothing for an unknown or malformed action (never executes)', () => {
     const { container } = render(<MarkdownText text={'[ACTION:drop_table]{"id":"x"}[/ACTION]'} />)
     expect(screen.queryByRole('button')).toBeNull()

@@ -430,32 +430,49 @@ function parseMessageBlocks(text: string): ParsedBlock[] {
   return blocks.length ? blocks : [{ type: 'text', content: text }]
 }
 
+type ActionParams = Record<string, unknown>
+
 // Confirmable actions the assistant can propose. Nothing runs without a click.
+// `build` validates the params and returns the API request, or null if invalid.
 const ACTION_CONFIG: Record<string, {
   verb: string
-  endpoint: (id: string) => string
-  method: string
-  body: unknown
   confirmLabel: string
   doneLabel: string
   danger?: boolean
+  build: (p: ActionParams) => { url: string; method: string; body: unknown } | null
 }> = {
   approve_leave: {
     verb: 'Valider la demande de congé',
-    endpoint: (id) => `/api/conges/${id}`,
-    method: 'PATCH',
-    body: { status: 'approved' },
     confirmLabel: 'Valider',
     doneLabel: 'Congé validé',
+    build: (p) => p.id ? { url: `/api/conges/${p.id}`, method: 'PATCH', body: { status: 'approved' } } : null,
   },
   reject_leave: {
     verb: 'Refuser la demande de congé',
-    endpoint: (id) => `/api/conges/${id}`,
-    method: 'PATCH',
-    body: { status: 'rejected' },
     confirmLabel: 'Refuser',
     doneLabel: 'Congé refusé',
     danger: true,
+    build: (p) => p.id ? { url: `/api/conges/${p.id}`, method: 'PATCH', body: { status: 'rejected' } } : null,
+  },
+  create_shift: {
+    verb: 'Créer le créneau (brouillon)',
+    confirmLabel: 'Créer',
+    doneLabel: 'Créneau créé',
+    build: (p) => (p.employee_id && p.date && p.start_time && p.end_time)
+      ? {
+          url: '/api/shifts',
+          method: 'POST',
+          body: {
+            employee_id: p.employee_id,
+            date: p.date,
+            start_time: p.start_time,
+            end_time: p.end_time,
+            break_minutes: p.break_minutes ?? 0,
+            poste_id: p.poste_id ?? null,
+            status: 'draft',
+          },
+        }
+      : null,
   },
 }
 
@@ -465,19 +482,22 @@ function ActionCard({ tag, content }: { tag: string; content: string }) {
   const [errMsg, setErrMsg] = useState('')
 
   const cfg = ACTION_CONFIG[tag]
-  let parsed: { id?: string; label?: string } = {}
+  let parsed: ActionParams = {}
   try { parsed = JSON.parse(content) } catch { /* malformed → handled below */ }
 
-  // Unknown action or missing id → render nothing (never execute on bad input).
-  if (!cfg || !parsed.id) return null
+  const request = cfg?.build(parsed) ?? null
+  // Unknown action or invalid params → render nothing (never execute on bad input).
+  if (!cfg || !request) return null
+
+  const label = typeof parsed.label === 'string' ? parsed.label : undefined
 
   async function run() {
     setState('loading'); setErrMsg('')
     try {
-      const res = await fetch(cfg.endpoint(parsed.id!), {
-        method: cfg.method,
+      const res = await fetch(request!.url, {
+        method: request!.method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cfg.body),
+        body: JSON.stringify(request!.body),
       })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
@@ -494,7 +514,7 @@ function ActionCard({ tag, content }: { tag: string; content: string }) {
     <div className="mt-2 rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--border)' }}>
       <div className="px-3 py-2.5" style={{ backgroundColor: 'var(--bg-page)' }}>
         <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{cfg.verb}</p>
-        {parsed.label && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{parsed.label}</p>}
+        {label && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{label}</p>}
         <div className="mt-2">
           {state === 'done' ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--success)' }}>
