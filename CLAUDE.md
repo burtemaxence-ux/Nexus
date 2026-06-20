@@ -66,6 +66,16 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
+## Project conventions
+
+**Couleurs / thème** : le projet utilise des tokens CSS (`--text-primary`, `--bg-card`, `--accent`…). Deux façons équivalentes existent (le CSS produit est identique) :
+- inline `style={{ color: 'var(--text-primary)' }}` — convention historique majoritaire
+- classes Tailwind `className="text-text-primary"` — alias des mêmes tokens (voir `tailwind.config.ts`)
+
+Ne PAS lancer de migration de masse de l'un vers l'autre (gain nul, risque élevé). Rester **cohérent à l'intérieur d'un même fichier** ; convertir au passage les styles mono-propriété simples quand on édite déjà le fichier.
+
+---
+
 ## Session Start Protocol ⚡
 
 **MANDATORY** at start of each session:
