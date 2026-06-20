@@ -5,6 +5,7 @@ import {
   REFERRAL_ACTIVATION_DAYS,
   REFERRAL_DISCOUNT_PER_ACTIVE,
   applyReferralDiscount,
+  referralOutcome,
 } from '@/lib/referral'
 
 // Vercel Cron : tous les jours à 02h00 UTC → "0 2 * * *"
@@ -34,19 +35,17 @@ export async function GET(request: NextRequest) {
   const affectedReferrers = new Set<string>()
 
   for (const ref of pending ?? []) {
-    // Filleul subscription status (subscriptions row is keyed by establishment
-    // but carries the user_id of the subscriber).
-    const { data: sub } = await supabaseAdmin
+    // A filleul may own several establishments (several subscription rows keyed
+    // by establishment but carrying their user_id), so look at all their
+    // statuses, not a single row.
+    const { data: subs } = await supabaseAdmin
       .from('subscriptions')
       .select('status')
       .eq('user_id', ref.referred_id)
-      .maybeSingle()
 
-    const status = sub?.status
-    const isPaying = status === 'active' || status === 'past_due'
-    const isLost = !status || status === 'canceled' || status === 'unpaid' || status === 'free'
+    const outcome = referralOutcome((subs ?? []).map(s => s.status as string))
 
-    if (isPaying) {
+    if (outcome === 'activate') {
       await supabaseAdmin
         .from('referrals')
         .update({
@@ -58,14 +57,14 @@ export async function GET(request: NextRequest) {
         .eq('id', ref.id)
       affectedReferrers.add(ref.referrer_id)
       activated++
-    } else if (isLost) {
+    } else if (outcome === 'expire') {
       await supabaseAdmin
         .from('referrals')
         .update({ status: 'expired', updated_at: new Date().toISOString() })
         .eq('id', ref.id)
       expired++
     }
-    // status === 'trialing' → still in trial, leave pending for a later run.
+    // outcome === 'wait' (e.g. still trialing) → leave pending for a later run.
   }
 
   // Refresh each affected parrain's Stripe discount once.

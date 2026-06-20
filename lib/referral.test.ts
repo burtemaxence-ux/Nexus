@@ -2,10 +2,32 @@ import { describe, it, expect } from 'vitest'
 import {
   referralDiscountPct,
   generateReferralCode,
+  referralOutcome,
   REFERRAL_MAX_DISCOUNT,
   REFERRAL_MAX_ACTIVE,
   REFERRAL_DISCOUNT_PER_ACTIVE,
 } from './referral'
+
+describe('referralOutcome (multi-établissement)', () => {
+  it('active dès qu\'un abonnement paie (active ou past_due)', () => {
+    expect(referralOutcome(['active'])).toBe('activate')
+    expect(referralOutcome(['past_due'])).toBe('activate')
+    // plusieurs établissements : un seul payant suffit
+    expect(referralOutcome(['canceled', 'active'])).toBe('activate')
+    expect(referralOutcome(['trialing', 'past_due'])).toBe('activate')
+  })
+
+  it('expire si aucun abonnement ou tous terminaux', () => {
+    expect(referralOutcome([])).toBe('expire')
+    expect(referralOutcome(['canceled'])).toBe('expire')
+    expect(referralOutcome(['unpaid', 'free', 'canceled'])).toBe('expire')
+  })
+
+  it('attend si encore en essai (et aucun payant)', () => {
+    expect(referralOutcome(['trialing'])).toBe('wait')
+    expect(referralOutcome(['trialing', 'canceled'])).toBe('wait')
+  })
+})
 
 describe('referralDiscountPct', () => {
   it('is 0 with no active filleul', () => {

@@ -22,6 +22,20 @@ export function referralDiscountPct(activeCount: number): number {
   return Math.min(activeCount, REFERRAL_MAX_ACTIVE) * REFERRAL_DISCOUNT_PER_ACTIVE
 }
 
+/**
+ * Decide what to do with a referred user's pending referral, given ALL of their
+ * subscription statuses. A user can own several establishments (several
+ * subscription rows), so the whole set is considered rather than a single row:
+ * - any paying sub (active/past_due) → 'activate'
+ * - no sub at all, or every sub terminal (canceled/unpaid/free) → 'expire'
+ * - otherwise (e.g. still trialing) → 'wait' (re-checked on a later cron run)
+ */
+export function referralOutcome(statuses: string[]): 'activate' | 'expire' | 'wait' {
+  if (statuses.some(s => s === 'active' || s === 'past_due')) return 'activate'
+  if (statuses.length === 0 || statuses.every(s => s === 'canceled' || s === 'unpaid' || s === 'free')) return 'expire'
+  return 'wait'
+}
+
 export type ReferralRow = {
   id: string
   referred_id: string | null
@@ -186,14 +200,18 @@ export async function applyReferralDiscount(referrerUserId: string): Promise<voi
 
     const pct = referralDiscountPct(count ?? 0)
 
-    const { data: sub } = await supabaseAdmin
+    // A referrer may own several establishments (several subscription rows).
+    // Pick their most current live subscription deterministically rather than
+    // erroring on multiple rows, and apply the single referral discount there.
+    const { data: subs } = await supabaseAdmin
       .from('subscriptions')
       .select('stripe_subscription_id')
       .eq('user_id', referrerUserId)
       .not('stripe_subscription_id', 'is', null)
-      .maybeSingle()
+      .order('current_period_end', { ascending: false, nullsFirst: false })
+      .limit(1)
 
-    const subId = sub?.stripe_subscription_id
+    const subId = subs?.[0]?.stripe_subscription_id
     if (!subId) return // No subscription yet — will be picked up once they subscribe.
 
     const stripe = getStripe()
