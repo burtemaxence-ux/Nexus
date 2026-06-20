@@ -399,36 +399,7 @@ export function ManagerMetricsClient() {
         />
       </div>
 
-      {/* ── CONFORMITÉ (différenciateur Quartzbase) ───────────────────────── */}
-      <div className="dashboard-s2">
-        <ComplianceOverview />
-      </div>
-
-      {/* ── SERVICE DU JOUR (live) ────────────────────────────────────────── */}
-      <div className="dashboard-s2">
-        <TodayRoster />
-      </div>
-
-      {/* ── POSTES À POURVOIR (contextuel, masqué si vide) ────────────────── */}
-      <div className="dashboard-s2">
-        <OpenSlots />
-      </div>
-
-      {/* ── SEMAINE EN COURS ──────────────────────────────────────────────── */}
-      <div
-        className="dashboard-s2 rounded-[14px] border overflow-hidden"
-        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
-      >
-        <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
-          <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>Charge de la semaine</p>
-          <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{plannedHours} h planifiées</span>
-        </div>
-        <div className="px-3 py-4">
-          <WeekLoadChart data={weekLoad} />
-        </div>
-      </div>
-
-      {/* ── ALERTES ───────────────────────────────────────────────────────── */}
+      {/* ── ALERTES ACTIONNABLES (remontées sous les KPIs) ────────────────── */}
       {(pendingCount > 0 || latenessCount > 0 || exchangePending > 0 || cddExpiring > 0) && (
         <div className="space-y-2 dashboard-s2">
           {pendingCount > 0 && (
@@ -485,6 +456,35 @@ export function ManagerMetricsClient() {
           )}
         </div>
       )}
+
+      {/* ── CONFORMITÉ (différenciateur Quartzbase) ───────────────────────── */}
+      <div className="dashboard-s2">
+        <ComplianceOverview />
+      </div>
+
+      {/* ── SERVICE DU JOUR (live) ────────────────────────────────────────── */}
+      <div className="dashboard-s2">
+        <TodayRoster />
+      </div>
+
+      {/* ── POSTES À POURVOIR (contextuel, masqué si vide) ────────────────── */}
+      <div className="dashboard-s2">
+        <OpenSlots />
+      </div>
+
+      {/* ── SEMAINE EN COURS ──────────────────────────────────────────────── */}
+      <div
+        className="dashboard-s2 rounded-[14px] border overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+      >
+        <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
+          <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>Charge de la semaine</p>
+          <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{plannedHours} h planifiées</span>
+        </div>
+        <div className="px-3 py-4">
+          <WeekLoadChart data={weekLoad} />
+        </div>
+      </div>
 
     </div>
   )
