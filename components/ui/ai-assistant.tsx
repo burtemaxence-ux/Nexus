@@ -2,6 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Sparkles, X, Send, Loader2, ChevronDown, Bot, FileText, Copy, Check, Printer } from 'lucide-react'
+import ReactMarkdown, { type Components } from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeSanitize from 'rehype-sanitize'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -445,7 +448,19 @@ function DocumentCard({ docType, content }: { docType: string; content: string }
   )
 }
 
-function MarkdownText({ text }: { text: string }) {
+// Minimal styling for AI markdown, themed to the chat bubble.
+const MD_COMPONENTS: Components = {
+  p: (props) => <p className="mb-1.5 last:mb-0" {...props} />,
+  ul: (props) => <ul className="list-disc pl-4 space-y-0.5 mb-1.5 last:mb-0" {...props} />,
+  ol: (props) => <ol className="list-decimal pl-4 space-y-0.5 mb-1.5 last:mb-0" {...props} />,
+  strong: (props) => <strong className="font-semibold" {...props} />,
+  code: (props) => <code className="bg-black/10 px-1 rounded text-[11px] font-mono" {...props} />,
+  a: (props) => <a className="underline" target="_blank" rel="noopener noreferrer" {...props} />,
+}
+
+// Renders an AI message: custom [DOC:…] blocks become DocumentCards, the rest is
+// markdown rendered through react-markdown + rehype-sanitize (no raw HTML, no XSS).
+export function MarkdownText({ text }: { text: string }) {
   const blocks = parseMessageBlocks(text)
   return (
     <div className="space-y-2">
@@ -453,21 +468,14 @@ function MarkdownText({ text }: { text: string }) {
         block.type === 'doc' ? (
           <DocumentCard key={bi} docType={block.docType!} content={block.content} />
         ) : (
-          <div key={bi} className="space-y-1">
-            {block.content.split('\n').map((line, i) => {
-              const isBullet = /^[-*•]\s/.test(line)
-              const processed = line
-                .replace(/^[-*•]\s/, '')
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                .replace(/`(.+?)`/g, '<code class="bg-black/10 px-1 rounded text-[11px] font-mono">$1</code>')
-
-              if (!processed && i > 0) return <div key={i} className="h-1" />
-              return isBullet
-                ? <div key={i} className="flex gap-1.5"><span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-current opacity-50" /><span dangerouslySetInnerHTML={{ __html: processed }} /></div>
-                : <span key={i} className="block" dangerouslySetInnerHTML={{ __html: processed }} />
-            })}
-          </div>
+          <ReactMarkdown
+            key={bi}
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeSanitize]}
+            components={MD_COMPONENTS}
+          >
+            {block.content}
+          </ReactMarkdown>
         )
       )}
     </div>
