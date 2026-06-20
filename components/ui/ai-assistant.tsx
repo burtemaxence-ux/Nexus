@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, X, Send, Loader2, RotateCcw, Bot, FileText, Copy, Check, Printer } from 'lucide-react'
+import { Sparkles, X, Send, Loader2, RotateCcw, Bot, FileText, Copy, Check, Printer, CalendarCheck, CalendarX, CalendarPlus, UserPlus, CopyPlus, ArrowLeftRight, type LucideIcon } from 'lucide-react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
@@ -452,23 +452,29 @@ type ActionParams = Record<string, unknown>
 
 // Confirmable actions the assistant can propose. Nothing runs without a click.
 // `build` validates the params and returns the API request, or null if invalid.
+// `details` surfaces parsed fields on the card for sensitive actions, so the
+// manager confirms the real target (e.g. the email) and not just a label.
 const ACTION_CONFIG: Record<string, {
   verb: string
   confirmLabel: string
   doneLabel: string
+  icon: LucideIcon
   danger?: boolean
   build: (p: ActionParams) => { url: string; method: string; body: unknown } | null
+  details?: (p: ActionParams) => { label: string; value: string }[]
 }> = {
   approve_leave: {
     verb: 'Valider la demande de congé',
     confirmLabel: 'Valider',
     doneLabel: 'Congé validé',
+    icon: CalendarCheck,
     build: (p) => p.id ? { url: `/api/conges/${p.id}`, method: 'PATCH', body: { status: 'approved' } } : null,
   },
   reject_leave: {
     verb: 'Refuser la demande de congé',
     confirmLabel: 'Refuser',
     doneLabel: 'Congé refusé',
+    icon: CalendarX,
     danger: true,
     build: (p) => p.id ? { url: `/api/conges/${p.id}`, method: 'PATCH', body: { status: 'rejected' } } : null,
   },
@@ -476,6 +482,7 @@ const ACTION_CONFIG: Record<string, {
     verb: 'Créer le créneau (brouillon)',
     confirmLabel: 'Créer',
     doneLabel: 'Créneau créé',
+    icon: CalendarPlus,
     build: (p) => (p.employee_id && p.date && p.start_time && p.end_time)
       ? {
           url: '/api/shifts',
@@ -496,12 +503,14 @@ const ACTION_CONFIG: Record<string, {
     verb: 'Valider l\'échange de shift',
     confirmLabel: 'Valider',
     doneLabel: 'Échange validé',
+    icon: ArrowLeftRight,
     build: (p) => p.id ? { url: `/api/exchanges/${p.id}/approve`, method: 'POST', body: {} } : null,
   },
   reject_exchange: {
     verb: 'Refuser l\'échange de shift',
     confirmLabel: 'Refuser',
     doneLabel: 'Échange refusé',
+    icon: ArrowLeftRight,
     danger: true,
     build: (p) => p.id ? { url: `/api/exchanges/${p.id}/reject`, method: 'POST', body: {} } : null,
   },
@@ -509,6 +518,7 @@ const ACTION_CONFIG: Record<string, {
     verb: 'Inviter un employé',
     confirmLabel: 'Inviter',
     doneLabel: 'Invitation envoyée',
+    icon: UserPlus,
     build: (p) => (p.first_name && p.last_name && p.email)
       ? {
           url: '/api/employees/invite',
@@ -522,14 +532,20 @@ const ACTION_CONFIG: Record<string, {
           },
         }
       : null,
+    details: (p) => [
+      { label: 'Email', value: String(p.email ?? '') },
+      { label: 'Rôle', value: p.role === 'manager' ? 'Manager' : p.role === 'supervisor' ? 'Superviseur' : 'Employé' },
+    ],
   },
   copy_week: {
     verb: 'Copier la semaine vers la suivante',
     confirmLabel: 'Copier',
     doneLabel: 'Semaine copiée',
+    icon: CopyPlus,
     build: (p) => (typeof p.from_monday === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.from_monday))
       ? { url: '/api/shifts/copy-week', method: 'POST', body: { from_monday: p.from_monday } }
       : null,
+    details: (p) => [{ label: 'Semaine source (lundi)', value: String(p.from_monday ?? '') }],
   },
 }
 
@@ -547,6 +563,9 @@ function ActionCard({ tag, content }: { tag: string; content: string }) {
   if (!cfg || !request) return null
 
   const label = typeof parsed.label === 'string' ? parsed.label : undefined
+  const details = cfg.details?.(parsed) ?? []
+  const Icon = cfg.icon
+  const accent = cfg.danger ? 'var(--danger)' : 'var(--accent)'
 
   async function run() {
     setState('loading'); setErrMsg('')
@@ -568,10 +587,29 @@ function ActionCard({ tag, content }: { tag: string; content: string }) {
   }
 
   return (
-    <div className="mt-2 rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--border)' }}>
+    <div className="mt-2 rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--border)', borderLeft: `2px solid ${accent}` }}>
       <div className="px-3 py-2.5" style={{ backgroundColor: 'var(--bg-page)' }}>
-        <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{cfg.verb}</p>
-        {label && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{label}</p>}
+        <div className="flex items-start gap-2">
+          <span className="flex-shrink-0 mt-0.5 flex h-5 w-5 items-center justify-center rounded-md" style={{ backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)`, color: accent }}>
+            <Icon className="h-3 w-3" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{cfg.verb}</p>
+            {label && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{label}</p>}
+          </div>
+        </div>
+
+        {details.length > 0 && (
+          <dl className="mt-2 space-y-0.5">
+            {details.map((d) => (
+              <div key={d.label} className="flex gap-1.5 text-[11px]">
+                <dt className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>{d.label} :</dt>
+                <dd className="min-w-0 truncate font-medium" style={{ color: 'var(--text-secondary)' }}>{d.value || '—'}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+
         <div className="mt-2">
           {state === 'done' ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--success)' }}>
@@ -581,10 +619,11 @@ function ActionCard({ tag, content }: { tag: string; content: string }) {
             <button
               onClick={run}
               disabled={state === 'loading'}
-              className="rounded-lg px-3 py-1.5 text-[11px] font-medium transition-opacity disabled:opacity-50"
-              style={{ backgroundColor: cfg.danger ? 'var(--danger)' : 'var(--accent)', color: 'white' }}
+              className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: accent, color: 'white' }}
             >
-              {state === 'loading' ? '…' : cfg.confirmLabel}
+              {state === 'loading' && <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />}
+              {state === 'error' ? 'Réessayer' : state === 'loading' ? 'En cours…' : cfg.confirmLabel}
             </button>
           )}
           {state === 'error' && <p className="text-[11px] mt-1" style={{ color: 'var(--danger)' }}>{errMsg}</p>}

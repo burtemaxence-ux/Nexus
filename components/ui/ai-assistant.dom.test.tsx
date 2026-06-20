@@ -99,6 +99,25 @@ describe('MarkdownText — action cards', () => {
     })
   })
 
+  it('shows parsed details (email, role) on the invite card before confirming', () => {
+    render(<MarkdownText text={'[ACTION:invite_employee]{"first_name":"Jean","last_name":"Dupont","email":"jean@ex.fr","role":"supervisor","label":"Inviter Jean"}[/ACTION]'} />)
+    expect(screen.getByText('jean@ex.fr')).toBeInTheDocument()
+    expect(screen.getByText('Superviseur')).toBeInTheDocument()
+  })
+
+  it('shows the source week on the copy-week card', () => {
+    render(<MarkdownText text={'[ACTION:copy_week]{"from_monday":"2026-06-09","label":"Copier"}[/ACTION]'} />)
+    expect(screen.getByText('2026-06-09')).toBeInTheDocument()
+  })
+
+  it('offers a retry on a failed action', async () => {
+    ;(globalThis as any).fetch = vi.fn().mockResolvedValue({ ok: false, status: 409, json: async () => ({ error: 'Limite atteinte' }) })
+    render(<MarkdownText text={'[ACTION:approve_leave]{"id":"abc","label":"Congé"}[/ACTION]'} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Valider' }))
+    await waitFor(() => expect(screen.getByText('Limite atteinte')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument()
+  })
+
   it('renders nothing for a create_shift missing required fields', () => {
     const { container } = render(<MarkdownText text={'[ACTION:create_shift]{"employee_id":"emp1","label":"incomplet"}[/ACTION]'} />)
     expect(container.querySelector('button')).toBeNull()
