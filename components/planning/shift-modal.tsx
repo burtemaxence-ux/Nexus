@@ -23,117 +23,16 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { type Profile, type Shift, type Poste } from '@/types'
 import { toISODate } from '@/lib/utils/dates'
-import { checkCompliance, type ShiftRecord, type Violation, RULES } from '@/lib/compliance/rules'
-
-// ── Planning rules ────────────────────────────────────────────────────────────
-
-// Establishment-configurable shift duration bounds only. Break (break_missing)
-// and daily rest (rest_daily) are judged authoritatively by checkCompliance
-// against the legal thresholds, so they are no longer duplicated here.
-interface PlanningRules {
-  minShiftMinutes: number
-  maxShiftMinutes: number
-}
-
-const DEFAULT_RULES: PlanningRules = {
-  minShiftMinutes: 30,
-  maxShiftMinutes: 600,
-}
-
-function parseRules(data: Record<string, string>): PlanningRules {
-  return {
-    minShiftMinutes: parseInt(data.min_shift_duration ?? '30', 10),
-    maxShiftMinutes: parseInt(data.max_shift_duration ?? '600', 10),
-  }
-}
-
-function fmtMins(m: number): string {
-  const h = Math.floor(m / 60)
-  const min = m % 60
-  return min > 0 ? `${h}h${String(min).padStart(2, '0')}` : `${h}h`
-}
-
-function computeDurationWarnings(
-  startTime: string,
-  endTime: string,
-  breakMins: number,
-  rules: PlanningRules,
-): string[] {
-  const warnings: string[] = []
-  const netDuration = calcDurationMinutes(startTime, endTime) - breakMins
-
-  if (netDuration > 0 && netDuration < rules.minShiftMinutes) {
-    warnings.push(`Créneau trop court — minimum requis : ${fmtMins(rules.minShiftMinutes)}`)
-  }
-  if (netDuration > rules.maxShiftMinutes) {
-    warnings.push(`Créneau trop long — maximum autorisé : ${fmtMins(rules.maxShiftMinutes)}`)
-  }
-  return warnings
-}
-
-function computeComplianceViolations(
-  startTime: string,
-  endTime: string,
-  breakMins: number,
-  employeeId: string,
-  date: Date,
-  allShifts: Shift[],
-  excludeShiftId?: string,
-): Violation[] {
-  const dateStr = toISODate(date)
-
-  const existing: ShiftRecord[] = allShifts
-    .filter(s => s.employee_id === employeeId && s.id !== (excludeShiftId ?? ''))
-    .map(s => ({
-      id: s.id,
-      employeeId: s.employee_id,
-      date: s.date,
-      startTime: s.start_time.slice(0, 5),
-      endTime: s.end_time.slice(0, 5),
-      breakMinutes: s.break_minutes,
-    }))
-
-  const proposed: ShiftRecord = {
-    id: 'proposed',
-    employeeId,
-    date: dateStr,
-    startTime,
-    endTime,
-    breakMinutes: breakMins,
-  }
-
-  const baseline = checkCompliance(existing)
-  const withProposed = checkCompliance([...existing, proposed])
-
-  return withProposed.filter(v =>
-    !baseline.some(b => b.ruleId === v.ruleId && b.employeeId === v.employeeId && b.date === v.date)
-  )
-}
-
-const BREAK_OPTIONS = [
-  { value: '0', label: 'Aucune' },
-  { value: '15', label: '15 min' },
-  { value: '20', label: '20 min' },
-  { value: '30', label: '30 min' },
-  { value: '45', label: '45 min' },
-  { value: '60', label: '1h' },
-]
-
-// Ensure the currently-selected break value (e.g. a poste's custom break_minutes
-// like 25) always has a matching option, otherwise the Select renders empty.
-function breakOptions(current: string) {
-  if (BREAK_OPTIONS.some(o => o.value === current)) return BREAK_OPTIONS
-  return [...BREAK_OPTIONS, { value: current, label: `${current} min` }]
-    .sort((a, b) => Number(a.value) - Number(b.value))
-}
-
-function calcDurationMinutes(start: string, end: string): number {
-  const [sh, sm] = start.split(':').map(Number)
-  const [eh, em] = end.split(':').map(Number)
-  let minutes = (eh * 60 + em) - (sh * 60 + sm)
-  if (minutes < 0) minutes += 24 * 60
-  return minutes
-}
+import { type Violation, RULES } from '@/lib/compliance/rules'
+import {
+  DEFAULT_RULES,
+  parseRules,
+  type PlanningRules,
+  computeDurationWarnings,
+  computeComplianceViolations,
+  breakOptions,
+  calcDurationMinutes,
+} from '@/lib/planning/shift-form'
 
 
 function formatDayFR(date: Date): string {
