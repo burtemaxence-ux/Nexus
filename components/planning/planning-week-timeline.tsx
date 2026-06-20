@@ -526,6 +526,7 @@ export function PlanningWeekTimeline({
 
       {showAiPlanModal && (
         <AiPlanModal weekMonday={mondayStr} weekLabel={weekLabel} employees={employees} postes={postes}
+          existingShifts={shifts}
           onSuccess={() => { router.refresh(); setAiQuotaKey(k => k + 1) }}
           onClose={() => setShowAiPlanModal(false)} />
       )}

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Sparkles, Loader2, CheckCircle, RefreshCw, ChevronRight, Wand2 } from 'lucide-react'
-import { type Profile, type Poste } from '@/types'
+import { useState, useMemo } from 'react'
+import { X, Sparkles, Loader2, CheckCircle, RefreshCw, ChevronRight, Wand2, AlertTriangle } from 'lucide-react'
+import { type Profile, type Poste, type Shift } from '@/types'
 import { type ProposedShift } from '@/app/api/ai/plan/route'
+import { checkCompliance, type ShiftRecord, type Violation, RULES } from '@/lib/compliance/rules'
 
 type ModalPhase = 'idle' | 'generating' | 'preview' | 'applying' | 'done'
 
@@ -26,11 +27,12 @@ interface AiPlanModalProps {
   weekLabel: string
   employees: Profile[]
   postes: Poste[]
+  existingShifts: Shift[]
   onSuccess: () => void
   onClose: () => void
 }
 
-export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSuccess, onClose }: AiPlanModalProps) {
+export function AiPlanModal({ weekMonday, weekLabel, employees, postes, existingShifts, onSuccess, onClose }: AiPlanModalProps) {
   const [phase, setPhase] = useState<ModalPhase>('idle')
   const [instructions, setInstructions] = useState('')
   const [proposedShifts, setProposedShifts] = useState<ProposedShift[]>([])
@@ -39,6 +41,35 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
   const [error, setError] = useState<string | null>(null)
   const [applied, setApplied] = useState(0)
   const [applyTotal, setApplyTotal] = useState(0)
+
+  // Employee id → name (existing shifts only carry ids; used for alert labels).
+  const employeeNameById = useMemo(
+    () => Object.fromEntries(employees.map(e => [e.id, e.full_name ?? e.email ?? e.id])),
+    [employees]
+  )
+
+  // Compliance alerts introduced by the SELECTED proposal, on top of the shifts
+  // already placed this week. Same engine (checkCompliance) as the shift editor,
+  // so what the AI preview flags is exactly what gets enforced afterwards.
+  const violations = useMemo<Violation[]>(() => {
+    if (phase !== 'preview') return []
+    const toRecord = (
+      s: { employee_id: string; date: string; start_time: string; end_time: string; break_minutes: number },
+      id: string,
+    ): ShiftRecord => ({
+      id,
+      employeeId: s.employee_id,
+      date: s.date,
+      startTime: s.start_time.slice(0, 5),
+      endTime: s.end_time.slice(0, 5),
+      breakMinutes: s.break_minutes ?? 0,
+    })
+    const existing = existingShifts.map((s, i) => toRecord(s, `cur-${i}`))
+    const selected = proposedShifts.filter((_, i) => selectedIndices.has(i)).map((s, i) => toRecord(s, `prop-${i}`))
+    const baseline = checkCompliance(existing)
+    const all = checkCompliance([...existing, ...selected])
+    return all.filter(v => !baseline.some(b => b.ruleId === v.ruleId && b.employeeId === v.employeeId && b.date === v.date))
+  }, [phase, proposedShifts, selectedIndices, existingShifts])
 
   async function generate() {
     setPhase('generating')
@@ -223,6 +254,32 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
                   style={{ backgroundColor: 'var(--accent-light)', color: 'var(--text-primary)', border: '0.5px solid var(--border)' }}
                 >
                   {summary}
+                </div>
+              )}
+
+              {violations.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--danger)' }}>
+                    {violations.length} alerte{violations.length > 1 ? 's' : ''} de conformité sur la sélection
+                  </p>
+                  {violations.map((v, i) => {
+                    const rule = RULES[v.ruleId]
+                    const isCritical = rule.severity === 'critical'
+                    return (
+                      <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
+                        style={{ backgroundColor: isCritical ? '#FEE2E2' : '#FEF3C7', border: `0.5px solid ${isCritical ? '#dc2626' : '#D97706'}` }}>
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: isCritical ? '#dc2626' : '#D97706' }} />
+                        <div>
+                          <p className="text-[12px] font-medium leading-snug" style={{ color: isCritical ? '#991b1b' : '#92400E' }}>
+                            {employeeNameById[v.employeeId] ?? 'Employé'} — {rule.name}
+                          </p>
+                          <p className="text-[11px] leading-snug mt-0.5" style={{ color: isCritical ? '#b91c1c' : '#a16207' }}>
+                            {v.description} — <span className="font-medium">{rule.legalRef}</span>
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
 
