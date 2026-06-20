@@ -43,3 +43,22 @@ export function isEntitledStatus(status: string | null | undefined): boolean {
 export function isActiveSubscription(sub: SubscriptionRow | null): boolean {
   return isEntitledStatus(sub?.status)
 }
+
+/**
+ * Whole days of free trial remaining, anchored to account creation
+ * (`accountCreatedAt + TRIAL_DAYS`). Returns 0 once that window has elapsed.
+ *
+ * The trial is the signup window — nothing more. Used at checkout to set Stripe's
+ * `trial_period_days` so it never *adds* a fresh 30 days on top of the
+ * already-running pre-subscription window, and so cancelling then re-subscribing
+ * (which clears the Stripe subscription id) can't mint a brand-new trial: an
+ * older account simply gets 0.
+ */
+export function remainingTrialDays(
+  accountCreatedAt: string | Date,
+  now: Date = new Date()
+): number {
+  const end = new Date(accountCreatedAt).getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000
+  const ms = end - now.getTime()
+  return ms <= 0 ? 0 : Math.ceil(ms / (24 * 60 * 60 * 1000))
+}

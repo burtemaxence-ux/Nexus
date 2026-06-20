@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
 import { getStripe, STRIPE_PRICES } from '@/lib/stripe'
-import { TRIAL_DAYS } from '@/lib/subscription'
+import { remainingTrialDays } from '@/lib/subscription'
 import { getPendingFirstMonth, firstMonthCouponId } from '@/lib/referral'
 
 const CheckoutSchema = z.object({
@@ -74,6 +74,15 @@ export async function POST(request: NextRequest) {
     const firstMonth = isFirstSubscription ? await getPendingFirstMonth(user.id) : null
     const referralDiscount = firstMonth ? [{ coupon: await firstMonthCouponId(stripe) }] : null
 
+    // Free trial = the remaining days of the signup window (account creation +
+    // TRIAL_DAYS), granted once. This avoids stacking it on top of the
+    // pre-subscription paywall window and prevents earning a fresh trial by
+    // cancelling and re-subscribing. The referral first-month coupon replaces it.
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const trialDays = (isFirstSubscription && !firstMonth && authUser?.created_at)
+      ? remainingTrialDays(authUser.created_at)
+      : 0
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -83,7 +92,7 @@ export async function POST(request: NextRequest) {
       metadata: { establishment_id: estId, user_id: user.id },
       subscription_data: {
         metadata: { establishment_id: estId, user_id: user.id },
-        ...(isFirstSubscription && !firstMonth ? { trial_period_days: TRIAL_DAYS } : {}),
+        ...(trialDays > 0 ? { trial_period_days: trialDays } : {}),
       },
       ...(referralDiscount ? { discounts: referralDiscount } : { allow_promotion_codes: true }),
     })
