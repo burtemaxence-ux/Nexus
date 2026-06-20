@@ -206,7 +206,9 @@ Si c'est le début d'une conversation (premier message de l'utilisateur), commen
       try {
         const response = await client.messages.create({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 2048,
+          // Headroom for long HR documents (avertissement, convocation…) which
+          // would otherwise be truncated at 2048.
+          max_tokens: 4096,
           // cache_control: the large establishment system prompt is reused across
           // the conversation's turns; cache it instead of re-billing it each time.
           system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],

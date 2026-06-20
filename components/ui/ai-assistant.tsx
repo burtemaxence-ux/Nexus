@@ -49,6 +49,26 @@ export function AiAssistant({
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const sendRef = useRef<((text: string) => void) | null>(null)
+  const storageKey = `qb-chat:${mode}:${establishmentName}`
+
+  // Restore a previous conversation on mount so refresh/navigation doesn't lose it.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        const parsed = JSON.parse(saved) as Message[]
+        if (Array.isArray(parsed) && parsed.length) setMessages(parsed)
+      }
+    } catch { /* ignore corrupt storage */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Persist the conversation (cap to the last 40 messages).
+  useEffect(() => {
+    try {
+      if (messages.length) localStorage.setItem(storageKey, JSON.stringify(messages.slice(-40)))
+    } catch { /* ignore quota errors */ }
+  }, [messages, storageKey])
 
   // Fetch proactive suggestions once on first open
   useEffect(() => {
@@ -86,7 +106,7 @@ export function AiAssistant({
   }, [open, messages.length, userName, establishmentName, mode])
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    bottomRef.current?.scrollIntoView({ behavior: 'auto' })
   }, [messages, loading])
 
   useEffect(() => {
@@ -98,6 +118,7 @@ export function AiAssistant({
     if (!trimmed || loading) return
 
     setInput('')
+    if (inputRef.current) inputRef.current.style.height = 'auto'
     setError(null)
     const newMessages: Message[] = [...messages, { role: 'user', content: trimmed }]
     setMessages(newMessages)
@@ -165,6 +186,14 @@ export function AiAssistant({
     setMessages([])
     setError(null)
     setLoading(false)
+    try { localStorage.removeItem(storageKey) } catch { /* ignore */ }
+  }
+
+  function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setInput(e.target.value)
+    const el = e.target
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 100)}px`
   }
 
   return (
@@ -173,6 +202,7 @@ export function AiAssistant({
       <button
         onClick={() => setOpen(v => !v)}
         aria-label="Assistant IA"
+        aria-expanded={open}
         className="fixed right-4 z-50 flex items-center justify-center rounded-full transition-all duration-300 focus:outline-none bottom-[80px] md:bottom-6"
         style={{
           height: '52px',
@@ -188,6 +218,9 @@ export function AiAssistant({
 
       {/* Chat panel */}
       <div
+        role="dialog"
+        aria-label="Assistant Quartzbase"
+        aria-hidden={!open}
         className={`fixed right-4 z-50 flex flex-col rounded-2xl transition-all duration-300 w-[calc(100vw-32px)] md:w-[380px] bottom-[144px] md:bottom-24 ${
           open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
@@ -237,7 +270,7 @@ export function AiAssistant({
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{ minHeight: 0 }}>
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{ minHeight: 0 }} role="log" aria-live="polite" aria-atomic="false">
           {messages.map((msg, i) => (
             <div key={i} className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               {msg.role === 'assistant' && (
@@ -312,7 +345,7 @@ export function AiAssistant({
             <textarea
               ref={inputRef}
               value={input}
-              onChange={e => setInput(e.target.value)}
+              onChange={handleInput}
               onKeyDown={handleKey}
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
