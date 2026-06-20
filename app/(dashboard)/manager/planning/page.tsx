@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
@@ -9,6 +10,19 @@ import type { Profile, Shift, Poste, WeekStatus, LeaveRequest } from '@/types'
 
 interface PlanningPageProps {
   searchParams: Promise<{ week?: string; view?: string; month?: string; date?: string }>
+}
+
+// Shared page chrome for the three planning views. Each view gets an
+// ErrorBoundary so a crash in one never takes down the whole page.
+function PlanningShell({ narrow, children }: { narrow?: boolean; children: ReactNode }) {
+  return (
+    <div className={narrow ? 'px-6 py-6 max-w-6xl mx-auto' : 'px-4 py-4 md:px-6 md:py-6'}>
+      <h1 className="text-[18px] md:text-[20px] font-medium tracking-[-0.02em] mb-4 md:mb-5" style={{ color: 'var(--text-primary)' }}>
+        Planning
+      </h1>
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </div>
+  )
 }
 
 export default async function PlanningPage({ searchParams }: PlanningPageProps) {
@@ -65,17 +79,14 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
     const shifts: Shift[] = (shiftsData ?? []) as Shift[]
 
     return (
-      <div className="px-6 py-6 max-w-6xl mx-auto">
-        <h1 className="text-[20px] font-medium tracking-[-0.02em] mb-5" style={{ color: 'var(--text-primary)' }}>
-          Planning
-        </h1>
+      <PlanningShell narrow>
         <PlanningMonth
           month={monthDate}
           employees={employees}
           shifts={shifts}
           postes={postes}
         />
-      </div>
+      </PlanningShell>
     )
   }
 
@@ -108,10 +119,7 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
     const weekStatus: WeekStatus = weekStatusData ?? { week_monday: mondayStr, published: false, locked: false, published_at: null, locked_at: null }
 
     return (
-      <div className="px-6 py-6 max-w-6xl mx-auto">
-        <h1 className="text-[20px] font-medium tracking-[-0.02em] mb-5" style={{ color: 'var(--text-primary)' }}>
-          Planning
-        </h1>
+      <PlanningShell narrow>
         <PlanningDay
           date={dayDate}
           employees={employees}
@@ -121,7 +129,7 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
           weekPublished={weekStatus.published}
           postes={postes}
         />
-      </div>
+      </PlanningShell>
     )
   }
 
@@ -140,7 +148,12 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
   const mondayStr = toISODate(monday)
   const sundayStr = toISODate(sunday)
 
-  const [{ data: shiftsData, error: shiftsError }, { data: leaveData }, { data: contractsData }] = await Promise.all([
+  const [
+    { data: shiftsData, error: shiftsError },
+    { data: leaveData },
+    { data: contractsData },
+    { data: weekStatusData },
+  ] = await Promise.all([
     supabase.from('shifts').select('*').gte('date', mondayStr).lte('date', sundayStr),
     supabase.from('leave_requests').select('*')
       .eq('status', 'approved')
@@ -150,6 +163,7 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
       .select('employee_id, hourly_rate, start_date')
       .not('hourly_rate', 'is', null)
       .order('start_date', { ascending: false }),
+    supabase.from('week_status').select('*').eq('week_monday', mondayStr).single(),
   ])
 
   if (shiftsError) console.error('Error fetching shifts:', shiftsError)
@@ -164,12 +178,6 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
     }
   }
 
-  const { data: weekStatusData } = await supabase
-    .from('week_status')
-    .select('*')
-    .eq('week_monday', mondayStr)
-    .single()
-
   const weekStatus: WeekStatus = weekStatusData ?? {
     week_monday: mondayStr,
     published: false,
@@ -179,22 +187,17 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
   }
 
   return (
-    <div className="px-4 py-4 md:px-6 md:py-6">
-      <h1 className="text-[18px] md:text-[20px] font-medium tracking-[-0.02em] mb-4 md:mb-5" style={{ color: 'var(--text-primary)' }}>
-        Planning
-      </h1>
-      <ErrorBoundary>
-        <PlanningClientWrapper
-          weekDates={weekDates}
-          employees={employees}
-          shifts={shifts}
-          leaveRequests={leaveRequests}
-          weekLocked={weekStatus.locked}
-          weekPublished={weekStatus.published}
-          postes={postes}
-          hourlyRateMap={hourlyRateMap}
-        />
-      </ErrorBoundary>
-    </div>
+    <PlanningShell>
+      <PlanningClientWrapper
+        weekDates={weekDates}
+        employees={employees}
+        shifts={shifts}
+        leaveRequests={leaveRequests}
+        weekLocked={weekStatus.locked}
+        weekPublished={weekStatus.published}
+        postes={postes}
+        hourlyRateMap={hourlyRateMap}
+      />
+    </PlanningShell>
   )
 }
