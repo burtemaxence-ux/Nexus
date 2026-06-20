@@ -27,26 +27,23 @@ import { checkCompliance, type ShiftRecord, type Violation, RULES } from '@/lib/
 
 // ── Planning rules ────────────────────────────────────────────────────────────
 
+// Establishment-configurable shift duration bounds only. Break (break_missing)
+// and daily rest (rest_daily) are judged authoritatively by checkCompliance
+// against the legal thresholds, so they are no longer duplicated here.
 interface PlanningRules {
   minShiftMinutes: number
   maxShiftMinutes: number
-  breakTriggerMinutes: number
-  minRestHours: number
 }
 
 const DEFAULT_RULES: PlanningRules = {
   minShiftMinutes: 30,
   maxShiftMinutes: 600,
-  breakTriggerMinutes: 360,
-  minRestHours: 11,
 }
 
 function parseRules(data: Record<string, string>): PlanningRules {
   return {
     minShiftMinutes: parseInt(data.min_shift_duration ?? '30', 10),
     maxShiftMinutes: parseInt(data.max_shift_duration ?? '600', 10),
-    breakTriggerMinutes: parseInt(data.break_trigger_minutes ?? '360', 10),
-    minRestHours: parseInt(data.min_rest_hours ?? '11', 10),
   }
 }
 
@@ -56,18 +53,14 @@ function fmtMins(m: number): string {
   return min > 0 ? `${h}h${String(min).padStart(2, '0')}` : `${h}h`
 }
 
-function computeWarnings(
+function computeDurationWarnings(
   startTime: string,
   endTime: string,
   breakMins: number,
   rules: PlanningRules,
-  employeeId: string,
-  date: Date,
-  allShifts: Shift[],
 ): string[] {
   const warnings: string[] = []
-  const rawDuration = calcDurationMinutes(startTime, endTime)
-  const netDuration = rawDuration - breakMins
+  const netDuration = calcDurationMinutes(startTime, endTime) - breakMins
 
   if (netDuration > 0 && netDuration < rules.minShiftMinutes) {
     warnings.push(`Créneau trop court — minimum requis : ${fmtMins(rules.minShiftMinutes)}`)
@@ -75,42 +68,6 @@ function computeWarnings(
   if (netDuration > rules.maxShiftMinutes) {
     warnings.push(`Créneau trop long — maximum autorisé : ${fmtMins(rules.maxShiftMinutes)}`)
   }
-  if (rawDuration >= rules.breakTriggerMinutes && breakMins === 0) {
-    warnings.push(`Pause obligatoire — une pause est requise pour un shift dépassant ${fmtMins(rules.breakTriggerMinutes)}`)
-  }
-
-  // Rest time check against adjacent shifts
-  const dateStr = toISODate(date)
-  const empShifts = allShifts.filter(s => s.employee_id === employeeId && s.date !== dateStr)
-
-  const prevDate = new Date(date)
-  prevDate.setDate(prevDate.getDate() - 1)
-  const prevShift = empShifts.find(s => s.date === toISODate(prevDate))
-  if (prevShift) {
-    const [eh, em] = prevShift.end_time.split(':').map(Number)
-    const [sh, sm] = startTime.split(':').map(Number)
-    const gapMins = (24 * 60 - (eh * 60 + em)) + (sh * 60 + sm)
-    if (gapMins < rules.minRestHours * 60) {
-      warnings.push(
-        `Repos insuffisant — seulement ${fmtMins(gapMins)} de repos après le shift de la veille (minimum : ${rules.minRestHours}h)`
-      )
-    }
-  }
-
-  const nextDate = new Date(date)
-  nextDate.setDate(nextDate.getDate() + 1)
-  const nextShift = empShifts.find(s => s.date === toISODate(nextDate))
-  if (nextShift) {
-    const [eh, em] = endTime.split(':').map(Number)
-    const [sh, sm] = nextShift.start_time.split(':').map(Number)
-    const gapMins = (24 * 60 - (eh * 60 + em)) + (sh * 60 + sm)
-    if (gapMins < rules.minRestHours * 60) {
-      warnings.push(
-        `Repos insuffisant — seulement ${fmtMins(gapMins)} de repos avant le shift du lendemain (minimum : ${rules.minRestHours}h)`
-      )
-    }
-  }
-
   return warnings
 }
 
@@ -161,6 +118,14 @@ const BREAK_OPTIONS = [
   { value: '45', label: '45 min' },
   { value: '60', label: '1h' },
 ]
+
+// Ensure the currently-selected break value (e.g. a poste's custom break_minutes
+// like 25) always has a matching option, otherwise the Select renders empty.
+function breakOptions(current: string) {
+  if (BREAK_OPTIONS.some(o => o.value === current)) return BREAK_OPTIONS
+  return [...BREAK_OPTIONS, { value: current, label: `${current} min` }]
+    .sort((a, b) => Number(a.value) - Number(b.value))
+}
 
 function calcDurationMinutes(start: string, end: string): number {
   const [sh, sm] = start.split(':').map(Number)
@@ -237,29 +202,40 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
 
   const isOpen = modalState.type !== 'closed'
 
-  // Auto-compute break for create mode when times or poste change
+  // Create mode — apply the poste's standard break when a poste is selected.
   useEffect(() => {
-    const duration = calcDurationMinutes(startTime, endTime)
     const selectedPoste = posteId !== 'none' ? postes.find(p => p.id === posteId) : null
     if (selectedPoste && selectedPoste.break_minutes > 0) {
       setBreakMinutes(String(selectedPoste.break_minutes))
-    } else if (duration >= 7 * 60 && breakMinutes === '0') {
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posteId])
+
+  // Create mode — suggest a 30 min break past the 6h legal trigger, without
+  // overwriting a value the manager has already set.
+  useEffect(() => {
+    if (calcDurationMinutes(startTime, endTime) > 360 && breakMinutes === '0') {
       setBreakMinutes('30')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startTime, endTime, posteId])
+  }, [startTime, endTime])
 
-  // Auto-compute break for edit mode when times or poste change
+  // Edit mode — apply the poste's standard break when a poste is selected.
   useEffect(() => {
-    const duration = calcDurationMinutes(editStartTime, editEndTime)
     const selectedPoste = editPosteId !== 'none' ? postes.find(p => p.id === editPosteId) : null
     if (selectedPoste && selectedPoste.break_minutes > 0) {
       setEditBreakMinutes(String(selectedPoste.break_minutes))
-    } else if (duration >= 7 * 60 && editBreakMinutes === '0') {
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editPosteId])
+
+  // Edit mode — suggest a 30 min break past the 6h legal trigger.
+  useEffect(() => {
+    if (calcDurationMinutes(editStartTime, editEndTime) > 360 && editBreakMinutes === '0') {
       setEditBreakMinutes('30')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editStartTime, editEndTime, editPosteId])
+  }, [editStartTime, editEndTime])
 
   // Reset form state when modal opens for creation
   function handleOpenChange(open: boolean) {
@@ -446,11 +422,8 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
   // Reactive warnings for create mode
   const createWarnings = useMemo(() => {
     if (modalState.type !== 'create') return []
-    return computeWarnings(
-      startTime, endTime, parseInt(breakMinutes, 10),
-      rules, modalState.employee.id, modalState.date, shifts
-    )
-  }, [startTime, endTime, breakMinutes, rules, modalState, shifts])
+    return computeDurationWarnings(startTime, endTime, parseInt(breakMinutes, 10), rules)
+  }, [startTime, endTime, breakMinutes, rules, modalState])
 
   const createComplianceViolations = useMemo<Violation[]>(() => {
     if (modalState.type !== 'create') return []
@@ -463,11 +436,8 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
   // Reactive warnings for edit mode
   const editWarnings = useMemo(() => {
     if (modalState.type !== 'view' || !isEditing) return []
-    return computeWarnings(
-      editStartTime, editEndTime, parseInt(editBreakMinutes, 10),
-      rules, modalState.employee.id, modalState.date, shifts
-    )
-  }, [editStartTime, editEndTime, editBreakMinutes, rules, modalState, isEditing, shifts])
+    return computeDurationWarnings(editStartTime, editEndTime, parseInt(editBreakMinutes, 10), rules)
+  }, [editStartTime, editEndTime, editBreakMinutes, rules, modalState, isEditing])
 
   const editComplianceViolations = useMemo<Violation[]>(() => {
     if (modalState.type !== 'view' || !isEditing) return []
@@ -563,7 +533,7 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {BREAK_OPTIONS.map(opt => (
+                  {breakOptions(breakMinutes).map(opt => (
                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -725,7 +695,7 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {BREAK_OPTIONS.map(opt => (
+                  {breakOptions(editBreakMinutes).map(opt => (
                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                   ))}
                 </SelectContent>
