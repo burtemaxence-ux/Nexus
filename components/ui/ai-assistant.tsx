@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, X, Send, Loader2, ChevronDown, Bot, FileText, Copy, Check, Printer } from 'lucide-react'
+import { Sparkles, X, Send, Loader2, RotateCcw, Bot, FileText, Copy, Check, Printer } from 'lucide-react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
@@ -197,6 +197,10 @@ export function AiAssistant({
     el.style.height = `${Math.min(el.scrollHeight, 100)}px`
   }
 
+  // True once the first token of the assistant reply has arrived (a growing
+  // assistant bubble exists) — used to switch from "…" dots to a typing caret.
+  const streaming = loading && messages.length > 0 && messages[messages.length - 1].role === 'assistant'
+
   return (
     <>
       {/* Floating button — remonté au-dessus de la bottom nav sur mobile */}
@@ -256,14 +260,17 @@ export function AiAssistant({
                 className="rounded-lg p-1.5 transition-colors"
                 style={{ color: 'rgba(255,255,255,0.7)' }}
                 title="Nouvelle conversation"
+                aria-label="Nouvelle conversation"
               >
-                <ChevronDown className="h-4 w-4 rotate-90" />
+                <RotateCcw className="h-4 w-4" />
               </button>
             )}
             <button
               onClick={() => setOpen(false)}
               className="rounded-lg p-1.5 transition-colors"
               style={{ color: 'rgba(255,255,255,0.7)' }}
+              title="Fermer"
+              aria-label="Fermer l'assistant"
             >
               <X className="h-4 w-4" />
             </button>
@@ -290,11 +297,18 @@ export function AiAssistant({
                 }
               >
                 <MarkdownText text={msg.content} />
+                {streaming && i === messages.length - 1 && msg.role === 'assistant' && (
+                  <span
+                    className="inline-block w-[2px] h-3.5 ml-0.5 align-middle animate-pulse"
+                    style={{ backgroundColor: 'var(--text-secondary)' }}
+                    aria-hidden="true"
+                  />
+                )}
               </div>
             </div>
           ))}
 
-          {loading && (
+          {loading && !streaming && (
             <div className="flex gap-2.5">
               <div
                 className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
@@ -371,6 +385,7 @@ export function AiAssistant({
                 className="flex-shrink-0 rounded-lg p-1.5 transition-colors disabled:opacity-30"
                 style={{ color: 'var(--accent)' }}
                 title="Envoyer (Entrée)"
+                aria-label="Envoyer le message"
               >
                 <Send className="h-4 w-4" />
               </button>
@@ -378,6 +393,9 @@ export function AiAssistant({
           </div>
           <p className="mt-1.5 text-center text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
             Entrée pour envoyer · Maj+Entrée pour sauter une ligne
+          </p>
+          <p className="mt-0.5 text-center text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+            L&apos;assistant peut se tromper — vérifiez les informations importantes.
           </p>
         </div>
       </div>
