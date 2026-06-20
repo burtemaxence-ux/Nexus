@@ -47,6 +47,173 @@ function getFirstName(fullName: string | null, email: string): string {
   return fullName.split(' ')[0]
 }
 
+// ---- Shared shift form ----
+interface ShiftFormState {
+  startTime: string
+  endTime: string
+  position: string
+  posteId: string
+  breakMinutes: string
+  notes: string
+}
+
+const EMPTY_FORM: ShiftFormState = {
+  startTime: '09:00',
+  endTime: '17:00',
+  position: '',
+  posteId: 'none',
+  breakMinutes: '0',
+  notes: '',
+}
+
+// Form fields shared by the create and edit modes (previously duplicated JSX).
+function ShiftFields({
+  form,
+  onChange,
+  postes,
+  positionPlaceholder,
+  warnings,
+  violations,
+  idPrefix,
+}: {
+  form: ShiftFormState
+  onChange: <K extends keyof ShiftFormState>(key: K, value: ShiftFormState[K]) => void
+  postes: Poste[]
+  positionPlaceholder?: string
+  warnings: string[]
+  violations: Violation[]
+  idPrefix: string
+}) {
+  return (
+    <div className="grid gap-4 py-2">
+      {/* Start time */}
+      <div className="grid gap-1.5">
+        <Label htmlFor={`${idPrefix}-start-time`}>Heure de début</Label>
+        <Input
+          id={`${idPrefix}-start-time`}
+          type="time"
+          value={form.startTime}
+          onChange={(e) => onChange('startTime', e.target.value)}
+        />
+      </div>
+
+      {/* End time */}
+      <div className="grid gap-1.5">
+        <Label htmlFor={`${idPrefix}-end-time`}>Heure de fin</Label>
+        <Input
+          id={`${idPrefix}-end-time`}
+          type="time"
+          value={form.endTime}
+          onChange={(e) => onChange('endTime', e.target.value)}
+        />
+      </div>
+
+      {/* Poste officiel */}
+      <div className="grid gap-1.5">
+        <Label>Poste</Label>
+        <Select value={form.posteId} onValueChange={(val) => {
+          onChange('posteId', val)
+          const poste = postes.find(p => p.id === val)
+          if (poste) onChange('position', poste.name)
+        }}>
+          <SelectTrigger>
+            <SelectValue placeholder="Choisir un poste..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">— Aucun poste officiel —</SelectItem>
+            {postes.map(p => (
+              <SelectItem key={p.id} value={p.id}>
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
+                  {p.name}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Position texte */}
+      <div className="grid gap-1.5">
+        <Label htmlFor={`${idPrefix}-position`}>Intitulé du poste (libre)</Label>
+        <Input
+          id={`${idPrefix}-position`}
+          value={form.position}
+          onChange={(e) => onChange('position', e.target.value)}
+          placeholder={positionPlaceholder ?? 'Ex : Serveur'}
+        />
+      </div>
+
+      {/* Pause */}
+      <div className="grid gap-1.5">
+        <Label>Pause</Label>
+        <Select value={form.breakMinutes} onValueChange={(val) => onChange('breakMinutes', val)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {breakOptions(form.breakMinutes).map(opt => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Notes */}
+      <div className="grid gap-1.5">
+        <Label htmlFor={`${idPrefix}-notes`}>Notes (optionnel)</Label>
+        <Textarea
+          id={`${idPrefix}-notes`}
+          value={form.notes}
+          onChange={(e) => onChange('notes', e.target.value)}
+          placeholder="Informations supplémentaires..."
+          rows={3}
+        />
+      </div>
+
+      {/* Règles warnings (durée établissement) */}
+      {warnings.length > 0 && (
+        <div className="space-y-1.5">
+          {warnings.map((w, i) => (
+            <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
+              style={{ backgroundColor: '#FEF3C7', border: '0.5px solid #D97706' }}>
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#D97706' }} />
+              <p className="text-[12px] leading-snug" style={{ color: '#92400E' }}>{w}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Alertes légales Code du travail */}
+      {violations.length > 0 && (
+        <div className="space-y-1.5">
+          {violations.map((v, i) => {
+            const rule = RULES[v.ruleId]
+            const isCritical = rule.severity === 'critical'
+            return (
+              <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
+                style={{
+                  backgroundColor: isCritical ? '#FEE2E2' : '#FEF3C7',
+                  border: `0.5px solid ${isCritical ? '#dc2626' : '#D97706'}`,
+                }}>
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: isCritical ? '#dc2626' : '#D97706' }} />
+                <div>
+                  <p className="text-[12px] font-medium leading-snug" style={{ color: isCritical ? '#991b1b' : '#92400E' }}>
+                    {rule.name}
+                  </p>
+                  <p className="text-[11px] leading-snug mt-0.5" style={{ color: isCritical ? '#b91c1c' : '#a16207' }}>
+                    {v.description} — <span className="font-medium">{rule.legalRef}</span>
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ---- Modal state types ----
 export type ModalState =
   | { type: 'closed' }
@@ -75,22 +242,13 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
       .catch(() => { /* keep defaults */ })
   }, [])
 
-  // Create mode form state
-  const [startTime, setStartTime] = useState('09:00')
-  const [endTime, setEndTime] = useState('17:00')
-  const [position, setPosition] = useState('')
-  const [posteId, setPosteId] = useState<string>('none')
-  const [breakMinutes, setBreakMinutes] = useState('0')
-  const [notes, setNotes] = useState('')
-
-  // Edit mode state
+  // Single form state, shared by create and edit modes.
+  const [form, setForm] = useState<ShiftFormState>(EMPTY_FORM)
   const [isEditing, setIsEditing] = useState(false)
-  const [editStartTime, setEditStartTime] = useState('09:00')
-  const [editEndTime, setEditEndTime] = useState('17:00')
-  const [editPosition, setEditPosition] = useState('')
-  const [editPosteId, setEditPosteId] = useState<string>('none')
-  const [editBreakMinutes, setEditBreakMinutes] = useState('0')
-  const [editNotes, setEditNotes] = useState('')
+
+  function setField<K extends keyof ShiftFormState>(key: K, value: ShiftFormState[K]) {
+    setForm(f => ({ ...f, [key]: value }))
+  }
 
   // Copy dialog state
   const [showCopyDialog, setShowCopyDialog] = useState(false)
@@ -101,42 +259,24 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
 
   const isOpen = modalState.type !== 'closed'
 
-  // Create mode — apply the poste's standard break when a poste is selected.
+  // Apply the poste's standard break when a poste is selected.
   useEffect(() => {
-    const selectedPoste = posteId !== 'none' ? postes.find(p => p.id === posteId) : null
+    const selectedPoste = form.posteId !== 'none' ? postes.find(p => p.id === form.posteId) : null
     if (selectedPoste && selectedPoste.break_minutes > 0) {
-      setBreakMinutes(String(selectedPoste.break_minutes))
+      setField('breakMinutes', String(selectedPoste.break_minutes))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [posteId])
+  }, [form.posteId])
 
-  // Create mode — suggest a 30 min break past the 6h legal trigger, without
-  // overwriting a value the manager has already set.
+  // Suggest a 30 min break past the 6h legal trigger, without overwriting a
+  // value the manager has already set.
   useEffect(() => {
-    if (calcDurationMinutes(startTime, endTime) > 360 && breakMinutes === '0') {
-      setBreakMinutes('30')
+    if (calcDurationMinutes(form.startTime, form.endTime) > 360 && form.breakMinutes === '0') {
+      setField('breakMinutes', '30')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startTime, endTime])
+  }, [form.startTime, form.endTime])
 
-  // Edit mode — apply the poste's standard break when a poste is selected.
-  useEffect(() => {
-    const selectedPoste = editPosteId !== 'none' ? postes.find(p => p.id === editPosteId) : null
-    if (selectedPoste && selectedPoste.break_minutes > 0) {
-      setEditBreakMinutes(String(selectedPoste.break_minutes))
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editPosteId])
-
-  // Edit mode — suggest a 30 min break past the 6h legal trigger.
-  useEffect(() => {
-    if (calcDurationMinutes(editStartTime, editEndTime) > 360 && editBreakMinutes === '0') {
-      setEditBreakMinutes('30')
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editStartTime, editEndTime])
-
-  // Reset form state when modal opens for creation
   function handleOpenChange(open: boolean) {
     if (!open) {
       onClose()
@@ -146,12 +286,7 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
       setShowCopyDialog(false)
       setCopyError(null)
     } else if (modalState.type === 'create') {
-      setStartTime('09:00')
-      setEndTime('17:00')
-      setPosition(modalState.employee.position ?? '')
-      setPosteId('none')
-      setBreakMinutes('0')
-      setNotes('')
+      setForm({ ...EMPTY_FORM, position: modalState.employee.position ?? '' })
       setError(null)
     }
   }
@@ -159,12 +294,14 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
   function handleStartEdit() {
     if (modalState.type !== 'view') return
     const { shift, employee } = modalState
-    setEditStartTime(shift.start_time.slice(0, 5))
-    setEditEndTime(shift.end_time.slice(0, 5))
-    setEditPosition(shift.position ?? employee.position ?? '')
-    setEditPosteId(shift.poste_id ?? 'none')
-    setEditBreakMinutes(String(shift.break_minutes ?? 0))
-    setEditNotes(shift.notes ?? '')
+    setForm({
+      startTime: shift.start_time.slice(0, 5),
+      endTime: shift.end_time.slice(0, 5),
+      position: shift.position ?? employee.position ?? '',
+      posteId: shift.poste_id ?? 'none',
+      breakMinutes: String(shift.break_minutes ?? 0),
+      notes: shift.notes ?? '',
+    })
     setError(null)
     setIsEditing(true)
   }
@@ -237,12 +374,12 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
         body: JSON.stringify({
           employee_id: modalState.employee.id,
           date: toISODate(modalState.date),
-          start_time: startTime,
-          end_time: endTime,
-          position: position || modalState.employee.position || '',
-          poste_id: posteId !== 'none' ? posteId : null,
-          break_minutes: parseInt(breakMinutes, 10),
-          notes: notes || undefined,
+          start_time: form.startTime,
+          end_time: form.endTime,
+          position: form.position || modalState.employee.position || '',
+          poste_id: form.posteId !== 'none' ? form.posteId : null,
+          break_minutes: parseInt(form.breakMinutes, 10),
+          notes: form.notes || undefined,
         }),
       })
 
@@ -270,12 +407,12 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          start_time: editStartTime,
-          end_time: editEndTime,
-          position: editPosition,
-          poste_id: editPosteId !== 'none' ? editPosteId : null,
-          break_minutes: parseInt(editBreakMinutes, 10),
-          notes: editNotes,
+          start_time: form.startTime,
+          end_time: form.endTime,
+          position: form.position,
+          poste_id: form.posteId !== 'none' ? form.posteId : null,
+          break_minutes: parseInt(form.breakMinutes, 10),
+          notes: form.notes,
         }),
       })
 
@@ -318,34 +455,29 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
     }
   }
 
-  // Reactive warnings for create mode
-  const createWarnings = useMemo(() => {
-    if (modalState.type !== 'create') return []
-    return computeDurationWarnings(startTime, endTime, parseInt(breakMinutes, 10), rules)
-  }, [startTime, endTime, breakMinutes, rules, modalState])
+  // Reactive warnings + legal violations for whichever form is being edited.
+  const formWarnings = useMemo(() => {
+    if (modalState.type === 'create' || (modalState.type === 'view' && isEditing)) {
+      return computeDurationWarnings(form.startTime, form.endTime, parseInt(form.breakMinutes, 10), rules)
+    }
+    return []
+  }, [form, rules, modalState, isEditing])
 
-  const createComplianceViolations = useMemo<Violation[]>(() => {
-    if (modalState.type !== 'create') return []
-    return computeComplianceViolations(
-      startTime, endTime, parseInt(breakMinutes, 10),
-      modalState.employee.id, modalState.date, shifts,
-    )
-  }, [startTime, endTime, breakMinutes, modalState, shifts])
-
-  // Reactive warnings for edit mode
-  const editWarnings = useMemo(() => {
-    if (modalState.type !== 'view' || !isEditing) return []
-    return computeDurationWarnings(editStartTime, editEndTime, parseInt(editBreakMinutes, 10), rules)
-  }, [editStartTime, editEndTime, editBreakMinutes, rules, modalState, isEditing])
-
-  const editComplianceViolations = useMemo<Violation[]>(() => {
-    if (modalState.type !== 'view' || !isEditing) return []
-    return computeComplianceViolations(
-      editStartTime, editEndTime, parseInt(editBreakMinutes, 10),
-      modalState.employee.id, modalState.date, shifts,
-      modalState.shift.id,
-    )
-  }, [editStartTime, editEndTime, editBreakMinutes, modalState, isEditing, shifts])
+  const formViolations = useMemo<Violation[]>(() => {
+    if (modalState.type === 'create') {
+      return computeComplianceViolations(
+        form.startTime, form.endTime, parseInt(form.breakMinutes, 10),
+        modalState.employee.id, modalState.date, shifts,
+      )
+    }
+    if (modalState.type === 'view' && isEditing) {
+      return computeComplianceViolations(
+        form.startTime, form.endTime, parseInt(form.breakMinutes, 10),
+        modalState.employee.id, modalState.date, shifts, modalState.shift.id,
+      )
+    }
+    return []
+  }, [form, modalState, isEditing, shifts])
 
   if (modalState.type === 'closed') {
     return null
@@ -354,7 +486,9 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
   const { employee, date } = modalState
   const firstName = getFirstName(employee.full_name, employee.email)
   const dayLabel = formatDayFR(date)
+  const positionPlaceholder = employee.position ?? 'Ex : Serveur'
 
+  // ── Create mode ───────────────────────────────────────────────────────────
   if (modalState.type === 'create') {
     return (
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -365,143 +499,20 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
             </DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4 py-2">
-            {/* Start time */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="start-time">Heure de début</Label>
-              <Input
-                id="start-time"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
-            </div>
+          <ShiftFields
+            form={form}
+            onChange={setField}
+            postes={postes}
+            positionPlaceholder={positionPlaceholder}
+            warnings={formWarnings}
+            violations={formViolations}
+            idPrefix="create"
+          />
 
-            {/* End time */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="end-time">Heure de fin</Label>
-              <Input
-                id="end-time"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-              />
-            </div>
-
-            {/* Poste officiel */}
-            <div className="grid gap-1.5">
-              <Label>Poste</Label>
-              <Select value={posteId} onValueChange={(val) => {
-                setPosteId(val)
-                const poste = postes.find(p => p.id === val)
-                if (poste) setPosition(poste.name)
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choisir un poste..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— Aucun poste officiel —</SelectItem>
-                  {postes.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-                        {p.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Position texte */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="position">Intitulé du poste (libre)</Label>
-              <Input
-                id="position"
-                value={position}
-                onChange={(e) => setPosition(e.target.value)}
-                placeholder={employee.position ?? 'Ex : Serveur'}
-              />
-            </div>
-
-            {/* Pause */}
-            <div className="grid gap-1.5">
-              <Label>Pause</Label>
-              <Select value={breakMinutes} onValueChange={setBreakMinutes}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {breakOptions(breakMinutes).map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Notes */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="notes">Notes (optionnel)</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Informations supplémentaires..."
-                rows={3}
-              />
-            </div>
-
-            {/* Règles warnings */}
-            {createWarnings.length > 0 && (
-              <div className="space-y-1.5">
-                {createWarnings.map((w, i) => (
-                  <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
-                    style={{ backgroundColor: '#FEF3C7', border: '0.5px solid #D97706' }}>
-                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#D97706' }} />
-                    <p className="text-[12px] leading-snug" style={{ color: '#92400E' }}>{w}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Alertes légales Code du travail */}
-            {createComplianceViolations.length > 0 && (
-              <div className="space-y-1.5">
-                {createComplianceViolations.map((v, i) => {
-                  const rule = RULES[v.ruleId]
-                  const isCritical = rule.severity === 'critical'
-                  return (
-                    <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
-                      style={{
-                        backgroundColor: isCritical ? '#FEE2E2' : '#FEF3C7',
-                        border: `0.5px solid ${isCritical ? '#dc2626' : '#D97706'}`,
-                      }}>
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: isCritical ? '#dc2626' : '#D97706' }} />
-                      <div>
-                        <p className="text-[12px] font-medium leading-snug" style={{ color: isCritical ? '#991b1b' : '#92400E' }}>
-                          {rule.name}
-                        </p>
-                        <p className="text-[11px] leading-snug mt-0.5" style={{ color: isCritical ? '#b91c1c' : '#a16207' }}>
-                          {v.description} — <span className="font-medium">{rule.legalRef}</span>
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
-          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
 
           <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={loading}
-            >
+            <Button variant="outline" onClick={onClose} disabled={loading}>
               Annuler
             </Button>
             <Button onClick={handleCreate} disabled={loading}>
@@ -517,6 +528,7 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
   const { shift } = modalState
   const isReadOnly = modalState.readOnly === true
 
+  // ── Edit mode ─────────────────────────────────────────────────────────────
   if (isEditing) {
     return (
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -527,143 +539,20 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
             </DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4 py-2">
-            {/* Start time */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="edit-start-time">Heure de début</Label>
-              <Input
-                id="edit-start-time"
-                type="time"
-                value={editStartTime}
-                onChange={(e) => setEditStartTime(e.target.value)}
-              />
-            </div>
+          <ShiftFields
+            form={form}
+            onChange={setField}
+            postes={postes}
+            positionPlaceholder={positionPlaceholder}
+            warnings={formWarnings}
+            violations={formViolations}
+            idPrefix="edit"
+          />
 
-            {/* End time */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="edit-end-time">Heure de fin</Label>
-              <Input
-                id="edit-end-time"
-                type="time"
-                value={editEndTime}
-                onChange={(e) => setEditEndTime(e.target.value)}
-              />
-            </div>
-
-            {/* Poste officiel */}
-            <div className="grid gap-1.5">
-              <Label>Poste</Label>
-              <Select value={editPosteId} onValueChange={(val) => {
-                setEditPosteId(val)
-                const poste = postes.find(p => p.id === val)
-                if (poste) setEditPosition(poste.name)
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choisir un poste..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— Aucun poste officiel —</SelectItem>
-                  {postes.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-                        {p.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Position texte */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="edit-position">Intitulé du poste (libre)</Label>
-              <Input
-                id="edit-position"
-                value={editPosition}
-                onChange={(e) => setEditPosition(e.target.value)}
-                placeholder={employee.position ?? 'Ex : Serveur'}
-              />
-            </div>
-
-            {/* Pause */}
-            <div className="grid gap-1.5">
-              <Label>Pause</Label>
-              <Select value={editBreakMinutes} onValueChange={setEditBreakMinutes}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {breakOptions(editBreakMinutes).map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Notes */}
-            <div className="grid gap-1.5">
-              <Label htmlFor="edit-notes">Notes (optionnel)</Label>
-              <Textarea
-                id="edit-notes"
-                value={editNotes}
-                onChange={(e) => setEditNotes(e.target.value)}
-                placeholder="Informations supplémentaires..."
-                rows={3}
-              />
-            </div>
-
-            {/* Règles warnings */}
-            {editWarnings.length > 0 && (
-              <div className="space-y-1.5">
-                {editWarnings.map((w, i) => (
-                  <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
-                    style={{ backgroundColor: '#FEF3C7', border: '0.5px solid #D97706' }}>
-                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: '#D97706' }} />
-                    <p className="text-[12px] leading-snug" style={{ color: '#92400E' }}>{w}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Alertes légales Code du travail */}
-            {editComplianceViolations.length > 0 && (
-              <div className="space-y-1.5">
-                {editComplianceViolations.map((v, i) => {
-                  const rule = RULES[v.ruleId]
-                  const isCritical = rule.severity === 'critical'
-                  return (
-                    <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
-                      style={{
-                        backgroundColor: isCritical ? '#FEE2E2' : '#FEF3C7',
-                        border: `0.5px solid ${isCritical ? '#dc2626' : '#D97706'}`,
-                      }}>
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: isCritical ? '#dc2626' : '#D97706' }} />
-                      <div>
-                        <p className="text-[12px] font-medium leading-snug" style={{ color: isCritical ? '#991b1b' : '#92400E' }}>
-                          {rule.name}
-                        </p>
-                        <p className="text-[11px] leading-snug mt-0.5" style={{ color: isCritical ? '#b91c1c' : '#a16207' }}>
-                          {v.description} — <span className="font-medium">{rule.legalRef}</span>
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
-          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
 
           <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={handleCancelEdit}
-              disabled={loading}
-            >
+            <Button variant="outline" onClick={handleCancelEdit} disabled={loading}>
               Annuler
             </Button>
             <Button onClick={handleSaveEdit} disabled={loading}>
@@ -675,7 +564,7 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
     )
   }
 
-  // View mode
+  // ── View mode ─────────────────────────────────────────────────────────────
   return (
     <>
       <Dialog open={isOpen && !showCopyDialog} onOpenChange={handleOpenChange}>
