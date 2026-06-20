@@ -46,10 +46,16 @@ interface Metrics {
   onboardingAllDone: boolean
 }
 
+// Mirrors the always-present sections below (KPIs, compliance, today's roster,
+// week-load chart) so the page doesn't jump when the data resolves. Compliance
+// and the roster reuse the exact placeholder these components show for their own
+// loading state, so the swap is seamless. Conditional blocks (brief, onboarding,
+// alerts, open slots) are intentionally omitted.
 function MetricsSkeleton() {
+  const block = { backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }
   return (
     <div className="space-y-6">
-      {/* KPI cards skeleton */}
+      {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[0, 1, 2, 3, 4].map(i => (
           <div key={i} className="rounded-[14px] p-[18px] flex flex-col gap-3" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', minHeight: '120px' }}>
@@ -58,8 +64,20 @@ function MetricsSkeleton() {
           </div>
         ))}
       </div>
-      <div className="rounded-[14px] h-[120px] animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
-      <div className="rounded-[14px] h-[180px] animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
+      {/* Compliance overview */}
+      <div className="rounded-[14px] border h-[120px] animate-pulse" style={block} />
+      {/* Today's roster */}
+      <div className="rounded-[14px] border h-[180px] animate-pulse" style={block} />
+      {/* Week-load chart card */}
+      <div className="rounded-[14px] border overflow-hidden" style={block}>
+        <div className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div className="h-3 w-32 rounded animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
+          <div className="h-3 w-20 rounded animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
+        </div>
+        <div className="px-3 py-4">
+          <div className="h-[190px] rounded animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
+        </div>
+      </div>
     </div>
   )
 }
