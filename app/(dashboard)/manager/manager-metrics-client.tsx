@@ -417,9 +417,17 @@ export function ManagerMetricsClient() {
         />
       </div>
 
-      {/* ── ALERTES ACTIONNABLES (remontées sous les KPIs) ────────────────── */}
-      {(pendingCount > 0 || latenessCount > 0 || exchangePending > 0 || cddExpiring > 0) && (
-        <div className="space-y-2 dashboard-s2">
+      {/* ── ZONE 2 COLONNES sur desktop ; sur mobile l'ordre DOM reste optimal
+            (alertes → conformité → service → postes → charge) ──────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+        {/* COLONNE LATÉRALE — ce qui demande l'attention (alertes + conformité).
+            Première dans le DOM (donc en haut sur mobile), placée à droite sur desktop. */}
+        <div className="space-y-6 lg:col-start-3 lg:row-start-1">
+
+          {/* ── ALERTES ACTIONNABLES ──────────────────────────────────────── */}
+          {(pendingCount > 0 || latenessCount > 0 || exchangePending > 0 || cddExpiring > 0) && (
+            <div className="space-y-2 dashboard-s2">
           {pendingCount > 0 && (
             <Link href="/manager/conges">
               <div className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-[rgba(255,179,71,0.05)]"
@@ -475,14 +483,19 @@ export function ManagerMetricsClient() {
         </div>
       )}
 
-      {/* ── CONFORMITÉ (différenciateur Quartzbase) ───────────────────────── */}
-      <div className="dashboard-s2">
-        <ComplianceOverview />
-      </div>
+          {/* ── CONFORMITÉ (différenciateur Quartzbase) ───────────────────── */}
+          <div className="dashboard-s2">
+            <ComplianceOverview />
+          </div>
+        </div>
 
-      {/* ── SERVICE DU JOUR (live) ────────────────────────────────────────── */}
-      <div className="dashboard-s2">
-        <TodayRoster />
+        {/* COLONNE PRINCIPALE — opérationnel (service du jour, postes, charge).
+            Deuxième dans le DOM (sous les alertes/conformité sur mobile), à gauche sur desktop. */}
+        <div className="space-y-6 lg:col-span-2 lg:col-start-1 lg:row-start-1">
+
+          {/* ── SERVICE DU JOUR (live) ──────────────────────────────────────── */}
+          <div className="dashboard-s2">
+            <TodayRoster />
       </div>
 
       {/* ── POSTES À POURVOIR (contextuel, masqué si vide) ────────────────── */}
@@ -501,6 +514,9 @@ export function ManagerMetricsClient() {
         </div>
         <div className="px-3 py-4">
           <WeekLoadChart data={weekLoad} />
+        </div>
+      </div>
+
         </div>
       </div>
 
