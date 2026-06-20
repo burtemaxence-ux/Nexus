@@ -104,6 +104,16 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
+  // Persist the referral code in a cookie so it survives the Google OAuth
+  // round-trip (signInWithOAuth can't carry user_metadata). /api/auth/set-role
+  // reads it as a fallback when user_metadata.referral_code is absent.
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get('ref')
+    if (ref) {
+      document.cookie = `qz_ref=${encodeURIComponent(ref)}; path=/; max-age=1800; SameSite=Lax`
+    }
+  }, [])
+
   useEffect(() => {
     if (!error || !cardRef.current) return
     const card = cardRef.current

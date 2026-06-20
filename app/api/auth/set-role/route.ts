@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createReferralFromCode } from '@/lib/referral'
@@ -74,11 +75,19 @@ export async function POST() {
     await sendWelcomeEmail(user.email, fullName)
   }
 
-  // Enregistrer le parrainage si un code a été utilisé à l'inscription
-  const referralCode = user.user_metadata?.referral_code as string | undefined
+  // Enregistrer le parrainage si un code a été utilisé à l'inscription.
+  // Email/mot de passe : le code arrive dans user_metadata. Google OAuth ne peut
+  // pas porter de metadata → on lit le cookie `qz_ref` posé à l'inscription.
+  const cookieStore = await cookies()
+  const referralCode = (user.user_metadata?.referral_code as string | undefined)
+    ?? cookieStore.get('qz_ref')?.value
   if (referralCode) {
     await createReferralFromCode(referralCode, user.id)
   }
 
-  return NextResponse.json({ role: 'manager', establishment_id: estId })
+  const res = NextResponse.json({ role: 'manager', establishment_id: estId })
+  // Consommé : on efface le cookie pour qu'il ne fuite pas sur un compte ultérieur
+  // (navigateur partagé).
+  res.cookies.set('qz_ref', '', { maxAge: 0, path: '/' })
+  return res
 }
