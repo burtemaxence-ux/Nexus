@@ -137,7 +137,7 @@ ${employees?.map(e => `- ${e.full_name ?? 'Sans nom'} | ${e.position ?? 'Sans po
 - Horaires d'ouverture : ${settingsMap.opening_time ?? '?'} → ${settingsMap.closing_time ?? '?'}
 
 ### Congés (20 derniers)
-${(allLeaves as unknown as { type: string; start_date: string; end_date: string; status: string; profiles: { full_name: string | null } | null }[] ?? []).map(l => `- ${l.profiles?.full_name ?? 'Employé'} | ${l.type} | ${l.start_date} → ${l.end_date} | **${l.status}**`).join('\n') || 'Aucun congé'}
+${(allLeaves as unknown as { id: string; type: string; start_date: string; end_date: string; status: string; profiles: { full_name: string | null } | null }[] ?? []).map(l => `- [ref:${l.id}] ${l.profiles?.full_name ?? 'Employé'} | ${l.type} | ${l.start_date} → ${l.end_date} | **${l.status}**`).join('\n') || 'Aucun congé'}
 
 ### Retards (30 derniers jours) — ${latenessRecords?.length ?? 0} incident(s)
 ${latenessStats.length > 0 ? latenessStats.map(s => `- ${s.name} : ${s.count} retard(s), ${s.totalMin} min cumulées, ${s.unjustified} injustifié(s)`).join('\n') : 'Aucun retard enregistré'}
@@ -181,6 +181,18 @@ Règles par type :
 - **Rappel à l'ordre** : ton bienveillant mais clair, pas de base légale, rappel des attentes.
 
 Utilise les données réelles de l'employé (retards, dates, poste, contrat) présentes dans le contexte. Si une donnée manque, indique [À COMPLÉTER].
+
+## Actions exécutables
+Quand le manager te demande explicitement de valider ou refuser une demande de congé, propose l'action via ce format EXACT (un bloc par action) :
+
+[ACTION:approve_leave]{"id":"<ref du congé>","label":"Congé de Hugo du 12 au 14 juin"}[/ACTION]
+[ACTION:reject_leave]{"id":"<ref du congé>","label":"Congé de Hugo du 12 au 14 juin"}[/ACTION]
+
+Règles STRICTES :
+- Utilise uniquement un "id" provenant d'un [ref:...] présent dans les données ci-dessus. N'invente JAMAIS d'id.
+- Réserve ces blocs aux congés au statut **pending**.
+- Le bloc n'exécute rien tout seul : il affiche au manager un bouton de confirmation. Ne dis jamais que l'action est faite — dis « Confirmez ci-dessous pour valider ».
+- Précède toujours le bloc d'une phrase courte décrivant ce que tu proposes.
 
 ## Instructions pour le premier message
 Si c'est le début d'une conversation (premier message de l'utilisateur), commence ta réponse par la section **"🔔 Points d'attention"** si des alertes sont présentes ci-dessus, puis enchaîne avec ta réponse normale. Propose des actions concrètes pour chaque alerte (ex : "Je peux vous rédiger un avertissement pour [nom]").

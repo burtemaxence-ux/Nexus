@@ -1,8 +1,16 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MarkdownText } from './ai-assistant'
+
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }))
+
+afterEach(() => cleanup())
+
+beforeEach(() => {
+  ;(globalThis as any).fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }))
+})
 
 describe('MarkdownText', () => {
   it('renders markdown bold and bullet lists', () => {
@@ -24,5 +32,31 @@ describe('MarkdownText', () => {
     render(<MarkdownText text={'[DOC:Avertissement]\nContenu du document\n[/DOC]'} />)
     expect(screen.getByText('Avertissement')).toBeInTheDocument()
     expect(screen.getByText('Contenu du document')).toBeInTheDocument()
+  })
+})
+
+describe('MarkdownText — action cards', () => {
+  it('renders a confirmable action and calls the right API on confirm', async () => {
+    render(<MarkdownText text={'[ACTION:approve_leave]{"id":"abc","label":"Congé de Hugo"}[/ACTION]'} />)
+    const btn = screen.getByRole('button', { name: 'Valider' })
+    expect(screen.getByText('Congé de Hugo')).toBeInTheDocument()
+
+    fireEvent.click(btn)
+
+    await waitFor(() => {
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(
+        '/api/conges/abc',
+        expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ status: 'approved' }) }),
+      )
+    })
+    expect(await screen.findByText('Congé validé')).toBeInTheDocument()
+  })
+
+  it('renders nothing for an unknown or malformed action (never executes)', () => {
+    const { container } = render(<MarkdownText text={'[ACTION:drop_table]{"id":"x"}[/ACTION]'} />)
+    expect(screen.queryByRole('button')).toBeNull()
+    const { container: c2 } = render(<MarkdownText text={'[ACTION:approve_leave]not-json[/ACTION]'} />)
+    expect(c2.querySelector('button')).toBeNull()
+    expect(container).toBeTruthy()
   })
 })

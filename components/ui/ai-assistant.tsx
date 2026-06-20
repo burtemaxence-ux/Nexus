@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Sparkles, X, Send, Loader2, ChevronDown, Bot, FileText, Copy, Check, Printer } from 'lucide-react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -403,24 +404,117 @@ function SuggestionBtn({ label, onPress }: { label: string; onPress: () => void 
   )
 }
 
-// Split message text into regular blocks and document blocks
-function parseMessageBlocks(text: string): Array<{ type: 'text' | 'doc'; content: string; docType?: string }> {
-  const blocks: Array<{ type: 'text' | 'doc'; content: string; docType?: string }> = []
-  const docRegex = /\[DOC:([^\]]+)\]([\s\S]*?)\[\/DOC\]/g
-  let lastIndex = 0
-  let match
+type ParsedBlock =
+  | { type: 'text'; content: string }
+  | { type: 'doc'; tag: string; content: string }
+  | { type: 'action'; tag: string; content: string }
 
-  while ((match = docRegex.exec(text)) !== null) {
+// Split message text into plain text, [DOC:…] and [ACTION:…] blocks.
+function parseMessageBlocks(text: string): ParsedBlock[] {
+  const blocks: ParsedBlock[] = []
+  const regex = /\[(DOC|ACTION):([^\]]+)\]([\s\S]*?)\[\/\1\]/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       blocks.push({ type: 'text', content: text.slice(lastIndex, match.index) })
     }
-    blocks.push({ type: 'doc', docType: match[1].trim(), content: match[2].trim() })
+    const kind = match[1] === 'DOC' ? 'doc' : 'action'
+    blocks.push({ type: kind, tag: match[2].trim(), content: match[3].trim() })
     lastIndex = match.index + match[0].length
   }
   if (lastIndex < text.length) {
     blocks.push({ type: 'text', content: text.slice(lastIndex) })
   }
   return blocks.length ? blocks : [{ type: 'text', content: text }]
+}
+
+// Confirmable actions the assistant can propose. Nothing runs without a click.
+const ACTION_CONFIG: Record<string, {
+  verb: string
+  endpoint: (id: string) => string
+  method: string
+  body: unknown
+  confirmLabel: string
+  doneLabel: string
+  danger?: boolean
+}> = {
+  approve_leave: {
+    verb: 'Valider la demande de congé',
+    endpoint: (id) => `/api/conges/${id}`,
+    method: 'PATCH',
+    body: { status: 'approved' },
+    confirmLabel: 'Valider',
+    doneLabel: 'Congé validé',
+  },
+  reject_leave: {
+    verb: 'Refuser la demande de congé',
+    endpoint: (id) => `/api/conges/${id}`,
+    method: 'PATCH',
+    body: { status: 'rejected' },
+    confirmLabel: 'Refuser',
+    doneLabel: 'Congé refusé',
+    danger: true,
+  },
+}
+
+function ActionCard({ tag, content }: { tag: string; content: string }) {
+  const router = useRouter()
+  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [errMsg, setErrMsg] = useState('')
+
+  const cfg = ACTION_CONFIG[tag]
+  let parsed: { id?: string; label?: string } = {}
+  try { parsed = JSON.parse(content) } catch { /* malformed → handled below */ }
+
+  // Unknown action or missing id → render nothing (never execute on bad input).
+  if (!cfg || !parsed.id) return null
+
+  async function run() {
+    setState('loading'); setErrMsg('')
+    try {
+      const res = await fetch(cfg.endpoint(parsed.id!), {
+        method: cfg.method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cfg.body),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error ?? `Erreur ${res.status}`)
+      }
+      setState('done')
+      router.refresh()
+    } catch (e) {
+      setState('error'); setErrMsg(e instanceof Error ? e.message : 'Erreur')
+    }
+  }
+
+  return (
+    <div className="mt-2 rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--border)' }}>
+      <div className="px-3 py-2.5" style={{ backgroundColor: 'var(--bg-page)' }}>
+        <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{cfg.verb}</p>
+        {parsed.label && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{parsed.label}</p>}
+        <div className="mt-2">
+          {state === 'done' ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--success)' }}>
+              <Check className="h-3 w-3" /> {cfg.doneLabel}
+            </span>
+          ) : (
+            <button
+              onClick={run}
+              disabled={state === 'loading'}
+              className="rounded-lg px-3 py-1.5 text-[11px] font-medium transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: cfg.danger ? 'var(--danger)' : 'var(--accent)', color: 'white' }}
+            >
+              {state === 'loading' ? '…' : cfg.confirmLabel}
+            </button>
+          )}
+          {state === 'error' && <p className="text-[11px] mt-1" style={{ color: 'var(--danger)' }}>{errMsg}</p>}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function DocumentCard({ docType, content }: { docType: string; content: string }) {
@@ -497,10 +591,10 @@ export function MarkdownText({ text }: { text: string }) {
   const blocks = parseMessageBlocks(text)
   return (
     <div className="space-y-2">
-      {blocks.map((block, bi) =>
-        block.type === 'doc' ? (
-          <DocumentCard key={bi} docType={block.docType!} content={block.content} />
-        ) : (
+      {blocks.map((block, bi) => {
+        if (block.type === 'doc') return <DocumentCard key={bi} docType={block.tag} content={block.content} />
+        if (block.type === 'action') return <ActionCard key={bi} tag={block.tag} content={block.content} />
+        return (
           <ReactMarkdown
             key={bi}
             remarkPlugins={[remarkGfm]}
@@ -510,7 +604,7 @@ export function MarkdownText({ text }: { text: string }) {
             {block.content}
           </ReactMarkdown>
         )
-      )}
+      })}
     </div>
   )
 }

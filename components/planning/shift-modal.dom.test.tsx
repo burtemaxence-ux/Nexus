@@ -1,22 +1,21 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import type { Profile } from '@/types'
 import { ShiftModal, type ModalState } from './shift-modal'
 
+afterEach(() => cleanup())
+
 // ── jsdom polyfills required by Radix (Dialog/Select) ──────────────────────────
 beforeAll(() => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(globalThis as any).ResizeObserver = class {
     observe() {}
     unobserve() {}
     disconnect() {}
   }
   Element.prototype.scrollIntoView = vi.fn()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(Element.prototype as any).hasPointerCapture = vi.fn()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(Element.prototype as any).releasePointerCapture = vi.fn()
 })
 
@@ -25,7 +24,6 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn(), push: 
 
 beforeEach(() => {
   // The modal fetches /api/settings on mount; return empty settings (defaults).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(globalThis as any).fetch = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({}) }))
 })
 
