@@ -89,6 +89,23 @@ export function PlanningWeekTimeline({
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
+  // Stable references so the memo() on GridCell is actually effective: empty
+  // cells share one array, and the cell callbacks are defined once and receive
+  // their employee/date context as arguments.
+  const EMPTY_SHIFTS = useMemo<Shift[]>(() => [], [])
+  const handleCellAdd = useCallback((employee: Profile, date: Date) => {
+    if (!weekLocked) setModal({ type: 'create', employee, date })
+  }, [weekLocked])
+  const handleCellClickShift = useCallback((shift: Shift, employee: Profile, date: Date) => {
+    setModal({ type: 'view', shift, employee, date, readOnly: weekLocked })
+  }, [weekLocked])
+  const handleCellContextMenu = useCallback((e: React.MouseEvent, shift: Shift, employee: Profile, date: Date) => {
+    setCtx({ x: e.clientX, y: e.clientY, shift, employee, date })
+  }, [])
+  const handleCellSos = useCallback((shift: Shift, employee: Profile) => {
+    setSosState({ shift, employee })
+  }, [])
+
   // ── Data maps ──────────────────────────────────────────────────────────────────────────
   const shiftMap = useMemo(() => {
     const m = new Map<string, Shift[]>()
@@ -397,17 +414,18 @@ export function PlanningWeekTimeline({
                         {weekDates.map(date => {
                           const dateStr = toISODate(date)
                           const did = `${emp.id}__${dateStr}`
-                          const dayShifts = shiftMap.get(did) ?? []
+                          const dayShifts = shiftMap.get(did) ?? EMPTY_SHIFTS
                           const leaveType = absMap.get(did)
                           const todayCol = isToday(date)
                           return (
                             <GridCell
                               key={dateStr} droppableId={did} shifts={dayShifts} leaveType={leaveType}
                               postes={posteMap} weekLocked={weekLocked} isToday={todayCol}
-                              onAdd={() => !weekLocked && setModal({ type: 'create', employee: emp, date })}
-                              onClickShift={s => setModal({ type: 'view', shift: s, employee: emp, date, readOnly: weekLocked })}
-                              onContextMenu={(e, s) => setCtx({ x: e.clientX, y: e.clientY, shift: s, employee: emp, date })}
-                              onSos={s => setSosState({ shift: s, employee: emp })}
+                              employee={emp} date={date}
+                              onAdd={handleCellAdd}
+                              onClickShift={handleCellClickShift}
+                              onContextMenu={handleCellContextMenu}
+                              onSos={handleCellSos}
                             />
                           )
                         })}

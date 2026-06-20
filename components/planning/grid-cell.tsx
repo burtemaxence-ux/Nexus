@@ -2,7 +2,7 @@
 
 import { useState, memo } from 'react'
 import { Plus } from 'lucide-react'
-import type { Shift, Poste, LeaveType } from '@/types'
+import type { Shift, Poste, LeaveType, Profile } from '@/types'
 import { LEAVE_STYLES } from '@/lib/planning-utils'
 import { useDroppable } from '@dnd-kit/core'
 import { ShiftCard } from './shift-card'
@@ -21,16 +21,18 @@ export const AbsenceBadge = memo(function AbsenceBadge({ type }: { type: LeaveTy
   )
 })
 
-export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, onAdd, onClickShift, onContextMenu, onSos, isToday: isTodayCol }: {
+export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, employee, date, onAdd, onClickShift, onContextMenu, onSos, isToday: isTodayCol }: {
   droppableId: string
   shifts: Shift[]
   leaveType: LeaveType | undefined
   postes: Map<string, Poste>
   weekLocked: boolean
-  onAdd: () => void
-  onClickShift: (s: Shift) => void
-  onContextMenu: (e: React.MouseEvent, s: Shift) => void
-  onSos: (s: Shift) => void
+  employee: Profile
+  date: Date
+  onAdd: (employee: Profile, date: Date) => void
+  onClickShift: (s: Shift, employee: Profile, date: Date) => void
+  onContextMenu: (e: React.MouseEvent, s: Shift, employee: Profile, date: Date) => void
+  onSos: (s: Shift, employee: Profile) => void
   isToday: boolean
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: droppableId })
@@ -56,9 +58,9 @@ export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType,
           key={shift.id}
           shift={shift}
           poste={shift.poste_id ? postes.get(shift.poste_id) : null}
-          onClick={() => onClickShift(shift)}
-          onContextMenu={(e) => onContextMenu(e, shift)}
-          onSos={() => onSos(shift)}
+          onClick={() => onClickShift(shift, employee, date)}
+          onContextMenu={(e) => onContextMenu(e, shift, employee, date)}
+          onSos={() => onSos(shift, employee)}
           disabled={weekLocked}
           hasConflict={!!leaveType && shifts.length > 0}
         />
@@ -66,7 +68,7 @@ export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType,
 
       {isEmpty && !weekLocked && (
         <div
-          onClick={onAdd}
+          onClick={() => onAdd(employee, date)}
           style={{
             minHeight: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', borderRadius: '6px',
@@ -89,7 +91,7 @@ export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType,
 
       {shifts.length > 0 && !weekLocked && (
         <div
-          onClick={onAdd}
+          onClick={() => onAdd(employee, date)}
           style={{
             marginTop: '2px', height: '22px', borderRadius: '5px',
             border: '0.5px dashed var(--border)', display: 'flex',
