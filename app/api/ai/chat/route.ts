@@ -152,7 +152,7 @@ ${(upcomingShifts as unknown as { date: string; start_time: string; end_time: st
 ${(marketplaceSlots as unknown as { reason: string | null; expires_at: string; shifts: { date: string; start_time: string; end_time: string; position: string } | null; profiles: { full_name: string | null } | null }[] ?? []).map(m => `- ${m.shifts?.date ?? '?'} | ${m.shifts?.position ?? '?'} ${m.shifts?.start_time}→${m.shifts?.end_time} | Raison : ${m.reason ?? 'Non précisée'}`).join('\n') || 'Aucun créneau ouvert'}
 
 ### Échanges de shifts en attente (${shiftExchanges?.length ?? 0})
-${(shiftExchanges as unknown as { status: string; proposer_note: string | null; shifts: { date: string; start_time: string; position: string } | null; profiles: { full_name: string | null } | null }[] ?? []).map(e => `- ${e.profiles?.full_name ?? '?'} | ${e.shifts?.date ?? '?'} ${e.shifts?.position ?? ''} | Statut : ${e.status} | Note : ${e.proposer_note ?? '-'}`).join('\n') || 'Aucun échange en attente'}
+${(shiftExchanges as unknown as { id: string; status: string; proposer_note: string | null; shifts: { date: string; start_time: string; position: string } | null; profiles: { full_name: string | null } | null }[] ?? []).map(e => `- [ref:${e.id}] ${e.profiles?.full_name ?? '?'} | ${e.shifts?.date ?? '?'} ${e.shifts?.position ?? ''} | Statut : ${e.status} | Note : ${e.proposer_note ?? '-'}`).join('\n') || 'Aucun échange en attente'}
 
 ${alerts.length > 0 ? `## 🔔 Points d'attention détectés
 ${alerts.join('\n')}` : ''}
@@ -191,10 +191,21 @@ Quand le manager te demande explicitement de valider ou refuser une demande de c
 Pour créer un créneau (brouillon) :
 [ACTION:create_shift]{"employee_id":"<ref de l'employé>","date":"YYYY-MM-DD","start_time":"HH:MM","end_time":"HH:MM","break_minutes":30,"label":"Hugo · lun. 15 · 09:00-17:00"}[/ACTION]
 
+Pour valider / refuser un échange de shift :
+[ACTION:approve_exchange]{"id":"<ref de l'échange>","label":"Échange de Hugo · 15 juin"}[/ACTION]
+[ACTION:reject_exchange]{"id":"<ref de l'échange>","label":"Échange de Hugo · 15 juin"}[/ACTION]
+
+Pour inviter un employé (le manager doit fournir au minimum prénom, nom et email) :
+[ACTION:invite_employee]{"first_name":"Jean","last_name":"Dupont","email":"jean@ex.fr","role":"employee","position":"Serveur","label":"Inviter Jean Dupont (serveur)"}[/ACTION]
+
+Pour copier une semaine de planning vers la suivante :
+[ACTION:copy_week]{"from_monday":"YYYY-MM-DD","label":"Copier la semaine du 9 juin vers le 16 juin"}[/ACTION]
+
 Règles STRICTES :
 - Utilise uniquement un "id"/"employee_id" provenant d'un [ref:...] présent dans les données ci-dessus. N'invente JAMAIS d'identifiant.
-- Réserve approve_leave/reject_leave aux congés au statut **pending**.
+- Réserve approve_leave/reject_leave aux congés au statut **pending**, et approve_exchange/reject_exchange aux échanges au statut **pending_approval**.
 - Pour create_shift : respecte les règles légales (repos 11h, max 10h/jour, pause ≥20 min si >6h) ; le créneau sera créé en **brouillon** et le manager verra les alertes de conformité dans le planning.
+- Pour invite_employee : n'invente jamais l'email ; demande-le au manager s'il manque. "from_monday" doit être un lundi au format YYYY-MM-DD.
 - Le bloc n'exécute rien tout seul : il affiche au manager un bouton de confirmation. Ne dis jamais que l'action est faite — dis « Confirmez ci-dessous pour valider ».
 - Précède toujours le bloc d'une phrase courte décrivant ce que tu proposes.
 

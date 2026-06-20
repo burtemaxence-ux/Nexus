@@ -66,6 +66,39 @@ describe('MarkdownText — action cards', () => {
     })
   })
 
+  it('approves a shift exchange via the approve endpoint', async () => {
+    render(<MarkdownText text={'[ACTION:approve_exchange]{"id":"ex1","label":"Échange Hugo"}[/ACTION]'} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Valider' }))
+    await waitFor(() => {
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(
+        '/api/exchanges/ex1/approve',
+        expect.objectContaining({ method: 'POST' }),
+      )
+    })
+  })
+
+  it('invites an employee via /api/employees/invite', async () => {
+    render(<MarkdownText text={'[ACTION:invite_employee]{"first_name":"Jean","last_name":"Dupont","email":"jean@ex.fr","role":"employee","label":"Inviter Jean"}[/ACTION]'} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Inviter' }))
+    await waitFor(() => {
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(
+        '/api/employees/invite',
+        expect.objectContaining({ method: 'POST', body: JSON.stringify({ first_name: 'Jean', last_name: 'Dupont', email: 'jean@ex.fr', role: 'employee' }) }),
+      )
+    })
+  })
+
+  it('copies a week via /api/shifts/copy-week', async () => {
+    render(<MarkdownText text={'[ACTION:copy_week]{"from_monday":"2026-06-09","label":"Copier"}[/ACTION]'} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Copier' }))
+    await waitFor(() => {
+      expect((globalThis as any).fetch).toHaveBeenCalledWith(
+        '/api/shifts/copy-week',
+        expect.objectContaining({ method: 'POST', body: JSON.stringify({ from_monday: '2026-06-09' }) }),
+      )
+    })
+  })
+
   it('renders nothing for a create_shift missing required fields', () => {
     const { container } = render(<MarkdownText text={'[ACTION:create_shift]{"employee_id":"emp1","label":"incomplet"}[/ACTION]'} />)
     expect(container.querySelector('button')).toBeNull()

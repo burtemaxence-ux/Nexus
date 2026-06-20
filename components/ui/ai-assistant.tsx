@@ -474,6 +474,45 @@ const ACTION_CONFIG: Record<string, {
         }
       : null,
   },
+  approve_exchange: {
+    verb: 'Valider l\'échange de shift',
+    confirmLabel: 'Valider',
+    doneLabel: 'Échange validé',
+    build: (p) => p.id ? { url: `/api/exchanges/${p.id}/approve`, method: 'POST', body: {} } : null,
+  },
+  reject_exchange: {
+    verb: 'Refuser l\'échange de shift',
+    confirmLabel: 'Refuser',
+    doneLabel: 'Échange refusé',
+    danger: true,
+    build: (p) => p.id ? { url: `/api/exchanges/${p.id}/reject`, method: 'POST', body: {} } : null,
+  },
+  invite_employee: {
+    verb: 'Inviter un employé',
+    confirmLabel: 'Inviter',
+    doneLabel: 'Invitation envoyée',
+    build: (p) => (p.first_name && p.last_name && p.email)
+      ? {
+          url: '/api/employees/invite',
+          method: 'POST',
+          body: {
+            first_name: p.first_name,
+            last_name: p.last_name,
+            email: p.email,
+            role: p.role ?? 'employee',
+            ...(p.position ? { position: p.position } : {}),
+          },
+        }
+      : null,
+  },
+  copy_week: {
+    verb: 'Copier la semaine vers la suivante',
+    confirmLabel: 'Copier',
+    doneLabel: 'Semaine copiée',
+    build: (p) => (typeof p.from_monday === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.from_monday))
+      ? { url: '/api/shifts/copy-week', method: 'POST', body: { from_monday: p.from_monday } }
+      : null,
+  },
 }
 
 function ActionCard({ tag, content }: { tag: string; content: string }) {
