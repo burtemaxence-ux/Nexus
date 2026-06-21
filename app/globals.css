@@ -658,3 +658,43 @@ html {
     pointer-events: none;
   }
 }
+
+/* ── Skeleton shimmer ───────────────────────────────────────────────────── */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 50%, transparent 100%);
+  animation: skeletonSweep 1.6s ease-in-out infinite;
+}
+@keyframes skeletonSweep {
+  100% { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after { animation: none; }
+}
+
+/* ── Drawn checkmark ────────────────────────────────────────────────────── */
+.check-draw circle {
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  animation: checkCircle 0.5s ease-out forwards;
+}
+.check-draw path {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: checkTick 0.35s 0.32s ease-out forwards;
+}
+@keyframes checkCircle { to { stroke-dashoffset: 0; } }
+@keyframes checkTick { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .check-draw circle, .check-draw path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

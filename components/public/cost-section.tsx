@@ -2,20 +2,24 @@
 
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { CountUp } from '@/components/ui/count-up'
 
 const FIGURES = [
   {
-    value: '4 h',
+    end: 4,
+    suffix: ' h',
     label: 'perdues chaque semaine à faire et refaire le planning',
     color: '#FF6B6B',
   },
   {
-    value: '5 semaines',
+    end: 5,
+    suffix: ' semaines',
     label: 'de votre temps englouties chaque année, ni vu ni connu',
     color: '#FFB347',
   },
   {
-    value: '49 €/mois',
+    end: 49,
+    suffix: ' €/mois',
     label: 'pour tout récupérer, et dormir tranquille',
     color: '#00D4AA',
   },
@@ -109,7 +113,7 @@ export function CostSection() {
         }} className="cost-grid">
           {FIGURES.map((f, i) => (
             <div
-              key={f.value}
+              key={f.label}
               ref={(el) => { figRefs.current[i] = el }}
               data-delay={i * 100}
               className="cost-fig"
@@ -128,7 +132,7 @@ export function CostSection() {
                 marginBottom: 10,
                 lineHeight: 1,
               }}>
-                {f.value}
+                <CountUp end={f.end} suffix={f.suffix} />
               </div>
               <div style={{
                 fontFamily: "'DM Sans', sans-serif",

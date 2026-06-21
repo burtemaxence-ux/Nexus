@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { LogIn, LogOut, Coffee, PlayCircle, CalendarX, ChevronUp, ChevronDown } from 'lucide-react'
+import { CheckDraw } from '@/components/ui/check-draw'
 
 type Presence = {
   id: string
@@ -242,7 +243,8 @@ export default function BadgeusePage() {
                 className="rounded-xl px-4 py-2.5 flex items-center gap-2"
                 style={{ backgroundColor: 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.25)' }}
               >
-                <span className="text-[13px] font-medium" style={{ color: 'var(--success)' }}>✓ Pointage enregistré</span>
+                <CheckDraw size={18} />
+                <span className="text-[13px] font-medium" style={{ color: 'var(--success)' }}>Pointage enregistré</span>
               </div>
             )}
 
@@ -329,6 +331,9 @@ export default function BadgeusePage() {
                 className="rounded-[20px] p-6 space-y-4"
                 style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
               >
+                <div className="flex justify-center">
+                  <CheckDraw size={44} />
+                </div>
                 <p
                   className="text-center text-[16px] font-bold"
                   style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
