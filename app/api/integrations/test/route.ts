@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   if (type === 'webhook') {
     const url = settings.webhook_url
     if (!url) return NextResponse.json({ error: 'Aucune URL webhook configurée' }, { status: 400 })
-    const result = await testWebhook(url, 'generic')
+    const result = await testWebhook(url, 'generic', settings.webhook_signing_secret || undefined)
     return NextResponse.json(result)
   }
 

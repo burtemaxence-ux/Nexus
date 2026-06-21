@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   Loader2, Check, Send, Plug, Hash, Calendar,
   Key, Plus, Trash2, Copy, CheckCircle, Eye, EyeOff,
-  RefreshCw, CircleCheck, CircleX,
+  RefreshCw, CircleCheck, CircleX, ShieldCheck,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,7 @@ type WebhookLog = {
   status_code: number | null
   success: boolean
   duration_ms: number | null
+  attempts: number | null
   created_at: string
 }
 
@@ -119,6 +120,7 @@ function TestButton({ state, disabled, onTest, label }: { state: TestState; disa
 function WebhookLogsSection() {
   const [logs, setLogs] = useState<WebhookLog[]>([])
   const [loading, setLoading] = useState(false)
+  const [resending, setResending] = useState<string | null>(null)
 
   const fetchLogs = useCallback(async () => {
     setLoading(true)
@@ -126,6 +128,13 @@ function WebhookLogsSection() {
     if (res.ok) setLogs(await res.json())
     setLoading(false)
   }, [])
+
+  const resend = useCallback(async (id: string) => {
+    setResending(id)
+    await fetch(`/api/integrations/logs/${id}/resend`, { method: 'POST' }).catch(() => {})
+    setResending(null)
+    fetchLogs()
+  }, [fetchLogs])
 
   useEffect(() => { fetchLogs() }, [fetchLogs])
 
@@ -167,13 +176,120 @@ function WebhookLogsSection() {
               {log.duration_ms && (
                 <span style={{ color: 'var(--text-tertiary)' }}>{log.duration_ms}ms</span>
               )}
+              {(log.attempts ?? 1) > 1 && (
+                <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px]"
+                  style={{ backgroundColor: '#FEF3C7', color: '#B45309' }}
+                  title={`${log.attempts} tentatives de livraison`}>
+                  ×{log.attempts}
+                </span>
+              )}
               <span className="ml-auto flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>
                 {new Date(log.created_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </span>
+              <button
+                onClick={() => resend(log.id)}
+                disabled={resending === log.id}
+                className="flex-shrink-0 p-1 rounded transition-colors disabled:opacity-50"
+                style={{ color: 'var(--text-tertiary)' }}
+                title="Renvoyer cette livraison"
+                aria-label="Renvoyer"
+              >
+                {resending === log.id
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <RefreshCw className="h-3.5 w-3.5" />}
+              </button>
             </div>
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Signing secret section ────────────────────────────────────────────────────
+
+function SigningSecretSection() {
+  const [secret, setSecret] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState(false)
+  const [reveal, setReveal] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.ok ? r.json() : {})
+      .then((data: Record<string, string>) => setSecret(data.webhook_signing_secret || null))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function generate() {
+    if (secret && !confirm('Régénérer le secret invalidera l\'ancien : vos vérifications de signature échoueront jusqu\'à mise à jour. Continuer ?')) return
+    setGenerating(true)
+    const res = await fetch('/api/integrations/signing-secret', { method: 'POST' })
+    if (res.ok) {
+      const data = await res.json() as { secret: string }
+      setSecret(data.secret)
+      setReveal(true)
+    }
+    setGenerating(false)
+  }
+
+  function copy() {
+    if (!secret) return
+    navigator.clipboard.writeText(secret)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (loading) return null
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-secondary)' }}>
+        Signature des envois
+      </p>
+      <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: 'var(--bg-page)', border: '0.5px solid var(--border)' }}>
+        <div className="flex items-start gap-2">
+          <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
+          <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+            Chaque requête est signée via l&apos;en-tête{' '}
+            <code className="text-[11px] font-mono px-1 rounded" style={{ backgroundColor: 'var(--border)' }}>X-Quartzbase-Signature</code>{' '}
+            (<code className="text-[11px] font-mono">sha256=HMAC(corps)</code>). Vérifiez-la côté serveur pour garantir l&apos;authenticité.
+          </p>
+        </div>
+
+        {secret ? (
+          <>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-[12px] font-mono break-all px-3 py-2 rounded-lg"
+                style={{ backgroundColor: 'var(--bg-card)', border: '0.5px solid var(--border)', color: 'var(--text-primary)' }}>
+                {reveal ? secret : secret.slice(0, 10) + '•'.repeat(Math.max(0, secret.length - 10))}
+              </code>
+              <button onClick={() => setReveal(v => !v)} className="p-1.5 rounded" style={{ color: 'var(--text-secondary)' }}
+                title={reveal ? 'Masquer' : 'Afficher'}>
+                {reveal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+              <button onClick={copy} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-medium"
+                style={{ backgroundColor: 'var(--accent-light)', border: '0.5px solid var(--accent)', color: 'var(--accent)' }}>
+                {copied ? <><CheckCircle className="h-3.5 w-3.5" />Copié</> : <><Copy className="h-3.5 w-3.5" />Copier</>}
+              </button>
+            </div>
+            <button onClick={generate} disabled={generating}
+              className="flex items-center gap-1.5 text-[12px] disabled:opacity-50" style={{ color: 'var(--text-tertiary)' }}>
+              {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              Régénérer le secret
+            </button>
+          </>
+        ) : (
+          <button onClick={generate} disabled={generating}
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-medium transition-colors disabled:opacity-50"
+            style={{ backgroundColor: 'var(--accent-light)', border: '0.5px solid var(--accent)', color: 'var(--accent)' }}>
+            {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Key className="h-3.5 w-3.5" />}
+            Générer un secret de signature
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -493,6 +609,8 @@ export default function IntegrationsPage() {
               ))}
             </div>
           </div>
+
+          <SigningSecretSection />
 
           <div className="flex gap-2 justify-end">
             <TestButton state={testWebhook} disabled={!webhookUrl} onTest={() => runTest('webhook')} label="Tester" />
