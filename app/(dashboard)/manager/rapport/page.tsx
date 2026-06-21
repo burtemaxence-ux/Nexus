@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, type ComponentType, type CSSProperties } from 'react'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -24,6 +24,46 @@ type LatenessRecord = {
 type RapportTab = 'heures' | 'retards' | 'paie'
 
 const PDFButton = dynamic(() => import('./pdf-button'), { ssr: false })
+
+// Sous-titre explicatif par onglet (compréhension au premier coup d'œil).
+const TAB_DESC: Record<RapportTab, string> = {
+  heures: 'Heures planifiées vs réelles, écart au contrat et coût estimé, par employé.',
+  retards: 'Tous les retards pointés sur la période. Marquez-les justifiés ou non.',
+  paie: 'Variables de paie prêtes à exporter vers votre logiciel (PayFit, Silae, ADP…).',
+}
+
+// Carte de synthèse premium (puce icône + grand chiffre).
+function StatCard({
+  label, value, icon: Icon, color = 'var(--text-primary)', iconColor = 'var(--accent)',
+  iconBg = 'var(--accent-light)', sub, index = 0,
+}: {
+  label: string
+  value: string
+  icon?: ComponentType<{ className?: string; style?: CSSProperties }>
+  color?: string
+  iconColor?: string
+  iconBg?: string
+  sub?: string
+  index?: number
+}) {
+  return (
+    <div
+      className="pres-reveal rounded-[14px] p-4"
+      style={{ animationDelay: `${index * 50}ms`, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        {Icon && (
+          <div className="w-7 h-7 rounded-[8px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: iconBg }}>
+            <Icon className="h-3.5 w-3.5" style={{ color: iconColor }} />
+          </div>
+        )}
+        <span className="text-[10px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>{label}</span>
+      </div>
+      <p className="text-[24px] font-bold leading-none tabular-nums" style={{ fontFamily: 'var(--font-syne)', color }}>{value}</p>
+      {sub && <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-tertiary)' }}>{sub}</p>}
+    </div>
+  )
+}
 
 type Mode = 'day' | 'week' | 'month'
 
@@ -354,41 +394,56 @@ export default function RapportPage() {
     <div className="min-h-full">
       {/* Sticky header */}
       <div className="border-b border-border bg-card sticky top-14 md:top-11 z-10">
-        <div className="px-4 md:px-6 max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 md:gap-3 flex-wrap min-h-[56px] py-2">
-            <h1 className="text-[20px] font-medium tracking-[-0.02em] shrink-0" style={{ color: 'var(--text-primary)' }}>Rapport</h1>
+        <div className="px-4 md:px-6 max-w-6xl mx-auto py-3 space-y-3">
 
-            {/* Report type tabs */}
-            <div className="flex overflow-hidden" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
-              {(['heures', 'retards', 'paie'] as RapportTab[]).map((t, i) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium transition-colors duration-150"
-                  style={{
-                    backgroundColor: tab === t ? 'var(--text-primary)' : 'transparent',
-                    color: tab === t ? 'var(--bg-card)' : 'var(--text-tertiary)',
-                    borderLeft: i > 0 ? '0.5px solid var(--border)' : undefined,
-                  }}
-                >
-                  {t === 'retards' && <AlarmClock className="h-3.5 w-3.5" />}
-                  {t === 'paie' && <Banknote className="h-3.5 w-3.5" />}
-                  {t === 'heures' ? 'Heures' : t === 'retards' ? 'Retards' : 'Paie'}
-                </button>
-              ))}
+          {/* Étage 1 — Quel rapport (primaire) */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-[22px] font-bold tracking-[-0.02em] shrink-0" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>Rapport</h1>
+
+            <div className="flex gap-0.5 p-0.5 rounded-[11px]" style={{ backgroundColor: 'var(--bg-input)' }}>
+              {([
+                { id: 'heures' as RapportTab, label: 'Heures', icon: Clock },
+                { id: 'retards' as RapportTab, label: 'Retards', icon: AlarmClock },
+                { id: 'paie' as RapportTab, label: 'Paie', icon: Banknote },
+              ]).map(({ id, label, icon: Icon }) => {
+                const active = tab === id
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setTab(id)}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-semibold rounded-[9px] transition-all duration-150"
+                    style={{
+                      backgroundColor: active ? 'var(--bg-card)' : 'transparent',
+                      color: active ? 'var(--accent)' : 'var(--text-tertiary)',
+                      boxShadow: active ? '0 1px 3px rgba(16,24,40,0.12)' : 'none',
+                    }}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </button>
+                )
+              })}
             </div>
 
-            {/* Mode tabs */}
-            <div className="flex overflow-hidden" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
+            {tab === 'heures' && (
+              <div className="ml-auto">
+                <PDFButton rows={rows} periodLabel={period.label} establishmentName={establishmentName} />
+              </div>
+            )}
+          </div>
+
+          {/* Étage 2 — Période + filtres (secondaire) */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex overflow-hidden rounded-[8px]" style={{ border: '1px solid var(--border)' }}>
               {(['day', 'week', 'month'] as Mode[]).map((m, i) => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
-                  className="px-3 py-1.5 text-[13px] font-medium transition-colors duration-150"
+                  className="px-3 py-1 text-[12px] font-medium transition-colors duration-150"
                   style={{
-                    backgroundColor: mode === m ? 'var(--text-primary)' : 'transparent',
-                    color: mode === m ? 'var(--bg-card)' : 'var(--text-tertiary)',
-                    borderLeft: i > 0 ? '0.5px solid var(--border)' : undefined,
+                    backgroundColor: mode === m ? 'var(--accent-light)' : 'transparent',
+                    color: mode === m ? 'var(--accent)' : 'var(--text-tertiary)',
+                    borderLeft: i > 0 ? '1px solid var(--border)' : undefined,
                   }}
                 >
                   {m === 'day' ? 'Jour' : m === 'week' ? 'Semaine' : 'Mois'}
@@ -396,53 +451,55 @@ export default function RapportPage() {
               ))}
             </div>
 
-            {/* Period navigation */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               <button
                 onClick={() => setRefDate(d => navigatePeriod(mode, d, -1))}
-                className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-input)]"
               >
-                <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+                <ChevronLeft className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
               </button>
-              <span className="text-sm font-medium text-foreground min-w-[160px] text-center px-1">{period.label}</span>
+              <span className="text-[13px] font-semibold capitalize text-center px-1" style={{ minWidth: 150, color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+                {period.label}
+              </span>
               <button
                 onClick={() => setRefDate(d => navigatePeriod(mode, d, 1))}
-                className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-input)]"
               >
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ChevronRight className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
               </button>
             </div>
 
-            {/* Poste filter */}
-            {postes.length > 0 && (
+            <div className="ml-auto flex items-center gap-2">
+              {postes.length > 0 && (
+                <select
+                  value={selectedPoste}
+                  onChange={e => setSelectedPoste(e.target.value)}
+                  className="text-[12px] rounded-lg px-2.5 py-1.5 focus:outline-none"
+                  style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)' }}
+                >
+                  <option value="all">Tous les postes</option>
+                  {postes.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              )}
               <select
-                value={selectedPoste}
-                onChange={e => setSelectedPoste(e.target.value)}
-                className="text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:outline-none ml-auto"
+                value={selectedEmployee}
+                onChange={e => setSelectedEmployee(e.target.value)}
+                className="text-[12px] rounded-lg px-2.5 py-1.5 focus:outline-none"
+                style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)' }}
               >
-                <option value="all">Tous les postes</option>
-                {postes.map(p => <option key={p} value={p}>{p}</option>)}
+                <option value="all">Tous les employés</option>
+                {employees.map(e => (
+                  <option key={e.id} value={e.id}>{e.full_name ?? e.email}</option>
+                ))}
               </select>
-            )}
-
-            {/* Employee filter */}
-            <select
-              value={selectedEmployee}
-              onChange={e => setSelectedEmployee(e.target.value)}
-              className={`text-sm border border-border rounded-lg px-3 py-1.5 bg-card text-foreground focus:outline-none focus:outline-none ${postes.length === 0 ? 'ml-auto' : ''}`}
-            >
-              <option value="all">Tous les employés</option>
-              {employees.map(e => (
-                <option key={e.id} value={e.id}>{e.full_name ?? e.email}</option>
-              ))}
-            </select>
-
-            {tab === 'heures' && <PDFButton rows={rows} periodLabel={period.label} establishmentName={establishmentName} />}
+            </div>
           </div>
         </div>
       </div>
 
       <div className="px-4 py-4 md:px-6 md:py-6 max-w-6xl mx-auto space-y-6">
+        <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{TAB_DESC[tab]}</p>
+
         {tab === 'retards' && (
           <>
             {/* Retards summary cards */}
@@ -451,14 +508,17 @@ export default function RapportPage() {
                 { icon: AlarmClock, label: 'Total retards', value: latenessRecords.length.toString(), danger: false },
                 { icon: Clock, label: 'Minutes perdues', value: latenessRecords.reduce((s, r) => s + r.late_minutes, 0) + ' min', danger: false },
                 { icon: TrendingUp, label: 'Non justifiés', value: latenessRecords.filter(r => !r.justified).length.toString(), danger: latenessRecords.some(r => !r.justified) },
-              ].map(({ icon: Icon, label, value, danger }) => (
-                <div key={label} className="bg-card border border-border rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Icon className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-                    <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
-                  </div>
-                  <p className="text-[20px] font-normal" style={{ color: danger ? 'var(--danger)' : 'var(--text-primary)' }}>{value}</p>
-                </div>
+              ].map(({ icon: Icon, label, value, danger }, i) => (
+                <StatCard
+                  key={label}
+                  icon={Icon}
+                  label={label}
+                  value={value}
+                  index={i}
+                  color={danger ? 'var(--danger)' : 'var(--text-primary)'}
+                  iconColor={danger ? 'var(--danger)' : 'var(--accent)'}
+                  iconBg={danger ? 'rgba(255,107,107,0.12)' : 'var(--accent-light)'}
+                />
               ))}
             </div>
 
@@ -530,7 +590,7 @@ export default function RapportPage() {
                               className="text-xs font-medium px-2.5 py-1 rounded-full transition-colors duration-150"
                               style={rec.justified
                                 ? { backgroundColor: 'var(--accent-light)', color: 'var(--accent)', border: '0.5px solid var(--accent)' }
-                                : { backgroundColor: '#FEE2E2', color: 'var(--danger)', border: '0.5px solid var(--danger)' }
+                                : { backgroundColor: 'rgba(255,107,107,0.12)', color: 'var(--danger)', border: '1px solid rgba(255,107,107,0.3)' }
                               }
                             >
                               {rec.justified ? 'Justifié' : 'Non justifié'}
@@ -587,15 +647,12 @@ export default function RapportPage() {
             {/* Paie summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: 'H. normales', value: fh(paieRows.reduce((s, r) => s + r.normalHours, 0)) },
-                { label: 'H. sup. 25%', value: fh(paieRows.reduce((s, r) => s + r.sup25Hours, 0)) },
-                { label: 'H. sup. 50%', value: fh(paieRows.reduce((s, r) => s + r.sup50Hours, 0)) },
-                { label: 'J. d\'absence', value: String(paieRows.reduce((s, r) => s + r.cpDays + r.rttDays + r.maladieDays + r.ssDays + r.autreDays, 0)) },
-              ].map(({ label, value }) => (
-                <div key={label} className="bg-card border border-border rounded-xl p-4">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground mb-2">{label}</p>
-                  <p className="text-[20px] font-normal" style={{ color: 'var(--text-primary)' }}>{value}</p>
-                </div>
+                { label: 'H. normales', value: fh(paieRows.reduce((s, r) => s + r.normalHours, 0)), color: 'var(--text-primary)' },
+                { label: 'H. sup. 25%', value: fh(paieRows.reduce((s, r) => s + r.sup25Hours, 0)), color: 'var(--warning)' },
+                { label: 'H. sup. 50%', value: fh(paieRows.reduce((s, r) => s + r.sup50Hours, 0)), color: 'var(--danger)' },
+                { label: 'J. d\'absence', value: String(paieRows.reduce((s, r) => s + r.cpDays + r.rttDays + r.maladieDays + r.ssDays + r.autreDays, 0)), color: 'var(--text-primary)' },
+              ].map(({ label, value, color }, i) => (
+                <StatCard key={label} label={label} value={value} color={color} index={i} />
               ))}
             </div>
 
@@ -676,56 +733,30 @@ export default function RapportPage() {
         <>
         {/* Summary cards */}
         <div className={cn('grid gap-4', totals.hasCost ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6' : 'grid-cols-2 md:grid-cols-5')}>
-          <div className="bg-card border border-border rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Employés</span>
-            </div>
-            <p className="text-[20px] font-normal" style={{ color: 'var(--text-primary)' }}>{totals.employees}</p>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">H. planifiées</span>
-            </div>
-            <p className="text-[20px] font-normal" style={{ color: 'var(--text-primary)' }}>{fh(totals.plannedHours)}</p>
-            {totals.realHours > 0 && <p className="text-xs text-muted-foreground mt-1">{fh(totals.realHours)} réelles</p>}
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Écart contrat</span>
-            </div>
-            <p className="text-[20px] font-normal" style={{ color: totals.diffHours > 0.1 ? 'var(--success)' : totals.diffHours < -0.1 ? 'var(--danger)' : 'var(--text-primary)' }}>
-              {totals.diffHours >= 0 ? '+' : ''}{fh(totals.diffHours)}
-            </p>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <CalendarOff className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">J. d&apos;absence</span>
-            </div>
-            <p className="text-[20px] font-normal" style={{ color: 'var(--text-primary)' }}>{totals.absences}</p>
-          </div>
-          <div className="bg-card border border-border rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Taux présence</span>
-            </div>
-            <p className="text-[20px] font-normal" style={{ color: presenceRate === null ? 'var(--text-tertiary)' : presenceRate >= 80 ? 'var(--success)' : presenceRate >= 60 ? 'var(--warning)' : 'var(--danger)' }}>
-              {presenceRate === null ? '—' : `${presenceRate}%`}
-            </p>
-          </div>
+          <StatCard index={0} icon={Users} label="Employés" value={String(totals.employees)} />
+          <StatCard index={1} icon={Clock} label="H. planifiées" value={fh(totals.plannedHours)} sub={totals.realHours > 0 ? `${fh(totals.realHours)} réelles` : undefined} />
+          <StatCard
+            index={2}
+            icon={TrendingUp}
+            label="Écart contrat"
+            value={`${totals.diffHours >= 0 ? '+' : ''}${fh(totals.diffHours)}`}
+            color={totals.diffHours > 0.1 ? 'var(--success)' : totals.diffHours < -0.1 ? 'var(--danger)' : 'var(--text-primary)'}
+          />
+          <StatCard index={3} icon={CalendarOff} label="J. d'absence" value={String(totals.absences)} />
+          <StatCard
+            index={4}
+            icon={TrendingUp}
+            label="Taux présence"
+            value={presenceRate === null ? '—' : `${presenceRate}%`}
+            color={presenceRate === null ? 'var(--text-tertiary)' : presenceRate >= 80 ? 'var(--success)' : presenceRate >= 60 ? 'var(--warning)' : 'var(--danger)'}
+          />
           {totals.hasCost && (
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[11px] font-bold" style={{ color: 'var(--accent)' }}>€</span>
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.06em]">Coût estimé</span>
-              </div>
-              <p className="text-[20px] font-normal" style={{ color: 'var(--text-primary)' }}>
-                {totals.totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €
-              </p>
-            </div>
+            <StatCard
+              index={5}
+              icon={Banknote}
+              label="Coût estimé"
+              value={`${totals.totalCost.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} €`}
+            />
           )}
         </div>
 
@@ -792,8 +823,8 @@ export default function RapportPage() {
                             <div className="flex flex-wrap gap-1">
                               {row.absenceCP > 0      && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>CP {row.absenceCP}j</span>}
                               {row.absenceRTT > 0     && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>RTT {row.absenceRTT}j</span>}
-                              {row.absenceMaladie > 0 && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#FEF3C7', color: 'var(--warning)' }}>Mal. {row.absenceMaladie}j</span>}
-                              {row.absenceSS > 0      && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#FEE2E2', color: 'var(--danger)' }}>SS {row.absenceSS}j</span>}
+                              {row.absenceMaladie > 0 && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,179,71,0.15)', color: 'var(--warning)' }}>Mal. {row.absenceMaladie}j</span>}
+                              {row.absenceSS > 0      && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,107,107,0.12)', color: 'var(--danger)' }}>SS {row.absenceSS}j</span>}
                               {row.absenceAutre > 0   && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)', border: '0.5px solid var(--border)' }}>Autre {row.absenceAutre}j</span>}
                             </div>
                           )}
