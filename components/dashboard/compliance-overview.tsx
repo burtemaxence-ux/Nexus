@@ -143,7 +143,7 @@ export function ComplianceOverview() {
               {RULE_LABELS[r.type] ?? r.type}
             </span>
             <span className="hidden sm:block h-1.5 rounded-full overflow-hidden" style={{ width: 80, backgroundColor: 'var(--border)' }}>
-              <span className="block h-full rounded-full" style={{ width: `${Math.max(15, (r.count / max) * 100)}%`, backgroundColor: levelColor(r.worst) }} />
+              <span className="block h-full rounded-full bar-grow-right" style={{ width: `${Math.max(15, (r.count / max) * 100)}%`, backgroundColor: levelColor(r.worst) }} />
             </span>
             <span className="text-[13px] font-semibold tabular-nums w-6 text-right flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
               {r.count}

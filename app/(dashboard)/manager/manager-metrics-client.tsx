@@ -95,6 +95,8 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
         return (
           <rect
             key={i}
+            className="bar-grow-up"
+            style={{ animationDelay: `${i * 45}ms` }}
             x={i * (barW + gap)}
             y={h - barH}
             width={barW}

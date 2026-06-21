@@ -721,3 +721,19 @@ html {
   .badge-burst { animation: none; opacity: 0; }
   .dial-glow { animation: none; }
 }
+
+/* ── Grow-in bars (dashboard charts) ────────────────────────────────────── */
+@keyframes growUp    { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes growRight { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.bar-grow-up {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: growUp 550ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.bar-grow-right {
+  transform-origin: left center;
+  animation: growRight 750ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar-grow-up, .bar-grow-right { animation: none; }
+}
