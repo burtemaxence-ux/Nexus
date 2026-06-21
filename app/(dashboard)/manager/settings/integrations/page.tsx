@@ -5,6 +5,7 @@ import {
   Loader2, Check, Send, Plug, Hash, Calendar,
   Key, Plus, Trash2, Copy, CheckCircle, Eye, EyeOff,
   RefreshCw, CircleCheck, CircleX, ShieldCheck,
+  ChevronDown, ChevronRight,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -78,6 +79,20 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
   )
 }
 
+function StatusBadge({ active, activeLabel = 'Actif', inactiveLabel = 'Inactif' }: { active: boolean; activeLabel?: string; inactiveLabel?: string }) {
+  return (
+    <span
+      className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-[0.04em] shrink-0"
+      style={active
+        ? { backgroundColor: '#F0FDF4', color: '#15803D', border: '0.5px solid #BBF7D0' }
+        : { backgroundColor: 'var(--bg-page)', color: 'var(--text-tertiary)', border: '0.5px solid var(--border)' }
+      }
+    >
+      {active ? activeLabel : inactiveLabel}
+    </span>
+  )
+}
+
 function SaveButton({ saving, saved, onSave }: { saving: boolean; saved: boolean; onSave: () => void }) {
   return (
     <button
@@ -117,7 +132,7 @@ function TestButton({ state, disabled, onTest, label }: { state: TestState; disa
 
 // ── Webhook logs section ──────────────────────────────────────────────────────
 
-function WebhookLogsSection() {
+function WebhookLogsSection({ enabled }: { enabled: boolean }) {
   const [logs, setLogs] = useState<WebhookLog[]>([])
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState<string | null>(null)
@@ -138,7 +153,17 @@ function WebhookLogsSection() {
 
   useEffect(() => { fetchLogs() }, [fetchLogs])
 
-  if (logs.length === 0 && !loading) return null
+  // Rien à montrer si l'intégration n'est pas activée et qu'aucune livraison n'existe.
+  if (logs.length === 0 && !loading && !enabled) return null
+
+  if (logs.length === 0 && !loading) {
+    return (
+      <div className="mt-4 rounded-lg px-3 py-3 text-[12px] text-center"
+        style={{ backgroundColor: 'var(--bg-page)', border: '0.5px solid var(--border)', color: 'var(--text-tertiary)' }}>
+        Les livraisons apparaîtront ici après le premier événement.
+      </div>
+    )
+  }
 
   return (
     <div className="mt-4">
@@ -352,11 +377,14 @@ function ApiTokensCard() {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: '#F5F5F5' }}>
-            <Key className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+            <Key className="h-4 w-4" style={{ color: 'var(--accent)' }} />
           </div>
-          <div>
-            <CardTitle className="text-base">API REST (lecture seule)</CardTitle>
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">API REST (lecture seule)</CardTitle>
+              {!loading && <StatusBadge active={tokens.length > 0} activeLabel={`${tokens.length} clé${tokens.length > 1 ? 's' : ''}`} inactiveLabel="Aucune clé" />}
+            </div>
             <CardDescription>Connectez Zapier, Make ou tout outil externe pour lire vos données.</CardDescription>
           </div>
         </div>
@@ -474,12 +502,15 @@ export default function IntegrationsPage() {
   const [savingWebhook, setSavingWebhook] = useState(false)
   const [savedWebhook, setSavedWebhook] = useState(false)
   const [testWebhook, setTestWebhook] = useState<TestState>('idle')
+  const [testWebhookMsg, setTestWebhookMsg] = useState<string | null>(null)
+  const [eventsOpen, setEventsOpen] = useState(false)
 
   const [slackUrl, setSlackUrl] = useState('')
   const [slackEnabled, setSlackEnabled] = useState(false)
   const [savingSlack, setSavingSlack] = useState(false)
   const [savedSlack, setSavedSlack] = useState(false)
   const [testSlack, setTestSlack] = useState<TestState>('idle')
+  const [testSlackMsg, setTestSlackMsg] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/settings')
@@ -530,7 +561,9 @@ export default function IntegrationsPage() {
 
   async function runTest(type: 'webhook' | 'slack') {
     const setter = type === 'webhook' ? setTestWebhook : setTestSlack
+    const setMsg = type === 'webhook' ? setTestWebhookMsg : setTestSlackMsg
     setter('loading')
+    setMsg(null)
     try {
       const res = await fetch('/api/integrations/test', {
         method: 'POST',
@@ -538,23 +571,29 @@ export default function IntegrationsPage() {
         body: JSON.stringify({ type }),
       })
       const data = await res.json()
-      setter(res.ok && data.ok ? 'success' : 'error')
+      if (res.ok && data.ok) {
+        setter('success')
+      } else {
+        setter('error')
+        setMsg(data.error ?? `La destination a répondu ${data.status ?? 'une erreur'} — vérifiez l'URL.`)
+      }
     } catch {
       setter('error')
+      setMsg('Impossible de joindre la destination.')
     }
-    setTimeout(() => setter('idle'), 3500)
+    setTimeout(() => { setter('idle'); setMsg(null) }, 6000)
   }
 
   if (loading) {
     return (
-      <div className="flex justify-center py-16">
+      <div className="max-w-2xl mx-auto px-4 md:px-8 py-10 flex justify-center">
         <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--text-tertiary)' }} />
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 md:px-8 py-10 space-y-6">
       <div>
         <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
           Intégrations
@@ -573,7 +612,10 @@ export default function IntegrationsPage() {
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Webhook sortant</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base">Webhook sortant</CardTitle>
+                  <StatusBadge active={webhookEnabled && !!webhookUrl} activeLabel="Actif" inactiveLabel={webhookEnabled ? 'URL manquante' : 'Inactif'} />
+                </div>
                 <Toggle enabled={webhookEnabled} onToggle={() => setWebhookEnabled(v => !v)} />
               </div>
               <CardDescription>Compatible Zapier, Make, n8n et tout outil no-code.</CardDescription>
@@ -590,34 +632,49 @@ export default function IntegrationsPage() {
           </div>
 
           <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-secondary)' }}>
-              Événements déclencheurs
-            </p>
-            <div className="space-y-1.5">
-              {WEBHOOK_EVENTS.map(ev => (
-                <label key={ev.id}
-                  className="flex items-start gap-3 rounded-lg px-3 py-2.5 cursor-pointer"
-                  style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
-                  <input type="checkbox" checked={webhookEvents[ev.id] ?? false}
-                    onChange={() => setWebhookEvents(prev => ({ ...prev, [ev.id]: !prev[ev.id] }))}
-                    disabled={!webhookEnabled} className="mt-0.5 accent-[var(--accent)]" />
-                  <div>
-                    <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{ev.label}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{ev.description}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setEventsOpen(v => !v)}
+              className="flex items-center justify-between w-full"
+            >
+              <span className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-secondary)' }}>
+                Événements déclencheurs
+              </span>
+              <span className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                {WEBHOOK_EVENTS.filter(e => webhookEvents[e.id]).length}/{WEBHOOK_EVENTS.length} actifs
+                {eventsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              </span>
+            </button>
+            {eventsOpen && (
+              <div className="space-y-1.5">
+                {WEBHOOK_EVENTS.map(ev => (
+                  <label key={ev.id}
+                    className="flex items-start gap-3 rounded-lg px-3 py-2.5 cursor-pointer"
+                    style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
+                    <input type="checkbox" checked={webhookEvents[ev.id] ?? false}
+                      onChange={() => setWebhookEvents(prev => ({ ...prev, [ev.id]: !prev[ev.id] }))}
+                      disabled={!webhookEnabled} className="mt-0.5 accent-[var(--accent)]" />
+                    <div>
+                      <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{ev.label}</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{ev.description}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
           <SigningSecretSection />
 
-          <div className="flex gap-2 justify-end">
-            <TestButton state={testWebhook} disabled={!webhookUrl} onTest={() => runTest('webhook')} label="Tester" />
-            <SaveButton saving={savingWebhook} saved={savedWebhook} onSave={saveWebhook} />
+          <div className="space-y-1.5">
+            <div className="flex gap-2 justify-end">
+              <TestButton state={testWebhook} disabled={!webhookUrl} onTest={() => runTest('webhook')} label="Tester" />
+              <SaveButton saving={savingWebhook} saved={savedWebhook} onSave={saveWebhook} />
+            </div>
+            {testWebhookMsg && <p className="text-[12px] text-right" style={{ color: 'var(--danger)' }}>{testWebhookMsg}</p>}
           </div>
 
-          <WebhookLogsSection />
+          <WebhookLogsSection enabled={webhookEnabled} />
         </CardContent>
       </Card>
 
@@ -631,7 +688,10 @@ export default function IntegrationsPage() {
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Slack</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base">Slack</CardTitle>
+                  <StatusBadge active={slackEnabled && !!slackUrl} activeLabel="Actif" inactiveLabel={slackEnabled ? 'URL manquante' : 'Inactif'} />
+                </div>
                 <Toggle enabled={slackEnabled} onToggle={() => setSlackEnabled(v => !v)} />
               </div>
               <CardDescription>Recevez les alertes RH directement dans un canal Slack.</CardDescription>
@@ -654,9 +714,12 @@ export default function IntegrationsPage() {
             <Input type="url" value={slackUrl} onChange={e => setSlackUrl(e.target.value)}
               placeholder="https://hooks.slack.com/services/T.../B.../…" disabled={!slackEnabled} />
           </div>
-          <div className="flex gap-2 justify-end">
-            <TestButton state={testSlack} disabled={!slackUrl} onTest={() => runTest('slack')} label="Tester" />
-            <SaveButton saving={savingSlack} saved={savedSlack} onSave={saveSlack} />
+          <div className="space-y-1.5">
+            <div className="flex gap-2 justify-end">
+              <TestButton state={testSlack} disabled={!slackUrl} onTest={() => runTest('slack')} label="Tester" />
+              <SaveButton saving={savingSlack} saved={savedSlack} onSave={saveSlack} />
+            </div>
+            {testSlackMsg && <p className="text-[12px] text-right" style={{ color: 'var(--danger)' }}>{testSlackMsg}</p>}
           </div>
         </CardContent>
       </Card>
@@ -668,8 +731,11 @@ export default function IntegrationsPage() {
             <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
               <Calendar className="h-4 w-4" style={{ color: 'var(--accent)' }} />
             </div>
-            <div>
-              <CardTitle className="text-base">Abonnement Calendrier (iCal)</CardTitle>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Abonnement Calendrier (iCal)</CardTitle>
+                <StatusBadge active activeLabel="Disponible" />
+              </div>
               <CardDescription>Permet à chaque employé de synchroniser ses shifts avec son calendrier.</CardDescription>
             </div>
           </div>
