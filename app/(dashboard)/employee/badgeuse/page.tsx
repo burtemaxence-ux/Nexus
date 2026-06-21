@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { LogIn, LogOut, Coffee, PlayCircle, CalendarX, ChevronUp, ChevronDown } from 'lucide-react'
+import { LogIn, LogOut, Coffee, PlayCircle, CalendarX, ChevronUp, ChevronDown, Clock3 } from 'lucide-react'
 import { CheckDraw } from '@/components/ui/check-draw'
 
 type Presence = {
@@ -53,6 +53,59 @@ function fmtElapsed(from: string, to: Date): string {
   const sec = s % 60
   if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
   return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+}
+
+// Progression dans le shift planifié (0–100) selon l'heure courante.
+function shiftProgress(startTime: string, endTime: string, now: Date): number {
+  const [sh, sm] = startTime.split(':').map(Number)
+  const [eh, em] = endTime.split(':').map(Number)
+  const start = sh * 60 + sm
+  let end = eh * 60 + em
+  if (end <= start) end += 24 * 60
+  const cur = now.getHours() * 60 + now.getMinutes()
+  if (cur <= start) return 0
+  if (cur >= end) return 100
+  return Math.round(((cur - start) / (end - start)) * 100)
+}
+
+// ── Anneau de progression circulaire ───────────────────────────────────────────
+function ProgressRing({
+  percent, color, glow, size = 264, stroke = 12, children,
+}: {
+  percent: number; color: string; glow?: string; size?: number; stroke?: number; children: React.ReactNode
+}) {
+  const r = (size - stroke) / 2
+  const circ = 2 * Math.PI * r
+  const offset = circ - (Math.min(100, Math.max(0, percent)) / 100) * circ
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      {glow && (
+        <div
+          className="dial-glow"
+          style={{
+            position: 'absolute', inset: '8%', borderRadius: '50%',
+            background: `radial-gradient(circle, ${glow} 0%, transparent 68%)`,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', position: 'relative' }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke} />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 700ms cubic-bezier(0.22,1,0.36,1), stroke 400ms ease' }}
+        />
+      </svg>
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        textAlign: 'center', padding: 24,
+      }}>
+        {children}
+      </div>
+    </div>
+  )
 }
 
 // ── Mini time picker ──────────────────────────────────────────────────────────
@@ -114,6 +167,7 @@ export default function BadgeusePage() {
   const [now, setNow] = useState(new Date())
 
   const [hm, setHm] = useState<{ hour: number; minute: number }>(nowHM())
+  const [showPicker, setShowPicker] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -135,9 +189,9 @@ export default function BadgeusePage() {
   useEffect(() => {
     fetchData()
     const secTick = setInterval(() => setNow(new Date()), 1000)
-    const minTick = setInterval(() => setHm(nowHM()), 60000)
+    const minTick = setInterval(() => { if (!showPicker) setHm(nowHM()) }, 60000)
     return () => { clearInterval(secTick); clearInterval(minTick) }
-  }, [fetchData])
+  }, [fetchData, showPicker])
 
   async function post(endpoint: string) {
     setLoading(endpoint)
@@ -149,9 +203,10 @@ export default function BadgeusePage() {
     })
     if (res.ok) {
       setPresence(await res.json())
+      setShowPicker(false)
       setHm(nowHM())
       setConfirmed(true)
-      setTimeout(() => setConfirmed(false), 1800)
+      setTimeout(() => setConfirmed(false), 1600)
     } else { const b = await res.json().catch(() => ({})); setError(b.error ?? 'Erreur de pointage') }
     setLoading(null)
   }
@@ -181,31 +236,37 @@ export default function BadgeusePage() {
     : 0
 
   const clockDisplay = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  const shiftPct = shifts.length > 0 ? shiftProgress(shifts[0].start_time, shifts[0].end_time, now) : 0
+  const breakPct = breakLimit > 0 ? Math.min(100, Math.round((breakTotal / breakLimit) * 100)) : 0
+
+  // Couleurs du cadran selon l'état.
+  const dial = {
+    idle:        { color: 'var(--accent)',  glow: 'rgba(108,99,255,0.18)' },
+    working:     { color: 'var(--success)', glow: 'rgba(0,212,170,0.18)' },
+    after_break: { color: 'var(--success)', glow: 'rgba(0,212,170,0.18)' },
+    on_break:    { color: breakFull ? 'var(--danger)' : 'var(--warning)', glow: 'rgba(255,179,71,0.18)' },
+    done:        { color: 'var(--success)', glow: 'rgba(0,212,170,0.12)' },
+  }[state]
+
+  const ringPercent = state === 'done' ? 100 : state === 'on_break' ? breakPct : state === 'idle' ? 0 : shiftPct
+  const showDial = !isLoading && !(shifts.length === 0 && state === 'idle')
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-start px-4 pt-6 pb-20"
+      className="min-h-screen flex flex-col items-center justify-start px-4 pt-8 pb-24"
       style={{ backgroundColor: state === 'done' ? 'var(--bg-input)' : 'var(--bg-page)' }}
     >
-      <div className="w-full max-w-sm space-y-4">
+      <div className="w-full max-w-sm flex flex-col items-center">
 
-        {/* ── CLOCK HEADER ── */}
-        <div className="text-center pt-2 pb-1">
-          <p
-            className="tabular-nums tracking-tight"
-            style={{ fontFamily: 'var(--font-syne)', fontSize: '56px', fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)' }}
-          >
-            {clockDisplay}
-          </p>
-          <p className="text-[13px] mt-2 capitalize" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>
-            {dateLabel}
-          </p>
-        </div>
+        {/* ── Date ── */}
+        <p className="text-[13px] mb-6 capitalize" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>
+          {dateLabel}
+        </p>
 
         {/* Shift band */}
         {shifts.length > 0 && (
           <div
-            className="rounded-xl px-4 py-2.5 flex items-center justify-between text-sm"
+            className="w-full rounded-xl px-4 py-2.5 flex items-center justify-between text-sm mb-6"
             style={{ backgroundColor: 'var(--accent-light)', border: '1px solid var(--accent)' }}
           >
             <span className="font-medium" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--accent)' }}>
@@ -218,13 +279,13 @@ export default function BadgeusePage() {
         )}
 
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="h-5 w-5 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+          <div className="flex justify-center py-24">
+            <div className="h-6 w-6 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
           </div>
         ) : shifts.length === 0 && state === 'idle' ? (
           /* ── NO SERVICE ── */
           <div
-            className="rounded-[20px] p-10 text-center space-y-3"
+            className="w-full rounded-[20px] p-10 text-center space-y-3 mt-6"
             style={{ backgroundColor: 'var(--bg-card)', border: '1px dashed var(--border)' }}
           >
             <CalendarX className="h-10 w-10 mx-auto" style={{ color: 'var(--text-tertiary)' }} />
@@ -237,21 +298,84 @@ export default function BadgeusePage() {
           </div>
         ) : (
           <>
-            {/* Confirmation flash */}
-            {confirmed && (
-              <div
-                className="rounded-xl px-4 py-2.5 flex items-center gap-2"
-                style={{ backgroundColor: 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.25)' }}
-              >
-                <CheckDraw size={18} />
-                <span className="text-[13px] font-medium" style={{ color: 'var(--success)' }}>Pointage enregistré</span>
-              </div>
+            {/* ── CADRAN (héros) ── */}
+            {showDial && (
+              <ProgressRing percent={ringPercent} color={dial.color} glow={dial.glow}>
+                {/* Burst à la validation */}
+                {confirmed && <span className="badge-burst" style={{ color: dial.color }} />}
+
+                {state === 'idle' && (
+                  <>
+                    <span
+                      className="tabular-nums"
+                      style={{ fontFamily: 'var(--font-syne)', fontSize: 44, fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)' }}
+                    >
+                      {clockDisplay}
+                    </span>
+                    <span className="text-[12px] mt-2" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
+                      Prêt à pointer
+                    </span>
+                  </>
+                )}
+
+                {(state === 'working' || state === 'after_break') && p?.clock_in && (
+                  <>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="w-1.5 h-1.5 rounded-full dot-pulse-green" style={{ backgroundColor: 'var(--success)' }} />
+                      <span className="text-[11px] font-medium uppercase tracking-[0.08em]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--success)' }}>
+                        En service
+                      </span>
+                    </div>
+                    <span
+                      className="tabular-nums"
+                      style={{ fontFamily: 'var(--font-syne)', fontSize: 40, fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)' }}
+                    >
+                      {fmtElapsed(p.clock_in, now)}
+                    </span>
+                    <span className="text-[12px] mt-2" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
+                      Arrivée à {formatTime(p.clock_in)}
+                    </span>
+                  </>
+                )}
+
+                {state === 'on_break' && p?.break_start && (
+                  <>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="w-1.5 h-1.5 rounded-full dot-pulse-yellow" style={{ backgroundColor: 'var(--warning)' }} />
+                      <span className="text-[11px] font-medium uppercase tracking-[0.08em]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--warning)' }}>
+                        En pause
+                      </span>
+                    </div>
+                    <span
+                      className="tabular-nums"
+                      style={{ fontFamily: 'var(--font-syne)', fontSize: 40, fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)' }}
+                    >
+                      {fmtElapsed(p.break_start, now)}
+                    </span>
+                    <span className="text-[12px] mt-2" style={{ fontFamily: 'var(--font-dm-sans)', color: breakFull ? 'var(--danger)' : 'var(--text-tertiary)' }}>
+                      {breakFull ? 'Quota atteint' : `${breakRemaining} min restantes`}
+                    </span>
+                  </>
+                )}
+
+                {state === 'done' && (
+                  <>
+                    <CheckDraw size={52} />
+                    <span className="text-[13px] mt-3 font-semibold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+                      Journée terminée
+                    </span>
+                    <span className="tabular-nums text-[12px] mt-1" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
+                      {fmt(minutesWorked)} travaillées
+                    </span>
+                  </>
+                )}
+              </ProgressRing>
             )}
 
             {/* Lateness warning */}
             {latenessMinutes > 2 && state !== 'done' && (
               <div
-                className="rounded-xl px-4 py-2.5"
+                className="w-full rounded-xl px-4 py-2.5 mt-6"
                 style={{ backgroundColor: 'rgba(255,179,71,0.1)', border: '1px solid rgba(255,179,71,0.25)' }}
               >
                 <span className="text-[13px] font-medium" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--warning)' }}>
@@ -260,86 +384,12 @@ export default function BadgeusePage() {
               </div>
             )}
 
-            {/* ── STATE: WORKING / AFTER_BREAK — elapsed timer ── */}
-            {(state === 'working' || state === 'after_break') && p?.clock_in && (
-              <div
-                className="rounded-[20px] p-5 text-center space-y-1"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid rgba(0,212,170,0.2)' }}
-              >
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <span
-                    className="w-2 h-2 rounded-full dot-pulse-green"
-                    style={{ backgroundColor: 'var(--success)' }}
-                  />
-                  <span className="text-[12px] font-medium uppercase tracking-[0.08em]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--success)' }}>
-                    En service
-                  </span>
-                </div>
-                <p
-                  className="text-[36px] font-bold tabular-nums tracking-tight"
-                  style={{ fontFamily: 'var(--font-syne)', color: 'var(--success)' }}
-                >
-                  {fmtElapsed(p.clock_in, now)}
-                </p>
-                <p className="text-[12px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
-                  Arrivée à {formatTime(p.clock_in)}
-                </p>
-              </div>
-            )}
-
-            {/* ── STATE: ON_BREAK — break timer ── */}
-            {state === 'on_break' && p?.break_start && (
-              <div
-                className="rounded-[20px] p-5 text-center space-y-3"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid rgba(255,179,71,0.2)' }}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <span
-                    className="w-2 h-2 rounded-full dot-pulse-yellow"
-                    style={{ backgroundColor: 'var(--warning)' }}
-                  />
-                  <span className="text-[12px] font-medium uppercase tracking-[0.08em]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--warning)' }}>
-                    En pause
-                  </span>
-                </div>
-                <p
-                  className="text-[36px] font-bold tabular-nums tracking-tight"
-                  style={{ fontFamily: 'var(--font-syne)', color: 'var(--warning)' }}
-                >
-                  {fmtElapsed(p.break_start, now)}
-                </p>
-                <BreakBar used={breakTotal} limit={breakLimit} />
-                <p className="text-[12px]" style={{ fontFamily: 'var(--font-dm-sans)', color: breakFull ? 'var(--danger)' : 'var(--text-tertiary)' }}>
-                  {breakFull ? 'Quota atteint' : `${breakRemaining} min restantes`}
-                </p>
-              </div>
-            )}
-
-            {/* Break summary (after_break) */}
-            {state === 'after_break' && p!.break_minutes_used > 0 && (
-              <div className="space-y-1.5">
-                <BreakBar used={p!.break_minutes_used} limit={breakLimit} />
-                <p className="text-[11px] text-center" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
-                  {p!.break_minutes_used} / {breakLimit} min de pause utilisées
-                </p>
-              </div>
-            )}
-
-            {/* ── STATE: DONE ── */}
+            {/* ── DONE : récapitulatif ── */}
             {state === 'done' && (
               <div
-                className="rounded-[20px] p-6 space-y-4"
+                className="w-full rounded-[20px] p-6 mt-6"
                 style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
               >
-                <div className="flex justify-center">
-                  <CheckDraw size={44} />
-                </div>
-                <p
-                  className="text-center text-[16px] font-bold"
-                  style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
-                >
-                  Bonne fin de journée 👏
-                </p>
                 <div className="space-y-2.5">
                   <Row label="Arrivée" value={formatTime(p!.clock_in)} />
                   {p!.break_minutes_used > 0 && <Row label="Pause" value={fmt(p!.break_minutes_used)} />}
@@ -351,57 +401,62 @@ export default function BadgeusePage() {
               </div>
             )}
 
-            {/* ── TIME PICKER ── */}
-            {state !== 'done' && state !== 'on_break' && (
-              <div
-                className="rounded-[20px] p-5"
-                style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-              >
-                <p className="text-center text-[11px] uppercase tracking-[0.06em] mb-3" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
-                  Heure de pointage
-                </p>
-                <TimePicker
-                  hour={hm.hour} minute={hm.minute}
-                  onHour={h => setHm((v: { hour: number; minute: number }) => ({ ...v, hour: h }))}
-                  onMinute={m => setHm((v: { hour: number; minute: number }) => ({ ...v, minute: m }))}
-                />
+            {/* ── ACTIONS ── */}
+            {state !== 'done' && (
+              <div className="w-full space-y-2.5 mt-8">
+                {state === 'idle' && (
+                  <RippleBtn color="accent" icon={<LogIn className="h-5 w-5" />} label="Pointer mon arrivée" action="clock-in" loading={loading} onPress={post} />
+                )}
+                {state === 'working' && (
+                  <>
+                    <RippleBtn color="warning" icon={<Coffee className="h-5 w-5" />} label="Début de pause" action="break-start" loading={loading} onPress={post} />
+                    <RippleBtn color="danger" icon={<LogOut className="h-5 w-5" />} label="Pointer mon départ" action="clock-out" loading={loading} onPress={post} />
+                  </>
+                )}
+                {state === 'after_break' && (
+                  <>
+                    {!breakFull && (
+                      <RippleBtn color="warning" icon={<Coffee className="h-5 w-5" />} label={`Reprendre une pause (${breakRemaining} min)`} action="break-start" loading={loading} onPress={post} />
+                    )}
+                    <RippleBtn color="danger" icon={<LogOut className="h-5 w-5" />} label="Pointer mon départ" action="clock-out" loading={loading} onPress={post} />
+                  </>
+                )}
+                {state === 'on_break' && (
+                  <RippleBtn color="success" icon={<PlayCircle className="h-5 w-5" />} label="Fin de pause — reprendre le travail" action="break-end" loading={loading} onPress={post} />
+                )}
               </div>
             )}
 
-            {/* ── ACTIONS ── */}
-            <div className="space-y-2.5">
-              {state === 'idle' && (
-                <RippleBtn
-                  color="accent"
-                  icon={<LogIn className="h-5 w-5" />}
-                  label="Pointer mon arrivée"
-                  action="clock-in"
-                  loading={loading}
-                  onPress={post}
-                />
-              )}
-              {state === 'working' && (
-                <>
-                  <RippleBtn color="warning" icon={<Coffee className="h-5 w-5" />} label="Début de pause" action="break-start" loading={loading} onPress={post} />
-                  <RippleBtn color="danger" icon={<LogOut className="h-5 w-5" />} label="Pointer mon départ" action="clock-out" loading={loading} onPress={post} />
-                </>
-              )}
-              {state === 'after_break' && (
-                <>
-                  {!breakFull && (
-                    <RippleBtn color="warning" icon={<Coffee className="h-5 w-5" />} label={`Reprendre une pause (${breakRemaining} min)`} action="break-start" loading={loading} onPress={post} />
-                  )}
-                  <RippleBtn color="danger" icon={<LogOut className="h-5 w-5" />} label="Pointer mon départ" action="clock-out" loading={loading} onPress={post} />
-                </>
-              )}
-              {state === 'on_break' && (
-                <RippleBtn color="success" icon={<PlayCircle className="h-5 w-5" />} label="Fin de pause — reprendre le travail" action="break-end" loading={loading} onPress={post} />
-              )}
-            </div>
+            {/* ── Réglage de l'heure (replié par défaut) ── */}
+            {state !== 'done' && state !== 'on_break' && (
+              <div className="w-full mt-4">
+                <button
+                  onClick={() => setShowPicker(v => !v)}
+                  className="w-full flex items-center justify-center gap-2 py-2 text-[12px] transition-colors"
+                  style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}
+                >
+                  <Clock3 className="h-3.5 w-3.5" />
+                  Heure : {String(hm.hour).padStart(2, '0')}:{String(hm.minute).padStart(2, '0')}
+                  <span style={{ color: 'var(--accent)' }}>· {showPicker ? 'fermer' : 'modifier'}</span>
+                </button>
+                {showPicker && (
+                  <div
+                    className="rounded-[20px] p-5 mt-2"
+                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                  >
+                    <TimePicker
+                      hour={hm.hour} minute={hm.minute}
+                      onHour={h => setHm((v: { hour: number; minute: number }) => ({ ...v, hour: h }))}
+                      onMinute={m => setHm((v: { hour: number; minute: number }) => ({ ...v, minute: m }))}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {error && (
               <p
-                className="text-sm text-center rounded-xl px-3 py-2"
+                className="w-full text-sm text-center rounded-xl px-3 py-2 mt-4"
                 style={{ color: 'var(--danger)', backgroundColor: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.2)' }}
               >
                 {error}
@@ -448,6 +503,13 @@ function RippleBtn({ color, icon, label, action, loading, onPress }: {
     warning: '1px solid rgba(255,179,71,0.3)',
   }[color]
 
+  const shadow = {
+    accent:  '0 8px 24px rgba(108,99,255,0.35)',
+    success: '0 8px 24px rgba(0,212,170,0.30)',
+    danger:  'none',
+    warning: 'none',
+  }[color]
+
   function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     if (rippleRef.current) {
       const rect = rippleRef.current.getBoundingClientRect()
@@ -467,7 +529,7 @@ function RippleBtn({ color, icon, label, action, loading, onPress }: {
       onClick={handleClick}
       disabled={loading !== null}
       className="relative w-full flex items-center justify-center gap-2.5 rounded-[16px] font-semibold text-[15px] overflow-hidden transition-all active:scale-[0.98] disabled:opacity-50"
-      style={{ height: '56px', backgroundColor: bg, color: textColor, border, fontFamily: 'var(--font-syne)' }}
+      style={{ height: '58px', backgroundColor: bg, color: textColor, border, boxShadow: shadow, fontFamily: 'var(--font-syne)' }}
     >
       {ripples.map(rp => (
         <span key={rp.id} className="badgeuse-ripple" style={{ left: rp.x, top: rp.y }} />
@@ -490,18 +552,6 @@ function Row({ label, value, bold = false }: { label: string; value: string; bol
       >
         {value}
       </span>
-    </div>
-  )
-}
-
-function BreakBar({ used, limit }: { used: number; limit: number }) {
-  const pct = Math.min(100, Math.round((used / limit) * 100))
-  return (
-    <div className="w-full rounded-full overflow-hidden" style={{ height: '4px', backgroundColor: 'var(--border)' }}>
-      <div
-        className="h-full rounded-full transition-all"
-        style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? 'var(--danger)' : 'var(--warning)' }}
-      />
     </div>
   )
 }
