@@ -24,7 +24,11 @@ export async function PATCH(
     if (!target) return NextResponse.json({ error: 'Employé introuvable' }, { status: 404 })
 
     const body = await request.json()
-    const { full_name, position, contract_type, weekly_hours, phone, pay_ref, pin, disability } = body
+    const {
+      full_name, position, contract_type, weekly_hours, phone, pay_ref, pin, disability,
+      birth_date, address, social_security_number, emergency_contact_name,
+      emergency_contact_phone, iban, nationality, work_permit_expiry, matricule,
+    } = body
 
     const pinHash = pin ? await hashPin(pin) : undefined
 
@@ -33,7 +37,17 @@ export async function PATCH(
       .update({
         full_name, position, contract_type, weekly_hours, phone, pay_ref,
         ...(pinHash !== undefined && { pin: pinHash }),
-        disability, updated_at: new Date().toISOString(),
+        disability,
+        birth_date: birth_date || null,
+        address: address || null,
+        social_security_number: social_security_number || null,
+        emergency_contact_name: emergency_contact_name || null,
+        emergency_contact_phone: emergency_contact_phone || null,
+        iban: iban || null,
+        nationality: nationality || null,
+        work_permit_expiry: work_permit_expiry || null,
+        matricule: matricule || null,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', params.id)
 

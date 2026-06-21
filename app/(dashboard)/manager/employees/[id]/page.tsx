@@ -79,6 +79,16 @@ export default function EmployeeDetailPage() {
   const [position, setPosition] = useState('')
   const [payRef, setPayRef] = useState('')
   const [disability, setDisability] = useState(false)
+  // Données administratives
+  const [matricule, setMatricule] = useState('')
+  const [birthDate, setBirthDate] = useState('')
+  const [nationality, setNationality] = useState('')
+  const [address, setAddress] = useState('')
+  const [ssn, setSsn] = useState('')
+  const [iban, setIban] = useState('')
+  const [emergencyName, setEmergencyName] = useState('')
+  const [emergencyPhone, setEmergencyPhone] = useState('')
+  const [workPermitExpiry, setWorkPermitExpiry] = useState('')
   const [activeDays, setActiveDays] = useState<Set<number>>(new Set())
   const [dayTimes, setDayTimes] = useState<Record<number, { start: string; end: string }>>({})
 
@@ -138,6 +148,15 @@ export default function EmployeeDetailPage() {
     setPosition(emp.position ?? '')
     setPayRef(emp.pay_ref ?? '')
     setDisability(emp.disability ?? false)
+    setMatricule(emp.matricule ?? '')
+    setBirthDate(emp.birth_date ?? '')
+    setNationality(emp.nationality ?? '')
+    setAddress(emp.address ?? '')
+    setSsn(emp.social_security_number ?? '')
+    setIban(emp.iban ?? '')
+    setEmergencyName(emp.emergency_contact_name ?? '')
+    setEmergencyPhone(emp.emergency_contact_phone ?? '')
+    setWorkPermitExpiry(emp.work_permit_expiry ?? '')
 
     if (emp.invited_by) {
       const { data: inv } = await supabase.from('profiles').select('full_name').eq('id', emp.invited_by).single()
@@ -189,6 +208,15 @@ export default function EmployeeDetailPage() {
         position: position || null,
         pay_ref: payRef.trim() || null,
         disability,
+        matricule: matricule.trim() || null,
+        birth_date: birthDate || null,
+        nationality: nationality.trim() || null,
+        address: address.trim() || null,
+        social_security_number: ssn.trim() || null,
+        iban: iban.trim() || null,
+        emergency_contact_name: emergencyName.trim() || null,
+        emergency_contact_phone: emergencyPhone.trim() || null,
+        work_permit_expiry: workPermitExpiry || null,
       }),
     })
     if (res.ok) {
@@ -396,6 +424,58 @@ export default function EmployeeDetailPage() {
                   <label htmlFor="disability" className="text-sm text-foreground cursor-pointer select-none">
                     Employé en situation de handicap (RQTH)
                   </label>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Informations administratives */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Informations administratives</CardTitle>
+                <CardDescription>État civil, coordonnées et données utiles à la paie et aux déclarations.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Matricule</Label>
+                    <Input value={matricule} onChange={e => setMatricule(e.target.value)} placeholder="Ex : EMP001" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Date de naissance</Label>
+                    <Input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Nationalité</Label>
+                    <Input value={nationality} onChange={e => setNationality(e.target.value)} placeholder="Française" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>N° de sécurité sociale</Label>
+                    <Input value={ssn} onChange={e => setSsn(e.target.value)} placeholder="1 85 12 75…" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Adresse postale</Label>
+                  <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="12 rue de la Paix, 75002 Paris" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>IBAN</Label>
+                  <Input value={iban} onChange={e => setIban(e.target.value)} placeholder="FR76 …" />
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
+                  <div className="space-y-1.5 pt-4">
+                    <Label>Contact d&apos;urgence</Label>
+                    <Input value={emergencyName} onChange={e => setEmergencyName(e.target.value)} placeholder="Nom du proche" />
+                  </div>
+                  <div className="space-y-1.5 pt-4">
+                    <Label>Téléphone d&apos;urgence</Label>
+                    <Input value={emergencyPhone} onChange={e => setEmergencyPhone(e.target.value)} placeholder="06 …" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Titre de séjour — expiration <span className="text-muted-foreground font-normal">(si hors UE)</span></Label>
+                  <Input type="date" value={workPermitExpiry} onChange={e => setWorkPermitExpiry(e.target.value)} className="max-w-sm" />
                 </div>
               </CardContent>
             </Card>

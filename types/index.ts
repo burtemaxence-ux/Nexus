@@ -28,6 +28,16 @@ export type Profile = {
   archived: boolean
   invited_by: string | null
   created_at: string
+  // Données administratives (dossier RH)
+  birth_date: string | null
+  address: string | null
+  social_security_number: string | null
+  emergency_contact_name: string | null
+  emergency_contact_phone: string | null
+  iban: string | null
+  nationality: string | null
+  work_permit_expiry: string | null
+  matricule: string | null
 }
 
 export type Contract = {
