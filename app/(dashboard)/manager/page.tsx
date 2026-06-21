@@ -23,7 +23,7 @@ export default async function ManagerDashboard() {
 
   return (
     <div className="min-h-screen dashboard-content" style={{ backgroundColor: 'var(--bg-page)' }}>
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 md:px-6 py-8 space-y-6">
 
         {/* ── HEADER ────────────────────────────────────────────────────────── */}
         <div className="pt-1 dashboard-s0">

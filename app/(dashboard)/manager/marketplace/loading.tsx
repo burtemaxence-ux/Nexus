@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function MarketplaceLoading() {
   return (
-    <div className="px-6 py-5">
+    <div className="px-4 md:px-6 py-5">
       {/* Header */}
       <div className="mb-5 flex items-start justify-between gap-4">
         <div className="space-y-2">

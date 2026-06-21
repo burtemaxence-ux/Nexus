@@ -293,7 +293,7 @@ export default function EmployeeDetailPage() {
     <div className="min-h-full">
       {/* Page header */}
       <div style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}>
-        <div className="px-6 max-w-6xl mx-auto">
+        <div className="px-4 md:px-6 max-w-6xl mx-auto">
           <div className="flex items-center gap-4 py-4">
             <button
               onClick={() => router.push('/manager/employees')}
@@ -346,7 +346,7 @@ export default function EmployeeDetailPage() {
       </div>
 
       {/* Tab content */}
-      <div className="px-6 py-8 max-w-6xl mx-auto">
+      <div className="px-4 md:px-6 py-8 max-w-6xl mx-auto">
 
         {/* TAB: Informations personnelles */}
         {activeTab === 'info' && (

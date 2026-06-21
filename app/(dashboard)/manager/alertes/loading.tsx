@@ -5,7 +5,7 @@ export default function AlertesLoading() {
     <div className="min-h-full">
       {/* Sticky header */}
       <div className="border-b border-[var(--border)] bg-[var(--bg-card)] sticky top-14 md:top-11 z-10">
-        <div className="px-6 max-w-5xl mx-auto">
+        <div className="px-4 md:px-6 max-w-5xl mx-auto">
           <div className="flex items-center gap-3 h-14">
             <Skeleton className="h-6 w-20" />
             <div className="ml-auto">

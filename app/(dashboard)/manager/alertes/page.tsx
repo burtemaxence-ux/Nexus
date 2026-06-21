@@ -369,7 +369,7 @@ export default function AlertesPage() {
     <div className="min-h-full">
       {/* Header + onglets */}
       <div className="border-b border-[var(--border)] bg-[var(--bg-card)] sticky top-14 md:top-11 z-10">
-        <div className="px-6 max-w-5xl mx-auto">
+        <div className="px-4 md:px-6 max-w-5xl mx-auto">
           <div className="flex items-center gap-3 h-14">
             <h1 className="text-[20px] font-medium tracking-[-0.02em] text-[var(--text-primary)]">Alertes</h1>
             <button

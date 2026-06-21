@@ -27,7 +27,7 @@ export default async function AnalyticsPage() {
   }
 
   return (
-    <div className="px-6 py-5">
+    <div className="px-4 md:px-6 py-5">
       <PageHeader
         title="Analytiques RH"
         subtitle="Masse salariale, présence, absences et turnover sur la période sélectionnée."

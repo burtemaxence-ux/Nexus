@@ -95,7 +95,7 @@ function PublishDialog({ onClose, onPublished }: { onClose: () => void; onPublis
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
       <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl w-full max-w-md shadow-xl">
-        <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
+        <div className="px-4 md:px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
           <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">Publier un shift</h2>
           <button onClick={onClose} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors">
             <XCircle className="h-5 w-5" />

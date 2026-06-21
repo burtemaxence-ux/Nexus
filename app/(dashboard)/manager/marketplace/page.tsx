@@ -21,7 +21,7 @@ export default async function MarketplaceManagerPage() {
   }
 
   return (
-    <div className="px-6 py-5">
+    <div className="px-4 md:px-6 py-5">
       <PageHeader
         title="Marketplace remplaçants"
         subtitle="Publiez des shifts disponibles et trouvez un remplaçant en quelques minutes."

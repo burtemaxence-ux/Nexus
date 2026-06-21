@@ -52,7 +52,7 @@ export default function ManagerEchangesPage() {
     <div className="min-h-full">
       {/* Header */}
       <div className="border-b border-border bg-card sticky top-11 z-10">
-        <div className="px-6 max-w-4xl mx-auto h-14 flex items-center gap-3">
+        <div className="px-4 md:px-6 max-w-4xl mx-auto h-14 flex items-center gap-3">
           <ArrowLeftRight className="h-4 w-4" style={{ color: 'var(--accent)' }} />
           <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
             Échanges de shifts
@@ -65,7 +65,7 @@ export default function ManagerEchangesPage() {
         </div>
       </div>
 
-      <div className="px-6 py-6 max-w-4xl mx-auto">
+      <div className="px-4 md:px-6 py-6 max-w-4xl mx-auto">
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--text-secondary)' }} />

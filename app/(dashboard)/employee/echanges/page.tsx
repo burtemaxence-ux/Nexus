@@ -77,7 +77,7 @@ export default function EchangesPage() {
   const myHistory   = mine.filter(e => e.status === 'approved' || e.status === 'rejected' || e.status === 'cancelled')
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8">
+    <div className="max-w-3xl mx-auto px-4 py-6 md:px-6 md:py-8">
       <div className="mb-6">
         <Link href="/employee" className="inline-flex items-center gap-1 text-[13px] transition-colors duration-150" style={{ color: 'var(--text-secondary)' }}>
           <ChevronLeft className="h-4 w-4" /> Mon espace

@@ -87,7 +87,7 @@ export default function AuditLogPage() {
     <div className="min-h-full">
       {/* Sticky header */}
       <div className="border-b border-border bg-card sticky top-11 z-10">
-        <div className="px-6 max-w-5xl mx-auto">
+        <div className="px-4 md:px-6 max-w-5xl mx-auto">
           <div className="flex items-center gap-3 h-14 flex-wrap">
             <ShieldCheck className="h-4 w-4 text-muted-foreground shrink-0" />
             <h1 className="text-[20px] font-medium tracking-[-0.02em] shrink-0" style={{ color: 'var(--text-primary)' }}>Journal d&apos;audit</h1>
@@ -153,7 +153,7 @@ export default function AuditLogPage() {
         </div>
       </div>
 
-      <div className="px-6 py-6 max-w-5xl mx-auto space-y-4">
+      <div className="px-4 md:px-6 py-6 max-w-5xl mx-auto space-y-4">
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
