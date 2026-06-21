@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireAuth } from '@/lib/api-auth'
 import { LeaveRequestSchema, validationError } from '@/lib/validations'
 import { NextRequest, NextResponse } from 'next/server'
@@ -32,7 +33,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { user } = await requireAuth(supabase)
+    const { user, profile } = await requireAuth(supabase)
 
     const raw = await request.json().catch(() => null)
     const parsed = LeaveRequestSchema.safeParse(raw)
@@ -48,10 +49,13 @@ export async function POST(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: 'Erreur lors de la création de la demande' }, { status: 500 })
 
-    // Webhook notification
+    // Webhook notification — settings are read with the service-role client because
+    // the trigger is an employee, whose session cannot read manager-only secrets
+    // (webhook URLs / signing secret) under RLS.
+    const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
     const [{ data: profileData }, { data: settingsData }] = await Promise.all([
       supabase.from('profiles').select('full_name, email').eq('id', user.id).single(),
-      supabase.from('settings').select('key, value'),
+      supabaseAdmin.from('settings').select('key, value').eq('establishment_id', estId),
     ])
     const settings: Record<string, string> = {}
     for (const row of settingsData ?? []) settings[row.key] = row.value
@@ -61,7 +65,7 @@ export async function POST(request: NextRequest) {
       leaveType: leaveTypeLabels[data.type] ?? data.type,
       startDate: data.start_date,
       endDate: data.end_date,
-    }).catch(() => {})
+    }, { establishmentId: estId }).catch(() => {})
 
     return NextResponse.json(data, { status: 201 })
   } catch (e) {
