@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
 import Link from 'next/link'
+import { PlanningDemo } from '@/components/public/planning-demo'
 
 /* Hero — angle conformité (protection juridique) */
 const HERO_TITLE = "Un planning qui vous protège des prud'hommes."
@@ -189,7 +189,7 @@ export function HeroSection() {
           style={{ display: 'flex', justifyContent: 'center' }}
         >
           <div className="mockup-float">
-            <PlanningMockup />
+            <PlanningDemo />
           </div>
         </div>
       </div>
@@ -256,83 +256,5 @@ export function HeroSection() {
         }
       `}</style>
     </section>
-  )
-}
-
-/* ── Mockup planning réaliste — boulangerie ────────────────────────────── */
-const MOCK_DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven']
-const MOCK_ROWS = [
-  { name: 'Sophie',  role: 'Boulanger', hours: '6h–14h',  color: '#6C63FF', days: [1, 1, 1, 0, 1] },
-  { name: 'Lucas',   role: 'Vendeur',   hours: '14h–22h', color: '#00D4AA', days: [1, 0, 1, 1, 1] },
-  { name: 'Camille', role: 'Pâtissier', hours: '6h–14h',  color: '#FFB347', days: [1, 1, 0, 1, 1] },
-  { name: 'Marc',    role: 'Vendeur',   hours: '10h–18h', color: '#FF8C42', days: [0, 1, 1, 1, 1] },
-]
-
-function PlanningMockup() {
-  const font = "'DM Sans', sans-serif"
-  return (
-    <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 16,
-      padding: 20,
-      maxWidth: 460,
-      width: '100%',
-    }}>
-      {/* Barre de titre simulée */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FF6B6B' }} />
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FFB347' }} />
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#00D4AA' }} />
-        <span style={{ fontFamily: font, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>
-          Planning · Semaine 24
-        </span>
-      </div>
-
-      {/* Grille planning */}
-      <div style={{ display: 'grid', gridTemplateColumns: '88px repeat(5, 1fr)', gap: 5 }}>
-        <div />
-        {MOCK_DAYS.map(day => (
-          <div key={day} style={{ fontFamily: font, fontSize: 10, color: 'rgba(255,255,255,0.35)', textAlign: 'center', paddingBottom: 4 }}>
-            {day}
-          </div>
-        ))}
-
-        {MOCK_ROWS.map(row => (
-          <React.Fragment key={row.name}>
-            <div style={{ paddingRight: 6, alignSelf: 'center' }}>
-              <div style={{ fontFamily: font, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.75)', lineHeight: 1.3 }}>{row.name}</div>
-              <div style={{ fontFamily: font, fontSize: 9, color: 'rgba(255,255,255,0.32)' }}>{row.role}</div>
-            </div>
-            {row.days.map((worked, di) => worked ? (
-              <div key={di} style={{
-                background: row.color,
-                opacity: 0.9,
-                borderRadius: 6,
-                padding: '7px 2px',
-                textAlign: 'center',
-              }}>
-                <span style={{ fontFamily: font, fontSize: 8.5, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>
-                  {row.hours}
-                </span>
-              </div>
-            ) : (
-              <div key={di} style={{ border: '1px dashed rgba(255,255,255,0.07)', borderRadius: 6 }} />
-            ))}
-          </React.Fragment>
-        ))}
-      </div>
-
-      {/* Badge conformité */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-        <span style={{
-          fontFamily: font, fontSize: 10.5, fontWeight: 600, color: '#00D4AA',
-          background: 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.25)',
-          borderRadius: 100, padding: '4px 12px',
-        }}>
-          ✓ Conforme Code du Travail
-        </span>
-      </div>
-    </div>
   )
 }
