@@ -49,12 +49,12 @@ export function PlanningDemo() {
       try {
         while (alive()) {
           setPhase('typing'); setTyped(0); setRevealed(0)
-          for (let i = 1; i <= PROMPT.length; i++) { if (!alive()) return; setTyped(i); await wait(42) }
-          if (!alive()) return; await wait(450)
-          setPhase('thinking'); await wait(1000)
+          for (let i = 1; i <= PROMPT.length; i++) { if (!alive()) return; setTyped(i); await wait(60) }
+          if (!alive()) return; await wait(650)
+          setPhase('thinking'); await wait(1300)
           if (!alive()) return; setPhase('filling')
-          for (let i = 1; i <= TOTAL; i++) { if (!alive()) return; setRevealed(i); await wait(90) }
-          if (!alive()) return; setPhase('done'); await wait(3200)
+          for (let i = 1; i <= TOTAL; i++) { if (!alive()) return; setRevealed(i); await wait(140) }
+          if (!alive()) return; setPhase('done'); await wait(4200)
         }
       } finally { running = false }
     }
