@@ -24,6 +24,7 @@ type LatenessRecord = {
 type RapportTab = 'heures' | 'retards' | 'paie'
 
 const PDFButton = dynamic(() => import('./pdf-button'), { ssr: false })
+const PaiePDFButton = dynamic(() => import('./paie-pdf-button'), { ssr: false })
 
 // Sous-titre explicatif par onglet (compréhension au premier coup d'œil).
 const TAB_DESC: Record<RapportTab, string> = {
@@ -626,18 +627,21 @@ export default function RapportPage() {
                 </button>
               ))}
               <div className="ml-auto flex flex-col items-end gap-1">
-                <button
-                  onClick={handleExportCsv}
-                  disabled={exportLoading}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: 'var(--accent)', color: 'white' }}
-                >
-                  {exportLoading
-                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    : <Download className="h-3.5 w-3.5" />
-                  }
-                  {exportLoading ? 'Export…' : 'Exporter CSV'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <PaiePDFButton rows={paieRows} periodLabel={period.label} establishmentName={establishmentName} />
+                  <button
+                    onClick={handleExportCsv}
+                    disabled={exportLoading}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: 'var(--accent)', color: 'white' }}
+                  >
+                    {exportLoading
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <Download className="h-3.5 w-3.5" />
+                    }
+                    {exportLoading ? 'Export…' : 'Exporter CSV'}
+                  </button>
+                </div>
                 {exportError && (
                   <p className="text-[11px]" style={{ color: 'var(--danger)' }}>{exportError}</p>
                 )}
