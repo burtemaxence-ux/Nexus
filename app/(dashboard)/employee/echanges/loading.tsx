@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function EchangesLoading() {
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8">
+    <div className="max-w-3xl mx-auto px-4 py-6 md:px-6 md:py-8">
       {/* Back link */}
       <div className="mb-6">
         <Skeleton className="h-4 w-24" />

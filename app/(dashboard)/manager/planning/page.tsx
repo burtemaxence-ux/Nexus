@@ -16,7 +16,7 @@ interface PlanningPageProps {
 // ErrorBoundary so a crash in one never takes down the whole page.
 function PlanningShell({ narrow, children }: { narrow?: boolean; children: ReactNode }) {
   return (
-    <div className={narrow ? 'px-6 py-6 max-w-6xl mx-auto' : 'px-4 py-4 md:px-6 md:py-6'}>
+    <div className={narrow ? 'px-4 md:px-6 py-6 max-w-6xl mx-auto' : 'px-4 py-4 md:px-6 md:py-6'}>
       <h1 className="text-[18px] md:text-[20px] font-medium tracking-[-0.02em] mb-4 md:mb-5" style={{ color: 'var(--text-primary)' }}>
         Planning
       </h1>
