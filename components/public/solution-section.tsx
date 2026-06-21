@@ -89,7 +89,7 @@ export function SolutionSection() {
             color: '#00D4AA',
             marginBottom: 16,
           }}>
-            La solution
+            Ce qui change pour vous
           </p>
           <h2 style={{
             fontFamily: "'Syne', sans-serif",

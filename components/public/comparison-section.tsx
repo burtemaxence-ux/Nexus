@@ -62,7 +62,7 @@ export function ComparisonSection() {
             lineHeight: 1.2,
             marginBottom: 12,
           }}>
-            {`Pourquoi changer ?`}
+            {`Payez moins. Obtenez plus.`}
           </h2>
 
           {/* Badge économies */}

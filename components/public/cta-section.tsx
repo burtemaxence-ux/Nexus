@@ -53,7 +53,7 @@ export function CtaFinalSection() {
           marginBottom: 40,
           lineHeight: 1.6,
         }}>
-          {`30 jours gratuits · Sans carte bleue · Annulation en 1 clic`}
+          {`Reprenez vos dimanches soir. 30 jours gratuits, sans carte bleue, sans engagement.`}
         </p>
 
         <Link

@@ -4,6 +4,8 @@ import { ReassuranceBar }     from '@/components/public/reassurance-bar'
 import { HeroSection }        from '@/components/public/hero-section'
 import { ProblemSection }     from '@/components/public/problem-section'
 import { SolutionSection }    from '@/components/public/solution-section'
+import { HowItWorksSection }   from '@/components/public/how-it-works-section'
+import { CostSection }         from '@/components/public/cost-section'
 import { ComparisonSection }  from '@/components/public/comparison-section'
 import { SocialProofSection } from '@/components/public/social-proof-section'
 import { PricingSection }     from '@/components/public/pricing-section'
@@ -64,6 +66,8 @@ export default function LandingPage() {
         <HeroSection />
         <ProblemSection />
         <SolutionSection />
+        <HowItWorksSection />
+        <CostSection />
         <ComparisonSection />
         <SocialProofSection />
         <PricingSection />
