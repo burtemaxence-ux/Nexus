@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, X, Send, Loader2, RotateCcw, Bot, FileText, Copy, Check, Printer, CalendarCheck, CalendarX, CalendarPlus, UserPlus, CopyPlus, ArrowLeftRight, type LucideIcon } from 'lucide-react'
+import { MessageCircle, X, Send, Loader2, RotateCcw, FileText, Copy, Check, Printer, CalendarCheck, CalendarX, CalendarPlus, UserPlus, CopyPlus, ArrowLeftRight, type LucideIcon } from 'lucide-react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
@@ -218,7 +218,7 @@ export function AiAssistant({
           transform: open ? 'scale(0.95)' : 'scale(1)',
         }}
       >
-        {open ? <X className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+        {open ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
       </button>
 
       {/* Chat panel */}
@@ -246,7 +246,7 @@ export function AiAssistant({
               className="flex h-8 w-8 items-center justify-center rounded-full"
               style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
             >
-              <Bot className="h-4 w-4 text-white" />
+              <MessageCircle className="h-4 w-4 text-white" />
             </div>
             <div>
               <p className="text-sm font-semibold text-white">Assistant Quartzbase</p>
@@ -286,7 +286,7 @@ export function AiAssistant({
                   className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full mt-0.5"
                   style={{ backgroundColor: 'var(--accent-light)' }}
                 >
-                  <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--accent)' }} />
+                  <MessageCircle className="h-3.5 w-3.5" style={{ color: 'var(--accent)' }} />
                 </div>
               )}
               <div
@@ -314,7 +314,7 @@ export function AiAssistant({
                 className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
                 style={{ backgroundColor: 'var(--accent-light)' }}
               >
-                <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--accent)' }} />
+                <MessageCircle className="h-3.5 w-3.5" style={{ color: 'var(--accent)' }} />
               </div>
               <div
                 className="flex items-center gap-1 px-4 py-3"
