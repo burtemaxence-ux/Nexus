@@ -16,7 +16,7 @@ const SITUATIONS = [
     emoji: '📱',
     label: '7h du matin, un message',
     situation:
-      '"Je peux pas venir aujourd\'hui." Vous avez une heure pour trouver quelqu\'un — ou assurer vous-même.',
+      '"Je peux pas venir aujourd\'hui." Une heure pour trouver quelqu\'un. Ou assurer le service vous-même.',
     consequence: 'Le stress du lundi matin avant même d\'ouvrir.',
     accentColor: '#FF6B6B',
     delay: 100,

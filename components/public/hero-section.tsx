@@ -7,7 +7,7 @@ import Link from 'next/link'
 const HERO_TITLE = "Un planning qui vous protège des prud'hommes."
 
 const HERO_SUBTITLE =
-  `Quartzbase vérifie automatiquement les règles du Code du Travail — repos, durées maximales, pauses — et vous alerte avant chaque infraction. Vos plannings, l'esprit tranquille. À partir de 49€/mois, sans engagement.`
+  `Repos, durées maximales, pauses… Quartzbase passe vos plannings au crible du Code du Travail et vous prévient avant la faute. Vous planifiez l'esprit léger. À partir de 49€/mois, sans engagement.`
 
 const TRUST_BADGE = '30 jours gratuits · Sans carte bleue · Conforme Code du Travail'
 
@@ -134,7 +134,7 @@ export function HeroSection() {
               onMouseEnter={e => (e.currentTarget.style.background = '#5a52e0')}
               onMouseLeave={e => (e.currentTarget.style.background = '#6C63FF')}
             >
-              Essai gratuit — 30 jours
+              Essayer gratuitement 30 jours
               <span className="cta-shimmer" aria-hidden="true" style={{
                 position: 'absolute',
                 top: 0,
@@ -285,7 +285,7 @@ function PlanningMockup() {
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FFB347' }} />
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#00D4AA' }} />
         <span style={{ fontFamily: font, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>
-          Planning — Semaine 24
+          Planning · Semaine 24
         </span>
       </div>
 

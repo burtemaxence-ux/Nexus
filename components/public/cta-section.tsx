@@ -82,7 +82,7 @@ export function CtaFinalSection() {
             e.currentTarget.style.transform = 'translateY(0)'
           }}
         >
-          {`Démarrer gratuitement — 30 jours sans CB`}
+          {`Démarrer mes 30 jours gratuits`}
         </Link>
 
         <p style={{

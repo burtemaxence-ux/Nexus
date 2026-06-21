@@ -42,7 +42,7 @@ const FEATURES = [
     accentColor: '#FFB347',
     title: 'Conformité vérifiée automatiquement',
     description:
-      'Repos quotidien, durée maximale, pauses, dimanches — 7 règles du Code du Travail vérifiées à chaque planning. Alerte immédiate si anomalie.',
+      'Repos, durées maxi, pauses, dimanches… 7 règles du Code du Travail passées en revue à chaque planning. Si quelque chose cloche, vous le savez tout de suite.',
     delay: 200,
   },
 ]
@@ -111,7 +111,7 @@ export function SolutionSection() {
             margin: '0 auto',
             lineHeight: 1.6,
           }}>
-            {`Quartzbase répond exactement aux trois situations qui vous coûtent le plus de temps et d'énergie.`}
+            {`Ce que Quartzbase fait à votre place, pour que vous arrêtiez d'y penser.`}
           </p>
         </div>
 

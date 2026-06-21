@@ -9,11 +9,11 @@ const FAQ_ITEMS = [
   },
   {
     question: `Mes employés ont besoin d'un ordinateur ?`,
-    answer: `Non. Tout fonctionne sur smartphone, sans installation. Pointage, consultation du planning, demandes de congés — depuis leur iPhone ou Android, directement dans le navigateur. Vous n'avez rien à configurer pour eux.`,
+    answer: `Non. Tout se passe sur smartphone, sans rien installer. Pointage, planning, demandes de congés : ils font tout depuis leur iPhone ou Android, directement dans le navigateur. Vous n'avez rien à régler pour eux.`,
   },
   {
     question: `En quoi Quartzbase est différent des logiciels de planning traditionnels ?`,
-    answer: `Quartzbase démarre à 49€/mois, là où beaucoup de solutions classiques se situent souvent entre 150 et 200€/mois, et inclut une IA qui génère le planning automatiquement. La plupart des logiciels traditionnels n'ont ni génération IA ni vérification légale automatique. Vous payez moins, et l'outil fait plus.`,
+    answer: `Quartzbase démarre à 49€/mois, quand beaucoup de solutions classiques tournent plutôt entre 150 et 200€/mois. En prime, une IA génère le planning pour vous et les règles légales sont vérifiées toutes seules : deux choses que la plupart des logiciels traditionnels ne font pas. Du coup vous payez moins cher pour un outil qui en fait plus.`,
   },
   {
     question: `Puis-je annuler à tout moment ?`,
@@ -21,7 +21,7 @@ const FAQ_ITEMS = [
   },
   {
     question: `Comment fonctionne la période d'essai ?`,
-    answer: `30 jours complets avec toutes les fonctionnalités activées — planning, badgeuse, congés, conformité, IA. Aucune carte bancaire demandée. Si vous ne continuez pas, votre compte passe automatiquement en lecture seule sans frais.`,
+    answer: `30 jours complets, toutes les fonctions débloquées : planning, badgeuse, congés, conformité, IA. Aucune carte bancaire demandée. Si vous ne continuez pas, votre compte passe en lecture seule, sans frais.`,
   },
   {
     question: `Mes données sont-elles sécurisées ?`,
@@ -33,7 +33,7 @@ const FAQ_ITEMS = [
   },
   {
     question: `L'IA fonctionne vraiment pour générer le planning ?`,
-    answer: `Oui. L'IA analyse vos contrats, disponibilités, congés approuvés et contraintes légales pour générer un planning complet en quelques secondes. Vous prévisualisez le résultat avant de l'appliquer — l'IA propose, vous décidez. Plan Essentiel : 3 générations/mois. Plan Pro et Multi-site : illimité.`,
+    answer: `Oui. L'IA regarde vos contrats, les disponibilités, les congés validés et les règles légales, puis sort un planning complet en quelques secondes. Vous voyez le résultat avant de l'appliquer : rien ne part sans votre feu vert. Plan Essentiel : 3 générations/mois. Pro et Multi-site : illimité.`,
   },
   {
     question: `Comment ajouter mes employés ?`,

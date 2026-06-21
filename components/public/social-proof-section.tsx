@@ -10,19 +10,20 @@ const STATS = [
 
 const TESTIMONIALS = [
   {
-    quote: `J'ai 19 ans et je code Quartzbase seul. Je l'ai construit parce que
-      faire un planning à la main, le dimanche soir, c'est une perte de temps —
-      et un planning non conforme au Code du Travail peut coûter cher.
-      Mon objectif : que vous repreniez 4 heures par semaine, en règle.`,
+    quote: `J'ai 19 ans et je développe Quartzbase tout seul. Je l'ai fait
+      parce que bricoler un planning sur Excel le dimanche soir, c'est des heures
+      perdues. Et un planning pas carré côté Code du Travail, ça peut coûter très
+      cher. Ce que je veux pour vous : récupérer 4 heures par semaine, sans
+      stresser pour l'inspection.`,
     initials: 'MB',
     name: 'Maxence, fondateur',
     detail: 'Quartzbase · Développeur',
   },
   {
-    quote: `Quartzbase vient de se lancer. Vous n'aurez pas 200 avis clients ici —
-      mais un accès direct au fondateur, une conformité vérifiée automatiquement,
-      et aucun engagement. Testez 30 jours : si ça ne vous fait pas gagner du temps,
-      vous partez en un clic.`,
+    quote: `Quartzbase débute, je ne vais pas faire semblant : vous ne trouverez
+      pas 200 avis cinq étoiles ici. À la place, vous avez le fondateur qui répond
+      lui-même et zéro engagement. Essayez 30 jours. Si vous n'y gagnez pas de
+      temps, vous partez en un clic.`,
     initials: '✓',
     name: 'Notre engagement',
     detail: 'Transparence · Sans engagement',
@@ -228,7 +229,7 @@ export function SocialProofSection() {
           textAlign: 'center',
           letterSpacing: '0.02em',
         }}>
-          {`Lancement 2026 — soyez parmi les premiers à moderniser votre planning`}
+          {`Tout juste lancé en 2026. Autant en profiter avant tout le monde.`}
         </p>
 
       </div>

@@ -295,7 +295,7 @@ export function PricingSection() {
                     color: '#00D4AA',
                     marginTop: 4,
                   }}>
-                    {`Facturé ${plan.annualPrice}€/an — 2 mois offerts`}
+                    {`Facturé ${plan.annualPrice}€/an, soit 2 mois offerts`}
                   </p>
                 )}
               </div>
