@@ -1,5 +1,6 @@
 import webpush from 'web-push'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export type PushPayload = {
   title: string
@@ -10,15 +11,18 @@ export type PushPayload = {
 
 let vapidReady = false
 
-async function initVapid(supabase: SupabaseClient) {
+async function initVapid() {
   if (vapidReady) return true
 
   let pub  = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
   let priv = process.env.VAPID_PRIVATE_KEY ?? ''
 
   if (!pub || !priv) {
-    // Fallback: load from settings table (persistent across serverless instances)
-    const { data } = await supabase
+    // Fallback: load from settings table (persistent across serverless instances).
+    // Read with the service-role client: vapid_private_key is manager-only under
+    // RLS, but push can be triggered by any role, so the caller's session must not
+    // gate this read.
+    const { data } = await supabaseAdmin
       .from('settings')
       .select('key, value')
       .in('key', ['vapid_public_key', 'vapid_private_key'])
@@ -43,7 +47,7 @@ export async function sendPushToUser(
   userId: string,
   payload: PushPayload
 ) {
-  if (!(await initVapid(supabase))) return
+  if (!(await initVapid())) return
 
   const { data: subs } = await supabase
     .from('push_subscriptions')
