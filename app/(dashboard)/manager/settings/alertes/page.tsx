@@ -222,7 +222,7 @@ export default function AlertesPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-8 py-10 space-y-8">
+    <div className="max-w-3xl mx-auto px-4 md:px-8 py-10 space-y-8">
       <div>
         <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Notifications</h1>
         <p className="text-sm text-muted-foreground mt-1">

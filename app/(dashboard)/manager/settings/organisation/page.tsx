@@ -146,7 +146,7 @@ export default function OrganisationPage() {
   )
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-8">
+    <div className="max-w-2xl mx-auto px-4 md:px-8 py-8">
       <div className="mb-6">
         <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
           Organisation

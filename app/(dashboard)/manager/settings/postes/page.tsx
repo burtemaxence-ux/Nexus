@@ -390,7 +390,7 @@ export default function PostesPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-3xl mx-auto px-8 py-8">
+    <div className="max-w-3xl mx-auto px-4 md:px-8 py-8">
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -436,7 +436,7 @@ export default function PostesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div>
               {smallLabel('Pause auto')}
               <button
@@ -535,7 +535,7 @@ export default function PostesPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="grid grid-cols-4 gap-3 mb-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                         <div>
                           {smallLabel('Pause auto')}
                           <button

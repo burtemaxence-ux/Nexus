@@ -288,7 +288,7 @@ export default function ReglesPage() {
   const availableConventions = activityType ? ACTIVITY_CONVENTIONS[activityType] : null
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 md:px-8 py-10 space-y-6">
       <div>
         <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Planning</h1>
         <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>

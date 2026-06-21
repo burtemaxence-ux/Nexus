@@ -119,7 +119,7 @@ export default function ExportsPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-10 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 md:px-8 py-10 space-y-6">
       <div>
         <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Exports & paie</h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>

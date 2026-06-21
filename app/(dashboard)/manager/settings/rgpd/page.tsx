@@ -76,7 +76,7 @@ export default function RgpdPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-10 space-y-8">
+    <div className="max-w-2xl mx-auto px-4 md:px-8 py-10 space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
