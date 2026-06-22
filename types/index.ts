@@ -48,6 +48,13 @@ export type Contract = {
   end_date: string | null
   weekly_hours: number
   hourly_rate: number | null
+  monthly_gross_salary: number | null
+  classification: string | null
+  coefficient: string | null
+  has_mutuelle: boolean
+  has_meal_vouchers: boolean
+  meal_voucher_value: number | null
+  has_transport_reimbursement: boolean
   job_title: string | null
   work_location: string | null
   cdd_reason: string | null

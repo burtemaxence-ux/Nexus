@@ -99,6 +99,13 @@ export default function EmployeeDetailPage() {
     end_date: '',
     weekly_hours: '',
     hourly_rate: '',
+    monthly_gross_salary: '',
+    classification: '',
+    coefficient: '',
+    has_mutuelle: false,
+    has_meal_vouchers: false,
+    meal_voucher_value: '',
+    has_transport_reimbursement: false,
     job_title: '',
     work_location: '',
     cdd_reason: '',
@@ -268,6 +275,13 @@ export default function EmployeeDetailPage() {
         end_date: contractForm.end_date || null,
         weekly_hours: parseFloat(contractForm.weekly_hours),
         hourly_rate: contractForm.hourly_rate ? parseFloat(contractForm.hourly_rate) : null,
+        monthly_gross_salary: contractForm.monthly_gross_salary ? parseFloat(contractForm.monthly_gross_salary) : null,
+        classification: contractForm.classification || null,
+        coefficient: contractForm.coefficient || null,
+        has_mutuelle: contractForm.has_mutuelle,
+        has_meal_vouchers: contractForm.has_meal_vouchers,
+        meal_voucher_value: contractForm.meal_voucher_value ? parseFloat(contractForm.meal_voucher_value) : null,
+        has_transport_reimbursement: contractForm.has_transport_reimbursement,
         job_title: contractForm.job_title || null,
         work_location: contractForm.work_location || null,
         cdd_reason: contractForm.cdd_reason || null,
@@ -283,6 +297,8 @@ export default function EmployeeDetailPage() {
       setShowContractDialog(false)
       setContractForm({
         type: 'CDI 35h', start_date: '', end_date: '', weekly_hours: '', hourly_rate: '',
+        monthly_gross_salary: '', classification: '', coefficient: '',
+        has_mutuelle: false, has_meal_vouchers: false, meal_voucher_value: '', has_transport_reimbursement: false,
         job_title: '', work_location: '', cdd_reason: '',
         trial_period_days: '61', notice_period_days: '30', paid_leave_days: '25',
         has_confidentiality: false, has_non_compete: false, notes: '',
@@ -631,12 +647,19 @@ export default function EmployeeDetailPage() {
                               {contract.weekly_hours}h/sem.
                             </span>
                             {contract.hourly_rate && <span>{contract.hourly_rate}€/h brut</span>}
+                            {contract.monthly_gross_salary && <span>{contract.monthly_gross_salary.toLocaleString('fr-FR')}€/mois brut</span>}
                             <span>
                               Du {formatDate(contract.start_date)}
                               {contract.end_date ? ` au ${formatDate(contract.end_date)}` : ' (en cours)'}
                             </span>
                             {contract.work_location && <span>📍 {contract.work_location}</span>}
                           </div>
+                          {(contract.classification || contract.coefficient) && (
+                            <div className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground mt-1">
+                              {contract.classification && <span>{contract.classification}</span>}
+                              {contract.coefficient && <span>Coef. {contract.coefficient}</span>}
+                            </div>
+                          )}
                           <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
                             {contract.trial_period_days != null && contract.trial_period_days > 0 && (
                               <span>Essai : {contract.trial_period_days}j</span>
@@ -652,6 +675,17 @@ export default function EmployeeDetailPage() {
                             )}
                             {contract.has_non_compete && (
                               <span className="dp-badge-info">Non-concurrence</span>
+                            )}
+                            {contract.has_mutuelle && (
+                              <span className="dp-badge-info">Mutuelle</span>
+                            )}
+                            {contract.has_meal_vouchers && (
+                              <span className="dp-badge-info">
+                                Tickets resto{contract.meal_voucher_value ? ` ${contract.meal_voucher_value}€` : ''}
+                              </span>
+                            )}
+                            {contract.has_transport_reimbursement && (
+                              <span className="dp-badge-info">Transport 50 %</span>
                             )}
                           </div>
                           {contract.notes && <p className="text-xs text-muted-foreground mt-1 italic">{contract.notes}</p>}
@@ -933,6 +967,83 @@ export default function EmployeeDetailPage() {
                   </div>
                   <p className="text-[10px] text-muted-foreground">SMIC 2025 : 11.88 €/h</p>
                 </div>
+                <div className="space-y-1.5">
+                  <Label>Salaire brut mensuel (€) <span className="text-muted-foreground text-xs">(facultatif)</span></Label>
+                  <div className="relative">
+                    <Input
+                      type="number" min="0" step="0.01"
+                      value={contractForm.monthly_gross_salary}
+                      onChange={e => setContractForm(p => ({ ...p, monthly_gross_salary: e.target.value }))}
+                      placeholder="1801.80"
+                      className="pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">€</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Classification & avantages */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Classification & avantages</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Classification <span className="text-muted-foreground text-xs">(convention)</span></Label>
+                  <Input
+                    value={contractForm.classification}
+                    onChange={e => setContractForm(p => ({ ...p, classification: e.target.value }))}
+                    placeholder="Ex : Niveau II — Échelon 1"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Coefficient</Label>
+                  <Input
+                    value={contractForm.coefficient}
+                    onChange={e => setContractForm(p => ({ ...p, coefficient: e.target.value }))}
+                    placeholder="Ex : 190"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-x-6 gap-y-2.5 mt-3">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={contractForm.has_mutuelle}
+                    onChange={e => setContractForm(p => ({ ...p, has_mutuelle: e.target.checked }))}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm text-foreground">Mutuelle d&apos;entreprise</span>
+                </label>
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={contractForm.has_transport_reimbursement}
+                    onChange={e => setContractForm(p => ({ ...p, has_transport_reimbursement: e.target.checked }))}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm text-foreground">Transport (50 %)</span>
+                </label>
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={contractForm.has_meal_vouchers}
+                    onChange={e => setContractForm(p => ({ ...p, has_meal_vouchers: e.target.checked }))}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm text-foreground">Tickets restaurant</span>
+                </label>
+                {contractForm.has_meal_vouchers && (
+                  <div className="relative w-32">
+                    <Input
+                      type="number" min="0" step="0.01"
+                      value={contractForm.meal_voucher_value}
+                      onChange={e => setContractForm(p => ({ ...p, meal_voucher_value: e.target.value }))}
+                      placeholder="Valeur"
+                      className="pr-8 h-9"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">€</span>
+                  </div>
+                )}
               </div>
             </div>
 

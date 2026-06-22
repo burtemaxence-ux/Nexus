@@ -21,7 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const { data, error } = await supabase
       .from('contracts')
-      .select('id, employee_id, type, start_date, end_date, weekly_hours, hourly_rate, job_title, work_location, cdd_reason, trial_period_days, notice_period_days, paid_leave_days, has_confidentiality, has_non_compete, notes, created_by, created_at')
+      .select('id, employee_id, type, start_date, end_date, weekly_hours, hourly_rate, monthly_gross_salary, classification, coefficient, has_mutuelle, has_meal_vouchers, meal_voucher_value, has_transport_reimbursement, job_title, work_location, cdd_reason, trial_period_days, notice_period_days, paid_leave_days, has_confidentiality, has_non_compete, notes, created_by, created_at')
       .eq('employee_id', params.id)
       .is('deleted_at', null)
       .order('start_date', { ascending: false })
@@ -63,6 +63,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         end_date: body.end_date ?? null,
         weekly_hours: body.weekly_hours ?? null,
         hourly_rate: body.hourly_rate ?? null,
+        monthly_gross_salary: body.monthly_gross_salary ?? null,
+        classification: body.classification ?? null,
+        coefficient: body.coefficient ?? null,
+        has_mutuelle: body.has_mutuelle ?? false,
+        has_meal_vouchers: body.has_meal_vouchers ?? false,
+        meal_voucher_value: body.meal_voucher_value ?? null,
+        has_transport_reimbursement: body.has_transport_reimbursement ?? false,
         job_title: body.job_title ?? null,
         work_location: body.work_location ?? null,
         cdd_reason: body.cdd_reason ?? null,
