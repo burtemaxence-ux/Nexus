@@ -26,6 +26,8 @@ export type Profile = {
   pin: string | null
   disability: boolean
   archived: boolean
+  archived_at: string | null
+  avatar_url: string | null
   invited_by: string | null
   created_at: string
   // Données administratives (dossier RH)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile, Contract, Availability } from '@/types'
@@ -89,6 +89,10 @@ export default function EmployeeDetailPage() {
   const [emergencyName, setEmergencyName] = useState('')
   const [emergencyPhone, setEmergencyPhone] = useState('')
   const [workPermitExpiry, setWorkPermitExpiry] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
   const [activeDays, setActiveDays] = useState<Set<number>>(new Set())
   const [dayTimes, setDayTimes] = useState<Record<number, { start: string; end: string }>>({})
 
@@ -164,6 +168,7 @@ export default function EmployeeDetailPage() {
     setEmergencyName(emp.emergency_contact_name ?? '')
     setEmergencyPhone(emp.emergency_contact_phone ?? '')
     setWorkPermitExpiry(emp.work_permit_expiry ?? '')
+    setAvatarUrl(emp.avatar_url ?? '')
 
     if (emp.invited_by) {
       const { data: inv } = await supabase.from('profiles').select('full_name').eq('id', emp.invited_by).single()
@@ -224,6 +229,7 @@ export default function EmployeeDetailPage() {
         emergency_contact_name: emergencyName.trim() || null,
         emergency_contact_phone: emergencyPhone.trim() || null,
         work_permit_expiry: workPermitExpiry || null,
+        avatar_url: avatarUrl || null,
       }),
     })
     if (res.ok) {
@@ -323,6 +329,35 @@ export default function EmployeeDetailPage() {
     }
   }
 
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setAvatarError('Veuillez sélectionner une image.'); return }
+    if (file.size > 2 * 1024 * 1024) { setAvatarError('Image trop lourde (max 2 Mo).'); return }
+    setAvatarError(null)
+    setAvatarUploading(true)
+    try {
+      await fetch('/api/storage/init', { method: 'POST' })
+      const supabase = createClient()
+      const ext = file.name.split('.').pop()
+      const path = `${id}/avatar-${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true, cacheControl: '31536000' })
+      if (error) throw error
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      setAvatarUrl(data.publicUrl)
+    } catch {
+      setAvatarError('Upload échoué — réessayez.')
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
+
+  function removeAvatar() {
+    setAvatarUrl('')
+    setAvatarError(null)
+    if (avatarInputRef.current) avatarInputRef.current.value = ''
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -347,11 +382,16 @@ export default function EmployeeDetailPage() {
               <ChevronLeft className="h-4 w-4" />
             </button>
             <div className="flex items-center gap-3 flex-1">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
                 style={{ backgroundColor: 'var(--accent-light)' }}>
-                <span className="text-[12px] font-medium" style={{ color: 'var(--accent)' }}>
-                  {getInitials(employee.full_name ?? employee.email)}
-                </span>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-[12px] font-medium" style={{ color: 'var(--accent)' }}>
+                    {getInitials(employee.full_name ?? employee.email)}
+                  </span>
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -400,6 +440,35 @@ export default function EmployeeDetailPage() {
                 <CardTitle className="text-base">Informations personnelles</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Photo de profil */}
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'var(--accent-light)', border: '0.5px solid var(--border)' }}>
+                    {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatarUrl} alt="Photo" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-[18px] font-medium" style={{ color: 'var(--accent)' }}>
+                        {getInitials(employee.full_name ?? employee.email)}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} className="gap-1.5">
+                        {avatarUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                        {avatarUploading ? 'Upload…' : 'Choisir une photo'}
+                      </Button>
+                      {avatarUrl && (
+                        <Button variant="ghost" size="sm" onClick={removeAvatar} className="text-muted-foreground">Retirer</Button>
+                      )}
+                    </div>
+                    <p className="text-[11px] mt-1.5 text-muted-foreground">PNG, JPG · max 2 Mo</p>
+                    {avatarError && <p className="text-[11px] mt-1" style={{ color: 'var(--danger)' }}>{avatarError}</p>}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Nom complet</Label>

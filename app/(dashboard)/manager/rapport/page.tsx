@@ -213,6 +213,7 @@ export default function RapportPage() {
   const [payFormat, setPayFormat] = useState<PayFormat>('generique')
   const [exportLoading, setExportLoading] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [departuresCount, setDeparturesCount] = useState(0)
   const [revenueMap, setRevenueMap] = useState<Record<string, number>>({})
   const [showRevenueDialog, setShowRevenueDialog] = useState(false)
   const [revenueDraft, setRevenueDraft] = useState<Record<string, string>>({})
@@ -226,7 +227,7 @@ export default function RapportPage() {
     const startStr = toISODate(period.start)
     const endStr = toISODate(period.end)
 
-    const [empRes, shiftRes, presRes, leaveRes, settingRes, contractRes, revRes] = await Promise.all([
+    const [empRes, shiftRes, presRes, leaveRes, settingRes, contractRes, revRes, depRes] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false).order('full_name'),
       supabase.from('shifts').select('id, employee_id, date, start_time, end_time, break_minutes, position').gte('date', startStr).lte('date', endStr).is('deleted_at', null),
       supabase.from('presences').select('id, employee_id, date, clock_in, clock_out, break_minutes_used').gte('date', startStr).lte('date', endStr),
@@ -234,7 +235,10 @@ export default function RapportPage() {
       supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
       supabase.from('contracts').select('employee_id, hourly_rate, start_date').is('deleted_at', null).order('start_date', { ascending: false }),
       supabase.from('revenues').select('date, amount').gte('date', startStr).lte('date', endStr),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'employee').not('archived_at', 'is', null).gte('archived_at', startStr).lte('archived_at', `${endStr}T23:59:59`),
     ])
+
+    setDeparturesCount(depRes.count ?? 0)
 
     setEmployees((empRes.data ?? []) as Profile[])
     setShifts((shiftRes.data ?? []) as Shift[])
@@ -348,6 +352,9 @@ export default function RapportPage() {
   const laborRatio = totals.hasCost && totalRevenue > 0 ? (totals.totalCost / totalRevenue) * 100 : null
   const absenteeism = (totals.plannedDays + totals.absences) > 0
     ? Math.round((totals.absences / (totals.plannedDays + totals.absences)) * 100)
+    : null
+  const turnover = (employees.length + departuresCount) > 0
+    ? Math.round((departuresCount / (employees.length + departuresCount)) * 100)
     : null
 
   const openRevenueDialog = useCallback(() => {
@@ -817,7 +824,7 @@ export default function RapportPage() {
               <Pencil className="h-3.5 w-3.5" /> Saisir le CA
             </button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <ProdStat icon={Euro} label="Chiffre d'affaires" value={totalRevenue > 0 ? euros(totalRevenue) : '—'} />
             <ProdStat icon={Banknote} label="Masse salariale" value={totals.hasCost ? euros(totals.totalCost) : '—'} sub={totals.hasCost ? undefined : 'taux horaires manquants'} />
             <ProdStat
@@ -832,6 +839,13 @@ export default function RapportPage() {
               label="Taux d'absentéisme"
               value={absenteeism === null ? '—' : `${absenteeism}%`}
               color={absenteeism === null ? 'var(--text-tertiary)' : absenteeism < 5 ? 'var(--success)' : absenteeism < 10 ? 'var(--warning)' : 'var(--danger)'}
+            />
+            <ProdStat
+              icon={UserMinus}
+              label="Turnover"
+              value={turnover === null ? '—' : `${turnover}%`}
+              color={turnover === null ? 'var(--text-tertiary)' : turnover < 15 ? 'var(--success)' : turnover < 30 ? 'var(--warning)' : 'var(--danger)'}
+              sub={departuresCount > 0 ? `${departuresCount} départ${departuresCount > 1 ? 's' : ''}` : undefined}
             />
           </div>
         </div>

@@ -27,7 +27,7 @@ export async function PATCH(
     const {
       full_name, position, contract_type, weekly_hours, phone, pay_ref, pin, disability,
       birth_date, address, social_security_number, emergency_contact_name,
-      emergency_contact_phone, iban, nationality, work_permit_expiry, matricule,
+      emergency_contact_phone, iban, nationality, work_permit_expiry, matricule, avatar_url,
     } = body
 
     const pinHash = pin ? await hashPin(pin) : undefined
@@ -47,6 +47,7 @@ export async function PATCH(
         nationality: nationality || null,
         work_permit_expiry: work_permit_expiry || null,
         matricule: matricule || null,
+        ...(avatar_url !== undefined && { avatar_url: avatar_url || null }),
         updated_at: new Date().toISOString(),
       })
       .eq('id', params.id)
