@@ -22,6 +22,8 @@ const TIMEZONES = [
   { value: 'America/Los_Angeles', label: 'America/Los_Angeles (UTC-8/-7)' },
 ]
 
+const LEGAL_FORMS = ['SARL', 'SAS', 'SASU', 'EURL', 'EI', 'SA', 'SNC', 'SCI', 'Association', 'Autre']
+
 type Fields = {
   establishment_name: string
   org_address: string
@@ -30,6 +32,12 @@ type Fields = {
   org_siret: string
   org_timezone: string
   org_logo: string
+  org_legal_form: string
+  org_ape_code: string
+  org_capital: string
+  org_rcs: string
+  org_urssaf: string
+  org_vat: string
 }
 
 const EMPTY: Fields = {
@@ -40,6 +48,12 @@ const EMPTY: Fields = {
   org_siret: '',
   org_timezone: 'Europe/Paris',
   org_logo: '',
+  org_legal_form: '',
+  org_ape_code: '',
+  org_capital: '',
+  org_rcs: '',
+  org_urssaf: '',
+  org_vat: '',
 }
 
 export default function OrganisationPage() {
@@ -64,6 +78,12 @@ export default function OrganisationPage() {
           org_siret:    s.org_siret    ?? '',
           org_timezone: s.org_timezone ?? 'Europe/Paris',
           org_logo:     s.org_logo     ?? '',
+          org_legal_form: s.org_legal_form ?? '',
+          org_ape_code:   s.org_ape_code   ?? '',
+          org_capital:    s.org_capital    ?? '',
+          org_rcs:        s.org_rcs        ?? '',
+          org_urssaf:     s.org_urssaf     ?? '',
+          org_vat:        s.org_vat        ?? '',
         })
         if (s.org_logo) setLogoPreview(s.org_logo)
       })
@@ -291,6 +311,88 @@ export default function OrganisationPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Mentions légales */}
+          <div className="pt-2" style={{ borderTop: '0.5px solid var(--border)' }}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] mt-4 mb-3" style={{ color: 'var(--text-tertiary)' }}>
+              Informations juridiques
+            </p>
+
+            {/* Forme juridique + Capital */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                {fieldLabel('Forme juridique')}
+                <Select value={fields.org_legal_form || undefined} onValueChange={v => set('org_legal_form', v)}>
+                  <SelectTrigger id="org-legal-form" className="dp-input h-9 text-[13px]">
+                    <SelectValue placeholder="Sélectionner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LEGAL_FORMS.map(f => (
+                      <SelectItem key={f} value={f} className="text-[13px]">{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                {fieldLabel('Capital social')}
+                <Input
+                  id="org-capital"
+                  value={fields.org_capital}
+                  onChange={e => set('org_capital', e.target.value)}
+                  placeholder="Ex : 10 000 €"
+                  className="dp-input h-9 text-[13px]"
+                />
+              </div>
+            </div>
+
+            {/* APE + TVA */}
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div>
+                {fieldLabel('Code APE / NAF')}
+                <Input
+                  id="org-ape"
+                  value={fields.org_ape_code}
+                  onChange={e => set('org_ape_code', e.target.value)}
+                  placeholder="Ex : 5610A"
+                  className="dp-input h-9 text-[13px] font-mono tracking-wide"
+                />
+              </div>
+              <div>
+                {fieldLabel('TVA intracommunautaire')}
+                <Input
+                  id="org-vat"
+                  value={fields.org_vat}
+                  onChange={e => set('org_vat', e.target.value)}
+                  placeholder="Ex : FR 12 345678901"
+                  className="dp-input h-9 text-[13px] font-mono tracking-wide"
+                />
+              </div>
+            </div>
+
+            {/* RCS + URSSAF */}
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div>
+                {fieldLabel('RCS')}
+                <Input
+                  id="org-rcs"
+                  value={fields.org_rcs}
+                  onChange={e => set('org_rcs', e.target.value)}
+                  placeholder="Ex : RCS Paris 123 456 789"
+                  className="dp-input h-9 text-[13px]"
+                />
+              </div>
+              <div>
+                {fieldLabel('N° URSSAF')}
+                <Input
+                  id="org-urssaf"
+                  value={fields.org_urssaf}
+                  onChange={e => set('org_urssaf', e.target.value)}
+                  placeholder="Compte cotisant"
+                  className="dp-input h-9 text-[13px]"
+                />
+              </div>
             </div>
           </div>
         </div>
