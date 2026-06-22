@@ -4,8 +4,109 @@ import { requireManager } from '@/lib/api-auth'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { getSubscription } from '@/lib/subscription'
 import { getPlanTier } from '@/lib/plan-guard'
+import { forecastRevenue, sectorTargetPct, median, shiftHours, isoWeekKey, type DayCA } from '@/lib/forecast'
 
 const client = new Anthropic()
+
+const FR_DOW = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
+
+function weekRange(weekMonday: string): { weekDays: string[]; weekEndStr: string } {
+  const weekStart = new Date(weekMonday + 'T00:00:00')
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 6)
+  const weekDays: string[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart)
+    d.setDate(d.getDate() + i)
+    weekDays.push(d.toISOString().split('T')[0])
+  }
+  return { weekDays, weekEndStr: weekEnd.toISOString().split('T')[0] }
+}
+
+type Economics = {
+  forecast: DayCA[]
+  forecastTotal: number
+  suggestedTargetPct: number
+  targetBasis: 'history' | 'sector'
+  historicalRatioPct: number | null
+  rateMap: Record<string, number>
+}
+
+// Prévision de CA + cible de productivité auto-calibrée (historique → secteur).
+async function loadEconomics(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  weekMonday: string,
+  weekDays: string[],
+  weekEndStr: string,
+): Promise<Economics> {
+  const ws = new Date(weekMonday + 'T00:00:00')
+  ws.setDate(ws.getDate() - 56)
+  const windowStartStr = ws.toISOString().split('T')[0]
+
+  const [{ data: rev }, { data: histShifts }, { data: contracts }, { data: actSetting }] = await Promise.all([
+    supabase.from('revenues').select('date, amount').gte('date', windowStartStr).lte('date', weekEndStr),
+    supabase.from('shifts').select('employee_id, date, start_time, end_time, break_minutes').gte('date', windowStartStr).lt('date', weekMonday).is('deleted_at', null),
+    supabase.from('contracts').select('employee_id, hourly_rate, start_date').is('deleted_at', null).order('start_date', { ascending: false }),
+    supabase.from('settings').select('value').eq('key', 'activity_type').maybeSingle(),
+  ])
+
+  const rateMap: Record<string, number> = {}
+  for (const c of (contracts ?? []) as { employee_id: string; hourly_rate: number | null }[]) {
+    if (!rateMap[c.employee_id] && c.hourly_rate) rateMap[c.employee_id] = Number(c.hourly_rate)
+  }
+
+  const pastRevenues: DayCA[] = ((rev ?? []) as { date: string; amount: number }[])
+    .map(r => ({ date: r.date, amount: Number(r.amount) }))
+    .filter(r => r.date < weekMonday)
+
+  const forecast = forecastRevenue(pastRevenues, weekDays)
+  const forecastTotal = forecast.reduce((s, d) => s + d.amount, 0)
+
+  // Ratio coût/CA réalisé par semaine ISO → médiane = point de fonctionnement réel.
+  const caByWeek: Record<string, number> = {}
+  const costByWeek: Record<string, number> = {}
+  for (const r of pastRevenues) {
+    if (r.amount > 0) { const k = isoWeekKey(r.date); caByWeek[k] = (caByWeek[k] ?? 0) + r.amount }
+  }
+  for (const s of (histShifts ?? []) as { employee_id: string; date: string; start_time: string; end_time: string; break_minutes: number | null }[]) {
+    const rate = rateMap[s.employee_id]
+    if (!rate) continue
+    const k = isoWeekKey(s.date)
+    costByWeek[k] = (costByWeek[k] ?? 0) + shiftHours(s.start_time, s.end_time, s.break_minutes ?? 0) * rate
+  }
+  const ratios: number[] = []
+  for (const k of Object.keys(caByWeek)) {
+    if (caByWeek[k] > 0 && costByWeek[k] > 0) ratios.push((costByWeek[k] / caByWeek[k]) * 100)
+  }
+  const med = median(ratios)
+
+  if (med != null) {
+    // Tenir sa moyenne et grignoter 1 point.
+    return { forecast, forecastTotal, suggestedTargetPct: Math.max(10, Math.round(med) - 1), targetBasis: 'history', historicalRatioPct: Math.round(med), rateMap }
+  }
+  return { forecast, forecastTotal, suggestedTargetPct: sectorTargetPct(actSetting?.value), targetBasis: 'sector', historicalRatioPct: null, rateMap }
+}
+
+// GET — aperçu (CA prévu + cible suggérée) pour pré-remplir le modal, sans IA.
+export async function GET(req: Request) {
+  const supabase = await createClient()
+  try {
+    await requireManager(supabase)
+  } catch (e) {
+    if (e instanceof Response) return e
+    throw e
+  }
+  const weekMonday = new URL(req.url).searchParams.get('week_monday')
+  if (!weekMonday) return Response.json({ error: 'week_monday requis' }, { status: 400 })
+  const { weekDays, weekEndStr } = weekRange(weekMonday)
+  const eco = await loadEconomics(supabase, weekMonday, weekDays, weekEndStr)
+  return Response.json({
+    forecastTotal: eco.forecastTotal,
+    suggestedTargetPct: eco.suggestedTargetPct,
+    targetBasis: eco.targetBasis,
+    historicalRatioPct: eco.historicalRatioPct,
+  })
+}
 
 export type ProposedShift = {
   employee_id: string
@@ -65,19 +166,9 @@ export async function POST(req: Request) {
   const rl = await checkRateLimit({ key: `ai-plan:${authUser.id}`, limit: 10, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
-  const { week_monday, context } = await req.json() as { week_monday: string; context?: string }
+  const { week_monday, context, target_ratio } = await req.json() as { week_monday: string; context?: string; target_ratio?: number }
 
-  const weekStart = new Date(week_monday + 'T00:00:00')
-  const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekEnd.getDate() + 6)
-  const weekEndStr = weekEnd.toISOString().split('T')[0]
-
-  const weekDays: string[] = []
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart)
-    d.setDate(d.getDate() + i)
-    weekDays.push(d.toISOString().split('T')[0])
-  }
+  const { weekDays, weekEndStr } = weekRange(week_monday)
 
   const [
     { data: employees },
@@ -114,6 +205,20 @@ export async function POST(req: Request) {
     }
   }
 
+  // Copilote de productivité : prévision de CA + cible coût/CA injectées dans le prompt.
+  const eco = await loadEconomics(supabase, week_monday, weekDays, weekEndStr)
+  const targetPct = (typeof target_ratio === 'number' && target_ratio > 0) ? Math.round(target_ratio) : eco.suggestedTargetPct
+  const economicsSection = eco.forecastTotal > 0 ? `
+## Prévision d'activité (chiffre d'affaires estimé, basé sur l'historique)
+${eco.forecast.map(d => `- ${d.date} (${FR_DOW[new Date(d.date + 'T12:00:00').getDay()]}) : ~${d.amount} €`).join('\n')}
+CA total prévu : ~${eco.forecastTotal} € sur la semaine.
+
+## Objectif de productivité — coût main d'œuvre / CA
+- Cible : ${targetPct} % du CA.
+- Dimensionne l'effectif selon le CA prévu : renforce les jours et services à fort CA, allège nettement les jours creux.
+- Vise une couverture suffisante AU MOINDRE COÛT pour tenir cette cible, sans jamais descendre sous le minimum opérationnel de sécurité.
+` : ''
+
   const systemPrompt = `Tu es l'assistant IA de Quartzbase, expert en génération de plannings pour la restauration française.
 
 ## Établissement : ${settingsMap.establishment_name ?? 'Non renseigné'}
@@ -132,7 +237,7 @@ ${postes?.map(p => `- ID: ${p.id} | ${p.name} | pause standard: ${p.break_minute
 
 ## Shifts déjà planifiés cette semaine
 ${existingShifts?.length ? existingShifts.map(s => `- ${employeeNameMap[s.employee_id] ?? s.employee_id} | ${s.date} | ${s.start_time}-${s.end_time} | ${s.position ?? '—'}`).join('\n') : 'Aucun shift existant — semaine vierge'}
-
+${economicsSection}
 ## Règles légales à respecter
 - Maximum 10h de travail effectif par jour
 - Minimum 11h de repos entre deux shifts consécutifs
@@ -231,5 +336,24 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     }
   }
 
-  return Response.json({ shifts: proposedShifts, summary })
+  // Coût main d'œuvre estimé du planning proposé → ratio coût/CA estimé.
+  let estimatedCost = 0
+  for (const s of proposedShifts) {
+    const rate = eco.rateMap[s.employee_id]
+    if (rate) estimatedCost += shiftHours(s.start_time, s.end_time, s.break_minutes) * rate
+  }
+  const estimatedRatioPct = (eco.forecastTotal > 0 && estimatedCost > 0)
+    ? Math.round((estimatedCost / eco.forecastTotal) * 100)
+    : null
+
+  return Response.json({
+    shifts: proposedShifts,
+    summary,
+    forecastTotal: eco.forecastTotal,
+    targetPct,
+    targetBasis: eco.targetBasis,
+    historicalRatioPct: eco.historicalRatioPct,
+    estimatedCost: Math.round(estimatedCost),
+    estimatedRatioPct,
+  })
 }
