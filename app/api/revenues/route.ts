@@ -1,12 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
+import { getSubscription } from '@/lib/subscription'
+import { getPlanTier, isPro } from '@/lib/plan-guard'
 import { NextRequest, NextResponse } from 'next/server'
+
+const PREMIUM = { error: 'Le pilotage de la productivité (CA, coût/CA) est disponible en plan Pro ou Multi-site.', upgrade_url: '/manager/settings/billing' }
 
 // GET /api/revenues?from=YYYY-MM-DD&to=YYYY-MM-DD → CA journalier de la période
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
-    await requireManager(supabase)
+    const { profile } = await requireManager(supabase)
+    const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
+    if (!isPro(getPlanTier(await getSubscription(supabase, estId)))) {
+      return NextResponse.json(PREMIUM, { status: 402 })
+    }
 
     const { searchParams } = new URL(request.url)
     const from = searchParams.get('from')
@@ -33,6 +41,9 @@ export async function POST(request: NextRequest) {
     const { profile } = await requireManager(supabase)
     const estId = profile.active_establishment_id ?? profile.establishment_id
     if (!estId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 400 })
+    if (!isPro(getPlanTier(await getSubscription(supabase, estId)))) {
+      return NextResponse.json(PREMIUM, { status: 402 })
+    }
 
     const body = await request.json()
     const entries: { date: string; amount: number }[] = Array.isArray(body?.entries) ? body.entries : []

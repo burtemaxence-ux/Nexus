@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { getWeekDates, toISODate, getWeekLabel } from '@/lib/utils/dates'
 import type { Profile, Shift, LeaveRequest } from '@/types'
-import { ChevronLeft, ChevronRight, Loader2, Users, Clock, TrendingUp, CalendarOff, AlarmClock, Download, Banknote, Pencil, Euro, UserMinus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Users, Clock, TrendingUp, CalendarOff, AlarmClock, Download, Banknote, Pencil, Euro, UserMinus, Lock, Zap } from 'lucide-react'
 import type { EmployeeReportRow } from './rapport-pdf'
 
 type LatenessRecord = {
@@ -218,6 +218,15 @@ export default function RapportPage() {
   const [showRevenueDialog, setShowRevenueDialog] = useState(false)
   const [revenueDraft, setRevenueDraft] = useState<Record<string, string>>({})
   const [revenueSaving, setRevenueSaving] = useState(false)
+  // Productivité = fonctionnalité premium (Pro / Multi-site).
+  const [isProPlan, setIsProPlan] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    fetch('/api/ai/quota')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => setIsProPlan(d ? d.plan === 'pro' || d.plan === 'multisite' : false))
+      .catch(() => setIsProPlan(false))
+  }, [])
 
   const period = useMemo(() => getPeriod(mode, refDate), [mode, refDate])
 
@@ -809,7 +818,21 @@ export default function RapportPage() {
 
         {tab === 'heures' && (
         <>
-        {/* Productivité — coût main d'œuvre / CA + absentéisme (#2) */}
+        {/* Productivité — premium (Pro / Multi-site) */}
+        {isProPlan === false ? (
+          <div className="rounded-[14px] p-5 flex items-center gap-4 flex-wrap" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <div className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+              <Lock className="h-5 w-5" style={{ color: 'var(--accent)' }} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>Pilotage de la productivité <span className="text-[11px] font-semibold align-middle ml-1 px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>PRO</span></p>
+              <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>Coût/CA, masse salariale, absentéisme et turnover — passez en Pro pour piloter votre rentabilité.</p>
+            </div>
+            <a href="/manager/settings/billing" className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium flex-shrink-0" style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
+              <Zap className="h-3.5 w-3.5" /> Passer en Pro
+            </a>
+          </div>
+        ) : (
         <div className="rounded-[14px] p-5" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
           <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
             <div>
@@ -849,6 +872,7 @@ export default function RapportPage() {
             />
           </div>
         </div>
+        )}
 
         {/* Summary cards */}
         <div className={cn('grid gap-4', totals.hasCost ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6' : 'grid-cols-2 md:grid-cols-5')}>

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { getSubscription } from '@/lib/subscription'
-import { getPlanTier } from '@/lib/plan-guard'
+import { getPlanTier, isPro } from '@/lib/plan-guard'
 import { forecastRevenue, sectorTargetPct, median, shiftHours, isoWeekKey, type DayCA } from '@/lib/forecast'
 
 const client = new Anthropic()
@@ -90,14 +90,22 @@ async function loadEconomics(
 // GET — aperçu (CA prévu + cible suggérée) pour pré-remplir le modal, sans IA.
 export async function GET(req: Request) {
   const supabase = await createClient()
+  let estId: string
   try {
-    await requireManager(supabase)
+    const { profile } = await requireManager(supabase)
+    estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
   } catch (e) {
     if (e instanceof Response) return e
     throw e
   }
   const weekMonday = new URL(req.url).searchParams.get('week_monday')
   if (!weekMonday) return Response.json({ error: 'week_monday requis' }, { status: 400 })
+
+  // Le copilote de productivité (prévision CA + cible coût/CA) est premium.
+  if (!isPro(getPlanTier(await getSubscription(supabase, estId)))) {
+    return Response.json({ premium: false, forecastTotal: 0 })
+  }
+
   const { weekDays, weekEndStr } = weekRange(weekMonday)
   const eco = await loadEconomics(supabase, weekMonday, weekDays, weekEndStr)
   return Response.json({
@@ -206,9 +214,10 @@ export async function POST(req: Request) {
   }
 
   // Copilote de productivité : prévision de CA + cible coût/CA injectées dans le prompt.
-  const eco = await loadEconomics(supabase, week_monday, weekDays, weekEndStr)
-  const targetPct = (typeof target_ratio === 'number' && target_ratio > 0) ? Math.round(target_ratio) : eco.suggestedTargetPct
-  const economicsSection = eco.forecastTotal > 0 ? `
+  // Premium (Pro/Multi-site) — les autres plans gardent la génération IA classique.
+  const eco = isPro(tier) ? await loadEconomics(supabase, week_monday, weekDays, weekEndStr) : null
+  const targetPct = (typeof target_ratio === 'number' && target_ratio > 0) ? Math.round(target_ratio) : (eco?.suggestedTargetPct ?? 0)
+  const economicsSection = eco && eco.forecastTotal > 0 ? `
 ## Prévision d'activité (chiffre d'affaires estimé, basé sur l'historique)
 ${eco.forecast.map(d => `- ${d.date} (${FR_DOW[new Date(d.date + 'T12:00:00').getDay()]}) : ~${d.amount} €`).join('\n')}
 CA total prévu : ~${eco.forecastTotal} € sur la semaine.
@@ -336,23 +345,25 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     }
   }
 
-  // Coût main d'œuvre estimé du planning proposé → ratio coût/CA estimé.
+  // Coût main d'œuvre estimé du planning proposé → ratio coût/CA estimé (premium).
   let estimatedCost = 0
-  for (const s of proposedShifts) {
-    const rate = eco.rateMap[s.employee_id]
-    if (rate) estimatedCost += shiftHours(s.start_time, s.end_time, s.break_minutes) * rate
+  if (eco) {
+    for (const s of proposedShifts) {
+      const rate = eco.rateMap[s.employee_id]
+      if (rate) estimatedCost += shiftHours(s.start_time, s.end_time, s.break_minutes) * rate
+    }
   }
-  const estimatedRatioPct = (eco.forecastTotal > 0 && estimatedCost > 0)
+  const estimatedRatioPct = (eco && eco.forecastTotal > 0 && estimatedCost > 0)
     ? Math.round((estimatedCost / eco.forecastTotal) * 100)
     : null
 
   return Response.json({
     shifts: proposedShifts,
     summary,
-    forecastTotal: eco.forecastTotal,
+    forecastTotal: eco?.forecastTotal ?? 0,
     targetPct,
-    targetBasis: eco.targetBasis,
-    historicalRatioPct: eco.historicalRatioPct,
+    targetBasis: eco?.targetBasis ?? 'sector',
+    historicalRatioPct: eco?.historicalRatioPct ?? null,
     estimatedCost: Math.round(estimatedCost),
     estimatedRatioPct,
   })
