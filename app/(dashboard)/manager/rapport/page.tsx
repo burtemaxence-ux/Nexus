@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { getWeekDates, toISODate, getWeekLabel } from '@/lib/utils/dates'
 import type { Profile, Shift, LeaveRequest } from '@/types'
-import { ChevronLeft, ChevronRight, Loader2, Users, Clock, TrendingUp, CalendarOff, AlarmClock, Download, Banknote } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Users, Clock, TrendingUp, CalendarOff, AlarmClock, Download, Banknote, Pencil, Euro, UserMinus } from 'lucide-react'
 import type { EmployeeReportRow } from './rapport-pdf'
 
 type LatenessRecord = {
@@ -61,6 +61,26 @@ function StatCard({
         <span className="text-[10px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>{label}</span>
       </div>
       <p className="text-[24px] font-bold leading-none tabular-nums" style={{ fontFamily: 'var(--font-syne)', color }}>{value}</p>
+      {sub && <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-tertiary)' }}>{sub}</p>}
+    </div>
+  )
+}
+
+// Mini-stat de la carte Productivité (sans fond, icône en ligne).
+function ProdStat({ icon: Icon, label, value, color = 'var(--text-primary)', sub }: {
+  icon: ComponentType<{ className?: string; style?: CSSProperties }>
+  label: string
+  value: string
+  color?: string
+  sub?: string
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-2">
+        <Icon className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
+        <span className="text-[10px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>{label}</span>
+      </div>
+      <p className="text-[22px] font-bold leading-none tabular-nums" style={{ fontFamily: 'var(--font-syne)', color }}>{value}</p>
       {sub && <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-tertiary)' }}>{sub}</p>}
     </div>
   )
@@ -163,6 +183,17 @@ function navigatePeriod(mode: Mode, ref: Date, dir: 1 | -1): Date {
   d.setMonth(d.getMonth() + dir); return d
 }
 
+function eachDay(start: Date, end: Date): string[] {
+  const out: string[] = []
+  const cur = new Date(start)
+  while (cur <= end) { out.push(toISODate(cur)); cur.setDate(cur.getDate() + 1) }
+  return out
+}
+
+function euros(n: number): string {
+  return n.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €'
+}
+
 export default function RapportPage() {
   const [mode, setMode] = useState<Mode>('week')
   const [refDate, setRefDate] = useState(new Date())
@@ -182,6 +213,10 @@ export default function RapportPage() {
   const [payFormat, setPayFormat] = useState<PayFormat>('generique')
   const [exportLoading, setExportLoading] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [revenueMap, setRevenueMap] = useState<Record<string, number>>({})
+  const [showRevenueDialog, setShowRevenueDialog] = useState(false)
+  const [revenueDraft, setRevenueDraft] = useState<Record<string, string>>({})
+  const [revenueSaving, setRevenueSaving] = useState(false)
 
   const period = useMemo(() => getPeriod(mode, refDate), [mode, refDate])
 
@@ -191,13 +226,14 @@ export default function RapportPage() {
     const startStr = toISODate(period.start)
     const endStr = toISODate(period.end)
 
-    const [empRes, shiftRes, presRes, leaveRes, settingRes, contractRes] = await Promise.all([
+    const [empRes, shiftRes, presRes, leaveRes, settingRes, contractRes, revRes] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false).order('full_name'),
       supabase.from('shifts').select('id, employee_id, date, start_time, end_time, break_minutes, position').gte('date', startStr).lte('date', endStr).is('deleted_at', null),
       supabase.from('presences').select('id, employee_id, date, clock_in, clock_out, break_minutes_used').gte('date', startStr).lte('date', endStr),
       supabase.from('leave_requests').select('id, employee_id, start_date, end_date, type').eq('status', 'approved').lte('start_date', endStr).gte('end_date', startStr),
       supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
       supabase.from('contracts').select('employee_id, hourly_rate, start_date').is('deleted_at', null).order('start_date', { ascending: false }),
+      supabase.from('revenues').select('date, amount').gte('date', startStr).lte('date', endStr),
     ])
 
     setEmployees((empRes.data ?? []) as Profile[])
@@ -205,6 +241,10 @@ export default function RapportPage() {
     setPresences((presRes.data ?? []) as Presence[])
     setLeaves((leaveRes.data ?? []) as LeaveRequest[])
     if (settingRes.data?.value) setEstablishmentName(settingRes.data.value)
+
+    const revMap: Record<string, number> = {}
+    for (const r of (revRes.data ?? []) as { date: string; amount: number }[]) revMap[r.date] = Number(r.amount)
+    setRevenueMap(revMap)
 
     // Build most-recent hourly rate per employee
     const rateMap: Record<string, number> = {}
@@ -296,11 +336,38 @@ export default function RapportPage() {
       plannedHours: rows.reduce((s, r) => s + r.plannedHours, 0),
       realHours: rows.reduce((s, r) => s + r.realHours, 0),
       diffHours: rows.reduce((s, r) => s + r.diffHours, 0),
+      plannedDays: rows.reduce((s, r) => s + r.plannedDays, 0),
       absences: rows.reduce((s, r) => s + r.absenceCP + r.absenceRTT + r.absenceMaladie + r.absenceSS + r.absenceAutre, 0),
       totalCost,
       hasCost: rows.some(r => r.estimatedCost !== null),
     }
   }, [rows])
+
+  // #2 — Productivité (coût main d'œuvre / CA) + absentéisme
+  const totalRevenue = useMemo(() => Object.values(revenueMap).reduce((s, v) => s + v, 0), [revenueMap])
+  const laborRatio = totals.hasCost && totalRevenue > 0 ? (totals.totalCost / totalRevenue) * 100 : null
+  const absenteeism = (totals.plannedDays + totals.absences) > 0
+    ? Math.round((totals.absences / (totals.plannedDays + totals.absences)) * 100)
+    : null
+
+  const openRevenueDialog = useCallback(() => {
+    const draft: Record<string, string> = {}
+    for (const d of eachDay(period.start, period.end)) draft[d] = revenueMap[d] != null ? String(revenueMap[d]) : ''
+    setRevenueDraft(draft)
+    setShowRevenueDialog(true)
+  }, [period.start, period.end, revenueMap])
+
+  const saveRevenue = useCallback(async () => {
+    setRevenueSaving(true)
+    const entries = Object.entries(revenueDraft).map(([date, v]) => ({ date, amount: parseFloat(v) || 0 }))
+    const res = await fetch('/api/revenues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries }),
+    })
+    setRevenueSaving(false)
+    if (res.ok) { setShowRevenueDialog(false); fetchData() }
+  }, [revenueDraft, fetchData])
 
   const filteredLateness = useMemo(() => {
     if (latenessFilter === 'justified') return latenessRecords.filter(r => r.justified)
@@ -735,6 +802,40 @@ export default function RapportPage() {
 
         {tab === 'heures' && (
         <>
+        {/* Productivité — coût main d'œuvre / CA + absentéisme (#2) */}
+        <div className="rounded-[14px] p-5" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+          <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+            <div>
+              <p className="text-[14px] font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>Productivité</p>
+              <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>Coût de la main d&apos;œuvre rapporté au chiffre d&apos;affaires.</p>
+            </div>
+            <button
+              onClick={openRevenueDialog}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors hover:bg-[var(--bg-input)]"
+              style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+            >
+              <Pencil className="h-3.5 w-3.5" /> Saisir le CA
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <ProdStat icon={Euro} label="Chiffre d'affaires" value={totalRevenue > 0 ? euros(totalRevenue) : '—'} />
+            <ProdStat icon={Banknote} label="Masse salariale" value={totals.hasCost ? euros(totals.totalCost) : '—'} sub={totals.hasCost ? undefined : 'taux horaires manquants'} />
+            <ProdStat
+              icon={TrendingUp}
+              label="Coût / CA"
+              value={laborRatio === null ? '—' : `${Math.round(laborRatio)}%`}
+              color={laborRatio === null ? 'var(--text-tertiary)' : laborRatio <= 30 ? 'var(--success)' : laborRatio <= 35 ? 'var(--warning)' : 'var(--danger)'}
+              sub={laborRatio === null ? 'saisir le CA' : laborRatio <= 30 ? 'sain' : laborRatio <= 35 ? 'à surveiller' : 'élevé'}
+            />
+            <ProdStat
+              icon={UserMinus}
+              label="Taux d'absentéisme"
+              value={absenteeism === null ? '—' : `${absenteeism}%`}
+              color={absenteeism === null ? 'var(--text-tertiary)' : absenteeism < 5 ? 'var(--success)' : absenteeism < 10 ? 'var(--warning)' : 'var(--danger)'}
+            />
+          </div>
+        </div>
+
         {/* Summary cards */}
         <div className={cn('grid gap-4', totals.hasCost ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6' : 'grid-cols-2 md:grid-cols-5')}>
           <StatCard index={0} icon={Users} label="Employés" value={String(totals.employees)} />
@@ -866,6 +967,61 @@ export default function RapportPage() {
         </>
         )}
       </div>
+
+      {/* Dialog — saisie du chiffre d'affaires (#2) */}
+      {showRevenueDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowRevenueDialog(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="rounded-[16px] w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden"
+            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          >
+            <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+              <p className="text-[15px] font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>Chiffre d&apos;affaires</p>
+              <p className="text-[12px] capitalize" style={{ color: 'var(--text-tertiary)' }}>{period.label}</p>
+            </div>
+            <div className="px-5 py-3 overflow-y-auto space-y-2">
+              {eachDay(period.start, period.end).map(d => (
+                <div key={d} className="flex items-center gap-3">
+                  <span className="text-[13px] flex-1 capitalize" style={{ color: 'var(--text-secondary)' }}>
+                    {new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={revenueDraft[d] ?? ''}
+                      onChange={e => setRevenueDraft(p => ({ ...p, [d]: e.target.value }))}
+                      placeholder="0"
+                      className="w-32 text-right rounded-lg pl-3 pr-7 py-1.5 text-[13px] focus:outline-none"
+                      style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>€</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="px-5 py-3 flex justify-end gap-2" style={{ borderTop: '1px solid var(--border)' }}>
+              <button onClick={() => setShowRevenueDialog(false)} className="px-4 py-2 rounded-xl text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                Annuler
+              </button>
+              <button
+                onClick={saveRevenue}
+                disabled={revenueSaving}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ backgroundColor: 'var(--accent)', color: 'white' }}
+              >
+                {revenueSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {revenueSaving ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
