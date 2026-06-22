@@ -1,16 +1,17 @@
 'use client'
 
-import { useState } from 'react'
-import { CreditCard, Check, Zap, Building2, Loader2, AlertTriangle } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { CreditCard, Check, Zap, Building2, Loader2, AlertTriangle, Users, Sparkles, ArrowUpRight } from 'lucide-react'
 import { isEntitledStatus, type SubscriptionRow } from '@/lib/subscription'
 import { type BillingInterval, type PlanId, PLAN_META } from '@/lib/stripe'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { AiQuotaBadge } from '@/components/ui/ai-quota-badge'
 
 interface Props {
   subscription: SubscriptionRow | null
   trialDaysLeft: number
+  employeeCount: number
+  employeeLimit: number | null
 }
 
 const PLAN_FEATURES: Record<PlanId, string[]> = {
@@ -68,14 +69,88 @@ function StatusBadge({ status }: { status: string }) {
 
 const PLANS: PlanId[] = ['essential', 'pro', 'multisite']
 
-export function BillingClient({ subscription, trialDaysLeft }: Props) {
+function FeatureItem({ feature }: { feature: string }) {
+  // Ligne d'en-tête « Tout l'Essentiel, et en plus : »
+  if (feature.endsWith(':')) {
+    return (
+      <li className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] pt-1">
+        {feature}
+      </li>
+    )
+  }
+  // ★ = nouveauté premium mise en avant
+  const premium = feature.startsWith('★')
+  return (
+    <li className={cn('flex items-start gap-2 text-[12px]', premium ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]')}>
+      {premium
+        ? <Zap className="h-3.5 w-3.5 text-[var(--accent)] mt-0.5 flex-shrink-0" />
+        : <Check className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
+      }
+      {premium ? feature.replace(/^★\s*/, '') : feature}
+    </li>
+  )
+}
+
+function UsageRow({
+  icon: Icon, label, used, limit, loading,
+}: { icon: typeof Users; label: string; used: number; limit: number | null; loading?: boolean }) {
+  const unlimited = limit === null
+  const pct = unlimited || limit === 0 ? 0 : Math.min((used / limit) * 100, 100)
+  const near = !unlimited && pct >= 80
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
+          <Icon className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+          {label}
+        </span>
+        <span className="text-[13px] font-medium text-[var(--text-primary)]">
+          {loading ? '—' : unlimited ? `${used} · illimité` : `${used} / ${limit}`}
+        </span>
+      </div>
+      {unlimited
+        ? !loading && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-600">
+              <Check className="h-3 w-3" /> Illimité avec votre plan
+            </span>
+          )
+        : (
+          <div className="w-full h-1.5 bg-[var(--bg-subtle)] rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${pct}%`, background: near ? '#FF6B6B' : 'var(--accent)' }}
+            />
+          </div>
+        )
+      }
+    </div>
+  )
+}
+
+export function BillingClient({ subscription, trialDaysLeft, employeeCount, employeeLimit }: Props) {
   const [loading, setLoading] = useState<string | null>(null)
   const [interval, setInterval] = useState<BillingInterval>('monthly')
+  const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null)
 
   const isActive = isEntitledStatus(subscription?.status)
   const periodEnd = subscription?.current_period_end
     ? new Date(subscription.current_period_end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     : null
+
+  const currentPlanId = (subscription?.plan ?? '') as PlanId
+  const planFeatures = PLAN_FEATURES[currentPlanId] ?? []
+  const nextPlanId = (() => {
+    const i = PLANS.indexOf(currentPlanId)
+    return i >= 0 && i < PLANS.length - 1 ? PLANS[i + 1] : null
+  })()
+
+  useEffect(() => {
+    if (!isActive) return
+    fetch('/api/ai/quota')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d) setQuota(d) })
+      .catch(() => {})
+  }, [isActive])
 
   async function handleCheckout(planId: PlanId) {
     const key = `${planId}_${interval}`
@@ -166,8 +241,7 @@ export function BillingClient({ subscription, trialDaysLeft }: Props) {
           )}
 
           {isActive && (
-            <div className="mt-4 pt-4 border-t border-[var(--border)] space-y-3">
-              <AiQuotaBadge />
+            <div className="mt-4 pt-4 border-t border-[var(--border)]">
               <button
                 onClick={handlePortal}
                 disabled={loading === 'portal'}
@@ -177,11 +251,70 @@ export function BillingClient({ subscription, trialDaysLeft }: Props) {
                   ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   : <CreditCard className="h-3.5 w-3.5" />
                 }
-                Gérer l&apos;abonnement et la facturation
+                Gérer l&apos;abonnement, factures &amp; moyen de paiement
               </button>
             </div>
           )}
         </div>
+      )}
+
+      {/* ── Plan actif : usage, avantages, upsell ─────────────────────── */}
+      {isActive && (
+        <>
+          {/* Utilisation */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 space-y-4">
+            <p className="text-[14px] font-medium text-[var(--text-primary)]">Utilisation</p>
+            <UsageRow
+              icon={Users}
+              label="Employés actifs"
+              used={employeeCount}
+              limit={employeeLimit}
+            />
+            <UsageRow
+              icon={Sparkles}
+              label="Générations IA ce mois-ci"
+              used={quota?.used ?? 0}
+              limit={quota && quota.limit !== -1 ? quota.limit : null}
+              loading={quota === null}
+            />
+          </div>
+
+          {/* Votre plan inclut */}
+          {planFeatures.length > 0 && (
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+              <p className="text-[14px] font-medium text-[var(--text-primary)] mb-3">Votre plan inclut</p>
+              <ul className="space-y-2">
+                {planFeatures.map(f => <FeatureItem key={f} feature={f} />)}
+              </ul>
+            </div>
+          )}
+
+          {/* Upsell vers le plan supérieur */}
+          {nextPlanId && (
+            <div className="rounded-xl border-2 border-[var(--accent)] bg-[var(--accent-light)] p-5">
+              <p className="text-[14px] font-medium text-[var(--text-primary)]">
+                Passez au plan {PLAN_LABELS[nextPlanId]}
+              </p>
+              <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+                À partir de {PLAN_META[nextPlanId].monthly}€/mois — débloquez :
+              </p>
+              <ul className="space-y-2 mt-3">
+                {PLAN_FEATURES[nextPlanId].filter(f => !f.endsWith(':')).map(f => <FeatureItem key={f} feature={f} />)}
+              </ul>
+              <button
+                onClick={handlePortal}
+                disabled={loading === 'portal'}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent)] text-white text-[13px] font-medium hover:opacity-90 disabled:opacity-60"
+              >
+                {loading === 'portal'
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <ArrowUpRight className="h-3.5 w-3.5" />
+                }
+                Faire évoluer mon plan
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {!isActive && (
@@ -255,27 +388,7 @@ export function BillingClient({ subscription, trialDaysLeft }: Props) {
                     )}
                   </div>
                   <ul className="space-y-2 flex-1">
-                    {PLAN_FEATURES[planId].map(f => {
-                      // Ligne d'en-tête « Tout l'Essentiel, et en plus : »
-                      if (f.endsWith(':')) {
-                        return (
-                          <li key={f} className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] pt-1">
-                            {f}
-                          </li>
-                        )
-                      }
-                      // ★ = nouveauté premium mise en avant
-                      const premium = f.startsWith('★')
-                      return (
-                        <li key={f} className={cn('flex items-start gap-2 text-[12px]', premium ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]')}>
-                          {premium
-                            ? <Zap className="h-3.5 w-3.5 text-[var(--accent)] mt-0.5 flex-shrink-0" />
-                            : <Check className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
-                          }
-                          {premium ? f.replace(/^★\s*/, '') : f}
-                        </li>
-                      )
-                    })}
+                    {PLAN_FEATURES[planId].map(f => <FeatureItem key={f} feature={f} />)}
                   </ul>
                   <button
                     onClick={() => handleCheckout(planId)}
