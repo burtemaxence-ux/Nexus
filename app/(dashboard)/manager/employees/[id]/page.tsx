@@ -21,6 +21,13 @@ import {
   Trash2, Shield, Clock, ChevronLeft, AlarmClock
 } from 'lucide-react'
 import { DocumentsTab } from '@/components/employees/documents-tab'
+import {
+  CONTRACT_TYPES,
+  parseContractConfig,
+  enabledContractTypes,
+  type ContractType,
+  type ContractTypesConfig,
+} from '@/lib/contracts'
 
 type LatenessRecord = {
   id: string
@@ -41,7 +48,6 @@ const TABS = [
   { id: 'documents', label: 'Documents', icon: Archive },
 ]
 
-const CONTRACT_TYPES = ['CDI 35h', 'CDI 28h', 'CDD', 'CDD Saisonnier', 'Extra'] as const
 const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 const POSITIONS = ['Serveur', 'Serveuse', 'Cuisinier', 'Cuisinière', 'Chef de rang', 'Barman', 'Barmaid', 'Plongeur', 'Chef de cuisine', 'Sous-chef', 'Commis de cuisine', "Hôte d'accueil"]
 
@@ -65,6 +71,7 @@ export default function EmployeeDetailPage() {
   const [employee, setEmployee] = useState<Profile | null>(null)
   const [invitedByName, setInvitedByName] = useState<string | null>(null)
   const [contracts, setContracts] = useState<Contract[]>([])
+  const [contractConfig, setContractConfig] = useState<ContractTypesConfig | null>(null)
   const [showArchiveDialog, setShowArchiveDialog] = useState(false)
   const [showContractDialog, setShowContractDialog] = useState(false)
   const [pinVisible, setPinVisible] = useState(false)
@@ -144,11 +151,14 @@ export default function EmployeeDetailPage() {
 
   const load = useCallback(async () => {
     const supabase = createClient()
-    const [empRes, contractsRes, availRes] = await Promise.all([
+    const [empRes, contractsRes, availRes, settingsRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', id).single(),
       fetch(`/api/employees/${id}/contracts`).then(r => r.json()),
       fetch(`/api/employees/${id}/availabilities`).then(r => r.json()),
+      fetch('/api/settings').then(r => r.json()).catch(() => ({})),
     ])
+
+    setContractConfig(parseContractConfig((settingsRes as Record<string, string>)?.contract_types_config))
 
     if (empRes.error || !empRes.data) { router.push('/manager/employees'); return }
 
@@ -367,6 +377,13 @@ export default function EmployeeDetailPage() {
   }
 
   if (!employee) return null
+
+  // Types proposés dans le dialogue de contrat : ceux activés en réglages, en
+  // gardant toujours le type courant même s'il a été désactivé entre-temps.
+  const baseContractTypes = contractConfig ? enabledContractTypes(contractConfig) : [...CONTRACT_TYPES]
+  const contractTypeOptions = baseContractTypes.includes(contractForm.type as ContractType)
+    ? baseContractTypes
+    : [contractForm.type as ContractType, ...baseContractTypes]
 
   return (
     <div className="min-h-full">
@@ -970,7 +987,7 @@ export default function EmployeeDetailPage() {
                   <Select value={contractForm.type} onValueChange={v => setContractForm(p => ({ ...p, type: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {CONTRACT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {contractTypeOptions.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

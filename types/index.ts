@@ -1,3 +1,5 @@
+import type { ContractType } from '@/lib/contracts'
+
 export type Poste = {
   id: string
   name: string
@@ -19,7 +21,7 @@ export type Profile = {
   full_name: string | null
   role: UserRole
   position: string | null
-  contract_type: 'CDI 35h' | 'CDI 28h' | 'CDD' | 'CDD Saisonnier' | 'Extra' | null
+  contract_type: ContractType | null
   weekly_hours: number | null
   phone: string | null
   pay_ref: string | null
@@ -45,7 +47,7 @@ export type Profile = {
 export type Contract = {
   id: string
   employee_id: string
-  type: 'CDI 35h' | 'CDI 28h' | 'CDD' | 'CDD Saisonnier' | 'Extra'
+  type: ContractType
   start_date: string
   end_date: string | null
   weekly_hours: number

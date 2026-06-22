@@ -1,128 +1,68 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Check, FileText } from 'lucide-react'
+import { Loader2, Check, FileText, ShieldCheck, Info } from 'lucide-react'
+import {
+  CONTRACT_TYPES,
+  parseContractConfig,
+  defaultContractConfig,
+  type ContractType,
+  type ContractTypesConfig,
+} from '@/lib/contracts'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type ContractConfig = {
-  enabled: boolean
-  max_hours_week: number    // 0 = pas de limite
-  alert_hours_week: number  // 0 = pas d'alerte
-  alert_complementary: boolean
-}
-
-type ContractTypes = {
-  'CDI 35h': ContractConfig
-  'CDI temps partiel': ContractConfig
-  'CDD': ContractConfig
-  'CDD Saisonnier': ContractConfig
-  'Extra': ContractConfig
-  'Apprentissage': ContractConfig
-  'Stage': ContractConfig
-}
-
-const CONTRACT_KEYS = [
-  'CDI 35h',
-  'CDI temps partiel',
-  'CDD',
-  'CDD Saisonnier',
-  'Extra',
-  'Apprentissage',
-  'Stage',
+// Règles légales vérifiées automatiquement par le moteur de conformité
+// (lib/compliance/rules.ts). Affichées ici en lecture seule : elles s'appliquent
+// quelle que soit la convention collective.
+const LEGAL_RULES = [
+  { label: 'Repos quotidien',     value: '11h min.', detail: 'Entre la fin d’un service et le début du suivant.',          ref: 'L3131-1'  },
+  { label: 'Durée max / jour',    value: '10h',      detail: 'Travail effectif sur une même journée.',                     ref: 'L3121-18' },
+  { label: 'Durée max / semaine', value: '48h',      detail: 'Maximum absolu, heures supplémentaires comprises.',          ref: 'L3121-20' },
+  { label: 'Pause obligatoire',   value: '20 min',   detail: 'Dès 6h de travail consécutives.',                            ref: 'L3121-16' },
+  { label: 'Jours consécutifs',   value: '6 max.',   detail: 'Un jour de repos hebdomadaire reste obligatoire.',           ref: 'L3132-1'  },
 ] as const
 
-type ContractKey = (typeof CONTRACT_KEYS)[number]
-
-const DEFAULTS: ContractTypes = {
-  'CDI 35h':          { enabled: true,  max_hours_week: 0,  alert_hours_week: 37, alert_complementary: false },
-  'CDI temps partiel':{ enabled: true,  max_hours_week: 0,  alert_hours_week: 0,  alert_complementary: true  },
-  'CDD':              { enabled: true,  max_hours_week: 0,  alert_hours_week: 0,  alert_complementary: false },
-  'CDD Saisonnier':   { enabled: true,  max_hours_week: 0,  alert_hours_week: 0,  alert_complementary: false },
-  'Extra':            { enabled: true,  max_hours_week: 0,  alert_hours_week: 0,  alert_complementary: true  },
-  'Apprentissage':    { enabled: true,  max_hours_week: 28, alert_hours_week: 0,  alert_complementary: false },
-  'Stage':            { enabled: true,  max_hours_week: 0,  alert_hours_week: 0,  alert_complementary: false },
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function Toggle({ checked, onToggle, small }: { checked: boolean; onToggle: () => void; small?: boolean }) {
-  const h = small ? 'h-5 w-9' : 'h-6 w-11'
-  const dot = small ? 'h-3.5 w-3.5' : 'h-4 w-4'
-  const on = small ? 'translate-x-4' : 'translate-x-6'
+// ── Toggle ──────────────────────────────────────────────────────────────────
+function Toggle({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
   return (
     <button
       role="switch"
       aria-checked={checked}
       onClick={onToggle}
-      className={`relative inline-flex ${h} items-center rounded-full transition-colors duration-150 focus:outline-none`}
+      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 focus:outline-none"
       style={{ backgroundColor: checked ? 'var(--accent)' : 'var(--border)' }}
     >
-      <span className={`inline-block ${dot} transform rounded-full bg-white shadow transition-transform ${
-        checked ? on : 'translate-x-1'
+      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+        checked ? 'translate-x-6' : 'translate-x-1'
       }`} />
     </button>
   )
 }
 
-function NumInput({
-  value, onChange, placeholder,
-}: { value: number; onChange: (v: number) => void; placeholder: string }) {
-  return (
-    <div className="relative w-20">
-      <Input
-        type="number"
-        min="0"
-        step="0.5"
-        value={value === 0 ? '' : value}
-        onChange={e => onChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-        placeholder={placeholder}
-        className="h-7 text-sm pr-5 text-center"
-      />
-      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">h</span>
-    </div>
-  )
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function ContratsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [config, setConfig] = useState<ContractTypes>(DEFAULTS)
+  const [config, setConfig] = useState<ContractTypesConfig>(defaultContractConfig())
 
   useEffect(() => {
     fetch('/api/settings')
       .then(r => r.json())
       .then((data: Record<string, string>) => {
-        if (data.contract_types_config) {
-          try {
-            const parsed = JSON.parse(data.contract_types_config) as Partial<ContractTypes>
-            setConfig(prev => {
-              const merged = { ...prev }
-              for (const key of CONTRACT_KEYS) {
-                if (parsed[key]) merged[key] = { ...prev[key], ...parsed[key] }
-              }
-              return merged
-            })
-          } catch { /* keep defaults */ }
-        }
+        setConfig(parseContractConfig(data.contract_types_config))
         setLoading(false)
       })
       .catch(() => setLoading(false))
   }, [])
 
-  function setField<K extends keyof ContractConfig>(
-    type: ContractKey, field: K, value: ContractConfig[K]
-  ) {
-    setConfig(prev => ({
-      ...prev,
-      [type]: { ...prev[type], [field]: value },
-    }))
+  function toggle(type: ContractType) {
+    setConfig(prev => ({ ...prev, [type]: { ...prev[type], enabled: !prev[type].enabled } }))
+  }
+  function setRefHours(type: ContractType, hours: number) {
+    setConfig(prev => ({ ...prev, [type]: { ...prev[type], ref_hours: hours } }))
   }
 
   async function handleSave() {
@@ -137,6 +77,8 @@ export default function ContratsPage() {
     setTimeout(() => setSaved(false), 2500)
   }
 
+  const activeCount = useMemo(() => CONTRACT_TYPES.filter(t => config[t].enabled).length, [config])
+
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -145,18 +87,16 @@ export default function ContratsPage() {
     )
   }
 
-  const enabledKeys = CONTRACT_KEYS.filter(k => config[k].enabled)
-
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-8 py-10 space-y-6">
       <div>
         <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Contrats & RH</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Types de contrats actifs et limites automatiques par type.
+        <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+          Choisissez les types de contrats proposés à vos équipes et leurs repères horaires.
         </p>
       </div>
 
-      {/* ── Types de contrats actifs ─────────────────────────────────── */}
+      {/* ── Types de contrats proposés ────────────────────────────────── */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -164,105 +104,100 @@ export default function ContratsPage() {
               <FileText className="h-4 w-4 text-violet-500" />
             </div>
             <div>
-              <CardTitle className="text-base">Types de contrats disponibles</CardTitle>
+              <CardTitle className="text-base">Types de contrats proposés</CardTitle>
               <CardDescription>
-                Activez les types proposés lors de la création d&apos;un employé.
+                Les types activés apparaissent dans le menu déroulant à la création et à l’édition d’un employé.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-0 divide-y divide-border">
-            {CONTRACT_KEYS.map(key => (
-              <div key={key} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                <div className="flex items-center gap-3">
-                  <div className={`h-2 w-2 rounded-full ${config[key].enabled ? 'bg-emerald-400' : 'bg-gray-200 dark:bg-[#2A2D3A]'}`} />
-                  <span className={`text-sm font-medium ${config[key].enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
-                    {key}
-                  </span>
-                </div>
-                <Toggle
-                  checked={config[key].enabled}
-                  onToggle={() => setField(key, 'enabled', !config[key].enabled)}
-                  small
-                />
-              </div>
-            ))}
+          {/* En-têtes de colonnes */}
+          <div className="grid grid-cols-[1fr_5rem_3rem] items-center gap-x-4 pb-2 border-b border-border">
+            <span className="text-[10px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>Type</span>
+            <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-center" style={{ color: 'var(--text-tertiary)' }}>h/sem.</span>
+            <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-right" style={{ color: 'var(--text-tertiary)' }}>Proposé</span>
           </div>
+
+          <div className="divide-y divide-border/60">
+            {CONTRACT_TYPES.map(type => {
+              const c = config[type]
+              return (
+                <div key={type} className="grid grid-cols-[1fr_5rem_3rem] items-center gap-x-4 py-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className={`h-2 w-2 rounded-full shrink-0 ${c.enabled ? 'bg-emerald-400' : 'bg-gray-200 dark:bg-[#2A2D3A]'}`} />
+                    <span className={`text-sm font-medium truncate ${c.enabled ? 'text-foreground' : 'text-muted-foreground'}`}>{type}</span>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type="number" min="0" max="60" step="0.5"
+                      value={c.ref_hours === 0 ? '' : c.ref_hours}
+                      onChange={e => setRefHours(type, e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                      placeholder="—"
+                      disabled={!c.enabled}
+                      className="h-8 text-sm text-center pr-5"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">h</span>
+                  </div>
+                  <div className="flex justify-end">
+                    <Toggle checked={c.enabled} onToggle={() => toggle(type)} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="flex items-start gap-2 pt-4 mt-1 border-t border-border">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">h/sem.</span> est le volume horaire hebdomadaire de référence : il pré-remplit le champ « Volume horaire » à la création d’un employé de ce type. Toujours modifiable ensuite dans la fiche.
+            </p>
+          </div>
+
+          {activeCount === 0 && (
+            <p className="text-xs pt-2" style={{ color: 'var(--warning)' }}>
+              Aucun type activé — tous les types restent proposés par défaut pour ne pas bloquer la création d’employés.
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      {/* ── Limites automatiques ──────────────────────────────────────── */}
+      {/* ── Durées maximales légales (lecture seule) ──────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Limites et alertes par type</CardTitle>
-          <CardDescription>
-            Configurez les seuils d&apos;alerte et les maximums légaux par contrat.
-          </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Durées maximales légales</CardTitle>
+              <CardDescription>
+                Vérifiées automatiquement sur la grille de planning, quelle que soit la convention.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {enabledKeys.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Aucun type de contrat activé.
-            </p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide pr-4">Type</th>
-                  <th className="text-center py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide px-3">
-                    Max h/sem
-                  </th>
-                  <th className="text-center py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide px-3">
-                    Alerte h/sem
-                  </th>
-                  <th className="text-center py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide pl-3">
-                    H. comp.
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {enabledKeys.map(key => (
-                  <tr key={key} className="hover:bg-muted/20 transition-colors">
-                    <td className="py-3 pr-4">
-                      <span className="font-medium text-foreground">{key}</span>
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <NumInput
-                        value={config[key].max_hours_week}
-                        onChange={v => setField(key, 'max_hours_week', v)}
-                        placeholder="—"
-                      />
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <NumInput
-                        value={config[key].alert_hours_week}
-                        onChange={v => setField(key, 'alert_hours_week', v)}
-                        placeholder="—"
-                      />
-                    </td>
-                    <td className="py-3 pl-3 text-center">
-                      <Toggle
-                        checked={config[key].alert_complementary}
-                        onToggle={() => setField(key, 'alert_complementary', !config[key].alert_complementary)}
-                        small
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <div className="divide-y divide-border/60">
+            {LEGAL_RULES.map(rule => (
+              <div key={rule.label} className="flex items-center justify-between gap-4 py-3 first:pt-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">{rule.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{rule.detail}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-semibold text-foreground tabular-nums">{rule.value}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Art. {rule.ref}</p>
+                </div>
+              </div>
+            ))}
+          </div>
 
-          <div className="mt-4 pt-4 border-t border-border space-y-1">
+          <div className="flex items-start gap-2 pt-4 mt-1 border-t border-border">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
             <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Max h/sem</span> — bloque la planification au-delà de ce seuil.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Alerte h/sem</span> — déclenche une alerte sans bloquer (ex : 37h pour CDI 35h).
-            </p>
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">H. comp.</span> — alerte si les heures planifiées dépassent 1/3 du contrat (temps partiels, extras).
+              Ces seuils découlent du Code du travail et ne se règlent pas ici. Les durées propres à votre secteur (heures sup., équivalences, repos) se configurent dans{' '}
+              <span className="font-medium text-foreground">Réglages › Planning</span> via votre convention collective.
             </p>
           </div>
         </CardContent>

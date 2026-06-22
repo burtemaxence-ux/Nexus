@@ -16,14 +16,19 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Loader2, Copy, Check, ExternalLink } from 'lucide-react'
 import type { Poste } from '@/types'
+import {
+  CONTRACT_TYPES,
+  parseContractConfig,
+  enabledContractTypes,
+  type ContractType,
+  type ContractTypesConfig,
+} from '@/lib/contracts'
 
 const ROLE_OPTIONS = [
   { value: 'employee', label: 'Employé' },
   { value: 'supervisor', label: 'Superviseur' },
   { value: 'manager', label: 'Manager' },
 ] as const
-
-const CONTRACT_TYPES = ['CDI 35h', 'CDI 28h', 'CDD', 'CDD Saisonnier', 'Extra'] as const
 
 export default function NewEmployeePage() {
   const router = useRouter()
@@ -39,6 +44,7 @@ export default function NewEmployeePage() {
   const [startDate, setStartDate] = useState('')
 
   const [postes, setPostes] = useState<Poste[]>([])
+  const [contractConfig, setContractConfig] = useState<ContractTypesConfig | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
@@ -50,7 +56,19 @@ export default function NewEmployeePage() {
       .then(r => r.json())
       .then((data: Poste[]) => Array.isArray(data) && setPostes(data))
       .catch(() => {})
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then((data: Record<string, string>) => setContractConfig(parseContractConfig(data.contract_types_config)))
+      .catch(() => {})
   }, [])
+
+  const contractTypeOptions = contractConfig ? enabledContractTypes(contractConfig) : [...CONTRACT_TYPES]
+
+  function handleContractTypeChange(value: string) {
+    setContractType(value)
+    const ref = contractConfig?.[value as ContractType]?.ref_hours ?? 0
+    if (ref > 0 && !weeklyHours) setWeeklyHours(String(ref))
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -226,12 +244,12 @@ export default function NewEmployeePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="contract_type">Type de contrat</Label>
-                    <Select value={contractType} onValueChange={setContractType} disabled={loading}>
+                    <Select value={contractType} onValueChange={handleContractTypeChange} disabled={loading}>
                       <SelectTrigger id="contract_type">
                         <SelectValue placeholder="Sélectionner" />
                       </SelectTrigger>
                       <SelectContent>
-                        {CONTRACT_TYPES.map(t => (
+                        {contractTypeOptions.map(t => (
                           <SelectItem key={t} value={t}>{t}</SelectItem>
                         ))}
                       </SelectContent>

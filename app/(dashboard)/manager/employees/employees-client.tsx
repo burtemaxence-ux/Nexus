@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import DeleteEmployeeButton from './delete-employee-button'
 import ResendLinkButton from './resend-link-button'
+import { CONTRACT_TYPES } from '@/lib/contracts'
 
 export type Employee = {
   id: string
@@ -26,8 +27,6 @@ export type Employee = {
 
 type SortField = 'full_name' | 'position' | 'contract_type' | 'weekly_hours' | 'created_at'
 type SortDir = 'asc' | 'desc'
-
-const CONTRACT_TYPES = ['CDI 35h', 'CDI 28h', 'CDD', 'CDD Saisonnier', 'Extra']
 
 function getInitials(name: string): string {
   return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
