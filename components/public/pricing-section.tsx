@@ -12,9 +12,10 @@ const PLANS = [
     description: 'Pour démarrer sans se prendre la tête.',
     features: [
       "Jusqu'à 10 employés",
-      'Planning IA (3 générations/mois)',
-      'Gestion des congés',
-      'Badgeuse mobile',
+      'Planning + IA (3 générations/mois)',
+      'Présences & badgeuse mobile',
+      'Congés & conformité Code du Travail',
+      'Dossier RH : contrats, documents, photos',
       'Support email',
     ],
     cta: "Démarrer l'essai gratuit",
@@ -29,11 +30,13 @@ const PLANS = [
     annualPrice: 890,
     description: 'Le choix de la plupart des patrons.',
     features: [
+      "Tout l'Essentiel, et en plus :",
+      '★ Pilotage productivité (coût/CA, masse salariale)',
+      '★ Absentéisme & turnover',
+      '★ Copilote IA : planning optimisé coût/CA',
+      'IA illimitée + remplacement en 1 clic',
+      'Documents de conformité',
       "Jusqu'à 25 employés",
-      'IA illimitée',
-      'Conformité automatique',
-      'Remplacement IA en 1 clic',
-      'Analytics & rapports',
     ],
     cta: "Démarrer l'essai gratuit",
     popular: true,
@@ -47,11 +50,11 @@ const PLANS = [
     annualPrice: 1490,
     description: "Pour gérer plusieurs établissements.",
     features: [
-      '3 établissements',
-      'Employés illimités',
+      'Tout le Pro, et en plus :',
+      'Employés illimités · 3 établissements',
+      '★ Pilotage productivité multi-sites',
       'Dashboard consolidé',
-      'Support prioritaire sous 4h',
-      'Accès API',
+      'Support prioritaire sous 4h · API',
     ],
     cta: "Démarrer l'essai gratuit",
     popular: false,
@@ -334,18 +337,37 @@ export function PricingSection() {
 
               {/* Features */}
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {plan.features.map((feature, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <CheckIcon color={plan.popular ? '#6C63FF' : '#00D4AA'} />
-                    <span style={{
-                      fontFamily: "'DM Sans', sans-serif",
-                      fontSize: 13,
-                      color: 'rgba(255,255,255,0.6)',
-                    }}>
-                      {feature}
-                    </span>
-                  </li>
-                ))}
+                {plan.features.map((feature, i) => {
+                  // En-tête « Tout l'Essentiel/Pro, et en plus : »
+                  if (feature.endsWith(':')) {
+                    return (
+                      <li key={i} style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
+                        color: 'rgba(255,255,255,0.4)',
+                      }}>
+                        {feature}
+                      </li>
+                    )
+                  }
+                  const premium = feature.startsWith('★')
+                  return (
+                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <CheckIcon color={premium ? '#6C63FF' : plan.popular ? '#6C63FF' : '#00D4AA'} />
+                      <span style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: 13,
+                        fontWeight: premium ? 600 : 400,
+                        color: premium ? '#ffffff' : 'rgba(255,255,255,0.6)',
+                      }}>
+                        {premium ? feature.replace(/^★\s*/, '') : feature}
+                      </span>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           ))}

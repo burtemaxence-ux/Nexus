@@ -16,31 +16,29 @@ interface Props {
 const PLAN_FEATURES: Record<PlanId, string[]> = {
   essential: [
     'Jusqu\'à 10 employés',
-    'Planning hebdomadaire',
-    'Suivi des présences',
+    'Planning hebdomadaire + IA (3 générations/mois)',
+    'Suivi des présences & badgeuse',
     'Gestion des congés',
-    'Exports PDF/CSV',
-    '3 générations IA/mois',
+    'Conformité Code du Travail (alertes + vérification)',
+    'Dossier RH : contrats, documents, photos',
+    'Exports PDF / CSV',
   ],
   pro: [
-    'Jusqu\'à 25 employés',
-    'Planning intelligent',
-    'Suivi des présences',
-    'Gestion des congés',
-    'Conformité automatique',
+    'Tout l\'Essentiel, et en plus :',
+    '★ Pilotage de la productivité (CA, coût/CA, masse salariale)',
+    '★ Absentéisme & turnover',
+    '★ Copilote IA : planning optimisé coût/CA',
     'Assistant IA illimité',
-    'Exports PDF/CSV',
+    'Documents de conformité (avertissements, avenants…)',
+    'Jusqu\'à 25 employés',
     'Support prioritaire',
   ],
   multisite: [
+    'Tout le Pro, et en plus :',
     'Employés illimités',
     'Multi-établissements',
-    'Planning intelligent',
-    'Suivi des présences',
-    'Gestion des congés',
-    'Conformité automatique',
+    '★ Pilotage productivité multi-sites',
     'Assistant IA illimité',
-    'Exports PDF/CSV',
     'Support dédié',
   ],
 }
@@ -257,11 +255,27 @@ export function BillingClient({ subscription, trialDaysLeft }: Props) {
                     )}
                   </div>
                   <ul className="space-y-2 flex-1">
-                    {PLAN_FEATURES[planId].map(f => (
-                      <li key={f} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]">
-                        <Check className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />{f}
-                      </li>
-                    ))}
+                    {PLAN_FEATURES[planId].map(f => {
+                      // Ligne d'en-tête « Tout l'Essentiel, et en plus : »
+                      if (f.endsWith(':')) {
+                        return (
+                          <li key={f} className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] pt-1">
+                            {f}
+                          </li>
+                        )
+                      }
+                      // ★ = nouveauté premium mise en avant
+                      const premium = f.startsWith('★')
+                      return (
+                        <li key={f} className={cn('flex items-start gap-2 text-[12px]', premium ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]')}>
+                          {premium
+                            ? <Zap className="h-3.5 w-3.5 text-[var(--accent)] mt-0.5 flex-shrink-0" />
+                            : <Check className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
+                          }
+                          {premium ? f.replace(/^★\s*/, '') : f}
+                        </li>
+                      )
+                    })}
                   </ul>
                   <button
                     onClick={() => handleCheckout(planId)}
