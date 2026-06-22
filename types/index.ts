@@ -1,4 +1,5 @@
 import type { ContractType } from '@/lib/contracts'
+import type { LeaveType } from '@/lib/leaves'
 
 export type Poste = {
   id: string
@@ -103,7 +104,7 @@ export type WeekStatus = {
   locked_at: string | null
 }
 
-export type LeaveType = 'CP' | 'RTT' | 'maladie' | 'sans_solde' | 'autre'
+export type { LeaveType }
 export type LeaveStatus = 'pending' | 'approved' | 'rejected'
 
 export type LeaveRequest = {

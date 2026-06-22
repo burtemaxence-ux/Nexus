@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
+import { leaveTypeLabel } from '@/lib/leaves'
 
 // Vercel Pro : 30s max. Vercel Hobby : 10s (exports larges peuvent dépasser).
 export const maxDuration = 30
@@ -164,10 +165,6 @@ export async function GET(request: NextRequest) {
 
   // ── absences (congés approuvés) ──────────────────────────────────────────────
   if (type === 'absences') {
-    const TYPE_LABELS: Record<string, string> = {
-      CP: 'Congés payés', RTT: 'RTT', maladie: 'Maladie',
-      sans_solde: 'Sans solde', autre: 'Autre',
-    }
     const { data } = await supabase
       .from('leave_requests')
       .select('type, start_date, end_date, status, profiles:employee_id(full_name, email)')
@@ -182,7 +179,7 @@ export async function GET(request: NextRequest) {
       return [
         p?.full_name ?? p?.email ?? '',
         p?.email ?? '',
-        TYPE_LABELS[r.type] ?? r.type,
+        leaveTypeLabel(r.type),
         new Date(r.start_date).toLocaleDateString('fr-FR'),
         new Date(r.end_date).toLocaleDateString('fr-FR'),
         statusLabel[r.status] ?? r.status,
