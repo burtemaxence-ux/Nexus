@@ -2,6 +2,11 @@ import { z, ZodError } from 'zod'
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date invalide (YYYY-MM-DD)')
 const timeHHMM = z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Heure invalide (HH:MM)')
+// UUID permissif : accepte tout identifiant au format 8-4-4-4-12 (comme le type
+// `uuid` Postgres), contrairement à z.uuid() qui exige les bits de version RFC
+// et rejette des UUID valides côté base (ex. jeux de données seed/démo).
+const uuidStr = (msg = 'Identifiant invalide') =>
+  z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, msg)
 
 export const InviteSchema = z.object({
   first_name: z.string().min(1).max(100),
@@ -16,12 +21,12 @@ export const InviteSchema = z.object({
 })
 
 export const ShiftSchema = z.object({
-  employee_id: z.string().uuid('employee_id invalide'),
+  employee_id: uuidStr('employee_id invalide'),
   date: isoDate,
   start_time: timeHHMM,
   end_time: timeHHMM,
   position: z.string().max(100).optional(),
-  poste_id: z.string().uuid().nullable().optional(),
+  poste_id: uuidStr().nullable().optional(),
   break_minutes: z.number().int().min(0).max(480).optional(),
   notes: z.string().max(500).optional(),
 })
