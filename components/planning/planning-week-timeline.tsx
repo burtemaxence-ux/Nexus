@@ -13,6 +13,7 @@ import { type Profile, type Shift, type Poste, type LeaveRequest } from '@/types
 import { SosReplacementModal } from '@/components/planning/sos-replacement-modal'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 import { calcHours, formatHours, formatTime, isToday, getInitials } from '@/lib/planning-utils'
+import { checkCompliance, RULES, type ShiftRecord } from '@/lib/compliance/rules'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
 import dynamic from 'next/dynamic'
 import {
@@ -86,6 +87,35 @@ export function PlanningWeekTimeline({
   const [filterPoste, setFilterPoste] = useState('')
   const [showAiPlanModal, setShowAiPlanModal] = useState(false)
   const [aiQuotaKey, setAiQuotaKey] = useState(0)
+  const [verify, setVerify] = useState(false)
+
+  // Conformité Code du Travail sur la semaine affichée. Calculée à la demande
+  // (bouton « Vérifier ») et projetée sur les cases : un shift en infraction
+  // est surligné en rouge, le détail apparaît au survol.
+  const violationMap = useMemo(() => {
+    const records: ShiftRecord[] = shifts.map(s => ({
+      id: s.id,
+      employeeId: s.employee_id,
+      date: s.date,
+      startTime: s.start_time.slice(0, 5),
+      endTime: s.end_time.slice(0, 5),
+      breakMinutes: s.break_minutes ?? 0,
+    }))
+    const m = new Map<string, string[]>()
+    for (const v of checkCompliance(records)) {
+      const key = `${v.employeeId}__${v.date}`
+      const rule = RULES[v.ruleId]
+      const arr = m.get(key) ?? []
+      arr.push(`${rule?.name ?? v.ruleId} — ${v.description}${rule?.legalRef ? ` (${rule.legalRef})` : ''}`)
+      m.set(key, arr)
+    }
+    return m
+  }, [shifts])
+
+  const violationCount = useMemo(
+    () => Array.from(violationMap.values()).reduce((s, a) => s + a.length, 0),
+    [violationMap],
+  )
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -320,6 +350,24 @@ export function PlanningWeekTimeline({
             <Link href={`/manager/planning/print?week=${mondayStr}`} target="_blank">
               <button className="btn-secondary" style={{ padding: '7px 9px' }} title="Exporter PDF"><Printer size={13} /></button>
             </Link>
+            <button
+              className="btn-secondary"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px',
+                ...(verify
+                  ? (violationCount > 0
+                      ? { borderColor: 'var(--danger)', color: 'var(--danger)' }
+                      : { borderColor: 'var(--success)', color: 'var(--success)' })
+                  : {}),
+              }}
+              onClick={() => setVerify(v => !v)}
+              title="Vérifier la conformité au Code du Travail"
+            >
+              <AlertTriangle size={13} />
+              {verify
+                ? (violationCount > 0 ? `${violationCount} infraction${violationCount > 1 ? 's' : ''}` : 'Conforme')
+                : 'Vérifier'}
+            </button>
             <AiQuotaBadge refreshKey={aiQuotaKey} />
             <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', borderColor: 'var(--accent)', color: 'var(--accent)' }}
               onClick={() => setShowAiPlanModal(true)} title="Générer le planning automatiquement avec l'IA">
@@ -422,6 +470,7 @@ export function PlanningWeekTimeline({
                               key={dateStr} droppableId={did} shifts={dayShifts} leaveType={leaveType}
                               postes={posteMap} weekLocked={weekLocked} isToday={todayCol}
                               employee={emp} date={date}
+                              violations={verify ? violationMap.get(did) : undefined}
                               onAdd={handleCellAdd}
                               onClickShift={handleCellClickShift}
                               onContextMenu={handleCellContextMenu}

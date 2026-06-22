@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, memo } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, AlertTriangle } from 'lucide-react'
 import type { Shift, Poste, LeaveType, Profile } from '@/types'
 import { LEAVE_STYLES } from '@/lib/planning-utils'
 import { useDroppable } from '@dnd-kit/core'
@@ -21,7 +21,7 @@ export const AbsenceBadge = memo(function AbsenceBadge({ type }: { type: LeaveTy
   )
 })
 
-export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, employee, date, onAdd, onClickShift, onContextMenu, onSos, isToday: isTodayCol }: {
+export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, employee, date, onAdd, onClickShift, onContextMenu, onSos, isToday: isTodayCol, violations }: {
   droppableId: string
   shifts: Shift[]
   leaveType: LeaveType | undefined
@@ -34,23 +34,38 @@ export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType,
   onContextMenu: (e: React.MouseEvent, s: Shift, employee: Profile, date: Date) => void
   onSos: (s: Shift, employee: Profile) => void
   isToday: boolean
+  violations?: string[]
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: droppableId })
   const [hov, setHov] = useState(false)
   const isEmpty = shifts.length === 0 && !leaveType
+  const hasViol = !!violations && violations.length > 0
 
   return (
     <td
       ref={setNodeRef}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
+      title={hasViol ? violations!.join('\n') : undefined}
       style={{
         borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)',
         padding: '8px', verticalAlign: 'top',
-        backgroundColor: isOver && !weekLocked ? 'var(--accent-light)' : isTodayCol ? 'rgba(45,58,140,0.04)' : 'transparent',
+        backgroundColor: hasViol
+          ? 'rgba(255,107,107,0.08)'
+          : isOver && !weekLocked ? 'var(--accent-light)' : isTodayCol ? 'rgba(45,58,140,0.04)' : 'transparent',
+        boxShadow: hasViol ? 'inset 0 0 0 1.5px var(--danger)' : undefined,
         transition: 'background-color 120ms ease', minWidth: '120px',
       }}
     >
+      {hasViol && (
+        <div className="flex items-center gap-1 mb-1.5" style={{ color: 'var(--danger)' }}>
+          <AlertTriangle size={11} />
+          <span style={{ fontSize: '10px', fontWeight: 600 }}>
+            {violations!.length} infraction{violations!.length > 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
+
       {leaveType && <AbsenceBadge type={leaveType} />}
 
       {shifts.map(shift => (

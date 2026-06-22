@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { X, Sparkles, Loader2, CheckCircle, RefreshCw, ChevronRight, Wand2, AlertTriangle } from 'lucide-react'
+import { useState } from 'react'
+import { X, Sparkles, Loader2, CheckCircle, ChevronRight, Wand2 } from 'lucide-react'
 import { type Profile, type Poste, type Shift } from '@/types'
 import { type ProposedShift } from '@/app/api/ai/plan/route'
-import { checkCompliance, type ShiftRecord, type Violation, RULES } from '@/lib/compliance/rules'
 
-type ModalPhase = 'idle' | 'generating' | 'preview' | 'applying' | 'done'
+type ModalPhase = 'idle' | 'generating' | 'applying' | 'done'
 
 const SUGGESTIONS = [
   '3 serveurs chaque soir 18h–23h, fermé dimanche',
@@ -14,13 +13,6 @@ const SUGGESTIONS = [
   'Couvrir ouverture et fermeture chaque jour',
   'Répartir équitablement entre tous les employés',
 ]
-
-function getDayLabel(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
-}
-
-function fmtTime(t: string) { return t.slice(0, 5) }
 
 interface AiPlanModalProps {
   weekMonday: string
@@ -32,87 +24,17 @@ interface AiPlanModalProps {
   onClose: () => void
 }
 
-export function AiPlanModal({ weekMonday, weekLabel, employees, postes, existingShifts, onSuccess, onClose }: AiPlanModalProps) {
+export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSuccess, onClose }: AiPlanModalProps) {
   const [phase, setPhase] = useState<ModalPhase>('idle')
   const [instructions, setInstructions] = useState('')
-  const [proposedShifts, setProposedShifts] = useState<ProposedShift[]>([])
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
   const [summary, setSummary] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [applied, setApplied] = useState(0)
   const [applyTotal, setApplyTotal] = useState(0)
 
-  // Employee id → name (existing shifts only carry ids; used for alert labels).
-  const employeeNameById = useMemo(
-    () => Object.fromEntries(employees.map(e => [e.id, e.full_name ?? e.email ?? e.id])),
-    [employees]
-  )
-
-  // Compliance alerts introduced by the SELECTED proposal, on top of the shifts
-  // already placed this week. Same engine (checkCompliance) as the shift editor,
-  // so what the AI preview flags is exactly what gets enforced afterwards.
-  const violations = useMemo<Violation[]>(() => {
-    if (phase !== 'preview') return []
-    const toRecord = (
-      s: { employee_id: string; date: string; start_time: string; end_time: string; break_minutes: number },
-      id: string,
-    ): ShiftRecord => ({
-      id,
-      employeeId: s.employee_id,
-      date: s.date,
-      startTime: s.start_time.slice(0, 5),
-      endTime: s.end_time.slice(0, 5),
-      breakMinutes: s.break_minutes ?? 0,
-    })
-    const existing = existingShifts.map((s, i) => toRecord(s, `cur-${i}`))
-    const selected = proposedShifts.filter((_, i) => selectedIndices.has(i)).map((s, i) => toRecord(s, `prop-${i}`))
-    const baseline = checkCompliance(existing)
-    const all = checkCompliance([...existing, ...selected])
-    return all.filter(v => !baseline.some(b => b.ruleId === v.ruleId && b.employeeId === v.employeeId && b.date === v.date))
-  }, [phase, proposedShifts, selectedIndices, existingShifts])
-
-  async function generate() {
-    setPhase('generating')
-    setError(null)
-    try {
-      const res = await fetch('/api/ai/plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ week_monday: weekMonday, context: instructions }),
-      })
-      const data = await res.json() as { shifts?: ProposedShift[]; summary?: string; error?: string }
-      if (!res.ok || data.error) {
-        setError(data.error ?? 'Erreur lors de la génération')
-        setPhase('idle')
-        return
-      }
-      const shifted = data.shifts ?? []
-      setProposedShifts(shifted)
-      setSelectedIndices(new Set(shifted.map((_, i) => i)))
-      setSummary(data.summary ?? '')
-      setPhase('preview')
-    } catch {
-      setError('Erreur réseau. Veuillez réessayer.')
-      setPhase('idle')
-    }
-  }
-
-  function toggleShift(i: number) {
-    setSelectedIndices(prev => {
-      const next = new Set(prev)
-      next.has(i) ? next.delete(i) : next.add(i)
-      return next
-    })
-  }
-
-  function toggleAll() {
-    if (selectedIndices.size === proposedShifts.length) {
-      setSelectedIndices(new Set())
-    } else {
-      setSelectedIndices(new Set(proposedShifts.map((_, i) => i)))
-    }
-  }
-
+  // Crée tous les shifts proposés en brouillon. La conformité n'est PAS
+  // vérifiée ici : le planning s'applique directement, le manager vérifie
+  // ensuite via le bouton « Vérifier » du planning (cases en rouge).
   async function applyShifts(toApply: ProposedShift[]) {
     setPhase('applying')
     setApplied(0)
@@ -140,10 +62,33 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, existing
     onSuccess()
   }
 
-  function reset() {
-    setProposedShifts([])
-    setSummary('')
-    setPhase('idle')
+  async function generate() {
+    setPhase('generating')
+    setError(null)
+    try {
+      const res = await fetch('/api/ai/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ week_monday: weekMonday, context: instructions }),
+      })
+      const data = await res.json() as { shifts?: ProposedShift[]; summary?: string; error?: string }
+      if (!res.ok || data.error) {
+        setError(data.error ?? 'Erreur lors de la génération')
+        setPhase('idle')
+        return
+      }
+      const shifted = data.shifts ?? []
+      setSummary(data.summary ?? '')
+      if (shifted.length === 0) {
+        setApplied(0); setApplyTotal(0); setPhase('done')
+        return
+      }
+      // Application automatique — pas d'étape de vérification case par case.
+      await applyShifts(shifted)
+    } catch {
+      setError('Erreur réseau. Veuillez réessayer.')
+      setPhase('idle')
+    }
   }
 
   return (
@@ -183,7 +128,7 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, existing
           {phase === 'idle' && (
             <div className="space-y-4">
               <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-                Décrivez vos besoins pour la semaine. L&apos;IA génère un planning complet en tenant compte des employés, congés et contraintes légales.
+                Décrivez vos besoins pour la semaine. L&apos;IA génère et applique un planning complet en brouillon — vous le vérifiez et l&apos;ajustez ensuite sur le planning.
               </p>
 
               <textarea
@@ -245,112 +190,6 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, existing
             </div>
           )}
 
-          {/* ── Preview ── */}
-          {phase === 'preview' && (
-            <div className="space-y-4">
-              {summary && (
-                <div
-                  className="rounded-xl p-4 text-[13px] leading-relaxed whitespace-pre-wrap"
-                  style={{ backgroundColor: 'var(--accent-light)', color: 'var(--text-primary)', border: '0.5px solid var(--border)' }}
-                >
-                  {summary}
-                </div>
-              )}
-
-              {violations.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--danger)' }}>
-                    {violations.length} alerte{violations.length > 1 ? 's' : ''} de conformité sur la sélection
-                  </p>
-                  {violations.map((v, i) => {
-                    const rule = RULES[v.ruleId]
-                    const isCritical = rule.severity === 'critical'
-                    return (
-                      <div key={i} className="flex items-start gap-2.5 rounded-lg px-3 py-2.5"
-                        style={{ backgroundColor: isCritical ? '#FEE2E2' : '#FEF3C7', border: `0.5px solid ${isCritical ? '#dc2626' : '#D97706'}` }}>
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: isCritical ? '#dc2626' : '#D97706' }} />
-                        <div>
-                          <p className="text-[12px] font-medium leading-snug" style={{ color: isCritical ? '#991b1b' : '#92400E' }}>
-                            {employeeNameById[v.employeeId] ?? 'Employé'} — {rule.name}
-                          </p>
-                          <p className="text-[11px] leading-snug mt-0.5" style={{ color: isCritical ? '#b91c1c' : '#a16207' }}>
-                            {v.description} — <span className="font-medium">{rule.legalRef}</span>
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
-                  {proposedShifts.length} shift{proposedShifts.length > 1 ? 's' : ''} proposé{proposedShifts.length > 1 ? 's' : ''}
-                </p>
-                <button
-                  onClick={toggleAll}
-                  className="text-[11px]"
-                  style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}
-                >
-                  {selectedIndices.size === proposedShifts.length ? 'Tout désélectionner' : 'Tout sélectionner'}
-                </button>
-              </div>
-
-              <div className="space-y-1.5">
-                {proposedShifts.map((shift, i) => {
-                  const checked = selectedIndices.has(i)
-                  return (
-                    <div
-                      key={i}
-                      onClick={() => toggleShift(i)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors"
-                      style={{
-                        border: `0.5px solid ${checked ? 'var(--accent)' : 'var(--border)'}`,
-                        backgroundColor: checked ? 'var(--accent-light)' : 'var(--bg-page)',
-                      }}
-                    >
-                      <div
-                        className="h-4 w-4 rounded flex-shrink-0 flex items-center justify-center"
-                        style={{
-                          border: `1.5px solid ${checked ? 'var(--accent)' : 'var(--border)'}`,
-                          backgroundColor: checked ? 'var(--accent)' : 'transparent',
-                        }}
-                      >
-                        {checked && (
-                          <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
-                            <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        )}
-                      </div>
-                      <div
-                        className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold uppercase"
-                        style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}
-                      >
-                        {getDayLabel(shift.date).slice(0, 3)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                          {shift.employee_name}
-                        </p>
-                        <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                          {getDayLabel(shift.date)} · {fmtTime(shift.start_time)}–{fmtTime(shift.end_time)}
-                          {shift.position && (
-                            <span className="ml-2" style={{ color: 'var(--text-tertiary)' }}>{shift.position}</span>
-                          )}
-                        </p>
-                      </div>
-                      {shift.break_minutes > 0 && (
-                        <span className="text-[11px] flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>
-                          pause {shift.break_minutes}min
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
           {/* ── Applying ── */}
           {phase === 'applying' && (
             <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
@@ -359,7 +198,7 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, existing
               </div>
               <div>
                 <p className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                  Création des shifts…
+                  Application du planning…
                 </p>
                 <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
                   {applied} / {applyTotal} créés
@@ -377,21 +216,31 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, existing
             </div>
           )}
 
-          {/* ── Done ── */}
+          {/* ── Done (récap) ── */}
           {phase === 'done' && (
-            <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+            <div className="flex flex-col items-center justify-center py-12 text-center gap-4">
               <div className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#F0FDF4' }}>
                 <CheckCircle className="h-5 w-5" style={{ color: 'var(--success)' }} />
               </div>
-              <div>
+              <div className="max-w-sm">
                 <p className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                  Planning créé !
+                  {applied > 0 ? 'Planning appliqué !' : 'Aucun shift à créer'}
                 </p>
                 <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  {applied} shift{applied > 1 ? 's' : ''} ajouté{applied > 1 ? 's' : ''} en mode brouillon.
+                  {applied > 0
+                    ? `${applied} shift${applied > 1 ? 's' : ''} ajouté${applied > 1 ? 's' : ''} en mode brouillon.`
+                    : 'L’IA n’a proposé aucun shift pour ces critères.'}
                 </p>
-                <p className="text-[12px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                  Vérifiez et publiez quand vous êtes prêt.
+                {summary && (
+                  <div
+                    className="rounded-xl p-3 mt-3 text-[12px] leading-relaxed whitespace-pre-wrap text-left"
+                    style={{ backgroundColor: 'var(--accent-light)', color: 'var(--text-primary)', border: '0.5px solid var(--border)' }}
+                  >
+                    {summary}
+                  </div>
+                )}
+                <p className="text-[12px] mt-3" style={{ color: 'var(--text-tertiary)' }}>
+                  Utilisez « Vérifier » sur le planning pour repérer les éventuelles infractions (cases en rouge), puis publiez.
                 </p>
               </div>
             </div>
@@ -401,7 +250,7 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, existing
         {/* Footer */}
         <div
           className="px-5 py-4 flex items-center gap-3 flex-shrink-0"
-          style={{ borderTop: '0.5px solid var(--border)', justifyContent: phase === 'idle' || phase === 'preview' ? 'space-between' : 'center' }}
+          style={{ borderTop: '0.5px solid var(--border)', justifyContent: phase === 'idle' ? 'space-between' : 'center' }}
         >
           {phase === 'idle' && (
             <>
@@ -423,33 +272,6 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, existing
             <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
               Patientez, cela peut prendre 15–30 secondes…
             </p>
-          )}
-
-          {phase === 'preview' && (
-            <>
-              <button onClick={reset} className="btn-secondary flex items-center gap-2 text-[13px]">
-                <RefreshCw className="h-3.5 w-3.5" />
-                Recommencer
-              </button>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => applyShifts(proposedShifts.filter((_, i) => selectedIndices.has(i)))}
-                  disabled={selectedIndices.size === 0}
-                  className="btn-secondary flex items-center gap-2 text-[13px] disabled:opacity-50"
-                >
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  Importer sélection ({selectedIndices.size})
-                </button>
-                <button
-                  onClick={() => applyShifts(proposedShifts)}
-                  disabled={proposedShifts.length === 0}
-                  className="btn-primary flex items-center gap-2 text-[13px]"
-                >
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  Importer tous ({proposedShifts.length})
-                </button>
-              </div>
-            </>
           )}
 
           {phase === 'applying' && (
