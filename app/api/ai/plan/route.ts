@@ -5,6 +5,7 @@ import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { getSubscription } from '@/lib/subscription'
 import { getPlanTier, isPro } from '@/lib/plan-guard'
 import { forecastRevenue, sectorTargetPct, median, shiftHours, isoWeekKey, type DayCA } from '@/lib/forecast'
+import { solvePlanning } from '@/lib/planning/solver'
 
 const client = new Anthropic()
 
@@ -129,13 +130,6 @@ export type ProposedShift = {
 }
 
 export async function POST(req: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return Response.json(
-      { error: 'Clé API Anthropic manquante. Ajoutez ANTHROPIC_API_KEY dans vos variables d\'environnement.' },
-      { status: 503 }
-    )
-  }
-
   const supabase = await createClient()
   let authUser: { id: string }
   let estId: string
@@ -148,29 +142,48 @@ export async function POST(req: Request) {
     throw e
   }
 
-  // ── Guard : quota IA mensuel pour le plan Essentiel ───────────────
+  // Choix du moteur de génération (réglage par établissement) : 'ai' (LLM) ou
+  // 'algorithm' (solveur déterministe gratuit). Default : 'ai' pour préserver
+  // le comportement existant.
+  const { data: engineSetting } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('establishment_id', estId)
+    .eq('key', 'planning_engine')
+    .maybeSingle()
+  const engine: 'ai' | 'algorithm' = engineSetting?.value === 'algorithm' ? 'algorithm' : 'ai'
+
   const sub  = await getSubscription(supabase, estId)
   const tier = getPlanTier(sub)
 
-  if (tier === 'essential') {
-    // DB-backed monthly quota: authoritative and persistent (unlike KV/in-memory,
-    // which was bypassable across serverless instances).
-    const { data: quota, error: quotaErr } = await supabase.rpc('consume_ai_credit', { p_limit: 3 })
-    if (quotaErr) {
+  // Guards qui ne s'appliquent qu'au moteur LLM (clé API, quota mensuel).
+  if (engine === 'ai') {
+    if (!process.env.ANTHROPIC_API_KEY) {
       return Response.json(
-        { error: "Impossible de vérifier votre quota IA pour le moment. Réessayez dans un instant." },
+        { error: 'Clé API Anthropic manquante. Ajoutez ANTHROPIC_API_KEY dans vos variables d\'environnement.' },
         { status: 503 }
       )
     }
-    if (quota && (quota as { allowed: boolean }).allowed === false) {
-      return Response.json(
-        { error: 'Quota IA atteint', upgrade_url: '/manager/settings/billing' },
-        { status: 402 }
-      )
+    if (tier === 'essential') {
+      // DB-backed monthly quota: authoritative and persistent (unlike KV/in-memory,
+      // which was bypassable across serverless instances).
+      const { data: quota, error: quotaErr } = await supabase.rpc('consume_ai_credit', { p_limit: 3 })
+      if (quotaErr) {
+        return Response.json(
+          { error: "Impossible de vérifier votre quota IA pour le moment. Réessayez dans un instant." },
+          { status: 503 }
+        )
+      }
+      if (quota && (quota as { allowed: boolean }).allowed === false) {
+        return Response.json(
+          { error: 'Quota IA atteint', upgrade_url: '/manager/settings/billing' },
+          { status: 402 }
+        )
+      }
     }
   }
-  // ─────────────────────────────────────────────────────────────────
 
+  // Rate-limit commun aux deux moteurs (anti-abus).
   const rl = await checkRateLimit({ key: `ai-plan:${authUser.id}`, limit: 10, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
@@ -193,7 +206,7 @@ export async function POST(req: Request) {
       .in('status', ['approved', 'pending']),
     supabase.from('shifts').select('employee_id, date, start_time, end_time, position').gte('date', week_monday).lte('date', weekEndStr).is('deleted_at', null),
     supabase.from('postes').select('id, name, break_minutes'),
-    supabase.from('settings').select('key, value').in('key', ['collective_agreement', 'opening_time', 'closing_time', 'establishment_name']),
+    supabase.from('settings').select('key, value').in('key', ['collective_agreement', 'opening_time', 'closing_time', 'establishment_name', 'closed_days', 'break_trigger_minutes']),
   ])
 
   const settingsMap = Object.fromEntries((settings ?? []).map(s => [s.key, s.value]))
@@ -213,10 +226,78 @@ export async function POST(req: Request) {
     }
   }
 
-  // Copilote de productivité : prévision de CA + cible coût/CA injectées dans le prompt.
-  // Premium (Pro/Multi-site) — les autres plans gardent la génération IA classique.
+  // Copilote de productivité : prévision de CA + cible coût/CA.
+  // Premium (Pro/Multi-site) — les autres plans n'ont pas le forecast.
   const eco = isPro(tier) ? await loadEconomics(supabase, week_monday, weekDays, weekEndStr) : null
   const targetPct = (typeof target_ratio === 'number' && target_ratio > 0) ? Math.round(target_ratio) : (eco?.suggestedTargetPct ?? 0)
+
+  // ── Branche algorithme déterministe (gratuit, instantané, auditable) ─────
+  if (engine === 'algorithm') {
+    const closedDaysIdx: number[] = (() => {
+      try { const v = JSON.parse(settingsMap.closed_days ?? '[]'); return Array.isArray(v) ? v.filter((n: unknown) => typeof n === 'number') : [] }
+      catch { return [] }
+    })()
+    const breakTrigger = parseInt(settingsMap.break_trigger_minutes ?? '360', 10) || 360
+
+    const { shifts: algoShifts, summary: algoSummary } = solvePlanning({
+      weekDays,
+      openingTime: settingsMap.opening_time ?? '07:00',
+      closingTime: settingsMap.closing_time ?? '23:00',
+      closedDaysIdx,
+      employees: (employees ?? []).map(e => ({
+        id: e.id,
+        full_name: e.full_name ?? 'Sans nom',
+        position: e.position ?? null,
+        weekly_hours: e.weekly_hours ?? null,
+      })),
+      leaveByEmployee,
+      existingShifts: (existingShifts ?? []).map(s => ({
+        employee_id: s.employee_id,
+        date: s.date,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        break_minutes: 0,
+      })),
+      forecast: eco?.forecast ?? null,
+      targetPct: eco ? targetPct : null,
+      rateMap: eco?.rateMap ?? {},
+      breakTriggerMinutes: breakTrigger,
+    })
+
+    // Position du shift : si le poste de l'employé existe en base, on remonte
+    // le poste_id correspondant (le solveur ne fait pas cette correspondance).
+    const posteByName = new Map<string, string>()
+    for (const p of (postes ?? [])) if (p.name) posteByName.set(p.name, p.id)
+    const enriched = algoShifts.map(s => ({
+      ...s,
+      poste_id: s.position ? (posteByName.get(s.position) ?? null) : null,
+    }))
+
+    // Coût main d'œuvre estimé (premium).
+    let algoCost = 0
+    if (eco) {
+      for (const s of enriched) {
+        const rate = eco.rateMap[s.employee_id]
+        if (rate) algoCost += shiftHours(s.start_time, s.end_time, s.break_minutes) * rate
+      }
+    }
+    const algoRatioPct = (eco && eco.forecastTotal > 0 && algoCost > 0)
+      ? Math.round((algoCost / eco.forecastTotal) * 100)
+      : null
+
+    return Response.json({
+      shifts: enriched,
+      summary: algoSummary,
+      forecastTotal: eco?.forecastTotal ?? 0,
+      targetPct,
+      targetBasis: eco?.targetBasis ?? 'sector',
+      historicalRatioPct: eco?.historicalRatioPct ?? null,
+      estimatedCost: Math.round(algoCost),
+      estimatedRatioPct: algoRatioPct,
+      engine: 'algorithm',
+    })
+  }
+
   const economicsSection = eco && eco.forecastTotal > 0 ? `
 ## Prévision d'activité (chiffre d'affaires estimé, basé sur l'historique)
 ${eco.forecast.map(d => `- ${d.date} (${FR_DOW[new Date(d.date + 'T12:00:00').getDay()]}) : ~${d.amount} €`).join('\n')}
@@ -366,5 +447,6 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     historicalRatioPct: eco?.historicalRatioPct ?? null,
     estimatedCost: Math.round(estimatedCost),
     estimatedRatioPct,
+    engine: 'ai',
   })
 }

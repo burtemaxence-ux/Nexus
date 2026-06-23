@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Check, ChevronRight, BookOpen } from 'lucide-react'
+import { Loader2, Check, ChevronRight, BookOpen, Cpu, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ── Activity types ────────────────────────────────────────────────────────────
@@ -153,6 +153,7 @@ type Settings = {
   color_absence: string
   color_conge: string
   color_overtime: string
+  planning_engine: string  // 'ai' | 'algorithm'
 }
 
 const DEFAULTS: Settings = {
@@ -172,6 +173,7 @@ const DEFAULTS: Settings = {
   color_absence: '#EF4444',
   color_conge: '#10B981',
   color_overtime: '#F59E0B',
+  planning_engine: 'ai',
 }
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
@@ -226,6 +228,7 @@ export default function ReglesPage() {
           color_absence:          data.color_absence          ?? DEFAULTS.color_absence,
           color_conge:            data.color_conge            ?? DEFAULTS.color_conge,
           color_overtime:         data.color_overtime         ?? DEFAULTS.color_overtime,
+          planning_engine:        (data.planning_engine === 'algorithm' || data.planning_engine === 'ai') ? data.planning_engine : DEFAULTS.planning_engine,
         })
         if (data.closed_days) {
           try { setClosedDays(JSON.parse(data.closed_days)) } catch { /* keep empty */ }
@@ -632,6 +635,69 @@ export default function ReglesPage() {
               checked={settings.meal_allowance_enabled === 'true'}
               onToggle={() => set('meal_allowance_enabled', settings.meal_allowance_enabled === 'true' ? 'false' : 'true')}
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Moteur de génération de planning ──────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+              <Cpu className="h-4 w-4 text-indigo-500" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Génération automatique du planning</CardTitle>
+              <CardDescription>
+                Choisissez la méthode utilisée par le bouton « Générer le planning ».
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {([
+              {
+                value: 'ai',
+                icon: Sparkles,
+                title: 'Assistant IA',
+                desc: 'Le modèle propose un planning à partir de votre contexte libre (note, demandes spécifiques). Plus créatif, peut hésiter ou consommer du quota.',
+              },
+              {
+                value: 'algorithm',
+                icon: Cpu,
+                title: 'Algorithme déterministe',
+                desc: 'Le solveur place les shifts en suivant des règles claires : repos 11h, max 10h/jour, heures contractuelles, prévision de CA. Instantané, gratuit, reproductible.',
+              },
+            ] as const).map(opt => {
+              const isSelected = settings.planning_engine === opt.value
+              const Icon = opt.icon
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => set('planning_engine', opt.value)}
+                  className="w-full flex items-start gap-3 rounded-lg px-4 py-3 text-left transition-colors duration-150"
+                  style={{
+                    border: isSelected ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                    backgroundColor: isSelected ? 'var(--accent-light)' : 'transparent',
+                  }}
+                >
+                  <div
+                    className="h-4 w-4 rounded-full border-2 shrink-0 transition-colors flex items-center justify-center mt-0.5"
+                    style={{ borderColor: isSelected ? 'var(--accent)' : 'var(--border)', backgroundColor: isSelected ? 'var(--accent)' : 'transparent' }}
+                  >
+                    {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                  </div>
+                  <Icon className="h-4 w-4 mt-0.5 shrink-0" style={{ color: isSelected ? 'var(--accent)' : 'var(--text-tertiary)' }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium" style={{ color: isSelected ? 'var(--accent)' : 'var(--text-primary)' }}>
+                      {opt.title}
+                    </p>
+                    <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{opt.desc}</p>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </CardContent>
       </Card>
