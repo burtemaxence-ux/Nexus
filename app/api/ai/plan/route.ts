@@ -6,6 +6,7 @@ import { getSubscription } from '@/lib/subscription'
 import { getPlanTier, isPro } from '@/lib/plan-guard'
 import { forecastRevenue, sectorTargetPct, median, shiftHours, isoWeekKey, type DayCA } from '@/lib/forecast'
 import { solvePlanning } from '@/lib/planning/solver'
+import { repairPlan } from '@/lib/planning/repair'
 import { collectProposedShifts } from '@/lib/planning/plan-tools'
 
 // La boucle LLM (jusqu'à 12 itérations Claude Sonnet) peut prendre 30–60s sur
@@ -280,10 +281,14 @@ export async function POST(req: Request) {
       poste_id: s.position ? (posteByName.get(s.position) ?? null) : null,
     }))
 
+    // Filet de sécurité : garantit zéro infraction actionnable (no-op sur la
+    // sortie du solveur, déjà conforme par construction).
+    const { shifts: cleaned } = repairPlan(enriched)
+
     // Coût main d'œuvre estimé (premium).
     let algoCost = 0
     if (eco) {
-      for (const s of enriched) {
+      for (const s of cleaned) {
         const rate = eco.rateMap[s.employee_id]
         if (rate) algoCost += shiftHours(s.start_time, s.end_time, s.break_minutes) * rate
       }
@@ -292,8 +297,11 @@ export async function POST(req: Request) {
       ? Math.round((algoCost / eco.forecastTotal) * 100)
       : null
 
+    // Compteur de génération par algorithme (illimité, juste pour le suivi).
+    try { await supabase.rpc('consume_ai_credit', { p_limit: 1_000_000, p_feature: 'plan_algo' }) } catch { /* non bloquant */ }
+
     return Response.json({
-      shifts: enriched,
+      shifts: cleaned,
       summary: algoSummary,
       forecastTotal: eco?.forecastTotal ?? 0,
       targetPct,
@@ -335,12 +343,15 @@ ${postes?.map(p => `- ID: ${p.id} | ${p.name} | pause standard: ${p.break_minute
 ## Shifts déjà planifiés cette semaine
 ${existingShifts?.length ? existingShifts.map(s => `- ${employeeNameMap[s.employee_id] ?? s.employee_id} | ${s.date} | ${s.start_time}-${s.end_time} | ${s.position ?? '—'}`).join('\n') : 'Aucun shift existant — semaine vierge'}
 ${economicsSection}
-## Règles légales à respecter
-- Maximum 10h de travail effectif par jour
-- Minimum 11h de repos entre deux shifts consécutifs
-- Maximum 48h par semaine (idéal : respecter le contrat hebdomadaire)
-- Ne JAMAIS planifier un employé marqué ABSENT
-- Pause obligatoire si shift > 6h
+## Règles légales à respecter ABSOLUMENT (aucune infraction tolérée)
+- Respecte le volume horaire de chaque employé : un employé Xh/sem doit totaliser ~X h sur la semaine (ni nettement moins, ni plus). Un 35h fait ~35h, pas 16h ni 23h.
+- Maximum 10h de travail effectif par jour, et un seul service par employé par jour.
+- Minimum 11h de repos entre la fin d'un service et le début du suivant. En pratique : pour un même employé, garde des horaires de début RÉGULIERS d'un jour à l'autre (ne fais jamais finir tard le soir puis commencer tôt le lendemain).
+- Maximum 6 jours travaillés par semaine et par employé (repos hebdomadaire obligatoire).
+- Maximum 48h par semaine.
+- Amplitude d'une journée ≤ 13h (début → fin).
+- Ne JAMAIS planifier un employé marqué ABSENT.
+- Pause de 30 min dès qu'un service dépasse 6h.
 
 ## Demande du manager
 ${context?.trim() || 'Générer un planning équilibré pour toute la semaine en couvrant les besoins standard de l\'établissement.'}
@@ -419,10 +430,15 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     )
   }
 
+  // Filet de sécurité conformité : l'IA peut proposer des créneaux en
+  // infraction (repos, 10h/jour, 6 jours…). On retire les fautifs pour que le
+  // planning appliqué soit propre — le manager complète ensuite.
+  const { shifts: cleanedAi } = repairPlan(proposedShifts)
+
   // Coût main d'œuvre estimé du planning proposé → ratio coût/CA estimé (premium).
   let estimatedCost = 0
   if (eco) {
-    for (const s of proposedShifts) {
+    for (const s of cleanedAi) {
       const rate = eco.rateMap[s.employee_id]
       if (rate) estimatedCost += shiftHours(s.start_time, s.end_time, s.break_minutes) * rate
     }
@@ -431,8 +447,14 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     ? Math.round((estimatedCost / eco.forecastTotal) * 100)
     : null
 
+  // Compteur de génération IA. Le plan Essentiel a déjà été décompté en amont
+  // (gate à 3/mois) ; les autres plans sont enregistrés ici (succès seulement).
+  if (tier !== 'essential') {
+    try { await supabase.rpc('consume_ai_credit', { p_limit: 1_000_000, p_feature: 'plan' }) } catch { /* non bloquant */ }
+  }
+
   return Response.json({
-    shifts: proposedShifts,
+    shifts: cleanedAi,
     summary,
     forecastTotal: eco?.forecastTotal ?? 0,
     targetPct,

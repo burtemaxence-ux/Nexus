@@ -21,7 +21,7 @@ import {
   PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
 import { ContextMenu, type CtxMenu } from './shift-card'
-import { GridCell } from './grid-cell'
+import { GridCell, type CellViolation } from './grid-cell'
 import { MetricCard, DonutChart, AlertRow, ActivityRow } from './planning-metrics'
 import { MobileManagerPlanning } from './mobile-planning'
 import { AiQuotaBadge } from '@/components/ui/ai-quota-badge'
@@ -101,12 +101,17 @@ export function PlanningWeekTimeline({
       endTime: s.end_time.slice(0, 5),
       breakMinutes: s.break_minutes ?? 0,
     }))
-    const m = new Map<string, string[]>()
+    const m = new Map<string, CellViolation[]>()
     for (const v of checkCompliance(records)) {
       const key = `${v.employeeId}__${v.date}`
       const rule = RULES[v.ruleId]
       const arr = m.get(key) ?? []
-      arr.push(`${rule?.name ?? v.ruleId} — ${v.description}${rule?.legalRef ? ` (${rule.legalRef})` : ''}`)
+      arr.push({
+        name: rule?.name ?? v.ruleId,
+        reason: v.description,
+        legalRef: rule?.legalRef ?? '',
+        fix: v.suggestedFix ?? null,
+      })
       m.set(key, arr)
     }
     return m

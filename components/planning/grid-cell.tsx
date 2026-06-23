@@ -21,6 +21,8 @@ export const AbsenceBadge = memo(function AbsenceBadge({ type }: { type: LeaveTy
   )
 })
 
+export type CellViolation = { name: string; reason: string; legalRef: string; fix: string | null }
+
 export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, employee, date, onAdd, onClickShift, onContextMenu, onSos, isToday: isTodayCol, violations }: {
   droppableId: string
   shifts: Shift[]
@@ -34,10 +36,11 @@ export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType,
   onContextMenu: (e: React.MouseEvent, s: Shift, employee: Profile, date: Date) => void
   onSos: (s: Shift, employee: Profile) => void
   isToday: boolean
-  violations?: string[]
+  violations?: CellViolation[]
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: droppableId })
   const [hov, setHov] = useState(false)
+  const [showViol, setShowViol] = useState(false)
   const isEmpty = shifts.length === 0 && !leaveType
   const hasViol = !!violations && violations.length > 0
 
@@ -46,7 +49,6 @@ export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType,
       ref={setNodeRef}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
-      title={hasViol ? violations!.join('\n') : undefined}
       style={{
         borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)',
         padding: '8px', verticalAlign: 'top',
@@ -58,12 +60,47 @@ export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType,
       }}
     >
       {hasViol && (
-        <div className="flex items-center gap-1 mb-1.5" style={{ color: 'var(--danger)' }}>
-          <AlertTriangle size={11} />
-          <span style={{ fontSize: '10px', fontWeight: 600 }}>
-            {violations!.length} infraction{violations!.length > 1 ? 's' : ''}
-          </span>
-        </div>
+        <>
+          <button
+            type="button"
+            onClick={() => setShowViol(v => !v)}
+            className="flex items-center gap-1 mb-1.5"
+            style={{ color: 'var(--danger)', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+            title="Voir le détail des infractions"
+          >
+            <AlertTriangle size={11} />
+            <span style={{ fontSize: '10px', fontWeight: 600 }}>
+              {violations!.length} infraction{violations!.length > 1 ? 's' : ''}
+            </span>
+            <span style={{ fontSize: '9px', textDecoration: 'underline', opacity: 0.8 }}>
+              {showViol ? 'masquer' : 'détail'}
+            </span>
+          </button>
+          {showViol && (
+            <div
+              className="mb-2"
+              style={{
+                backgroundColor: 'var(--bg-card)', border: '0.5px solid var(--danger)',
+                borderRadius: '8px', padding: '8px', fontSize: '11px', lineHeight: 1.35,
+              }}
+            >
+              {violations!.map((v, i) => (
+                <div key={i} style={{ marginBottom: i < violations!.length - 1 ? '8px' : 0 }}>
+                  <p style={{ fontWeight: 600, color: 'var(--danger)' }}>{v.name}</p>
+                  <p style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>{v.reason}</p>
+                  {v.fix && (
+                    <p style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>À corriger : </span>{v.fix}
+                    </p>
+                  )}
+                  {v.legalRef && (
+                    <p style={{ color: 'var(--text-tertiary)', marginTop: '2px', fontSize: '10px' }}>{v.legalRef}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {leaveType && <AbsenceBadge type={leaveType} />}
