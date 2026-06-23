@@ -21,7 +21,10 @@ export const AbsenceBadge = memo(function AbsenceBadge({ type }: { type: LeaveTy
   )
 })
 
-export type CellViolation = { name: string; reason: string; legalRef: string; fix: string | null }
+// `contextual` = drapeau inhérent aux horaires/jours d'ouverture (travail de
+// nuit, dimanche) que l'ordonnancement ne peut pas éviter → affiché en info
+// ambre, PAS compté comme une infraction rouge bloquante.
+export type CellViolation = { name: string; reason: string; legalRef: string; fix: string | null; contextual: boolean }
 
 export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType, postes, weekLocked, employee, date, onAdd, onClickShift, onContextMenu, onSos, isToday: isTodayCol, violations }: {
   droppableId: string
@@ -42,7 +45,11 @@ export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType,
   const [hov, setHov] = useState(false)
   const [showViol, setShowViol] = useState(false)
   const isEmpty = shifts.length === 0 && !leaveType
-  const hasViol = !!violations && violations.length > 0
+
+  const infractions = (violations ?? []).filter(v => !v.contextual)
+  const infos = (violations ?? []).filter(v => v.contextual)
+  const hasInfraction = infractions.length > 0
+  const hasInfo = infos.length > 0
 
   return (
     <td
@@ -52,27 +59,39 @@ export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType,
       style={{
         borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)',
         padding: '8px', verticalAlign: 'top',
-        backgroundColor: hasViol
+        backgroundColor: hasInfraction
           ? 'rgba(255,107,107,0.08)'
           : isOver && !weekLocked ? 'var(--accent-light)' : isTodayCol ? 'rgba(45,58,140,0.04)' : 'transparent',
-        boxShadow: hasViol ? 'inset 0 0 0 1.5px var(--danger)' : undefined,
+        boxShadow: hasInfraction ? 'inset 0 0 0 1.5px var(--danger)' : undefined,
         transition: 'background-color 120ms ease', minWidth: '120px',
       }}
     >
-      {hasViol && (
+      {(hasInfraction || hasInfo) && (
         <>
           <button
             type="button"
             onClick={() => setShowViol(v => !v)}
-            className="flex items-center gap-1 mb-1.5"
-            style={{ color: 'var(--danger)', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
-            title="Voir le détail des infractions"
+            className="flex items-center gap-1.5 mb-1.5 flex-wrap"
+            style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+            title="Voir le détail"
           >
-            <AlertTriangle size={11} />
-            <span style={{ fontSize: '10px', fontWeight: 600 }}>
-              {violations!.length} infraction{violations!.length > 1 ? 's' : ''}
-            </span>
-            <span style={{ fontSize: '9px', textDecoration: 'underline', opacity: 0.8 }}>
+            {hasInfraction && (
+              <span className="flex items-center gap-1" style={{ color: 'var(--danger)' }}>
+                <AlertTriangle size={11} />
+                <span style={{ fontSize: '10px', fontWeight: 600 }}>
+                  {infractions.length} infraction{infractions.length > 1 ? 's' : ''}
+                </span>
+              </span>
+            )}
+            {hasInfo && (
+              <span className="flex items-center gap-1" style={{ color: 'var(--warning)' }}>
+                <AlertTriangle size={11} />
+                <span style={{ fontSize: '10px', fontWeight: 600 }}>
+                  {infos.length} à vérifier
+                </span>
+              </span>
+            )}
+            <span style={{ fontSize: '9px', textDecoration: 'underline', opacity: 0.7, color: 'var(--text-tertiary)' }}>
               {showViol ? 'masquer' : 'détail'}
             </span>
           </button>
@@ -80,13 +99,16 @@ export const GridCell = memo(function GridCell({ droppableId, shifts, leaveType,
             <div
               className="mb-2"
               style={{
-                backgroundColor: 'var(--bg-card)', border: '0.5px solid var(--danger)',
+                backgroundColor: 'var(--bg-card)',
+                border: `0.5px solid ${hasInfraction ? 'var(--danger)' : 'var(--warning)'}`,
                 borderRadius: '8px', padding: '8px', fontSize: '11px', lineHeight: 1.35,
               }}
             >
-              {violations!.map((v, i) => (
-                <div key={i} style={{ marginBottom: i < violations!.length - 1 ? '8px' : 0 }}>
-                  <p style={{ fontWeight: 600, color: 'var(--danger)' }}>{v.name}</p>
+              {[...infractions, ...infos].map((v, i, arr) => (
+                <div key={i} style={{ marginBottom: i < arr.length - 1 ? '8px' : 0 }}>
+                  <p style={{ fontWeight: 600, color: v.contextual ? 'var(--warning)' : 'var(--danger)' }}>
+                    {v.contextual ? 'À vérifier — ' : ''}{v.name}
+                  </p>
                   <p style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>{v.reason}</p>
                   {v.fix && (
                     <p style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>

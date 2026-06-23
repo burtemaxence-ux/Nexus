@@ -101,6 +101,10 @@ export function PlanningWeekTimeline({
       endTime: s.end_time.slice(0, 5),
       breakMinutes: s.break_minutes ?? 0,
     }))
+    // Drapeaux contextuels (inhérents aux horaires/jours d'ouverture, non
+    // évitables par l'ordonnancement) : affichés en « à vérifier » ambre,
+    // jamais comptés comme infractions bloquantes.
+    const CONTEXTUAL = new Set(['night_work', 'sunday_work'])
     const m = new Map<string, CellViolation[]>()
     for (const v of checkCompliance(records)) {
       const key = `${v.employeeId}__${v.date}`
@@ -111,14 +115,21 @@ export function PlanningWeekTimeline({
         reason: v.description,
         legalRef: rule?.legalRef ?? '',
         fix: v.suggestedFix ?? null,
+        contextual: CONTEXTUAL.has(v.ruleId),
       })
       m.set(key, arr)
     }
     return m
   }, [shifts])
 
+  // Ne compte que les infractions actionnables (les drapeaux contextuels
+  // nuit/dimanche sont signalés à part, jamais comme « infractions »).
   const violationCount = useMemo(
-    () => Array.from(violationMap.values()).reduce((s, a) => s + a.length, 0),
+    () => Array.from(violationMap.values()).reduce((s, a) => s + a.filter(v => !v.contextual).length, 0),
+    [violationMap],
+  )
+  const contextualCount = useMemo(
+    () => Array.from(violationMap.values()).reduce((s, a) => s + a.filter(v => v.contextual).length, 0),
     [violationMap],
   )
 
@@ -370,7 +381,9 @@ export function PlanningWeekTimeline({
             >
               <AlertTriangle size={13} />
               {verify
-                ? (violationCount > 0 ? `${violationCount} infraction${violationCount > 1 ? 's' : ''}` : 'Conforme')
+                ? (violationCount > 0
+                    ? `${violationCount} infraction${violationCount > 1 ? 's' : ''}`
+                    : contextualCount > 0 ? `Conforme · ${contextualCount} à vérifier` : 'Conforme')
                 : 'Vérifier'}
             </button>
             <AiQuotaBadge refreshKey={aiQuotaKey} />
