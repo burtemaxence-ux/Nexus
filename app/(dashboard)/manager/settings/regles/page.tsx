@@ -173,7 +173,7 @@ const DEFAULTS: Settings = {
   color_absence: '#EF4444',
   color_conge: '#10B981',
   color_overtime: '#F59E0B',
-  planning_engine: 'ai',
+  planning_engine: 'algorithm',
 }
 
 // ── Toggle ────────────────────────────────────────────────────────────────────

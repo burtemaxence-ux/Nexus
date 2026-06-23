@@ -159,7 +159,9 @@ export async function POST(req: Request) {
     .eq('establishment_id', estId)
     .eq('key', 'planning_engine')
     .maybeSingle()
-  const engine: 'ai' | 'algorithm' = engineSetting?.value === 'algorithm' ? 'algorithm' : 'ai'
+  // Défaut = algorithme déterministe (instantané, conforme, gratuit). L'IA est
+  // opt-in : on ne l'utilise que si le réglage vaut explicitement 'ai'.
+  const engine: 'ai' | 'algorithm' = engineSetting?.value === 'ai' ? 'ai' : 'algorithm'
 
   const sub  = await getSubscription(supabase, estId)
   const tier = getPlanTier(sub)
@@ -239,8 +241,10 @@ export async function POST(req: Request) {
   const eco = isPro(tier) ? await loadEconomics(supabase, week_monday, weekDays, weekEndStr) : null
   const targetPct = (typeof target_ratio === 'number' && target_ratio > 0) ? Math.round(target_ratio) : (eco?.suggestedTargetPct ?? 0)
 
-  // ── Branche algorithme déterministe (gratuit, instantané, auditable) ─────
-  if (engine === 'algorithm') {
+  // ── Moteur déterministe (gratuit, instantané, auditable) ────────────────
+  // Extrait en fonction pour servir à la fois de moteur par défaut ET de filet
+  // de secours quand l'IA (opt-in) échoue ou dépasse son budget de temps.
+  async function buildAlgorithmResponse(feature: string) {
     const closedDaysIdx: number[] = (() => {
       try { const v = JSON.parse(settingsMap.closed_days ?? '[]'); return Array.isArray(v) ? v.filter((n: unknown) => typeof n === 'number') : [] }
       catch { return [] }
@@ -297,10 +301,10 @@ export async function POST(req: Request) {
       ? Math.round((algoCost / eco.forecastTotal) * 100)
       : null
 
-    // Compteur de génération par algorithme (illimité, juste pour le suivi).
-    try { await supabase.rpc('consume_ai_credit', { p_limit: 1_000_000, p_feature: 'plan_algo' }) } catch { /* non bloquant */ }
+    // Compteur de génération (illimité, juste pour le suivi).
+    try { await supabase.rpc('consume_ai_credit', { p_limit: 1_000_000, p_feature: feature }) } catch { /* non bloquant */ }
 
-    return Response.json({
+    return {
       shifts: cleaned,
       summary: algoSummary,
       forecastTotal: eco?.forecastTotal ?? 0,
@@ -309,8 +313,12 @@ export async function POST(req: Request) {
       historicalRatioPct: eco?.historicalRatioPct ?? null,
       estimatedCost: Math.round(algoCost),
       estimatedRatioPct: algoRatioPct,
-      engine: 'algorithm',
-    })
+      engine: 'algorithm' as const,
+    }
+  }
+
+  if (engine === 'algorithm') {
+    return Response.json(await buildAlgorithmResponse('plan_algo'))
   }
 
   const economicsSection = eco && eco.forecastTotal > 0 ? `
@@ -383,8 +391,18 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     { role: 'user', content: 'Génère le planning complet pour cette semaine.' },
   ]
 
+  // Budget de temps : la boucle d'outils Claude est lente. On garde ~18s sous
+  // maxDuration (60s) pour pouvoir, si l'IA n'a pas fini à temps, basculer sur
+  // le solveur déterministe AVANT que Vercel ne tue la fonction (504 → délai).
+  const startedAt = Date.now()
+  const AI_BUDGET_MS = 42_000
+  let aiCompleted = false
+
   try {
     for (let iteration = 0; iteration < 16; iteration++) {
+      const remaining = AI_BUDGET_MS - (Date.now() - startedAt)
+      if (remaining < 6000) break // plus assez de temps pour un tour utile → secours
+
       const response = await client.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8192,
@@ -397,7 +415,7 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
         ],
         tools: [tool],
         messages,
-      })
+      }, { timeout: remaining }) // borne chaque appel pour ne jamais dépasser le budget
 
       messages.push({ role: 'assistant', content: response.content })
 
@@ -414,26 +432,27 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
       )
       proposedShifts.push(...newShifts)
 
-      if (!hasToolUse) break // plus d'outil en attente → terminé
+      if (!hasToolUse) { aiCompleted = true; break } // plus d'outil en attente → terminé
       messages.push({ role: 'user', content: toolResults })
     }
   } catch (e) {
-    // Toute exception du SDK Anthropic (5xx, rate-limit, timeout) doit
-    // remonter en JSON exploitable côté client — sinon le fetch tombe sur
-    // une réponse non-JSON et le frontend affiche un générique « Erreur
-    // réseau ». Inclut un repli vers le moteur déterministe.
-    console.error('[ai/plan] Anthropic error:', e)
-    const msg = e instanceof Error ? e.message : 'Erreur inconnue'
-    return Response.json(
-      { error: `La génération IA a échoué (${msg}). Vous pouvez réessayer ou basculer sur l'algorithme déterministe dans Réglages › Planning.` },
-      { status: 502 },
-    )
+    // Toute exception du SDK Anthropic (5xx, rate-limit, timeout) ne doit plus
+    // bloquer l'utilisateur : on bascule sur le moteur déterministe (filet de
+    // secours) au lieu de renvoyer une erreur de délai.
+    console.error('[ai/plan] Anthropic error → fallback algorithme:', e instanceof Error ? e.message : e)
   }
 
   // Filet de sécurité conformité : l'IA peut proposer des créneaux en
   // infraction (repos, 10h/jour, 6 jours…). On retire les fautifs pour que le
   // planning appliqué soit propre — le manager complète ensuite.
   const { shifts: cleanedAi } = repairPlan(proposedShifts)
+
+  // Secours : l'IA n'a pas terminé dans le budget, a échoué, ou n'a produit
+  // aucun créneau exploitable → on renvoie le planning du solveur déterministe.
+  // L'utilisateur obtient TOUJOURS un planning, jamais une erreur de délai.
+  if (!aiCompleted || cleanedAi.length === 0) {
+    return Response.json({ ...(await buildAlgorithmResponse('plan_ai_fallback')), aiFallback: true })
+  }
 
   // Coût main d'œuvre estimé du planning proposé → ratio coût/CA estimé (premium).
   let estimatedCost = 0
