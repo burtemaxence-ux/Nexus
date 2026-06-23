@@ -2,6 +2,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
+// Sans maxDuration explicite, Vercel coupe le stream tôt (≈10s).
+export const maxDuration = 30
+
 const client = new Anthropic()
 
 interface Message {
@@ -142,7 +145,8 @@ ${(myPresences ?? []).length > 0
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'Transfer-Encoding': 'chunked',
+      // Pas de Transfer-Encoding manuel : interdit en HTTP/2 (Vercel), géré par
+      // la plateforme. Le fixer casse le stream côté navigateur.
       'X-Content-Type-Options': 'nosniff',
     },
   })

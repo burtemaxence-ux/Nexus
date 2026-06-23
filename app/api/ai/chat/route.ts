@@ -5,6 +5,11 @@ import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { getSubscription } from '@/lib/subscription'
 import { getPlanTier } from '@/lib/plan-guard'
 
+// Les documents RH (avertissement, convocation…) peuvent être longs : sans
+// maxDuration explicite, Vercel coupe le stream tôt (≈10s) et la réponse est
+// tronquée. 60s laisse le temps à Haiku de finir.
+export const maxDuration = 60
+
 const client = new Anthropic()
 
 interface Message {
@@ -33,19 +38,24 @@ export async function POST(req: Request) {
   }
 
   // ── Guard : quota chat IA mensuel pour le plan Essentiel ──────────
+  // Compteur DB séparé du planning (feature 'chat') : 50 messages/mois.
+  // On VÉRIFIE le quota ici (lecture seule) mais on ne DÉCOMPTE le crédit
+  // qu'après une réponse réussie (fin du stream) : aucun crédit n'est perdu si
+  // l'IA échoue, est coupée, ou si l'utilisateur annule.
   const sub  = await getSubscription(supabase, estId)
   const tier = getPlanTier(sub)
+  const meterChat = tier === 'essential'
+  const CHAT_MONTHLY_LIMIT = 50
 
-  if (tier === 'essential') {
-    // Compteur DB séparé du planning (feature 'chat') : 50 messages/mois.
-    const { data: quota, error: quotaErr } = await supabase.rpc('consume_ai_credit', { p_limit: 50, p_feature: 'chat' })
-    if (quotaErr) {
+  if (meterChat) {
+    const { data: used, error: usageErr } = await supabase.rpc('get_ai_usage', { p_feature: 'chat' })
+    if (usageErr) {
       return Response.json(
         { error: "Impossible de vérifier votre quota IA pour le moment. Réessayez dans un instant." },
         { status: 503 }
       )
     }
-    if (quota && (quota as { allowed: boolean }).allowed === false) {
+    if (typeof used === 'number' && used >= CHAT_MONTHLY_LIMIT) {
       return Response.json(
         { error: 'Quota chat IA atteint', upgrade_url: '/manager/settings/billing' },
         { status: 402 }
@@ -248,6 +258,12 @@ Si c'est le début d'une conversation (premier message de l'utilisateur), commen
             controller.enqueue(new TextEncoder().encode(event.delta.text))
           }
         }
+
+        // Réponse complète et réussie → on décompte 1 crédit chat (Essentiel).
+        // Un échec / une annulation saute ce point : aucun crédit perdu.
+        if (meterChat) {
+          try { await supabase.rpc('consume_ai_credit', { p_limit: CHAT_MONTHLY_LIMIT, p_feature: 'chat' }) } catch { /* non bloquant */ }
+        }
       } catch (err) {
         // Client pressed "Stop" / navigated away: the request was aborted, the
         // upstream generation is now cancelled too — close quietly, no error.
@@ -276,7 +292,8 @@ Si c'est le début d'une conversation (premier message de l'utilisateur), commen
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'Transfer-Encoding': 'chunked',
+      // NB : ne PAS fixer Transfer-Encoding manuellement — interdit en HTTP/2
+      // (Vercel), la plateforme gère le découpage du flux elle-même.
       'X-Content-Type-Options': 'nosniff',
     },
   })
