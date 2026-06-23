@@ -8,6 +8,8 @@ export type RuleId =
   | 'days_consecutive'
   | 'sunday_work'
   | 'night_work'
+  | 'amplitude_max'
+  | 'weekly_rest_missing'
 
 export type Severity = 'critical' | 'warning' | 'info'
 
@@ -87,6 +89,20 @@ export const RULES: Record<RuleId, ComplianceRule> = {
     description: 'Au moins 1h de travail entre 21h et 6h',
     severity: 'warning',
     legalRef: 'Art. L3122-2 Code du travail',
+  },
+  amplitude_max: {
+    id: 'amplitude_max',
+    name: 'Amplitude journalière excessive',
+    description: 'Plus de 13h entre le début et la fin de la journée',
+    severity: 'warning',
+    legalRef: 'Art. L3121-1 + L3131-1 Code du travail',
+  },
+  weekly_rest_missing: {
+    id: 'weekly_rest_missing',
+    name: 'Repos hebdomadaire insuffisant',
+    description: 'Pas de repos continu de 35h sur une fenêtre de 7 jours',
+    severity: 'critical',
+    legalRef: 'Art. L3132-2 Code du travail',
   },
 }
 
@@ -223,6 +239,28 @@ export function checkCompliance(shifts: ShiftRecord[]): Violation[] {
           suggestedFix: 'Vérifier le statut de travailleur de nuit et les majorations applicables',
         })
       }
+
+      // amplitude_max: > 13h entre le début et la fin de la journée.
+      // Couvre aussi les split shifts (matin + soir) ; la borne 13h découle
+      // arithmétiquement du repos quotidien de 11h (24h - 11h).
+      const earliestStart = Math.min(...dayShifts.map(s => parseTimeMin(s.startTime)))
+      let latestEnd = -Infinity
+      for (const s of dayShifts) {
+        const startMin = parseTimeMin(s.startTime)
+        let endMin = parseTimeMin(s.endTime)
+        if (endMin <= startMin) endMin += 1440  // overnight
+        if (endMin > latestEnd) latestEnd = endMin
+      }
+      const amplitude = latestEnd - earliestStart
+      if (amplitude > 780) { // 13h = 780 min
+        violations.push({
+          ruleId: 'amplitude_max',
+          employeeId: empId,
+          date,
+          description: `${fmtH(amplitude)} entre le début et la fin de la journée (max conseillé 13h)`,
+          suggestedFix: 'Resserrer les horaires pour préserver les 11h de repos quotidien',
+        })
+      }
     }
 
     // ── Weekly hours ─────────────────────────────────────────────────────────
@@ -268,6 +306,50 @@ export function checkCompliance(shifts: ShiftRecord[]): Violation[] {
           description: `Seulement ${fmtH(gapMin)} de repos entre les shifts (minimum légal 11h)`,
           suggestedFix: `Déplacer le shift du ${next.date} à partir de ${minRestEnd}`,
         })
+      }
+    }
+
+    // ── Weekly rest 35h continuous (L3132-2) ─────────────────────────────────
+    // Construit des "runs" de shifts consécutifs où chaque gap observé est
+    // < 35h (= aucun repos hebdomadaire qualifiant entre eux). Si un run
+    // s'étend sur ≥ 6 jours calendaires (du premier début au dernier fin),
+    // alors aucun repos de 35h ne tient dans la fenêtre roulante de 7 jours
+    // qui le contient → violation. On ne s'appuie que sur des paires
+    // observées dans la donnée, donc pas de faux positif aux bords.
+    if (sorted.length > 0) {
+      const WEEKLY_REST_MIN = 35 * 60     // 2100 min
+      const RUN_THRESHOLD   = 6 * 24 * 60 // 8640 min (6 jours calendaires)
+
+      let runStartIdx = 0
+      for (let i = 1; i <= sorted.length; i++) {
+        let gap = Infinity
+        if (i < sorted.length) {
+          const currDateMs = new Date(sorted[i - 1].date + 'T00:00:00').getTime() / 60000
+          const nextDateMs = new Date(sorted[i].date     + 'T00:00:00').getTime() / 60000
+          const currEndAbs  = shiftEndAbsoluteMin(sorted[i - 1], currDateMs)
+          const nextStartAbs = nextDateMs + parseTimeMin(sorted[i].startTime)
+          gap = nextStartAbs - currEndAbs
+        }
+        if (gap >= WEEKLY_REST_MIN) {
+          const runFirst = sorted[runStartIdx]
+          const runLast  = sorted[i - 1]
+          const firstDateMs = new Date(runFirst.date + 'T00:00:00').getTime() / 60000
+          const lastDateMs  = new Date(runLast.date  + 'T00:00:00').getTime() / 60000
+          const runEnd   = shiftEndAbsoluteMin(runLast, lastDateMs)
+          const runBegin = firstDateMs + parseTimeMin(runFirst.startTime)
+          const span = runEnd - runBegin
+          if (span >= RUN_THRESHOLD) {
+            const days = Math.floor(span / 1440) + 1
+            violations.push({
+              ruleId: 'weekly_rest_missing',
+              employeeId: empId,
+              date: runLast.date,
+              description: `${days} jours de travail sans 35h de repos consécutif`,
+              suggestedFix: "Insérer un repos hebdomadaire d'au moins 35h continues (24h + 11h)",
+            })
+          }
+          runStartIdx = i
+        }
       }
     }
 

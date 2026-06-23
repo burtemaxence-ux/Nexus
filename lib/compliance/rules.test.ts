@@ -124,6 +124,82 @@ describe('night_work — ≥ 1h entre 21h et 6h', () => {
   })
 })
 
+describe('amplitude_max — > 13h entre début et fin de journée', () => {
+  it('déclenche pour un split shift à 14h d’amplitude', () => {
+    // 09:00–12:00 puis 18:00–23:00 → amplitude 14h.
+    expect(ruleIds([shift(MON, '09:00', '12:00', 0), shift(MON, '18:00', '23:00', 0)]))
+      .toContain('amplitude_max')
+  })
+
+  it('ne déclenche pas pile à 13h d’amplitude', () => {
+    // 09:00–12:00 puis 18:00–22:00 → amplitude 13h pile (borne stricte).
+    expect(ruleIds([shift(MON, '09:00', '12:00', 0), shift(MON, '18:00', '22:00', 0)]))
+      .not.toContain('amplitude_max')
+  })
+
+  it('ne déclenche pas pour un shift unique de jour', () => {
+    expect(ruleIds([shift(MON, '09:00', '17:00', 30)])).not.toContain('amplitude_max')
+  })
+
+  it('gère correctement un shift de nuit à cheval sur minuit', () => {
+    // 22:00–02:00 → amplitude 4h.
+    expect(ruleIds([shift(MON, '22:00', '02:00', 0)])).not.toContain('amplitude_max')
+  })
+})
+
+describe('weekly_rest_missing — pas de repos 35h continu sur 7 jours', () => {
+  it('déclenche sur 7 jours consécutifs avec des gaps tous < 35h', () => {
+    // Lun–Dim 09:00–17:00 chaque jour → gaps de 16h, aucun repos 35h.
+    const days = ['2026-06-15', '2026-06-16', '2026-06-17', '2026-06-18', '2026-06-19', '2026-06-20', '2026-06-21']
+    expect(ruleIds(days.map(d => shift(d, '09:00', '17:00', 0))))
+      .toContain('weekly_rest_missing')
+  })
+
+  it('déclenche quand le jour de repos donne moins de 35h continues', () => {
+    // Lun–Sam 06:00–23:00, Dim off, Lun+Mar suivants 06:00–23:00.
+    // Sam 23:00 → Lun 06:00 = 31h (< 35h) → run continue, span ≥ 6 jours.
+    const shifts = [
+      shift('2026-06-15', '06:00', '23:00', 30),
+      shift('2026-06-16', '06:00', '23:00', 30),
+      shift('2026-06-17', '06:00', '23:00', 30),
+      shift('2026-06-18', '06:00', '23:00', 30),
+      shift('2026-06-19', '06:00', '23:00', 30),
+      shift('2026-06-20', '06:00', '23:00', 30),
+      // Dimanche off
+      shift('2026-06-22', '06:00', '23:00', 30),
+      shift('2026-06-23', '06:00', '23:00', 30),
+    ]
+    expect(ruleIds(shifts)).toContain('weekly_rest_missing')
+  })
+
+  it('ne déclenche pas avec un vrai repos de 35h+ dans les données', () => {
+    // Lun–Ven 09:00–17:00 puis arrêt → repos > 35h après vendredi.
+    const days = ['2026-06-15', '2026-06-16', '2026-06-17', '2026-06-18', '2026-06-19']
+    expect(ruleIds(days.map(d => shift(d, '09:00', '17:00', 0))))
+      .not.toContain('weekly_rest_missing')
+  })
+
+  it('ne déclenche pas pour 6 jours suivis d’un repos suffisant', () => {
+    // Lun–Sam 09:00–17:00 (span = 5j + 8h, < 6 jours).
+    const days = ['2026-06-15', '2026-06-16', '2026-06-17', '2026-06-18', '2026-06-19', '2026-06-20']
+    expect(ruleIds(days.map(d => shift(d, '09:00', '17:00', 0))))
+      .not.toContain('weekly_rest_missing')
+  })
+
+  it('ne déclenche pas pour un shift isolé', () => {
+    expect(ruleIds([shift(MON, '09:00', '17:00', 0)]))
+      .not.toContain('weekly_rest_missing')
+  })
+
+  it('ne flague pas aux bords quand le repos sort de la fenêtre observée', () => {
+    // Mar–Ven 09:00–17:00 puis plus de shift dans la donnée → on n’infère pas
+    // l’absence de repos après Ven (la donnée s’arrête, pas de faux positif).
+    const days = ['2026-06-16', '2026-06-17', '2026-06-18', '2026-06-19']
+    expect(ruleIds(days.map(d => shift(d, '09:00', '17:00', 0))))
+      .not.toContain('weekly_rest_missing')
+  })
+})
+
 describe('isolation par employé', () => {
   it('ne mélange pas les jours consécutifs de deux employés', () => {
     // Chaque employé ne travaille qu’un seul jour → aucun cumul de jours consécutifs.

@@ -53,7 +53,7 @@ const NAV_GROUPS = [
     title: 'Compte',
     items: [
       { label: 'Abonnement', href: '/manager/settings/billing', icon: CreditCard },
-      { label: 'Parrainage', href: '/manager/parrainage',       icon: Gift },
+      { label: 'Parrainage', href: '/manager/settings/parrainage', icon: Gift },
     ],
   },
 ]

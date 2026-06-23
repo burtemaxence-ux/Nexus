@@ -53,6 +53,14 @@ function formatMinutes(mins: number): string {
   return m > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
 }
 
+// Heure compacte : "10" si pile, "10:30" sinon — pour tenir sur une ligne.
+function compactTime(t: string): string {
+  const [h, m] = t.slice(0, 5).split(':')
+  return m === '00' ? h : `${h}:${m}`
+}
+
+const DAY_COL_W = 56
+
 export function PlanningMonth({ month, employees, shifts, postes }: PlanningMonthProps) {
   const [modalState, setModalState] = useState<ModalState>({ type: 'closed' })
 
@@ -147,7 +155,7 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
           overflow: 'hidden',
         }}>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse', minWidth: `${220 + days.length * 44 + 72}px`, width: '100%' }}>
+            <table style={{ borderCollapse: 'collapse', minWidth: `${220 + days.length * DAY_COL_W + 72}px`, width: '100%' }}>
               <thead>
                 <tr style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
                   {/* Employee header */}
@@ -172,8 +180,8 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
                         style={{
                           padding: '8px 2px',
                           textAlign: 'center',
-                          width: '44px',
-                          backgroundColor: 'var(--bg-page)',
+                          width: `${DAY_COL_W}px`,
+                          backgroundColor: weekend ? 'var(--bg-page)' : 'var(--bg-page)',
                           borderRight: weekend ? '0.5px solid var(--border)' : undefined,
                         }}
                       >
@@ -315,31 +323,31 @@ export function PlanningMonth({ month, employees, shifts, postes }: PlanningMont
 }
 
 function ShiftCell({ shift, poste }: { shift: Shift; poste: Poste | undefined }) {
-  const bg = poste ? `${poste.color}15` : 'var(--accent-light)'
-  const borderColor = poste?.color ?? 'var(--accent)'
-  const textColor = poste?.color ?? 'var(--accent)'
+  const color = poste?.color ?? 'var(--accent)'
+  const range = `${compactTime(shift.start_time)}–${compactTime(shift.end_time)}`
 
   return (
     <div
+      title={`${shift.start_time.slice(0, 5)} – ${shift.end_time.slice(0, 5)}`}
       style={{
-        backgroundColor: bg,
-        borderLeft: `3px solid ${borderColor}`,
-        borderRadius: '6px',
-        padding: '4px 5px',
-        minHeight: '44px',
+        backgroundColor: poste ? `${poste.color}1A` : 'var(--accent-light)',
+        border: `1px solid ${poste ? `${poste.color}40` : 'rgba(108,99,255,0.25)'}`,
+        color,
+        borderRadius: '7px',
+        padding: '6px 3px',
+        minHeight: '34px',
         display: 'flex',
-        flexDirection: 'column',
+        alignItems: 'center',
         justifyContent: 'center',
-        margin: '0 1px',
+        fontSize: '11px',
+        fontWeight: 600,
+        lineHeight: 1.1,
+        whiteSpace: 'nowrap',
+        margin: '0 3px',
       }}
-      className="hover:brightness-[0.96] transition-all"
+      className="hover:brightness-95 transition-all"
     >
-      <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-        {shift.start_time.slice(0, 5)}
-      </div>
-      <div style={{ fontSize: '10px', color: textColor, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-        {shift.end_time.slice(0, 5)}
-      </div>
+      {range}
     </div>
   )
 }

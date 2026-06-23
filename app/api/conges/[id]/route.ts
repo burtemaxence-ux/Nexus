@@ -7,6 +7,7 @@ import { sendSms } from '@/lib/sms'
 import { createNotification } from '@/lib/notifications/create'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import type { LeaveType } from '@/types'
+import { leaveTypeLabel } from '@/lib/leaves'
 
 // PATCH — manager approuve / refuse  OU  employé annule
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
@@ -97,10 +98,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { data: settingsData } = await supabase.from('settings').select('key, value')
     const settings: Record<string, string> = {}
     for (const row of settingsData ?? []) settings[row.key] = row.value
-    const leaveTypeLabels: Record<string, string> = { CP: 'Congés payés', RTT: 'RTT', maladie: 'Maladie', sans_solde: 'Sans solde', autre: 'Autre' }
     fireWebhook(settings, status === 'approved' ? 'leave.approved' : 'leave.rejected', {
       employeeName: emp?.full_name ?? emp?.email ?? '—',
-      leaveType: leaveTypeLabels[data.type] ?? data.type,
+      leaveType: leaveTypeLabel(data.type),
       startDate: data.start_date,
       endDate: data.end_date,
     }).catch(() => {})

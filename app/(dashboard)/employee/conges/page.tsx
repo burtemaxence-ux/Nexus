@@ -7,15 +7,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { LeaveRequest, LeaveType } from '@/types'
-
-const LEAVE_TYPES: { value: LeaveType; label: string }[] = [
-  { value: 'CP', label: 'Congés payés' },
-  { value: 'RTT', label: 'RTT' },
-  { value: 'maladie', label: 'Arrêt maladie' },
-  { value: 'sans_solde', label: 'Sans solde' },
-  { value: 'autre', label: 'Autre' },
-]
+import type { LeaveRequest } from '@/types'
+import {
+  leaveTypeLabel,
+  enabledLeaveTypes,
+  parseLeaveConfig,
+  LEAVE_TYPE_CODES,
+  type LeaveType,
+  type LeaveTypesConfig,
+} from '@/lib/leaves'
 
 function StatusBadge({ status }: { status: string }) {
   if (status === 'approved') return (
@@ -45,7 +45,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function LeaveTypeBadge({ type }: { type: LeaveType }) {
-  const label = LEAVE_TYPES.find(t => t.value === type)?.label ?? type
+  const label = leaveTypeLabel(type)
   return (
     <span
       className="text-[10px] font-medium uppercase tracking-[0.06em]"
@@ -70,6 +70,7 @@ function countDays(start: string, end: string) {
 interface LeaveFormProps {
   startDate: string; endDate: string; type: LeaveType; comment: string
   submitting: boolean; formError: string | null
+  typeOptions: LeaveType[]; leaveConfig: LeaveTypesConfig | null
   onStartDate(v: string): void; onEndDate(v: string): void
   onType(v: LeaveType): void; onComment(v: string): void
   onSubmit(e: React.FormEvent): void; onCancel(): void
@@ -77,8 +78,10 @@ interface LeaveFormProps {
 
 function LeaveForm({
   startDate, endDate, type, comment, submitting, formError,
+  typeOptions, leaveConfig,
   onStartDate, onEndDate, onType, onComment, onSubmit, onCancel,
 }: LeaveFormProps) {
+  const setting = leaveConfig?.[type] ?? null
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -98,9 +101,17 @@ function LeaveForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {LEAVE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+            {typeOptions.map(code => <SelectItem key={code} value={code}>{leaveTypeLabel(code)}</SelectItem>)}
           </SelectContent>
         </Select>
+        {setting && (
+          <p className="text-[12px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
+            {setting.validation === 'auto'
+              ? '✓ Validée automatiquement dès l’envoi.'
+              : 'Soumise à la validation de votre manager.'}
+            {setting.notice_days > 0 && ` Prévenance recommandée : ${setting.notice_days} jour${setting.notice_days > 1 ? 's' : ''}.`}
+          </p>
+        )}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="comment" style={{ fontFamily: 'var(--font-dm-sans)' }}>Commentaire (optionnel)</Label>
@@ -148,6 +159,7 @@ export default function EmployeeCongesPage() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
+  const [leaveConfig, setLeaveConfig] = useState<LeaveTypesConfig | null>(null)
 
   const fetchRequests = useCallback(async () => {
     setLoading(true)
@@ -157,6 +169,21 @@ export default function EmployeeCongesPage() {
   }, [])
 
   useEffect(() => { fetchRequests() }, [fetchRequests])
+
+  // Types proposés selon les réglages de l'établissement (Réglages › Congés).
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then((data: Record<string, string>) => {
+        const config = parseLeaveConfig(data.leave_types_config)
+        setLeaveConfig(config)
+        const enabled = enabledLeaveTypes(config)
+        setType(prev => (enabled.includes(prev) ? prev : enabled[0]))
+      })
+      .catch(() => {})
+  }, [])
+
+  const typeOptions = leaveConfig ? enabledLeaveTypes(leaveConfig) : [...LEAVE_TYPE_CODES]
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -192,6 +219,7 @@ export default function EmployeeCongesPage() {
 
   const formProps: LeaveFormProps = {
     startDate, endDate, type, comment, submitting, formError,
+    typeOptions, leaveConfig,
     onStartDate: setStartDate, onEndDate: setEndDate,
     onType: setType, onComment: setComment,
     onSubmit: handleSubmit, onCancel: closeForm,

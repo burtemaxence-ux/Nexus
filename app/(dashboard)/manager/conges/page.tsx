@@ -6,10 +6,7 @@ import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import type { LeaveRequestWithEmployee } from '@/types'
-
-const LEAVE_LABELS: Record<string, string> = {
-  CP: 'Congés payés', RTT: 'RTT', maladie: 'Arrêt maladie', sans_solde: 'Sans solde', autre: 'Autre',
-}
+import { leaveTypeLabel } from '@/lib/leaves'
 
 function formatDate(d: string) {
   return new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -170,7 +167,7 @@ export default function ManagerCongesPage() {
                       </span>
                     </p>
                     <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                      {LEAVE_LABELS[req.type]}
+                      {leaveTypeLabel(req.type)}
                     </p>
                     {req.comment && (
                       <p className="text-[12px] mt-1 italic" style={{ color: 'var(--text-tertiary)' }}>

@@ -1,11 +1,20 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireManager } from '@/lib/api-auth'
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient()
+  let estId: string
+  try {
+    const { profile } = await requireManager(supabase)
+    estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
   const { id } = await params
 
   let body: {
@@ -38,10 +47,12 @@ export async function PATCH(
     .from('postes')
     .update(updates)
     .eq('id', id)
+    .eq('establishment_id', estId)
     .select()
-    .single()
+    .maybeSingle()
 
   if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  if (!data) return NextResponse.json({ error: 'Poste introuvable' }, { status: 404 })
   return NextResponse.json(data)
 }
 
@@ -50,10 +61,25 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient()
+  let estId: string
+  try {
+    const { profile } = await requireManager(supabase)
+    estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
+  } catch (e) {
+    if (e instanceof Response) return e as NextResponse
+    throw e
+  }
   const { id } = await params
 
-  const { error } = await supabase.from('postes').delete().eq('id', id)
+  const { data, error } = await supabase
+    .from('postes')
+    .delete()
+    .eq('id', id)
+    .eq('establishment_id', estId)
+    .select('id')
+    .maybeSingle()
 
   if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  if (!data) return NextResponse.json({ error: 'Poste introuvable' }, { status: 404 })
   return NextResponse.json({ success: true })
 }

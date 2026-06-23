@@ -13,6 +13,7 @@ import { type Profile, type Shift, type Poste, type LeaveRequest } from '@/types
 import { SosReplacementModal } from '@/components/planning/sos-replacement-modal'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 import { calcHours, formatHours, formatTime, isToday, getInitials } from '@/lib/planning-utils'
+import { checkCompliance, RULES, type ShiftRecord } from '@/lib/compliance/rules'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
 import dynamic from 'next/dynamic'
 import {
@@ -20,7 +21,7 @@ import {
   PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
 import { ContextMenu, type CtxMenu } from './shift-card'
-import { GridCell } from './grid-cell'
+import { GridCell, type CellViolation } from './grid-cell'
 import { MetricCard, DonutChart, AlertRow, ActivityRow } from './planning-metrics'
 import { MobileManagerPlanning } from './mobile-planning'
 import { AiQuotaBadge } from '@/components/ui/ai-quota-badge'
@@ -86,6 +87,51 @@ export function PlanningWeekTimeline({
   const [filterPoste, setFilterPoste] = useState('')
   const [showAiPlanModal, setShowAiPlanModal] = useState(false)
   const [aiQuotaKey, setAiQuotaKey] = useState(0)
+  const [verify, setVerify] = useState(false)
+
+  // Conformité Code du Travail sur la semaine affichée. Calculée à la demande
+  // (bouton « Vérifier ») et projetée sur les cases : un shift en infraction
+  // est surligné en rouge, le détail apparaît au survol.
+  const violationMap = useMemo(() => {
+    const records: ShiftRecord[] = shifts.map(s => ({
+      id: s.id,
+      employeeId: s.employee_id,
+      date: s.date,
+      startTime: s.start_time.slice(0, 5),
+      endTime: s.end_time.slice(0, 5),
+      breakMinutes: s.break_minutes ?? 0,
+    }))
+    // Drapeaux contextuels (inhérents aux horaires/jours d'ouverture, non
+    // évitables par l'ordonnancement) : affichés en « à vérifier » ambre,
+    // jamais comptés comme infractions bloquantes.
+    const CONTEXTUAL = new Set(['night_work', 'sunday_work'])
+    const m = new Map<string, CellViolation[]>()
+    for (const v of checkCompliance(records)) {
+      const key = `${v.employeeId}__${v.date}`
+      const rule = RULES[v.ruleId]
+      const arr = m.get(key) ?? []
+      arr.push({
+        name: rule?.name ?? v.ruleId,
+        reason: v.description,
+        legalRef: rule?.legalRef ?? '',
+        fix: v.suggestedFix ?? null,
+        contextual: CONTEXTUAL.has(v.ruleId),
+      })
+      m.set(key, arr)
+    }
+    return m
+  }, [shifts])
+
+  // Ne compte que les infractions actionnables (les drapeaux contextuels
+  // nuit/dimanche sont signalés à part, jamais comme « infractions »).
+  const violationCount = useMemo(
+    () => Array.from(violationMap.values()).reduce((s, a) => s + a.filter(v => !v.contextual).length, 0),
+    [violationMap],
+  )
+  const contextualCount = useMemo(
+    () => Array.from(violationMap.values()).reduce((s, a) => s + a.filter(v => v.contextual).length, 0),
+    [violationMap],
+  )
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -320,6 +366,26 @@ export function PlanningWeekTimeline({
             <Link href={`/manager/planning/print?week=${mondayStr}`} target="_blank">
               <button className="btn-secondary" style={{ padding: '7px 9px' }} title="Exporter PDF"><Printer size={13} /></button>
             </Link>
+            <button
+              className="btn-secondary"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px',
+                ...(verify
+                  ? (violationCount > 0
+                      ? { borderColor: 'var(--danger)', color: 'var(--danger)' }
+                      : { borderColor: 'var(--success)', color: 'var(--success)' })
+                  : {}),
+              }}
+              onClick={() => setVerify(v => !v)}
+              title="Vérifier la conformité au Code du Travail"
+            >
+              <AlertTriangle size={13} />
+              {verify
+                ? (violationCount > 0
+                    ? `${violationCount} infraction${violationCount > 1 ? 's' : ''}`
+                    : contextualCount > 0 ? `Conforme · ${contextualCount} à vérifier` : 'Conforme')
+                : 'Vérifier'}
+            </button>
             <AiQuotaBadge refreshKey={aiQuotaKey} />
             <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', borderColor: 'var(--accent)', color: 'var(--accent)' }}
               onClick={() => setShowAiPlanModal(true)} title="Générer le planning automatiquement avec l'IA">
@@ -422,6 +488,7 @@ export function PlanningWeekTimeline({
                               key={dateStr} droppableId={did} shifts={dayShifts} leaveType={leaveType}
                               postes={posteMap} weekLocked={weekLocked} isToday={todayCol}
                               employee={emp} date={date}
+                              violations={verify ? violationMap.get(did) : undefined}
                               onAdd={handleCellAdd}
                               onClickShift={handleCellClickShift}
                               onContextMenu={handleCellContextMenu}

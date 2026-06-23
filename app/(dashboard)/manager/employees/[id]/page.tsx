@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile, Contract, Availability } from '@/types'
@@ -21,6 +21,13 @@ import {
   Trash2, Shield, Clock, ChevronLeft, AlarmClock
 } from 'lucide-react'
 import { DocumentsTab } from '@/components/employees/documents-tab'
+import {
+  CONTRACT_TYPES,
+  parseContractConfig,
+  enabledContractTypes,
+  type ContractType,
+  type ContractTypesConfig,
+} from '@/lib/contracts'
 
 type LatenessRecord = {
   id: string
@@ -41,7 +48,6 @@ const TABS = [
   { id: 'documents', label: 'Documents', icon: Archive },
 ]
 
-const CONTRACT_TYPES = ['CDI 35h', 'CDI 28h', 'CDD', 'CDD Saisonnier', 'Extra'] as const
 const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 const POSITIONS = ['Serveur', 'Serveuse', 'Cuisinier', 'Cuisinière', 'Chef de rang', 'Barman', 'Barmaid', 'Plongeur', 'Chef de cuisine', 'Sous-chef', 'Commis de cuisine', "Hôte d'accueil"]
 
@@ -65,6 +71,7 @@ export default function EmployeeDetailPage() {
   const [employee, setEmployee] = useState<Profile | null>(null)
   const [invitedByName, setInvitedByName] = useState<string | null>(null)
   const [contracts, setContracts] = useState<Contract[]>([])
+  const [contractConfig, setContractConfig] = useState<ContractTypesConfig | null>(null)
   const [showArchiveDialog, setShowArchiveDialog] = useState(false)
   const [showContractDialog, setShowContractDialog] = useState(false)
   const [pinVisible, setPinVisible] = useState(false)
@@ -89,6 +96,10 @@ export default function EmployeeDetailPage() {
   const [emergencyName, setEmergencyName] = useState('')
   const [emergencyPhone, setEmergencyPhone] = useState('')
   const [workPermitExpiry, setWorkPermitExpiry] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
   const [activeDays, setActiveDays] = useState<Set<number>>(new Set())
   const [dayTimes, setDayTimes] = useState<Record<number, { start: string; end: string }>>({})
 
@@ -99,6 +110,13 @@ export default function EmployeeDetailPage() {
     end_date: '',
     weekly_hours: '',
     hourly_rate: '',
+    monthly_gross_salary: '',
+    classification: '',
+    coefficient: '',
+    has_mutuelle: false,
+    has_meal_vouchers: false,
+    meal_voucher_value: '',
+    has_transport_reimbursement: false,
     job_title: '',
     work_location: '',
     cdd_reason: '',
@@ -133,11 +151,14 @@ export default function EmployeeDetailPage() {
 
   const load = useCallback(async () => {
     const supabase = createClient()
-    const [empRes, contractsRes, availRes] = await Promise.all([
+    const [empRes, contractsRes, availRes, settingsRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', id).single(),
       fetch(`/api/employees/${id}/contracts`).then(r => r.json()),
       fetch(`/api/employees/${id}/availabilities`).then(r => r.json()),
+      fetch('/api/settings').then(r => r.json()).catch(() => ({})),
     ])
+
+    setContractConfig(parseContractConfig((settingsRes as Record<string, string>)?.contract_types_config))
 
     if (empRes.error || !empRes.data) { router.push('/manager/employees'); return }
 
@@ -157,6 +178,7 @@ export default function EmployeeDetailPage() {
     setEmergencyName(emp.emergency_contact_name ?? '')
     setEmergencyPhone(emp.emergency_contact_phone ?? '')
     setWorkPermitExpiry(emp.work_permit_expiry ?? '')
+    setAvatarUrl(emp.avatar_url ?? '')
 
     if (emp.invited_by) {
       const { data: inv } = await supabase.from('profiles').select('full_name').eq('id', emp.invited_by).single()
@@ -217,6 +239,7 @@ export default function EmployeeDetailPage() {
         emergency_contact_name: emergencyName.trim() || null,
         emergency_contact_phone: emergencyPhone.trim() || null,
         work_permit_expiry: workPermitExpiry || null,
+        avatar_url: avatarUrl || null,
       }),
     })
     if (res.ok) {
@@ -268,6 +291,13 @@ export default function EmployeeDetailPage() {
         end_date: contractForm.end_date || null,
         weekly_hours: parseFloat(contractForm.weekly_hours),
         hourly_rate: contractForm.hourly_rate ? parseFloat(contractForm.hourly_rate) : null,
+        monthly_gross_salary: contractForm.monthly_gross_salary ? parseFloat(contractForm.monthly_gross_salary) : null,
+        classification: contractForm.classification || null,
+        coefficient: contractForm.coefficient || null,
+        has_mutuelle: contractForm.has_mutuelle,
+        has_meal_vouchers: contractForm.has_meal_vouchers,
+        meal_voucher_value: contractForm.meal_voucher_value ? parseFloat(contractForm.meal_voucher_value) : null,
+        has_transport_reimbursement: contractForm.has_transport_reimbursement,
         job_title: contractForm.job_title || null,
         work_location: contractForm.work_location || null,
         cdd_reason: contractForm.cdd_reason || null,
@@ -283,6 +313,8 @@ export default function EmployeeDetailPage() {
       setShowContractDialog(false)
       setContractForm({
         type: 'CDI 35h', start_date: '', end_date: '', weekly_hours: '', hourly_rate: '',
+        monthly_gross_salary: '', classification: '', coefficient: '',
+        has_mutuelle: false, has_meal_vouchers: false, meal_voucher_value: '', has_transport_reimbursement: false,
         job_title: '', work_location: '', cdd_reason: '',
         trial_period_days: '61', notice_period_days: '30', paid_leave_days: '25',
         has_confidentiality: false, has_non_compete: false, notes: '',
@@ -307,6 +339,35 @@ export default function EmployeeDetailPage() {
     }
   }
 
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setAvatarError('Veuillez sélectionner une image.'); return }
+    if (file.size > 2 * 1024 * 1024) { setAvatarError('Image trop lourde (max 2 Mo).'); return }
+    setAvatarError(null)
+    setAvatarUploading(true)
+    try {
+      await fetch('/api/storage/init', { method: 'POST' })
+      const supabase = createClient()
+      const ext = file.name.split('.').pop()
+      const path = `${id}/avatar-${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true, cacheControl: '31536000' })
+      if (error) throw error
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      setAvatarUrl(data.publicUrl)
+    } catch {
+      setAvatarError('Upload échoué — réessayez.')
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
+
+  function removeAvatar() {
+    setAvatarUrl('')
+    setAvatarError(null)
+    if (avatarInputRef.current) avatarInputRef.current.value = ''
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -316,6 +377,13 @@ export default function EmployeeDetailPage() {
   }
 
   if (!employee) return null
+
+  // Types proposés dans le dialogue de contrat : ceux activés en réglages, en
+  // gardant toujours le type courant même s'il a été désactivé entre-temps.
+  const baseContractTypes = contractConfig ? enabledContractTypes(contractConfig) : [...CONTRACT_TYPES]
+  const contractTypeOptions = baseContractTypes.includes(contractForm.type as ContractType)
+    ? baseContractTypes
+    : [contractForm.type as ContractType, ...baseContractTypes]
 
   return (
     <div className="min-h-full">
@@ -331,11 +399,16 @@ export default function EmployeeDetailPage() {
               <ChevronLeft className="h-4 w-4" />
             </button>
             <div className="flex items-center gap-3 flex-1">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
                 style={{ backgroundColor: 'var(--accent-light)' }}>
-                <span className="text-[12px] font-medium" style={{ color: 'var(--accent)' }}>
-                  {getInitials(employee.full_name ?? employee.email)}
-                </span>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-[12px] font-medium" style={{ color: 'var(--accent)' }}>
+                    {getInitials(employee.full_name ?? employee.email)}
+                  </span>
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -384,6 +457,35 @@ export default function EmployeeDetailPage() {
                 <CardTitle className="text-base">Informations personnelles</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Photo de profil */}
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'var(--accent-light)', border: '0.5px solid var(--border)' }}>
+                    {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatarUrl} alt="Photo" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-[18px] font-medium" style={{ color: 'var(--accent)' }}>
+                        {getInitials(employee.full_name ?? employee.email)}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} className="gap-1.5">
+                        {avatarUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                        {avatarUploading ? 'Upload…' : 'Choisir une photo'}
+                      </Button>
+                      {avatarUrl && (
+                        <Button variant="ghost" size="sm" onClick={removeAvatar} className="text-muted-foreground">Retirer</Button>
+                      )}
+                    </div>
+                    <p className="text-[11px] mt-1.5 text-muted-foreground">PNG, JPG · max 2 Mo</p>
+                    {avatarError && <p className="text-[11px] mt-1" style={{ color: 'var(--danger)' }}>{avatarError}</p>}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Nom complet</Label>
@@ -631,12 +733,19 @@ export default function EmployeeDetailPage() {
                               {contract.weekly_hours}h/sem.
                             </span>
                             {contract.hourly_rate && <span>{contract.hourly_rate}€/h brut</span>}
+                            {contract.monthly_gross_salary && <span>{contract.monthly_gross_salary.toLocaleString('fr-FR')}€/mois brut</span>}
                             <span>
                               Du {formatDate(contract.start_date)}
                               {contract.end_date ? ` au ${formatDate(contract.end_date)}` : ' (en cours)'}
                             </span>
                             {contract.work_location && <span>📍 {contract.work_location}</span>}
                           </div>
+                          {(contract.classification || contract.coefficient) && (
+                            <div className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground mt-1">
+                              {contract.classification && <span>{contract.classification}</span>}
+                              {contract.coefficient && <span>Coef. {contract.coefficient}</span>}
+                            </div>
+                          )}
                           <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
                             {contract.trial_period_days != null && contract.trial_period_days > 0 && (
                               <span>Essai : {contract.trial_period_days}j</span>
@@ -652,6 +761,17 @@ export default function EmployeeDetailPage() {
                             )}
                             {contract.has_non_compete && (
                               <span className="dp-badge-info">Non-concurrence</span>
+                            )}
+                            {contract.has_mutuelle && (
+                              <span className="dp-badge-info">Mutuelle</span>
+                            )}
+                            {contract.has_meal_vouchers && (
+                              <span className="dp-badge-info">
+                                Tickets resto{contract.meal_voucher_value ? ` ${contract.meal_voucher_value}€` : ''}
+                              </span>
+                            )}
+                            {contract.has_transport_reimbursement && (
+                              <span className="dp-badge-info">Transport 50 %</span>
                             )}
                           </div>
                           {contract.notes && <p className="text-xs text-muted-foreground mt-1 italic">{contract.notes}</p>}
@@ -867,7 +987,7 @@ export default function EmployeeDetailPage() {
                   <Select value={contractForm.type} onValueChange={v => setContractForm(p => ({ ...p, type: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {CONTRACT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {contractTypeOptions.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -933,6 +1053,83 @@ export default function EmployeeDetailPage() {
                   </div>
                   <p className="text-[10px] text-muted-foreground">SMIC 2025 : 11.88 €/h</p>
                 </div>
+                <div className="space-y-1.5">
+                  <Label>Salaire brut mensuel (€) <span className="text-muted-foreground text-xs">(facultatif)</span></Label>
+                  <div className="relative">
+                    <Input
+                      type="number" min="0" step="0.01"
+                      value={contractForm.monthly_gross_salary}
+                      onChange={e => setContractForm(p => ({ ...p, monthly_gross_salary: e.target.value }))}
+                      placeholder="1801.80"
+                      className="pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">€</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Classification & avantages */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Classification & avantages</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Classification <span className="text-muted-foreground text-xs">(convention)</span></Label>
+                  <Input
+                    value={contractForm.classification}
+                    onChange={e => setContractForm(p => ({ ...p, classification: e.target.value }))}
+                    placeholder="Ex : Niveau II — Échelon 1"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Coefficient</Label>
+                  <Input
+                    value={contractForm.coefficient}
+                    onChange={e => setContractForm(p => ({ ...p, coefficient: e.target.value }))}
+                    placeholder="Ex : 190"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-x-6 gap-y-2.5 mt-3">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={contractForm.has_mutuelle}
+                    onChange={e => setContractForm(p => ({ ...p, has_mutuelle: e.target.checked }))}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm text-foreground">Mutuelle d&apos;entreprise</span>
+                </label>
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={contractForm.has_transport_reimbursement}
+                    onChange={e => setContractForm(p => ({ ...p, has_transport_reimbursement: e.target.checked }))}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm text-foreground">Transport (50 %)</span>
+                </label>
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={contractForm.has_meal_vouchers}
+                    onChange={e => setContractForm(p => ({ ...p, has_meal_vouchers: e.target.checked }))}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <span className="text-sm text-foreground">Tickets restaurant</span>
+                </label>
+                {contractForm.has_meal_vouchers && (
+                  <div className="relative w-32">
+                    <Input
+                      type="number" min="0" step="0.01"
+                      value={contractForm.meal_voucher_value}
+                      onChange={e => setContractForm(p => ({ ...p, meal_voucher_value: e.target.value }))}
+                      placeholder="Valeur"
+                      className="pr-8 h-9"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">€</span>
+                  </div>
+                )}
               </div>
             </div>
 

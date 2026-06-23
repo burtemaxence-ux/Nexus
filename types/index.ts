@@ -1,3 +1,6 @@
+import type { ContractType } from '@/lib/contracts'
+import type { LeaveType } from '@/lib/leaves'
+
 export type Poste = {
   id: string
   name: string
@@ -19,13 +22,15 @@ export type Profile = {
   full_name: string | null
   role: UserRole
   position: string | null
-  contract_type: 'CDI 35h' | 'CDI 28h' | 'CDD' | 'CDD Saisonnier' | 'Extra' | null
+  contract_type: ContractType | null
   weekly_hours: number | null
   phone: string | null
   pay_ref: string | null
   pin: string | null
   disability: boolean
   archived: boolean
+  archived_at: string | null
+  avatar_url: string | null
   invited_by: string | null
   created_at: string
   // Données administratives (dossier RH)
@@ -43,11 +48,18 @@ export type Profile = {
 export type Contract = {
   id: string
   employee_id: string
-  type: 'CDI 35h' | 'CDI 28h' | 'CDD' | 'CDD Saisonnier' | 'Extra'
+  type: ContractType
   start_date: string
   end_date: string | null
   weekly_hours: number
   hourly_rate: number | null
+  monthly_gross_salary: number | null
+  classification: string | null
+  coefficient: string | null
+  has_mutuelle: boolean
+  has_meal_vouchers: boolean
+  meal_voucher_value: number | null
+  has_transport_reimbursement: boolean
   job_title: string | null
   work_location: string | null
   cdd_reason: string | null
@@ -92,7 +104,7 @@ export type WeekStatus = {
   locked_at: string | null
 }
 
-export type LeaveType = 'CP' | 'RTT' | 'maladie' | 'sans_solde' | 'autre'
+export type { LeaveType }
 export type LeaveStatus = 'pending' | 'approved' | 'rejected'
 
 export type LeaveRequest = {

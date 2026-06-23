@@ -14,7 +14,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Scopé à l'établissement du manager : on ne peut archiver qu'un employé du même établissement.
     const { error } = await supabase
       .from('profiles')
-      .update({ archived: !!archived })
+      .update({ archived: !!archived, archived_at: archived ? new Date().toISOString() : null })
       .eq('id', params.id)
       .eq('establishment_id', estId)
 

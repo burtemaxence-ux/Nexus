@@ -7,7 +7,7 @@ import {
   Calendar, Users, Clock, Zap, ArrowLeftRight, Scale,
   LineChart, BookOpen, ChevronDown, ChevronUp, ExternalLink,
   CheckCircle2, Webhook, Key, Building2, BarChart3, Palmtree,
-  AlertTriangle, ShieldCheck, Sparkles,
+  AlertTriangle, ShieldCheck, Sparkles, FileText, TrendingUp, CreditCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -87,35 +87,41 @@ const SECTIONS: HelpSection[] = [
       {
         title: 'Lancer une génération',
         items: [
-          'Depuis le planning, cliquez sur le bouton ✨ "IA" en haut à droite',
-          'Sélectionnez la semaine cible et le nombre d\'employés souhaité',
-          'L\'IA génère une proposition en 5 à 15 secondes',
-          'Prévisualisez les shifts proposés avant d\'appliquer',
+          'Depuis le planning, cliquez sur "Générer" (✨) en haut à droite',
+          'Décrivez vos besoins en une phrase (ex : "3 serveurs le soir, fermé lundi")',
+          'L\'IA construit le planning en 15 à 30 secondes',
         ],
       },
       {
-        title: 'Appliquer ou ajuster',
+        title: 'Application automatique',
         items: [
-          'Chaque shift proposé est affiché avec employé, horaire et poste',
-          'Vous pouvez modifier manuellement avant de confirmer',
-          '"Appliquer" crée tous les shifts en base de données',
-          'Les shifts créés restent en mode brouillon — publiez ensuite',
+          'Les shifts sont créés directement en brouillon — plus besoin de cocher chaque case',
+          'Un récapitulatif s\'affiche (nombre de shifts + résumé de la logique de l\'IA)',
+          'Ajustez sur le planning, puis cliquez "Publier" pour notifier l\'équipe',
         ],
       },
       {
-        title: 'Limites et bonnes pratiques',
+        title: 'Copilote de productivité (Pro)',
+        items: [
+          'Si vous avez saisi votre CA (Rapport), l\'IA prévoit l\'activité de la semaine',
+          'Vous fixez une cible coût/CA, auto-calibrée sur votre historique',
+          'Le planning est dimensionné au CA prévu, au moindre coût',
+          'Le récap affiche le coût/CA estimé du planning généré',
+        ],
+      },
+      {
+        title: 'Limites & bonnes pratiques',
         items: [
           'Maximum 10 générations par heure (rate limit)',
-          'L\'IA respecte les contrats (CDI 35h → ~5 shifts × 7h)',
-          'Les congés approuvés sont pris en compte automatiquement',
-          'Vérifiez la conformité légale après génération',
+          'Plan Essentiel : 3 générations IA/mois ; Pro & Multi-site : illimité',
+          'Congés approuvés et contrats hebdomadaires respectés automatiquement',
         ],
       },
     ],
     tips: [
-      'Décrivez votre contexte dans les préférences IA (ex: "restauration, service du soir")',
-      'Si le résultat ne convient pas, re-générez — chaque appel est différent',
-      'Combinez IA + ajustements manuels pour le résultat optimal',
+      'Après génération, utilisez le bouton "Vérifier" du planning pour contrôler la conformité',
+      'Le copilote coût/CA nécessite un plan Pro et d\'avoir saisi votre CA dans le Rapport',
+      'Décrivez votre contexte (service du soir, jours de fermeture…) pour un meilleur résultat',
     ],
   },
   {
@@ -158,6 +164,50 @@ const SECTIONS: HelpSection[] = [
     tips: [
       'Complétez le taux horaire pour que les analytiques soient précis',
       'Le solde de congés se met à jour automatiquement à chaque approbation',
+    ],
+  },
+  {
+    id: 'hr-file',
+    icon: FileText,
+    color: '#0D9488',
+    colorLight: '#CCFBF1',
+    title: 'Dossier RH / Fiche employé',
+    description: 'Centralisez état civil, contrat et documents de chaque employé.',
+    href: '/manager/employees',
+    hrefLabel: 'Voir les employés',
+    blocks: [
+      {
+        title: 'Informations & photo',
+        items: [
+          'Ouvrez une fiche employé → onglet "Infos"',
+          'Ajoutez une photo de profil (PNG/JPG, max 2 Mo)',
+          'État civil : date de naissance, nationalité, adresse postale',
+          'Données paie : n° de sécurité sociale, IBAN, matricule',
+          'Contact d\'urgence et expiration du titre de séjour (si hors UE)',
+        ],
+      },
+      {
+        title: 'Données contractuelles',
+        items: [
+          'Onglet "Contrat" → "Nouveau contrat"',
+          'Type, dates, volume horaire, taux horaire et salaire brut mensuel',
+          'Classification / coefficient de votre convention collective',
+          'Avantages : mutuelle, tickets restaurant, transport 50 %',
+          'Période d\'essai et préavis calculés automatiquement selon le type',
+        ],
+      },
+      {
+        title: 'Documents & PIN badgeuse',
+        items: [
+          'Onglet "Documents" : stockez contrats signés, justificatifs, attestations',
+          'Le code PIN de la badgeuse se réinitialise depuis l\'onglet Infos',
+          'Archiver l\'employé conserve son historique pour les rapports',
+        ],
+      },
+    ],
+    tips: [
+      'Renseignez le taux horaire (ou le brut) pour des analytiques et un coût/CA précis',
+      'La photo de profil apparaît dans l\'en-tête de la fiche et le service du jour',
     ],
   },
   {
@@ -316,6 +366,15 @@ const SECTIONS: HelpSection[] = [
           'Modifiez le shift dans le planning — rechargez pour voir le nouveau score',
         ],
       },
+      {
+        title: 'Vérifier depuis le planning',
+        items: [
+          'Sur le planning, cliquez le bouton "Vérifier" dans la barre d\'outils',
+          'Les créneaux en infraction passent en rouge directement sur la grille',
+          'Survolez une case rouge pour voir la règle et la référence légale',
+          'Le bouton indique le nombre d\'infractions, ou "Conforme" en vert',
+        ],
+      },
     ],
     tips: [
       'Vérifiez la conformité après chaque génération IA ou semaine publiée',
@@ -366,6 +425,47 @@ const SECTIONS: HelpSection[] = [
     tips: [
       'Commencez par "12 mois" pour identifier les tendances long terme',
       'La vue "4 semaines" est idéale pour le suivi opérationnel quotidien',
+    ],
+  },
+  {
+    id: 'rapport',
+    icon: TrendingUp,
+    color: '#9333EA',
+    colorLight: '#F3E8FF',
+    title: 'Rapport & Productivité',
+    description: 'Heures, retards, paie — et pilotage de votre rentabilité (Pro).',
+    href: '/manager/rapport',
+    hrefLabel: 'Ouvrir le rapport',
+    blocks: [
+      {
+        title: 'Trois rapports',
+        items: [
+          'Onglet "Heures" : heures planifiées vs réelles, écart au contrat, coût estimé',
+          'Onglet "Retards" : tous les retards pointés, à marquer justifiés ou non',
+          'Onglet "Paie" : variables de paie, export CSV (PayFit, Silae, ADP) + PDF',
+          'Filtrez par Jour / Semaine / Mois, par poste ou par employé',
+        ],
+      },
+      {
+        title: 'Pilotage de la productivité (Pro)',
+        items: [
+          'Cliquez "Saisir le CA" pour entrer votre chiffre d\'affaires jour par jour',
+          'La carte affiche le ratio coût main d\'œuvre / CA (cible ~30 %)',
+          'Plus le taux d\'absentéisme et le turnover sur la période',
+          'Fonctionnalité réservée aux plans Pro et Multi-site',
+        ],
+      },
+      {
+        title: 'Exports',
+        items: [
+          'Onglet Heures : export PDF du rapport complet',
+          'Onglet Paie : export CSV au format de votre logiciel de paie + PDF récapitulatif',
+        ],
+      },
+    ],
+    tips: [
+      'Saisissez le CA chaque semaine : ça affine la prévision du copilote IA',
+      'Coût/CA ≤ 30 % = sain · 30–35 % à surveiller · > 35 % élevé',
     ],
   },
   {
@@ -448,6 +548,48 @@ const SECTIONS: HelpSection[] = [
     tips: [
       'Les analytiques sont par établissement — agrégez manuellement pour la vue groupe',
       'Un même utilisateur peut être manager sur plusieurs établissements',
+    ],
+  },
+  {
+    id: 'billing',
+    icon: CreditCard,
+    color: '#0EA5E9',
+    colorLight: '#E0F2FE',
+    title: 'Abonnement & fonctionnalités premium',
+    description: 'Comprenez les plans et ce que débloquent Pro et Multi-site.',
+    href: '/manager/settings/billing',
+    hrefLabel: 'Voir les plans',
+    blocks: [
+      {
+        title: 'Les 3 plans',
+        items: [
+          'Essentiel : jusqu\'à 10 employés, planning + IA (3/mois), présences, congés, conformité, dossier RH',
+          'Pro : jusqu\'à 25 employés, IA illimitée, pilotage productivité, copilote IA coût/CA',
+          'Multi-site : employés illimités, plusieurs établissements, support dédié',
+        ],
+      },
+      {
+        title: 'Fonctionnalités premium (Pro & Multi-site)',
+        items: [
+          'Pilotage de la productivité : CA, coût/CA, masse salariale',
+          'Taux d\'absentéisme & turnover',
+          'Copilote IA : planning optimisé coût/CA',
+          'Génération de documents de conformité (avertissements, avenants…)',
+          'Assistant IA illimité',
+        ],
+      },
+      {
+        title: 'Gérer son abonnement',
+        items: [
+          'Paramètres → Abonnement pour choisir ou changer de plan',
+          'Facturation mensuelle ou annuelle (2 mois offerts à l\'année)',
+          'Gestion et annulation en 1 clic depuis le portail de facturation',
+        ],
+      },
+    ],
+    tips: [
+      'Les fonctions premium affichent un badge "Pro" et un bouton "Passer en Pro"',
+      '30 jours d\'essai gratuits, sans carte bleue',
     ],
   },
 ]

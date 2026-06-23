@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import DeleteEmployeeButton from './delete-employee-button'
 import ResendLinkButton from './resend-link-button'
+import { CONTRACT_TYPES } from '@/lib/contracts'
 
 export type Employee = {
   id: string
@@ -26,8 +27,6 @@ export type Employee = {
 
 type SortField = 'full_name' | 'position' | 'contract_type' | 'weekly_hours' | 'created_at'
 type SortDir = 'asc' | 'desc'
-
-const CONTRACT_TYPES = ['CDI 35h', 'CDI 28h', 'CDD', 'CDD Saisonnier', 'Extra']
 
 function getInitials(name: string): string {
   return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
@@ -156,7 +155,7 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
     <div className="min-h-full">
       {/* Header */}
       <div className="sticky top-14 md:top-11 z-20" style={{ backgroundColor: 'var(--bg-card)', borderBottom: '0.5px solid var(--border)' }}>
-        <div className="px-4 md:px-6 max-w-6xl mx-auto">
+        <div className="px-4 md:px-6 max-w-7xl mx-auto">
           <div className="flex items-center gap-2 md:gap-3 flex-wrap min-h-[56px] py-2">
             <h1 className="text-[20px] font-medium tracking-[-0.02em] shrink-0" style={{ color: 'var(--text-primary)' }}>Équipe</h1>
 
@@ -253,7 +252,7 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
         </div>
       </div>
 
-      <div className="px-4 py-4 md:px-6 md:py-6 max-w-6xl mx-auto">
+      <div className="px-4 py-4 md:px-6 md:py-6 max-w-7xl mx-auto">
         {/* Stats bar */}
         <div className="flex items-center gap-3 mb-4 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
           {loading ? (
@@ -364,17 +363,17 @@ export default function EmployeesClient({ initialEmployees, callerRole = 'manage
                   {filtered.map((emp) => (
                     <tr
                       key={emp.id}
-                      className="transition-colors duration-150"
+                      className="transition-colors duration-150 hover:bg-[var(--bg-page)]"
                       style={{
                         borderBottom: '0.5px solid var(--border)',
                         opacity: emp.archived ? 0.5 : 1,
                       }}
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0"
+                          <div className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0"
                             style={{ backgroundColor: 'var(--accent-light)' }}>
-                            <span className="text-[10px] font-medium" style={{ color: 'var(--accent)' }}>
+                            <span className="text-[12px] font-semibold" style={{ color: 'var(--accent)' }}>
                               {getInitials(emp.full_name ?? emp.email ?? '?')}
                             </span>
                           </div>

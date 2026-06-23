@@ -80,13 +80,15 @@ const SEV: Record<Severity, { icon: React.ElementType; color: string; bg: string
 // ── Rule label map ────────────────────────────────────────────────────────────
 
 const RULE_LABELS: Record<RuleId, string> = {
-  rest_daily:       'Repos quotidien',
-  hours_daily_max:  'Durée quotidienne',
-  hours_weekly_max: 'Durée hebdomadaire',
-  break_missing:    'Pause',
-  days_consecutive: 'Jours consécutifs',
-  sunday_work:      'Travail dimanche',
-  night_work:       'Travail de nuit',
+  rest_daily:          'Repos quotidien',
+  hours_daily_max:     'Durée quotidienne',
+  hours_weekly_max:    'Durée hebdomadaire',
+  break_missing:       'Pause',
+  days_consecutive:    'Jours consécutifs',
+  sunday_work:         'Travail dimanche',
+  night_work:          'Travail de nuit',
+  amplitude_max:       'Amplitude journalière',
+  weekly_rest_missing: 'Repos hebdomadaire',
 }
 
 // ── Score gauge ───────────────────────────────────────────────────────────────

@@ -4,6 +4,8 @@ import { requireAuth } from '@/lib/api-auth'
 import { LeaveRequestSchema, validationError } from '@/lib/validations'
 import { NextRequest, NextResponse } from 'next/server'
 import { fireWebhook } from '@/lib/integrations/webhook'
+import { parseLeaveConfig, leaveTypeLabel } from '@/lib/leaves'
+import type { LeaveType } from '@/types'
 
 // GET — employé : ses propres demandes / manager : toutes
 export async function GET() {
@@ -41,17 +43,9 @@ export async function POST(request: NextRequest) {
 
     const { start_date, end_date, type, comment } = parsed.data
 
-    const { data, error } = await supabase
-      .from('leave_requests')
-      .insert({ employee_id: user.id, start_date, end_date, type, comment: comment || null })
-      .select()
-      .single()
-
-    if (error) return NextResponse.json({ error: 'Erreur lors de la création de la demande' }, { status: 500 })
-
-    // Webhook notification — settings are read with the service-role client because
-    // the trigger is an employee, whose session cannot read manager-only secrets
-    // (webhook URLs / signing secret) under RLS.
+    // Settings are read with the service-role client because the trigger is an
+    // employee, whose session cannot read manager-only secrets (webhook URLs /
+    // signing secret) under RLS.
     const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
     const [{ data: profileData }, { data: settingsData }] = await Promise.all([
       supabase.from('profiles').select('full_name, email').eq('id', user.id).single(),
@@ -59,10 +53,34 @@ export async function POST(request: NextRequest) {
     ])
     const settings: Record<string, string> = {}
     for (const row of settingsData ?? []) settings[row.key] = row.value
-    const leaveTypeLabels: Record<string, string> = { CP: 'Congés payés', RTT: 'RTT', maladie: 'Maladie', sans_solde: 'Sans solde', autre: 'Autre' }
-    fireWebhook(settings, 'leave.requested', {
+
+    // Validation auto / manuelle selon le réglage du type (Réglages › Congés).
+    const leaveConfig = parseLeaveConfig(settings.leave_types_config)
+    const autoApprove = leaveConfig[type as LeaveType]?.validation === 'auto'
+    const status = autoApprove ? 'approved' : 'pending'
+
+    const { data, error } = await supabase
+      .from('leave_requests')
+      .insert({ employee_id: user.id, start_date, end_date, type, comment: comment || null, status })
+      .select()
+      .single()
+
+    if (error) return NextResponse.json({ error: 'Erreur lors de la création de la demande' }, { status: 500 })
+
+    // Auto-validé : libérer les créneaux de la période (service-role car un
+    // employé ne peut pas supprimer de shifts sous RLS).
+    if (autoApprove) {
+      await supabaseAdmin
+        .from('shifts')
+        .delete()
+        .eq('employee_id', user.id)
+        .gte('date', start_date)
+        .lte('date', end_date)
+    }
+
+    fireWebhook(settings, autoApprove ? 'leave.approved' : 'leave.requested', {
       employeeName: profileData?.full_name ?? profileData?.email ?? '—',
-      leaveType: leaveTypeLabels[data.type] ?? data.type,
+      leaveType: leaveTypeLabel(data.type),
       startDate: data.start_date,
       endDate: data.end_date,
     }, { establishmentId: estId }).catch(() => {})

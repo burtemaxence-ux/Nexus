@@ -240,7 +240,7 @@ export function ManagerMetricsClient() {
         supabase.from('presences').select('employee_id, date').gte('date', weekStart).lte('date', weekEnd).not('clock_in', 'is', null),
         supabase.from('lateness_records').select('id').gte('date', monthStart),
         supabase.from('shifts').select('id').is('deleted_at', null).limit(1),
-        supabase.from('week_status').select('id').eq('published', true).limit(1),
+        supabase.from('week_status').select('week_monday').eq('published', true).limit(1),
         supabase.from('postes').select('*', { count: 'exact', head: true }),
         supabase.from('shift_exchanges').select('id', { count: 'exact', head: true }).eq('status', 'pending_approval'),
         supabase.from('contracts').select('id', { count: 'exact', head: true }).not('end_date', 'is', null).gte('end_date', todayDate).lte('end_date', in30),

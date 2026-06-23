@@ -20,9 +20,14 @@ export async function GET() {
   const sub = await getSubscription(supabase, estId)
   const tier = getPlanTier(sub)
 
+  // Compteur de plannings générés par l'algorithme déterministe (illimité).
+  const { data: algoUsed } = await supabase.rpc('get_ai_usage', { p_feature: 'plan_algo' })
+  const algo = typeof algoUsed === 'number' ? algoUsed : 0
+
   // Pro and multisite have unlimited AI
   if (tier === 'pro' || tier === 'multisite') {
-    return NextResponse.json({ used: 0, limit: -1, plan: tier, resetIn: null })
+    const { data: aiUsed } = await supabase.rpc('get_ai_usage', { p_feature: 'plan' })
+    return NextResponse.json({ used: typeof aiUsed === 'number' ? aiUsed : 0, limit: -1, plan: tier, resetIn: null, algoUsed: algo })
   }
 
   // Essential: authoritative usage from the DB (resets on calendar month).
@@ -33,6 +38,7 @@ export async function GET() {
     limit: ESSENTIAL_MONTHLY_LIMIT,
     plan: tier,
     resetIn: msUntilNextMonthUTC(),
+    algoUsed: algo,
   })
 }
 
