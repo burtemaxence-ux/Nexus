@@ -1,12 +1,15 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireManager } from '@/lib/api-auth'
 import { calcHours, timeToMinutes } from '@/lib/planning-utils'
 import { getMondayOfWeek, addDays, toISODate } from '@/lib/utils/dates'
 import { NextRequest, NextResponse } from 'next/server'
+import { scoreCandidate, rankCandidates, type CandidateScore } from '@/lib/replacement/score'
 
-const anthropic = new Anthropic()
+// Combien de candidats on remonte au manager (3 → 5 pour donner plus de marge).
+const TOP_N = 5
+// Fenêtre rotation : remplacements confirmés sur les 30 derniers jours.
+const ROTATION_WINDOW_DAYS = 30
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -22,24 +25,6 @@ function prevDayStr(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
   d.setDate(d.getDate() - 1)
   return d.toISOString().split('T')[0]
-}
-
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-type ScoredCandidate = {
-  employee_id: string
-  full_name: string
-  position: string | null
-  contract_type: string | null
-  experience_score: number
-  availability_score: number
-  response_score: number
-  score_final: number
-  weekly_hours_planned: number
-  contract_weekly_hours: number | null
-  compliance_warning: boolean
-  compliance_details: string[]
-  explanation: string
 }
 
 // ── POST ───────────────────────────────────────────────────────────────────────
@@ -142,6 +127,7 @@ export async function POST(req: NextRequest) {
 
   // ── 3. Données brutes pour le scoring (requêtes parallèles) ───────────────
 
+  const rotationFrom = new Date(Date.now() - ROTATION_WINDOW_DAYS * 86400000).toISOString()
   const [
     { data: expShifts },
     { data: weekShifts },
@@ -149,6 +135,7 @@ export async function POST(req: NextRequest) {
     { data: marketplaceApps },
     { data: prevDayShifts },
     { data: dayShiftsForCompliance },
+    { data: recentReplacements },
   ] = await Promise.all([
     // Experience : shifts sur même poste, 90 jours
     supabaseAdmin
@@ -199,18 +186,26 @@ export async function POST(req: NextRequest) {
       .in('employee_id', candidateIds)
       .eq('date', shift.date)
       .is('deleted_at', null),
+
+    // Rotation : combien de remplacements confirmés sur la fenêtre récente
+    supabaseAdmin
+      .from('replacement_requests')
+      .select('confirmed_employee_id')
+      .eq('establishment_id', establishmentId)
+      .eq('status', 'confirmed')
+      .in('confirmed_employee_id', candidateIds)
+      .gte('confirmed_at', rotationFrom),
   ])
 
-  // ── 4. Calculer les scores ─────────────────────────────────────────────────
+  // ── 4. Agréger les signaux par candidat ────────────────────────────────────
 
-  // Regrouper par employee_id
   type ShiftRow = { employee_id: string; start_time: string; end_time: string; break_minutes: number }
   type ContractRow = { employee_id: string; weekly_hours: number; start_date: string; end_date: string | null }
   type AppRow = { employee_id: string; status: string }
 
   const expCountMap = new Map<string, number>()
-  for (const s of (expShifts ?? []) as { employee_id: string }[]) {
-    if (shift.poste_id) {
+  if (shift.poste_id) {
+    for (const s of (expShifts ?? []) as { employee_id: string }[]) {
       expCountMap.set(s.employee_id, (expCountMap.get(s.employee_id) ?? 0) + 1)
     }
   }
@@ -221,12 +216,9 @@ export async function POST(req: NextRequest) {
     weekHoursMap.set(s.employee_id, (weekHoursMap.get(s.employee_id) ?? 0) + h)
   }
 
-  // Contrat actif par employé (le plus récent)
   const contractMap = new Map<string, number>()
   for (const c of (contracts ?? []) as ContractRow[]) {
-    if (!contractMap.has(c.employee_id)) {
-      contractMap.set(c.employee_id, c.weekly_hours)
-    }
+    if (!contractMap.has(c.employee_id)) contractMap.set(c.employee_id, c.weekly_hours)
   }
 
   const appMap = new Map<string, { confirmed: number; total: number }>()
@@ -249,162 +241,69 @@ export async function POST(req: NextRequest) {
     dayHoursMap.set(s.employee_id, (dayHoursMap.get(s.employee_id) ?? 0) + h)
   }
 
+  const rotationMap = new Map<string, number>()
+  for (const r of (recentReplacements ?? []) as { confirmed_employee_id: string | null }[]) {
+    if (!r.confirmed_employee_id) continue
+    rotationMap.set(r.confirmed_employee_id, (rotationMap.get(r.confirmed_employee_id) ?? 0) + 1)
+  }
+
+  // ── 5. Compliance préventive + scoring déterministe ───────────────────────
+
   type CandidateProfile = { id: string; full_name: string | null; position: string | null; contract_type: string | null }
-  const scored: ScoredCandidate[] = (candidateProfiles as CandidateProfile[]).map(emp => {
-    // Experience score
-    let experience_score: number
-    if (!shift.poste_id) {
-      experience_score = 5
-    } else {
-      const count = expCountMap.get(emp.id) ?? 0
-      experience_score = Math.min(count, 10)
-    }
-
-    // Availability score
+  const scored: CandidateScore[] = (candidateProfiles as CandidateProfile[]).map(emp => {
     const weeklyPlanned = weekHoursMap.get(emp.id) ?? 0
-    const contractHours = contractMap.get(emp.id) ?? null
-    let availability_score: number
-    if (!contractHours) {
-      availability_score = 5
-    } else {
-      availability_score = Math.min(10, Math.max(0, 10 - (weeklyPlanned / contractHours) * 10))
-    }
 
-    // Response score
-    const apps = appMap.get(emp.id)
-    let response_score: number
-    if (!apps || apps.total === 0) {
-      response_score = 5
-    } else {
-      response_score = (apps.confirmed / apps.total) * 10
-    }
+    // Vérifications conformité sur l'attribution hypothétique de ce shift.
+    const complianceDetails: string[] = []
 
-    // Score final — guard against NaN in any sub-score
-    const safe = (s: number) => Number.isFinite(s) ? s : 5
-    const score_final = safe(experience_score) * 0.4 + safe(availability_score) * 0.3 + safe(response_score) * 0.3
-
-    // Compliance check
-    const compliance_details: string[] = []
-
-    // 1. Dépassement 48h semaine
+    // 1. Plafond hebdomadaire 48h (L3121-20).
     const totalWeekWithNew = weeklyPlanned + shiftDuration
     if (totalWeekWithNew > 48) {
-      compliance_details.push(`Dépassement 48h semaine (${totalWeekWithNew.toFixed(1)}h)`)
+      complianceDetails.push(`Dépassement 48h semaine (${totalWeekWithNew.toFixed(1)}h)`)
     }
 
-    // 2. Dépassement 10h jour
+    // 2. Plafond journalier 10h (L3121-18).
     const todayHours = (dayHoursMap.get(emp.id) ?? 0) + shiftDuration
     if (todayHours > 10) {
-      compliance_details.push(`Dépassement 10h jour (${todayHours.toFixed(1)}h)`)
+      complianceDetails.push(`Dépassement 10h jour (${todayHours.toFixed(1)}h)`)
     }
 
-    // 3. Repos 11h (vérifier shift de la veille)
-    const prevShifts = prevDayShiftMap.get(emp.id) ?? []
-    for (const ps of prevShifts) {
+    // 3. Repos quotidien 11h (L3131-1) — calculé sur le shift de la veille.
+    for (const ps of prevDayShiftMap.get(emp.id) ?? []) {
       const prevEndMin = timeToMinutes(ps.end_time)
       const newStartMin = timeToMinutes(shift.start_time)
-      // Repos entre fin du shift précédent (hier) et début du nouveau (aujourd'hui)
       const restMinutes = (newStartMin + 1440) - prevEndMin
       if (restMinutes < 11 * 60) {
-        compliance_details.push(`Repos insuffisant (${Math.floor(restMinutes / 60)}h${restMinutes % 60 > 0 ? String(restMinutes % 60).padStart(2, '0') : ''} < 11h)`)
+        const h = Math.floor(restMinutes / 60)
+        const m = restMinutes % 60
+        complianceDetails.push(`Repos insuffisant (${h}h${m > 0 ? String(m).padStart(2, '0') : ''} < 11h)`)
       }
     }
 
-    return {
-      employee_id: emp.id,
-      full_name: emp.full_name ?? 'Inconnu',
-      position: emp.position,
-      contract_type: emp.contract_type,
-      experience_score: Math.round(experience_score * 10) / 10,
-      availability_score: Math.round(availability_score * 10) / 10,
-      response_score: Math.round(response_score * 10) / 10,
-      score_final: Math.round(score_final * 10) / 10,
-      weekly_hours_planned: Math.round(weeklyPlanned * 10) / 10,
-      contract_weekly_hours: contractHours,
-      compliance_warning: compliance_details.length > 0,
-      compliance_details,
-      explanation: '', // sera rempli par Claude
-    }
+    return scoreCandidate(
+      { id: emp.id, full_name: emp.full_name, position: emp.position, contract_type: emp.contract_type },
+      {
+        experienceCount: expCountMap.get(emp.id) ?? 0,
+        weeklyHoursPlanned: weeklyPlanned,
+        contractWeeklyHours: contractMap.get(emp.id) ?? null,
+        marketplaceConfirmed: appMap.get(emp.id)?.confirmed ?? 0,
+        marketplaceTotal: appMap.get(emp.id)?.total ?? 0,
+        recentReplacementsConfirmed: rotationMap.get(emp.id) ?? 0,
+        complianceDetails,
+      },
+      { hasPosteId: Boolean(shift.poste_id) },
+    )
   })
 
-  // Trier par score_final DESC, garder les 3 premiers
-  scored.sort((a, b) => b.score_final - a.score_final)
-  const top3 = scored.slice(0, 3)
-
-  // ── 5. Appel Claude Haiku pour les explications ────────────────────────────
-
-  if (process?.env?.ANTHROPIC_API_KEY) {
-    try {
-      const candidateDescriptions = top3.map((c, i) => {
-        const expDesc = shift.poste_id
-          ? `${c.experience_score} fois sur ce poste (90j)`
-          : 'Poste non spécifié'
-        const availDesc = c.contract_weekly_hours
-          ? `${c.weekly_hours_planned}h planifiées / ${c.contract_weekly_hours}h contrat cette semaine`
-          : `${c.weekly_hours_planned}h cette semaine (contrat inconnu)`
-        const respDesc = appMap.get(c.employee_id)?.total
-          ? `${Math.round((appMap.get(c.employee_id)!.confirmed / appMap.get(c.employee_id)!.total) * 100)}% taux de confirmation marketplace`
-          : 'Pas de données marketplace'
-        return `Candidat ${i + 1} — ${c.full_name} (${c.contract_type ?? 'contrat inconnu'}) :
-- Expérience : ${expDesc}
-- Disponibilité : ${availDesc}
-- Réactivité : ${respDesc}
-- Score final : ${c.score_final}/10`
-      }).join('\n\n')
-
-      const msg = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 200,
-        messages: [{
-          role: 'user',
-          content: `Tu es un assistant RH. Pour chaque candidat ci-dessous, génère UNE phrase courte (max 10 mots, ton direct, en français) qui résume pourquoi ce candidat est recommandé ou non pour remplacer un employé absent.
-
-Format de réponse : une ligne par candidat, numérotée (1. 2. 3.)
-Exemples de style :
-- "A fait ce poste 9 fois · Disponible · Répond vite"
-- "Très disponible · Jamais fait ce poste · Peu de données"
-- "Contrat Extra · 22h cette semaine · Bonne réactivité"
-
-${candidateDescriptions}`,
-        }],
-      })
-
-      const text = msg.content[0]?.type === 'text' ? msg.content[0].text : ''
-      const lines = text.split('\n').filter((l: string) => /^\d\./.test(l.trim()))
-      lines.forEach((line: string, i: number) => {
-        if (top3[i]) {
-          top3[i].explanation = line.replace(/^\d\.\s*/, '').trim()
-        }
-      })
-    } catch (e) {
-      console.error('[ai/replacement] Claude Haiku error:', e)
-      // Fallback : explication auto-générée
-      top3.forEach(c => {
-        const parts: string[] = []
-        if (shift.poste_id) {
-          parts.push(c.experience_score >= 5 ? `${Math.round(c.experience_score)} fois sur ce poste` : 'Peu d\'expérience sur ce poste')
-        }
-        parts.push(c.availability_score >= 7 ? 'Très disponible' : c.availability_score >= 4 ? 'Disponible' : 'Peu disponible')
-        if (c.contract_type === 'Extra') parts.push('Contrat Extra')
-        c.explanation = parts.join(' · ')
-      })
-    }
-  } else {
-    // Sans clé API
-    top3.forEach(c => {
-      const parts: string[] = []
-      if (shift.poste_id && c.experience_score >= 5) parts.push(`${Math.round(c.experience_score)} fois sur ce poste`)
-      else if (shift.poste_id) parts.push('Peu d\'expérience sur ce poste')
-      parts.push(c.availability_score >= 7 ? 'Très disponible' : 'Disponible')
-      c.explanation = parts.join(' · ')
-    })
-  }
+  // Tri composite : conformité OK d'abord, puis score décroissant.
+  const ranked = rankCandidates(scored)
+  const topCandidates = ranked.slice(0, TOP_N)
 
   // ── 6. Créer le replacement_request en DB ──────────────────────────────────
 
   const expiresAt = new Date(Date.now() + 45 * 60 * 1000).toISOString()
 
-  const candidatesPayload = top3.map(c => ({
+  const candidatesPayload = topCandidates.map(c => ({
     employee_id: c.employee_id,
     score: c.score_final,
     explanation: c.explanation,
@@ -439,13 +338,13 @@ ${candidateDescriptions}`,
 
       if (existingRR) {
         const existingCandidateIds = (existingRR.candidates as { employee_id: string }[]).map(c => c.employee_id)
-        const finalCandidates = top3.filter(c => existingCandidateIds.includes(c.employee_id))
+        const finalCandidates = topCandidates.filter(c => existingCandidateIds.includes(c.employee_id))
 
         return NextResponse.json({
           replacement_request_id: existingRR.id,
           expires_at: existingRR.expires_at,
           shift: { id: shift.id, date: shift.date, start_time: shift.start_time, end_time: shift.end_time, position: shift.position, poste_id: shift.poste_id },
-          candidates: finalCandidates.length > 0 ? finalCandidates : top3,
+          candidates: finalCandidates.length > 0 ? finalCandidates : topCandidates,
         }, { status: 200 })
       }
     }
@@ -469,6 +368,6 @@ ${candidateDescriptions}`,
       position: shift.position,
       poste_id: shift.poste_id,
     },
-    candidates: top3,
+    candidates: topCandidates,
   }, { status: 201 })
 }
