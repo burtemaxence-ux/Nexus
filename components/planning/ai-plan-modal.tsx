@@ -61,23 +61,40 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
     setApplied(0)
     setApplyTotal(toApply.length)
     let count = 0
+    let firstError: string | null = null
     for (const shift of toApply) {
-      await fetch('/api/shifts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employee_id: shift.employee_id,
-          date: shift.date,
-          start_time: shift.start_time,
-          end_time: shift.end_time,
-          break_minutes: shift.break_minutes,
-          poste_id: shift.poste_id,
-          notes: shift.notes,
-          status: 'draft',
-        }),
-      })
-      count++
-      setApplied(count)
+      try {
+        const res = await fetch('/api/shifts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            employee_id: shift.employee_id,
+            date: shift.date,
+            start_time: shift.start_time,
+            end_time: shift.end_time,
+            break_minutes: shift.break_minutes,
+            poste_id: shift.poste_id,
+            position: shift.position,
+            notes: shift.notes,
+            status: 'draft',
+          }),
+        })
+        if (res.ok) {
+          count++
+          setApplied(count)
+        } else if (!firstError) {
+          const d = await res.json().catch(() => ({}))
+          firstError = d.error ?? `HTTP ${res.status}`
+        }
+      } catch {
+        if (!firstError) firstError = 'réseau'
+      }
+    }
+    // Échec total : on remonte l'erreur au lieu d'afficher un faux succès.
+    if (count === 0 && toApply.length > 0) {
+      setError(`Aucun créneau n'a pu être enregistré${firstError ? ` (${firstError})` : ''}.`)
+      setPhase('idle')
+      return
     }
     setPhase('done')
     onSuccess()

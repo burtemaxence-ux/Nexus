@@ -372,10 +372,10 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
   ]
 
   try {
-    for (let iteration = 0; iteration < 12; iteration++) {
+    for (let iteration = 0; iteration < 16; iteration++) {
       const response = await client.messages.create({
         model: 'claude-sonnet-4-6',
-        max_tokens: 4096,
+        max_tokens: 8192,
         system: [
           {
             type: 'text',
@@ -389,48 +389,58 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
 
       messages.push({ role: 'assistant', content: response.content })
 
-      if (response.stop_reason === 'end_turn') {
-        for (const block of response.content) {
-          if (block.type === 'text') summary += block.text
-        }
-        break
-      }
+      // Texte libre → résumé (on garde le dernier émis).
+      const text = response.content.filter(b => b.type === 'text').map(b => b.text).join('')
+      if (text) summary = text
 
-      if (response.stop_reason === 'tool_use') {
-        const toolResults: Anthropic.ToolResultBlockParam[] = []
-        for (const block of response.content) {
-          if (block.type === 'tool_use' && block.name === 'propose_shift') {
-            const input = block.input as {
-              employee_id: string
-              date: string
-              start_time: string
-              end_time: string
-              break_minutes: number
-              poste_id?: string
-              notes?: string
-            }
-            proposedShifts.push({
-              employee_id: input.employee_id,
-              employee_name: employeeNameMap[input.employee_id] ?? input.employee_id,
-              date: input.date,
-              start_time: input.start_time,
-              end_time: input.end_time,
-              break_minutes: input.break_minutes ?? 0,
-              poste_id: input.poste_id ?? null,
-              position: input.poste_id
-                ? (posteMap[input.poste_id]?.name ?? employeePositionMap[input.employee_id])
-                : employeePositionMap[input.employee_id],
-              notes: input.notes ?? null,
-            })
-            toolResults.push({
-              type: 'tool_result',
-              tool_use_id: block.id,
-              content: `OK: ${input.date} ${input.start_time}-${input.end_time} pour ${employeeNameMap[input.employee_id] ?? input.employee_id}`,
-            })
-          }
+      // CRITIQUE : chaque bloc tool_use DOIT recevoir un tool_result, quel que
+      // soit le stop_reason. Si le modèle atteint max_tokens en plein milieu
+      // d'appels d'outils, on doit quand même répondre à tous les ids émis,
+      // sinon l'appel suivant échoue (« tool_use ids found without tool_result »).
+      const toolUses = response.content.filter(
+        (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
+      )
+
+      if (toolUses.length === 0) break // plus d'outil en attente → terminé
+
+      const toolResults: Anthropic.ToolResultBlockParam[] = []
+      for (const block of toolUses) {
+        const input = (block.input ?? {}) as {
+          employee_id?: string
+          date?: string
+          start_time?: string
+          end_time?: string
+          break_minutes?: number
+          poste_id?: string
+          notes?: string
         }
-        messages.push({ role: 'user', content: toolResults })
+        const valid = block.name === 'propose_shift'
+          && !!input.employee_id && !!input.date && !!input.start_time && !!input.end_time
+        if (valid) {
+          proposedShifts.push({
+            employee_id: input.employee_id!,
+            employee_name: employeeNameMap[input.employee_id!] ?? input.employee_id!,
+            date: input.date!,
+            start_time: input.start_time!,
+            end_time: input.end_time!,
+            break_minutes: input.break_minutes ?? 0,
+            poste_id: input.poste_id ?? null,
+            position: input.poste_id
+              ? (posteMap[input.poste_id]?.name ?? employeePositionMap[input.employee_id!])
+              : employeePositionMap[input.employee_id!],
+            notes: input.notes ?? null,
+          })
+        }
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: block.id,
+          content: valid
+            ? `OK: ${input.date} ${input.start_time}-${input.end_time} pour ${employeeNameMap[input.employee_id!] ?? input.employee_id!}`
+            : 'Ignoré : données de créneau incomplètes.',
+          ...(valid ? {} : { is_error: true }),
+        })
       }
+      messages.push({ role: 'user', content: toolResults })
     }
   } catch (e) {
     // Toute exception du SDK Anthropic (5xx, rate-limit, timeout) doit

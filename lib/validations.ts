@@ -25,10 +25,10 @@ export const ShiftSchema = z.object({
   date: isoDate,
   start_time: timeHHMM,
   end_time: timeHHMM,
-  position: z.string().max(100).optional(),
+  position: z.string().max(100).nullable().optional(),
   poste_id: uuidStr().nullable().optional(),
   break_minutes: z.number().int().min(0).max(480).optional(),
-  notes: z.string().max(500).optional(),
+  notes: z.string().max(500).nullable().optional(),
 })
 
 export const LeaveRequestSchema = z.object({
