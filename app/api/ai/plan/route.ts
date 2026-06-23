@@ -6,6 +6,7 @@ import { getSubscription } from '@/lib/subscription'
 import { getPlanTier, isPro } from '@/lib/plan-guard'
 import { forecastRevenue, sectorTargetPct, median, shiftHours, isoWeekKey, type DayCA } from '@/lib/forecast'
 import { solvePlanning } from '@/lib/planning/solver'
+import { collectProposedShifts } from '@/lib/planning/plan-tools'
 
 // La boucle LLM (jusqu'à 12 itérations Claude Sonnet) peut prendre 30–60s sur
 // une semaine vierge avec beaucoup d'employés. Sans maxDuration explicite,
@@ -394,52 +395,15 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
       if (text) summary = text
 
       // CRITIQUE : chaque bloc tool_use DOIT recevoir un tool_result, quel que
-      // soit le stop_reason. Si le modèle atteint max_tokens en plein milieu
-      // d'appels d'outils, on doit quand même répondre à tous les ids émis,
-      // sinon l'appel suivant échoue (« tool_use ids found without tool_result »).
-      const toolUses = response.content.filter(
-        (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
+      // soit le stop_reason (cf. lib/planning/plan-tools). Sinon l'appel suivant
+      // échoue (« tool_use ids found without tool_result »).
+      const { shifts: newShifts, toolResults, hasToolUse } = collectProposedShifts(
+        response.content,
+        { employeeNameMap, employeePositionMap, posteMap },
       )
+      proposedShifts.push(...newShifts)
 
-      if (toolUses.length === 0) break // plus d'outil en attente → terminé
-
-      const toolResults: Anthropic.ToolResultBlockParam[] = []
-      for (const block of toolUses) {
-        const input = (block.input ?? {}) as {
-          employee_id?: string
-          date?: string
-          start_time?: string
-          end_time?: string
-          break_minutes?: number
-          poste_id?: string
-          notes?: string
-        }
-        const valid = block.name === 'propose_shift'
-          && !!input.employee_id && !!input.date && !!input.start_time && !!input.end_time
-        if (valid) {
-          proposedShifts.push({
-            employee_id: input.employee_id!,
-            employee_name: employeeNameMap[input.employee_id!] ?? input.employee_id!,
-            date: input.date!,
-            start_time: input.start_time!,
-            end_time: input.end_time!,
-            break_minutes: input.break_minutes ?? 0,
-            poste_id: input.poste_id ?? null,
-            position: input.poste_id
-              ? (posteMap[input.poste_id]?.name ?? employeePositionMap[input.employee_id!])
-              : employeePositionMap[input.employee_id!],
-            notes: input.notes ?? null,
-          })
-        }
-        toolResults.push({
-          type: 'tool_result',
-          tool_use_id: block.id,
-          content: valid
-            ? `OK: ${input.date} ${input.start_time}-${input.end_time} pour ${employeeNameMap[input.employee_id!] ?? input.employee_id!}`
-            : 'Ignoré : données de créneau incomplètes.',
-          ...(valid ? {} : { is_error: true }),
-        })
-      }
+      if (!hasToolUse) break // plus d'outil en attente → terminé
       messages.push({ role: 'user', content: toolResults })
     }
   } catch (e) {
