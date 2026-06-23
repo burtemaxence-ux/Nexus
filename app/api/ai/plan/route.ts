@@ -395,7 +395,7 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
   // maxDuration (60s) pour pouvoir, si l'IA n'a pas fini à temps, basculer sur
   // le solveur déterministe AVANT que Vercel ne tue la fonction (504 → délai).
   const startedAt = Date.now()
-  const AI_BUDGET_MS = 42_000
+  const AI_BUDGET_MS = 40_000 // marge sous maxDuration (60s) pour le secours + la réponse
   let aiCompleted = false
 
   try {
@@ -415,7 +415,9 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
         ],
         tools: [tool],
         messages,
-      }, { timeout: remaining }) // borne chaque appel pour ne jamais dépasser le budget
+      }, { timeout: remaining, maxRetries: 0 }) // borne le tour ; AUCUN retry SDK
+      // (le défaut = 2 retries sur timeout, ce qui ferait exploser le budget et
+      //  empêcherait le secours déterministe de s'exécuter avant le kill 60s Vercel)
 
       messages.push({ role: 'assistant', content: response.content })
 
