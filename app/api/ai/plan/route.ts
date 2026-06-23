@@ -7,7 +7,7 @@ import { getPlanTier, isPro } from '@/lib/plan-guard'
 import { forecastRevenue, sectorTargetPct, median, shiftHours, isoWeekKey, type DayCA } from '@/lib/forecast'
 import { solvePlanning } from '@/lib/planning/solver'
 import { repairPlan } from '@/lib/planning/repair'
-import { collectProposedShifts } from '@/lib/planning/plan-tools'
+import { applyPlanAdjustment } from '@/lib/planning/adjust'
 
 // La boucle LLM (jusqu'à 12 itérations Claude Sonnet) peut prendre 30–60s sur
 // une semaine vierge avec beaucoup d'employés. Sans maxDuration explicite,
@@ -241,10 +241,10 @@ export async function POST(req: Request) {
   const eco = isPro(tier) ? await loadEconomics(supabase, week_monday, weekDays, weekEndStr) : null
   const targetPct = (typeof target_ratio === 'number' && target_ratio > 0) ? Math.round(target_ratio) : (eco?.suggestedTargetPct ?? 0)
 
-  // ── Moteur déterministe (gratuit, instantané, auditable) ────────────────
-  // Extrait en fonction pour servir à la fois de moteur par défaut ET de filet
-  // de secours quand l'IA (opt-in) échoue ou dépasse son budget de temps.
-  async function buildAlgorithmResponse(feature: string) {
+  // ── Moteur déterministe (gratuit, instantané, conforme par construction) ──
+  // Produit le planning de base. Réutilisé : moteur par défaut, base que l'IA
+  // ajuste, et filet de secours si l'IA échoue.
+  function solveBaselineShifts(): { shifts: ProposedShift[]; summary: string } {
     const closedDaysIdx: number[] = (() => {
       try { const v = JSON.parse(settingsMap.closed_days ?? '[]'); return Array.isArray(v) ? v.filter((n: unknown) => typeof n === 'number') : [] }
       catch { return [] }
@@ -285,36 +285,49 @@ export async function POST(req: Request) {
       poste_id: s.position ? (posteByName.get(s.position) ?? null) : null,
     }))
 
-    // Filet de sécurité : garantit zéro infraction actionnable (no-op sur la
-    // sortie du solveur, déjà conforme par construction).
+    // Filet de sécurité : zéro infraction actionnable (no-op sur la sortie du
+    // solveur, déjà conforme par construction).
     const { shifts: cleaned } = repairPlan(enriched)
+    return { shifts: cleaned, summary: algoSummary }
+  }
 
-    // Coût main d'œuvre estimé (premium).
-    let algoCost = 0
+  // Coût main d'œuvre + ratio coût/CA d'un ensemble de créneaux (premium).
+  function costFor(shifts: ProposedShift[]): { estimatedCost: number; estimatedRatioPct: number | null } {
+    let cost = 0
     if (eco) {
-      for (const s of cleaned) {
+      for (const s of shifts) {
         const rate = eco.rateMap[s.employee_id]
-        if (rate) algoCost += shiftHours(s.start_time, s.end_time, s.break_minutes) * rate
+        if (rate) cost += shiftHours(s.start_time, s.end_time, s.break_minutes) * rate
       }
     }
-    const algoRatioPct = (eco && eco.forecastTotal > 0 && algoCost > 0)
-      ? Math.round((algoCost / eco.forecastTotal) * 100)
+    const ratio = (eco && eco.forecastTotal > 0 && cost > 0)
+      ? Math.round((cost / eco.forecastTotal) * 100)
       : null
+    return { estimatedCost: Math.round(cost), estimatedRatioPct: ratio }
+  }
 
-    // Compteur de génération (illimité, juste pour le suivi).
-    try { await supabase.rpc('consume_ai_credit', { p_limit: 1_000_000, p_feature: feature }) } catch { /* non bloquant */ }
-
+  // Enveloppe de réponse commune (algo et IA).
+  function planPayload(shifts: ProposedShift[], summary: string, engine: 'ai' | 'algorithm', extra?: Record<string, unknown>) {
+    const { estimatedCost, estimatedRatioPct } = costFor(shifts)
     return {
-      shifts: cleaned,
-      summary: algoSummary,
+      shifts,
+      summary,
       forecastTotal: eco?.forecastTotal ?? 0,
       targetPct,
       targetBasis: eco?.targetBasis ?? 'sector',
       historicalRatioPct: eco?.historicalRatioPct ?? null,
-      estimatedCost: Math.round(algoCost),
-      estimatedRatioPct: algoRatioPct,
-      engine: 'algorithm' as const,
+      estimatedCost,
+      estimatedRatioPct,
+      engine,
+      ...extra,
     }
+  }
+
+  async function buildAlgorithmResponse(feature: string) {
+    const { shifts, summary } = solveBaselineShifts()
+    // Compteur de génération (illimité, juste pour le suivi).
+    try { await supabase.rpc('consume_ai_credit', { p_limit: 1_000_000, p_feature: feature }) } catch { /* non bloquant */ }
+    return planPayload(shifts, summary, 'algorithm')
   }
 
   if (engine === 'algorithm') {
@@ -332,14 +345,30 @@ CA total prévu : ~${eco.forecastTotal} € sur la semaine.
 - Vise une couverture suffisante AU MOINDRE COÛT pour tenir cette cible, sans jamais descendre sous le minimum opérationnel de sécurité.
 ` : ''
 
-  const systemPrompt = `Tu es l'assistant IA de Quartzbase, expert en génération de plannings pour la restauration française.
+  // ── Branche IA : un seul appel qui AJUSTE un planning de base déterministe ─
+  // On part d'un planning déjà conforme (instantané) et on demande à Claude
+  // UNIQUEMENT les changements à appliquer selon le texte du manager. La sortie
+  // est courte (un diff) → un seul appel rapide et borné, au lieu d'une boucle
+  // multi-tours qui regénérait tout (lente → timeout 60s Vercel).
+  const base = solveBaselineShifts()
+
+  const basePlanText = base.shifts.length
+    ? base.shifts
+        .slice()
+        .sort((a, b) => (a.date === b.date ? a.employee_id.localeCompare(b.employee_id) : a.date.localeCompare(b.date)))
+        .map(s => `- ${s.date} | emp:${s.employee_id} (${s.employee_name}) | ${s.start_time}-${s.end_time} | pause ${s.break_minutes}min`)
+        .join('\n')
+    : '(planning de base vide)'
+
+  const systemPrompt = `Tu es l'assistant IA de Quartzbase, expert en plannings pour la restauration française.
+Un planning de BASE déjà conforme au Code du travail vient d'être généré automatiquement. Ta mission : l'AJUSTER selon la demande du manager, en changeant le MOINS possible.
 
 ## Établissement : ${settingsMap.establishment_name ?? 'Non renseigné'}
-- Convention collective : ${settingsMap.collective_agreement ?? 'Non définie — applique les règles générales'}
+- Convention collective : ${settingsMap.collective_agreement ?? 'Non définie — règles générales'}
 - Horaires d'ouverture : ${settingsMap.opening_time ?? '?'} → ${settingsMap.closing_time ?? '?'}
 - Semaine : ${week_monday} (lundi) au ${weekEndStr} (dimanche)
 
-## Employés actifs (${employees?.length ?? 0})
+## Employés (${employees?.length ?? 0})
 ${employees?.map(e => {
   const offDays = leaveByEmployee[e.id]
   return `- ID: ${e.id} | ${e.full_name ?? 'Sans nom'} | Poste: ${e.position ?? '—'} | ${e.contract_type ?? '—'} | ${e.weekly_hours ?? '?'}h/sem${offDays ? ` | ABSENT: ${offDays.join(', ')}` : ''}`
@@ -348,141 +377,137 @@ ${employees?.map(e => {
 ## Postes disponibles
 ${postes?.map(p => `- ID: ${p.id} | ${p.name} | pause standard: ${p.break_minutes}min`).join('\n') ?? 'Aucun poste défini'}
 
-## Shifts déjà planifiés cette semaine
-${existingShifts?.length ? existingShifts.map(s => `- ${employeeNameMap[s.employee_id] ?? s.employee_id} | ${s.date} | ${s.start_time}-${s.end_time} | ${s.position ?? '—'}`).join('\n') : 'Aucun shift existant — semaine vierge'}
+## Planning de BASE (déjà conforme — point de départ à ajuster)
+${basePlanText}
 ${economicsSection}
-## Règles légales à respecter ABSOLUMENT (aucune infraction tolérée)
-- Respecte le volume horaire de chaque employé : un employé Xh/sem doit totaliser ~X h sur la semaine (ni nettement moins, ni plus). Un 35h fait ~35h, pas 16h ni 23h.
-- Maximum 10h de travail effectif par jour, et un seul service par employé par jour.
-- Minimum 11h de repos entre la fin d'un service et le début du suivant. En pratique : pour un même employé, garde des horaires de début RÉGULIERS d'un jour à l'autre (ne fais jamais finir tard le soir puis commencer tôt le lendemain).
-- Maximum 6 jours travaillés par semaine et par employé (repos hebdomadaire obligatoire).
-- Maximum 48h par semaine.
-- Amplitude d'une journée ≤ 13h (début → fin).
+## Règles légales à respecter ABSOLUMENT
+- Volume horaire respecté : un employé Xh/sem totalise ~X h (un 35h fait ~35h).
+- Max 10h effectives/jour, un seul service par employé par jour.
+- Min 11h de repos entre deux services (garde des débuts réguliers d'un jour à l'autre).
+- Max 6 jours/semaine, max 48h/semaine, amplitude ≤ 13h.
 - Ne JAMAIS planifier un employé marqué ABSENT.
 - Pause de 30 min dès qu'un service dépasse 6h.
 
 ## Demande du manager
-${context?.trim() || 'Générer un planning équilibré pour toute la semaine en couvrant les besoins standard de l\'établissement.'}
+${context?.trim() || 'Aucune instruction particulière — garde le planning de base tel quel (renvoie un diff vide).'}
 
-Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les shifts, écris un bref résumé (2-3 phrases) de ta logique.`
+## Comment répondre
+Appelle l'outil adjust_planning UNE seule fois :
+- "clear" : créneaux de base à SUPPRIMER (employee_id + date) — pour ceux que tu retires ou déplaces.
+- "add" : créneaux à AJOUTER. Pour MODIFIER un créneau de base, ajoute la nouvelle version dans "add" (même employee_id + date) : l'ancienne sera écrasée automatiquement.
+- "summary" : 1-2 phrases décrivant tes changements.
+Ne touche PAS aux créneaux non concernés (ni dans clear ni dans add). Si la demande n'exige aucun changement, renvoie clear et add vides.`
 
-  const tool: Anthropic.Tool = {
-    name: 'propose_shift',
-    description: 'Propose un créneau horaire pour un employé. Appelle cet outil une fois par shift à créer.',
+  const adjustTool: Anthropic.Tool = {
+    name: 'adjust_planning',
+    description: 'Applique des changements (suppressions + ajouts) au planning de base.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        employee_id: { type: 'string', description: 'UUID de l\'employé' },
-        date: { type: 'string', description: 'Date YYYY-MM-DD' },
-        start_time: { type: 'string', description: 'Heure début HH:MM' },
-        end_time: { type: 'string', description: 'Heure fin HH:MM' },
-        break_minutes: { type: 'number', description: 'Durée pause en minutes (0 si aucune)' },
-        poste_id: { type: 'string', description: 'ID du poste (optionnel)' },
-        notes: { type: 'string', description: 'Notes optionnelles' },
+        clear: {
+          type: 'array',
+          description: 'Créneaux de base à supprimer (par employé + jour).',
+          items: {
+            type: 'object',
+            properties: {
+              employee_id: { type: 'string' },
+              date: { type: 'string', description: 'YYYY-MM-DD' },
+            },
+            required: ['employee_id', 'date'],
+          },
+        },
+        add: {
+          type: 'array',
+          description: 'Créneaux à ajouter (ou versions modifiées de créneaux existants).',
+          items: {
+            type: 'object',
+            properties: {
+              employee_id: { type: 'string', description: 'ID de l\'employé' },
+              date: { type: 'string', description: 'YYYY-MM-DD' },
+              start_time: { type: 'string', description: 'HH:MM' },
+              end_time: { type: 'string', description: 'HH:MM' },
+              break_minutes: { type: 'number', description: 'Pause en minutes (0 si aucune)' },
+              poste_id: { type: 'string', description: 'ID de poste (optionnel)' },
+              notes: { type: 'string', description: 'Notes (optionnel)' },
+            },
+            required: ['employee_id', 'date', 'start_time', 'end_time', 'break_minutes'],
+          },
+        },
+        summary: { type: 'string', description: 'Résumé court des changements (1-2 phrases).' },
       },
-      required: ['employee_id', 'date', 'start_time', 'end_time', 'break_minutes'],
+      required: ['clear', 'add'],
     },
   }
 
-  const proposedShifts: ProposedShift[] = []
-  let summary = ''
+  type RawAdd = { employee_id?: string; date?: string; start_time?: string; end_time?: string; break_minutes?: number; poste_id?: string; notes?: string }
+  type AdjustInput = { clear?: { employee_id?: string; date?: string }[]; add?: RawAdd[]; summary?: string }
 
-  const messages: Anthropic.MessageParam[] = [
-    { role: 'user', content: 'Génère le planning complet pour cette semaine.' },
-  ]
-
-  // Budget de temps : la boucle d'outils Claude est lente. On garde ~18s sous
-  // maxDuration (60s) pour pouvoir, si l'IA n'a pas fini à temps, basculer sur
-  // le solveur déterministe AVANT que Vercel ne tue la fonction (504 → délai).
-  const startedAt = Date.now()
-  const AI_BUDGET_MS = 40_000 // marge sous maxDuration (60s) pour le secours + la réponse
-  let aiCompleted = false
+  let aiShifts: ProposedShift[] | null = null
+  let aiSummary = ''
 
   try {
-    for (let iteration = 0; iteration < 16; iteration++) {
-      const remaining = AI_BUDGET_MS - (Date.now() - startedAt)
-      if (remaining < 6000) break // plus assez de temps pour un tour utile → secours
+    // Un SEUL appel, borné à 35s, sans retry SDK (sinon le retry sur timeout
+    // ferait dépasser maxDuration 60s). tool_choice force le diff structuré.
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+      system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+      tools: [adjustTool],
+      tool_choice: { type: 'tool', name: 'adjust_planning' },
+      messages: [{ role: 'user', content: 'Renvoie le diff (clear + add) à appliquer au planning de base selon la demande du manager.' }],
+    }, { timeout: 35_000, maxRetries: 0 })
 
-      const response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 8192,
-        system: [
-          {
-            type: 'text',
-            text: systemPrompt,
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
-        tools: [tool],
-        messages,
-      }, { timeout: remaining, maxRetries: 0 }) // borne le tour ; AUCUN retry SDK
-      // (le défaut = 2 retries sur timeout, ce qui ferait exploser le budget et
-      //  empêcherait le secours déterministe de s'exécuter avant le kill 60s Vercel)
+    const toolUse = response.content.find(b => b.type === 'tool_use') as Anthropic.ToolUseBlock | undefined
+    if (toolUse && toolUse.name === 'adjust_planning') {
+      const input = (toolUse.input ?? {}) as AdjustInput
 
-      messages.push({ role: 'assistant', content: response.content })
+      const clear = (input.clear ?? [])
+        .filter(c => !!c.employee_id && !!c.date)
+        .map(c => ({ employee_id: c.employee_id!, date: c.date! }))
 
-      // Texte libre → résumé (on garde le dernier émis).
-      const text = response.content.filter(b => b.type === 'text').map(b => b.text).join('')
-      if (text) summary = text
+      const add: ProposedShift[] = (input.add ?? [])
+        .filter(s => !!s.employee_id && !!s.date && !!s.start_time && !!s.end_time)
+        .map(s => {
+          // Ne garder un poste_id que s'il existe vraiment (sinon insert rejeté).
+          const poste = s.poste_id ? posteMap[s.poste_id] : undefined
+          return {
+            employee_id: s.employee_id!,
+            employee_name: employeeNameMap[s.employee_id!] ?? s.employee_id!,
+            date: s.date!,
+            start_time: s.start_time!,
+            end_time: s.end_time!,
+            break_minutes: s.break_minutes ?? 0,
+            poste_id: poste ? (s.poste_id ?? null) : null,
+            position: poste?.name ?? employeePositionMap[s.employee_id!] ?? null,
+            notes: s.notes ?? null,
+          }
+        })
 
-      // CRITIQUE : chaque bloc tool_use DOIT recevoir un tool_result, quel que
-      // soit le stop_reason (cf. lib/planning/plan-tools). Sinon l'appel suivant
-      // échoue (« tool_use ids found without tool_result »).
-      const { shifts: newShifts, toolResults, hasToolUse } = collectProposedShifts(
-        response.content,
-        { employeeNameMap, employeePositionMap, posteMap },
-      )
-      proposedShifts.push(...newShifts)
-
-      if (!hasToolUse) { aiCompleted = true; break } // plus d'outil en attente → terminé
-      messages.push({ role: 'user', content: toolResults })
+      const adjusted = applyPlanAdjustment(base.shifts, { clear, add })
+      // Filet conformité : retire tout créneau (ajouté par l'IA) qui créerait
+      // une infraction. No-op sur la base, déjà conforme.
+      const { shifts: cleaned } = repairPlan(adjusted)
+      aiShifts = cleaned
+      aiSummary = input.summary ?? ''
     }
   } catch (e) {
-    // Toute exception du SDK Anthropic (5xx, rate-limit, timeout) ne doit plus
-    // bloquer l'utilisateur : on bascule sur le moteur déterministe (filet de
-    // secours) au lieu de renvoyer une erreur de délai.
-    console.error('[ai/plan] Anthropic error → fallback algorithme:', e instanceof Error ? e.message : e)
+    // Échec / timeout → on garde le planning de base (jamais d'erreur de délai).
+    console.error('[ai/plan] adjust error → base déterministe:', e instanceof Error ? e.message : e)
   }
 
-  // Filet de sécurité conformité : l'IA peut proposer des créneaux en
-  // infraction (repos, 10h/jour, 6 jours…). On retire les fautifs pour que le
-  // planning appliqué soit propre — le manager complète ensuite.
-  const { shifts: cleanedAi } = repairPlan(proposedShifts)
+  const usedAi = aiShifts != null && aiShifts.length > 0
+  const finalShifts = usedAi ? aiShifts! : base.shifts
 
-  // Secours : l'IA n'a pas terminé dans le budget, a échoué, ou n'a produit
-  // aucun créneau exploitable → on renvoie le planning du solveur déterministe.
-  // L'utilisateur obtient TOUJOURS un planning, jamais une erreur de délai.
-  if (!aiCompleted || cleanedAi.length === 0) {
-    return Response.json({ ...(await buildAlgorithmResponse('plan_ai_fallback')), aiFallback: true })
-  }
-
-  // Coût main d'œuvre estimé du planning proposé → ratio coût/CA estimé (premium).
-  let estimatedCost = 0
-  if (eco) {
-    for (const s of cleanedAi) {
-      const rate = eco.rateMap[s.employee_id]
-      if (rate) estimatedCost += shiftHours(s.start_time, s.end_time, s.break_minutes) * rate
-    }
-  }
-  const estimatedRatioPct = (eco && eco.forecastTotal > 0 && estimatedCost > 0)
-    ? Math.round((estimatedCost / eco.forecastTotal) * 100)
-    : null
-
-  // Compteur de génération IA. Le plan Essentiel a déjà été décompté en amont
-  // (gate à 3/mois) ; les autres plans sont enregistrés ici (succès seulement).
+  // Compteur IA. Le plan Essentiel est déjà décompté en amont (gate 3/mois) ;
+  // les autres plans sont enregistrés ici. On distingue le repli pour le suivi.
   if (tier !== 'essential') {
-    try { await supabase.rpc('consume_ai_credit', { p_limit: 1_000_000, p_feature: 'plan' }) } catch { /* non bloquant */ }
+    try { await supabase.rpc('consume_ai_credit', { p_limit: 1_000_000, p_feature: usedAi ? 'plan' : 'plan_ai_fallback' }) } catch { /* non bloquant */ }
   }
 
-  return Response.json({
-    shifts: cleanedAi,
-    summary,
-    forecastTotal: eco?.forecastTotal ?? 0,
-    targetPct,
-    targetBasis: eco?.targetBasis ?? 'sector',
-    historicalRatioPct: eco?.historicalRatioPct ?? null,
-    estimatedCost: Math.round(estimatedCost),
-    estimatedRatioPct,
-    engine: 'ai',
-  })
+  return Response.json(planPayload(
+    finalShifts,
+    usedAi ? (aiSummary || 'Planning ajusté par l\'IA selon vos instructions.') : base.summary,
+    'ai',
+    { aiFallback: !usedAi },
+  ))
 }
