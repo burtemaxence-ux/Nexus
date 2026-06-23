@@ -18,8 +18,10 @@ import {
 // quelle que soit la convention collective.
 const LEGAL_RULES = [
   { label: 'Repos quotidien',     value: '11h min.', detail: 'Entre la fin d’un service et le début du suivant.',          ref: 'L3131-1'  },
+  { label: 'Repos hebdomadaire',  value: '35h min.', detail: 'Repos continu (24h + 11h) sur chaque fenêtre de 7 jours.',   ref: 'L3132-2'  },
   { label: 'Durée max / jour',    value: '10h',      detail: 'Travail effectif sur une même journée.',                     ref: 'L3121-18' },
   { label: 'Durée max / semaine', value: '48h',      detail: 'Maximum absolu, heures supplémentaires comprises.',          ref: 'L3121-20' },
+  { label: 'Amplitude / jour',    value: '13h max.', detail: 'Entre le début et la fin de la journée (split shifts inclus).', ref: 'L3121-1' },
   { label: 'Pause obligatoire',   value: '20 min',   detail: 'Dès 6h de travail consécutives.',                            ref: 'L3121-16' },
   { label: 'Jours consécutifs',   value: '6 max.',   detail: 'Un jour de repos hebdomadaire reste obligatoire.',           ref: 'L3132-1'  },
 ] as const
