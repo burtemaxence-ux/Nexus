@@ -7,6 +7,12 @@ import { getPlanTier, isPro } from '@/lib/plan-guard'
 import { forecastRevenue, sectorTargetPct, median, shiftHours, isoWeekKey, type DayCA } from '@/lib/forecast'
 import { solvePlanning } from '@/lib/planning/solver'
 
+// La boucle LLM (jusqu'à 12 itérations Claude Sonnet) peut prendre 30–60s sur
+// une semaine vierge avec beaucoup d'employés. Sans maxDuration explicite,
+// Vercel coupe à 10s (Hobby) → réponse tronquée → "Erreur réseau" côté client.
+// 60s couvre les deux tiers (max Hobby, default Pro).
+export const maxDuration = 60
+
 const client = new Anthropic()
 
 const FR_DOW = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
@@ -365,65 +371,78 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     { role: 'user', content: 'Génère le planning complet pour cette semaine.' },
   ]
 
-  for (let iteration = 0; iteration < 12; iteration++) {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      system: [
-        {
-          type: 'text',
-          text: systemPrompt,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      tools: [tool],
-      messages,
-    })
+  try {
+    for (let iteration = 0; iteration < 12; iteration++) {
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4096,
+        system: [
+          {
+            type: 'text',
+            text: systemPrompt,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+        tools: [tool],
+        messages,
+      })
 
-    messages.push({ role: 'assistant', content: response.content })
+      messages.push({ role: 'assistant', content: response.content })
 
-    if (response.stop_reason === 'end_turn') {
-      for (const block of response.content) {
-        if (block.type === 'text') summary += block.text
-      }
-      break
-    }
-
-    if (response.stop_reason === 'tool_use') {
-      const toolResults: Anthropic.ToolResultBlockParam[] = []
-      for (const block of response.content) {
-        if (block.type === 'tool_use' && block.name === 'propose_shift') {
-          const input = block.input as {
-            employee_id: string
-            date: string
-            start_time: string
-            end_time: string
-            break_minutes: number
-            poste_id?: string
-            notes?: string
-          }
-          proposedShifts.push({
-            employee_id: input.employee_id,
-            employee_name: employeeNameMap[input.employee_id] ?? input.employee_id,
-            date: input.date,
-            start_time: input.start_time,
-            end_time: input.end_time,
-            break_minutes: input.break_minutes ?? 0,
-            poste_id: input.poste_id ?? null,
-            position: input.poste_id
-              ? (posteMap[input.poste_id]?.name ?? employeePositionMap[input.employee_id])
-              : employeePositionMap[input.employee_id],
-            notes: input.notes ?? null,
-          })
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: block.id,
-            content: `OK: ${input.date} ${input.start_time}-${input.end_time} pour ${employeeNameMap[input.employee_id] ?? input.employee_id}`,
-          })
+      if (response.stop_reason === 'end_turn') {
+        for (const block of response.content) {
+          if (block.type === 'text') summary += block.text
         }
+        break
       }
-      messages.push({ role: 'user', content: toolResults })
+
+      if (response.stop_reason === 'tool_use') {
+        const toolResults: Anthropic.ToolResultBlockParam[] = []
+        for (const block of response.content) {
+          if (block.type === 'tool_use' && block.name === 'propose_shift') {
+            const input = block.input as {
+              employee_id: string
+              date: string
+              start_time: string
+              end_time: string
+              break_minutes: number
+              poste_id?: string
+              notes?: string
+            }
+            proposedShifts.push({
+              employee_id: input.employee_id,
+              employee_name: employeeNameMap[input.employee_id] ?? input.employee_id,
+              date: input.date,
+              start_time: input.start_time,
+              end_time: input.end_time,
+              break_minutes: input.break_minutes ?? 0,
+              poste_id: input.poste_id ?? null,
+              position: input.poste_id
+                ? (posteMap[input.poste_id]?.name ?? employeePositionMap[input.employee_id])
+                : employeePositionMap[input.employee_id],
+              notes: input.notes ?? null,
+            })
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: block.id,
+              content: `OK: ${input.date} ${input.start_time}-${input.end_time} pour ${employeeNameMap[input.employee_id] ?? input.employee_id}`,
+            })
+          }
+        }
+        messages.push({ role: 'user', content: toolResults })
+      }
     }
+  } catch (e) {
+    // Toute exception du SDK Anthropic (5xx, rate-limit, timeout) doit
+    // remonter en JSON exploitable côté client — sinon le fetch tombe sur
+    // une réponse non-JSON et le frontend affiche un générique « Erreur
+    // réseau ». Inclut un repli vers le moteur déterministe.
+    console.error('[ai/plan] Anthropic error:', e)
+    const msg = e instanceof Error ? e.message : 'Erreur inconnue'
+    return Response.json(
+      { error: `La génération IA a échoué (${msg}). Vous pouvez réessayer ou basculer sur l'algorithme déterministe dans Réglages › Planning.` },
+      { status: 502 },
+    )
   }
 
   // Coût main d'œuvre estimé du planning proposé → ratio coût/CA estimé (premium).

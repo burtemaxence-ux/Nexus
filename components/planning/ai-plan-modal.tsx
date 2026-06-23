@@ -92,10 +92,22 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ week_monday: weekMonday, context: instructions, target_ratio: targetPct ? Number(targetPct) : undefined }),
       })
-      const data = await res.json() as {
+      // Body en texte d'abord : si JSON.parse échoue (504 Vercel renvoie du
+      // HTML/vide), on remonte le statut HTTP plutôt qu'un « Erreur réseau » opaque.
+      const text = await res.text()
+      let data: {
         shifts?: ProposedShift[]; summary?: string; error?: string
         targetPct?: number; estimatedRatioPct?: number | null; estimatedCost?: number
         forecastTotal?: number; historicalRatioPct?: number | null
+      } = {}
+      try { data = text ? JSON.parse(text) : {} } catch {
+        if (res.status === 504 || res.status === 408) {
+          setError("La génération IA a dépassé le délai. Réessayez ou utilisez l'algorithme déterministe (Réglages › Planning).")
+        } else {
+          setError(`Réponse serveur invalide (HTTP ${res.status}).`)
+        }
+        setPhase('idle')
+        return
       }
       if (!res.ok || data.error) {
         setError(data.error ?? 'Erreur lors de la génération')
