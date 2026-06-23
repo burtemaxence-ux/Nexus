@@ -164,8 +164,11 @@ export function solvePlanning(input: SolverInput): SolverOutput {
 
     // Template horaire FIXE pour la semaine. Alternance tôt / tard par employé
     // pour couvrir l'amplitude d'ouverture (matin ↔ soir).
-    const grossMin = Math.round(dailyLen * 60) + (dailyLen * 60 > input.breakTriggerMinutes ? BREAK_MINUTES : 0)
-    const breakMin = dailyLen * 60 > input.breakTriggerMinutes ? BREAK_MINUTES : 0
+    // floor() sur les minutes nettes : on ne dépasse JAMAIS le contrat (arrondi
+    // vers le bas, le manager complète si besoin).
+    const netMin = Math.floor(dailyLen * 60)
+    const breakMin = netMin > input.breakTriggerMinutes ? BREAK_MINUTES : 0
+    const grossMin = netMin + breakMin
     const isLate = idx % 2 === 1
     let startMin = isLate ? Math.max(openMin, closeMin - grossMin) : openMin
     let endMin = startMin + grossMin
