@@ -47,6 +47,10 @@ const PROBES: { migration: string; sql: string }[] = [
   { migration: '060_ai_usage_per_feature',
     sql: `SELECT (EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='ai_usage' AND column_name='feature')
               AND EXISTS(SELECT 1 FROM pg_proc WHERE proname='consume_ai_credit' AND pronargs=2)) AS ok` },
+  { migration: '071_establishment_benchmark',
+    sql: `SELECT (EXISTS(SELECT 1 FROM information_schema.views WHERE table_schema='public' AND table_name='establishment_metrics')
+              AND EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='establishment_benchmark_scores')
+              AND EXISTS(SELECT 1 FROM pg_proc WHERE proname='get_establishment_benchmark')) AS ok` },
 ]
 
 async function main() {
