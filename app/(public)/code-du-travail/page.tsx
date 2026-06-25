@@ -3,18 +3,18 @@ import Link from 'next/link'
 import { PageWrap, PageHeader, Section, CardGrid, InfoCard, FinalCta } from '@/components/public/content-page'
 
 export const metadata: Metadata = {
-  title: 'Le Code du travail en clair — Quartzbase',
+  title: 'Le Code du travail en clair',
   description: "Repos, durées maximales, pauses, dimanche, nuit, heures supplémentaires : les règles essentielles du Code du travail expliquées simplement, pour les employeurs.",
 }
 
 const TOPICS = [
   { title: 'Temps de repos', ref: 'Art. L3131-1', body: "Tout salarié a droit à au moins 11 heures de repos consécutives entre deux journées de travail. Attention aux coupures et aux fermetures tardives suivies d’une ouverture matinale." },
-  { title: 'Durées maximales', ref: 'Art. L3121-18 / L3121-20', body: "10 heures par jour et 48 heures par semaine au maximum (44h en moyenne sur 12 semaines). Au-delà, le planning n’est pas conforme." },
+  { title: 'Durées maximales', ref: 'Art. L3121-18 / L3121-20', body: "10 heures par jour et 48 heures par semaine au maximum (44h en moyenne sur 12 semaines). Passé ces limites, le planning n’est pas conforme." },
   { title: 'Pauses', ref: 'Art. L3121-16', body: "Dès 6 heures de travail, une pause d’au moins 20 minutes consécutives est obligatoire. Elle n’est pas forcément rémunérée, sauf accord plus favorable." },
-  { title: 'Repos hebdomadaire', ref: 'Art. L3132-1 / L3132-2', body: "Au moins 24 heures consécutives de repos par semaine, qui s’ajoutent aux 11h quotidiennes — soit 35 heures consécutives. Pas plus de 6 jours travaillés d’affilée." },
+  { title: 'Repos hebdomadaire', ref: 'Art. L3132-1 / L3132-2', body: "Au moins 24 heures consécutives de repos par semaine, qui s’ajoutent aux 11h quotidiennes, soit 35 heures consécutives au total. Pas plus de 6 jours travaillés d’affilée." },
   { title: 'Travail du dimanche', ref: 'Art. L3132-3', body: "Le repos hebdomadaire est en principe donné le dimanche. Le travail dominical suppose une dérogation (secteur, zone, accord) : vérifiez votre cas." },
   { title: 'Travail de nuit', ref: 'Art. L3122-1 et s.', body: "Le travail entre 21h et 6h relève d’un cadre spécifique (contreparties, durées réduites). Il doit rester exceptionnel ou encadré par accord." },
-  { title: 'Heures supplémentaires', ref: 'Art. L3121-28 et s.', body: "Les heures au-delà de 35h ouvrent droit à majoration (souvent +25% puis +50%) ou repos compensateur, dans la limite du contingent applicable." },
+  { title: 'Heures supplémentaires', ref: 'Art. L3121-28 et s.', body: "Les heures faites en plus des 35h ouvrent droit à majoration (souvent +25% puis +50%) ou repos compensateur, dans la limite du contingent applicable." },
   { title: 'Coupures', ref: 'Convention collective', body: "Les journées avec coupure (service du midi puis du soir) sont souvent encadrées par votre convention collective : nombre, durée, indemnisation." },
 ]
 
@@ -24,7 +24,7 @@ export default function CodeDuTravailPage() {
       <PageHeader
         eyebrow="Ressource"
         title={<>Le Code du travail,<br />en clair.</>}
-        intro="Les règles essentielles à connaître pour planifier sans risque. Simple, concret, sans jargon — et vérifié automatiquement par Quartzbase."
+        intro="Les règles essentielles à connaître pour planifier sans risque. Simple, concret, sans jargon, et vérifié automatiquement par Quartzbase."
       />
 
       <Section>
@@ -51,7 +51,7 @@ export default function CodeDuTravailPage() {
 
       <Section>
         <p style={{ fontSize: 13.5, color: '#79828f', lineHeight: 1.7, margin: 0, fontStyle: 'italic' }}>
-          Ce guide est fourni à titre informatif et ne constitue pas un conseil juridique. Les règles applicables dépendent de votre convention collective et de votre situation ; en cas de doute, rapprochez-vous d’un professionnel du droit.
+          Ce guide est fourni à titre informatif et ne constitue pas un conseil juridique. Les règles applicables dépendent de votre convention collective et de votre situation ; en cas de doute, consultez un professionnel du droit.
         </p>
       </Section>
 

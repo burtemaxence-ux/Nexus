@@ -3,7 +3,7 @@ import { Moon, Timer, CalendarDays, Coffee, CalendarRange, Sun, Clock } from 'lu
 import { PageWrap, PageHeader, Section, CardGrid, InfoCard, FinalCta } from '@/components/public/content-page'
 
 export const metadata: Metadata = {
-  title: 'Conformité Code du travail — Quartzbase',
+  title: 'Conformité au Code du travail',
   description: "Quartzbase vérifie 7 règles du Code du travail à chaque planning : repos, durées maximales, pauses, dimanche et nuit. Soyez alerté avant la faute.",
 }
 

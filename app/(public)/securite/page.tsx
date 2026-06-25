@@ -3,7 +3,7 @@ import { Server, Lock, ShieldCheck, History, KeyRound, FileCheck } from 'lucide-
 import { PageWrap, PageHeader, Section, CardGrid, InfoCard, CheckList, FinalCta } from '@/components/public/content-page'
 
 export const metadata: Metadata = {
-  title: 'Sécurité & RGPD — Quartzbase',
+  title: 'Sécurité et RGPD chez Quartzbase',
   description: "Hébergement en Europe, chiffrement, sauvegardes quotidiennes et conformité RGPD : comment Quartzbase protège vos données et celles de votre équipe.",
 }
 
@@ -13,7 +13,7 @@ const PILLARS = [
   { icon: <History size={22} color="#00D4AA" strokeWidth={1.9} />, accent: '#00D4AA', title: 'Sauvegardes quotidiennes', body: 'Vos données sont sauvegardées automatiquement chaque jour, avec rétention. En cas d’incident, nous pouvons restaurer rapidement.' },
   { icon: <KeyRound size={22} color="#6C63FF" strokeWidth={1.9} />, accent: '#6C63FF', title: 'Accès cloisonné', body: "Chaque établissement ne voit que ses propres données. Les accès internes sont limités au strict nécessaire et journalisés." },
   { icon: <ShieldCheck size={22} color="#00D4AA" strokeWidth={1.9} />, accent: '#00D4AA', title: 'Conforme RGPD', body: 'Registre des traitements, base légale claire, minimisation des données et durées de conservation maîtrisées.' },
-  { icon: <FileCheck size={22} color="#6C63FF" strokeWidth={1.9} />, accent: '#6C63FF', title: 'Sous-traitants encadrés', body: "Nos prestataires techniques sont sélectionnés pour leur conformité et liés par des accords de traitement (DPA)." },
+  { icon: <FileCheck size={22} color="#6C63FF" strokeWidth={1.9} />, accent: '#6C63FF', title: 'Prestataires encadrés', body: "Nos prestataires techniques sont choisis pour leur conformité et liés par des accords de traitement (DPA)." },
 ]
 
 export default function SecuritePage() {
@@ -37,10 +37,10 @@ export default function SecuritePage() {
       <Section title="Vos droits, exerçables à tout moment">
         <CheckList
           items={[
-            <><strong style={{ color: '#fff' }}>Accès & portabilité</strong> — exportez l’ensemble de vos données depuis vos paramètres, dans un format réutilisable.</>,
-            <><strong style={{ color: '#fff' }}>Rectification</strong> — corrigez les informations d’un employé ou de votre établissement en un clic.</>,
-            <><strong style={{ color: '#fff' }}>Suppression</strong> — supprimez votre compte et vos données ; nous appliquons les durées de conservation légales puis effaçons le reste.</>,
-            <><strong style={{ color: '#fff' }}>Opposition & limitation</strong> — écrivez à notre DPO pour toute demande relative au traitement de vos données.</>,
+            <><strong style={{ color: '#fff' }}>Accès et portabilité.</strong> Exportez toutes vos données quand vous voulez, dans un format réutilisable.</>,
+            <><strong style={{ color: '#fff' }}>Rectification.</strong> Corrigez les informations d’un employé ou de votre établissement en un clic.</>,
+            <><strong style={{ color: '#fff' }}>Suppression.</strong> Supprimez votre compte et vos données. Nous gardons ce que la loi impose, puis nous effaçons le reste.</>,
+            <><strong style={{ color: '#fff' }}>Opposition et limitation.</strong> Écrivez à notre délégué à la protection des données pour toute demande sur le traitement de vos données.</>,
           ]}
         />
       </Section>

@@ -3,8 +3,8 @@ import { PageWrap, PageHeader, Section, Placeholder } from '@/components/public/
 import { Reveal } from '@/components/public/reveal'
 
 export const metadata: Metadata = {
-  title: 'Devenir partenaire — Quartzbase',
-  description: "Rejoignez le programme partenaire Quartzbase : apporteurs d’affaires, experts-comptables, intégrateurs et éditeurs.",
+  title: 'Devenir partenaire de Quartzbase',
+  description: "Rejoignez le programme partenaire Quartzbase : apporteurs d’affaires, experts comptables, intégrateurs et éditeurs.",
 }
 
 export default function DevenirPartenairePage() {
@@ -19,26 +19,26 @@ export default function DevenirPartenairePage() {
 
       <Section title="Le programme">
         <Placeholder>
-          À compléter — décrivez les types de partenariat visés (apporteur d’affaires, expert-comptable, intégrateur, éditeur…). Donnez-moi la liste et je la transforme en cartes.
+          À compléter : décrivez les types de partenariat visés (apporteur d’affaires, expert comptable, intégrateur, éditeur…). Envoyez la liste et je la transforme en cartes.
         </Placeholder>
       </Section>
 
       <Section title="Vos avantages">
         <Placeholder>
-          À compléter — commission, ressources, accompagnement, co-marketing… Précisez les conditions et je les mets en forme.
+          À compléter : commission, ressources, accompagnement, marketing partagé… Précisez les conditions et je les mets en forme.
         </Placeholder>
       </Section>
 
       <Section title="Comment candidater">
         <Placeholder>
-          À compléter — étapes de candidature et critères d’éligibilité.
+          À compléter : étapes de candidature et critères d’éligibilité.
         </Placeholder>
       </Section>
 
       <Reveal style={{ margin: '64px 0 0', textAlign: 'center', background: 'linear-gradient(180deg,rgba(0,212,170,0.08),rgba(255,255,255,0.01))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: '48px 32px' }}>
         <h2 style={{ fontWeight: 700, fontSize: 28, letterSpacing: '-0.025em', lineHeight: 1.15, margin: '0 0 12px' }}>Envie d’en parler ?</h2>
         <p style={{ fontSize: 16, color: '#a6a8b8', lineHeight: 1.6, margin: '0 auto 28px', maxWidth: 440 }}>
-          Écrivez-nous votre projet de partenariat, on revient vers vous rapidement.
+          Décrivez votre projet de partenariat et on revient vers vous rapidement.
         </p>
         <a
           href="mailto:hello@quartzbase.fr?subject=Partenariat%20Quartzbase"
