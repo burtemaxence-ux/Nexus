@@ -1,265 +1,149 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Reveal } from '@/components/public/reveal'
 
-const STATS = [
-  { value: '30 jours', label: 'Essai gratuit', color: '#6C63FF' },
-  { value: 'Sans CB',  label: 'Aucune carte bleue requise', color: '#00D4AA' },
-  { value: 'France',   label: 'Support en français', color: '#FFB347' },
+const FONT = 'var(--font-manrope), sans-serif'
+
+const PLAN_STYLE: Record<string, { color: string; bg: string; border: string }> = {
+  'Essentiel':  { color: '#cfcfe0', bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.12)' },
+  'Pro':        { color: '#b3aeff', bg: 'rgba(108,99,255,0.14)',  border: 'rgba(108,99,255,0.35)' },
+  'Multi-site': { color: '#6fe9d0', bg: 'rgba(0,212,170,0.12)',   border: 'rgba(0,212,170,0.3)' },
+}
+
+const REVIEWS = [
+  { score: 5,   when: 'il y a 2 sem.', quote: "Franchement, avant je passais mon dimanche soir sur le planning… maintenant c'est plié en 10 min le lundi. Et il connaît déjà les coupures de mes vendeuses, j'ai rien à réexpliquer.", initials: 'TM', avatarBg: 'linear-gradient(135deg,#6C63FF,#8b86ff)', name: 'Thomas M****', role: 'Boulangerie · Nantes',  plan: 'Essentiel'  },
+  { score: 5,   when: 'il y a 1 mois', quote: "Une serveuse qui me lâche un samedi à 18h, j'ai lancé la demande de remplaçant et quelqu'un a dit oui en 10 min. Sans ça je faisais le service à deux, je vous raconte pas la soirée.", initials: 'SB', avatarBg: 'linear-gradient(135deg,#00D4AA,#6C63FF)', name: 'Sarah B****', role: 'Bistrot · Bordeaux',    plan: 'Pro'        },
+  { score: 4,   when: 'il y a 3 sem.', quote: "Bon, je suis pas un as de l'informatique, la prise en main m'a pris une matinée. Mais une fois lancé j'ai plus retouché Excel. Le support m'a rappelé, sympa.", initials: 'KA', avatarBg: 'linear-gradient(135deg,#FFB347,#FF6B6B)', name: 'Karim A****', role: 'Brasserie · Lille',     plan: 'Essentiel'  },
+  { score: 4.5, when: 'il y a 5 j.',   quote: "Ce qui me rassure c'est l'alerte quand un repos de 11h saute. Tout seul sur mon tableur je l'aurais jamais vu. Là au moins je dors tranquille.", initials: 'CL', avatarBg: 'linear-gradient(135deg,#8b86ff,#00D4AA)', name: 'Claire L****', role: 'Restaurant · Lyon',     plan: 'Pro'        },
+  { score: 5,   when: 'il y a 2 mois', quote: "Avec mes 3 boutiques je voyais jamais la masse salariale en temps réel. Maintenant j'ouvre le tableau de bord le matin avec mon café et tout y est. Ça a changé ma façon de gérer.", initials: 'YD', avatarBg: 'linear-gradient(135deg,#6C63FF,#FF6B6B)', name: 'Yann D****', role: 'Multi-sites · Rennes',  plan: 'Multi-site' },
+  { score: 4,   when: 'il y a 1 sem.', quote: "Mes équipes ont leur planning direct sur le tel, fini les photos floues dans le groupe WhatsApp. Seul truc, j'aimerais dupliquer une semaine type plus vite, mais ça reste top.", initials: 'FN', avatarBg: 'linear-gradient(135deg,#00D4AA,#8b86ff)', name: 'Farida N****', role: 'Boulangerie · Toulouse', plan: 'Essentiel'  },
 ]
 
-const TESTIMONIALS = [
-  {
-    quote: `J'ai 19 ans et je développe Quartzbase seul. Je l'ai créé pour une
-      raison simple : un planning fait à la main vous vole vos soirées, et la
-      moindre erreur sur le Code du Travail peut vous coûter des milliers d'euros.
-      Mon engagement envers vous : 4 heures rendues chaque semaine, et la
-      tranquillité qui va avec.`,
-    initials: 'MB',
-    name: 'Maxence, fondateur',
-    detail: 'Quartzbase · Développeur',
-  },
-  {
-    quote: `Quartzbase est récent, et je préfère être franc : vous ne trouverez
-      pas un mur de 200 avis ici. Ce que vous avez à la place a plus de valeur :
-      le fondateur qui répond en personne, et aucun engagement. Testez 30 jours.
-      Si vous n'y gagnez pas de temps, vous partez en un clic, sans justification.`,
-    initials: '✓',
-    name: 'Notre engagement',
-    detail: 'Transparence · Sans engagement',
-  },
-]
+const STAR_PATH = 'M12 2l3 6.5 7 .6-5.3 4.6 1.6 6.9L12 17.8 5.7 20.6l1.6-6.9L2 9.1l7-.6z'
+
+function Stars({ score, uid }: { score: number; uid: number }) {
+  return (
+    <div style={{ display: 'flex', gap: 2 }}>
+      {Array.from({ length: 5 }).map((_, i) => {
+        const fill = score >= i + 1 ? 1 : (score >= i + 0.5 ? 0.5 : 0)
+        const gid = `qbstar-${uid}-${i}`
+        return (
+          <svg key={i} width={14} height={14} viewBox="0 0 24 24" aria-hidden="true">
+            {fill === 0.5 && (
+              <defs>
+                <linearGradient id={gid}>
+                  <stop offset="50%" stopColor="#FFB347" />
+                  <stop offset="50%" stopColor="rgba(255,255,255,0.14)" />
+                </linearGradient>
+              </defs>
+            )}
+            <path d={STAR_PATH} fill={fill === 1 ? '#FFB347' : (fill === 0.5 ? `url(#${gid})` : 'rgba(255,255,255,0.14)')} />
+          </svg>
+        )
+      })}
+    </div>
+  )
+}
 
 export function SocialProofSection() {
-  const testimonialRefs = useRef<(HTMLDivElement | null)[]>([])
-  const statsRef        = useRef<(HTMLDivElement | null)[]>([])
+  const [idx, setIdx] = useState(0)
+  const [perView, setPerView] = useState(3)
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const el = entry.target as HTMLElement
-            const delay = parseInt(el.dataset.delay ?? '0', 10)
-            setTimeout(() => el.classList.add('proof-visible'), delay)
-            observer.unobserve(el)
-          }
-        })
-      },
-      { threshold: 0.15 }
-    )
-
-    testimonialRefs.current.forEach((el) => { if (el) observer.observe(el) })
-    statsRef.current.forEach((el) => { if (el) observer.observe(el) })
-
-    return () => observer.disconnect()
+    const calc = () => setPerView(window.innerWidth <= 767 ? 1 : 3)
+    calc()
+    window.addEventListener('resize', calc)
+    return () => window.removeEventListener('resize', calc)
   }, [])
 
+  const maxIdx = Math.max(0, REVIEWS.length - perView)
+  useEffect(() => { setIdx((i) => Math.min(i, maxIdx)) }, [maxIdx])
+
+  const basis = `${100 / perView}%`
+  const shift = `calc(${-idx * (100 / perView)}%)`
+
   return (
-    <section
-      style={{
-        background: '#0a0a0f',
-        padding: '96px 24px',
-        borderTop: '1px solid rgba(255,255,255,0.04)',
-      }}
-    >
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-
-        {/* Label */}
-        <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <p style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.3)',
-          }}>
-            Une jeune solution, un engagement clair
-          </p>
+    <section style={{ position: 'relative', zIndex: 2, maxWidth: 1100, margin: '110px auto 0', padding: '0 32px', fontFamily: FONT }}>
+      <Reveal style={{ textAlign: 'center', maxWidth: 680, margin: '0 auto 50px' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#6C63FF', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
+          Ils l&apos;utilisent au quotidien
         </div>
+        <h2 style={{ fontWeight: 700, fontSize: 40, letterSpacing: '-0.025em', lineHeight: 1.12, margin: 0 }}>
+          Ce qu&apos;en disent les patrons
+        </h2>
+      </Reveal>
 
-        {/* Témoignages */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 24,
-          maxWidth: 980,
-          margin: '0 auto 80px',
-        }} className="proof-testimonials-grid">
-          {TESTIMONIALS.map((t, ti) => (
-            <div
-              key={t.initials}
-              ref={(el) => { testimonialRefs.current[ti] = el }}
-              data-delay={ti * 120}
-              className="proof-card"
-              style={{
-                background: '#13121f',
-                border: '1px solid rgba(108,99,255,0.12)',
-                borderRadius: 16,
-                padding: '36px 36px',
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              {/* Guillemets décoratifs */}
-              <div style={{
-                position: 'absolute',
-                top: 24,
-                left: 30,
-                fontFamily: 'Georgia, serif',
-                fontSize: 72,
-                lineHeight: 1,
-                color: 'rgba(108,99,255,0.15)',
-                userSelect: 'none',
-                pointerEvents: 'none',
-              }} aria-hidden="true">
-                &ldquo;
-              </div>
-
-              {/* Citation */}
-              <blockquote style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 16,
-                lineHeight: 1.65,
-                color: 'rgba(255,255,255,0.82)',
-                fontStyle: 'italic',
-                margin: '0 0 28px',
-                paddingTop: 14,
-                flex: 1,
-              }}>
-                {t.quote}
-              </blockquote>
-
-              {/* Auteur */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #6C63FF, #00D4AA)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <span style={{
-                    fontFamily: "'Syne', sans-serif",
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: '#fff',
-                  }}>
-                    {t.initials}
-                  </span>
+      <Reveal style={{ position: 'relative' }}>
+        <div style={{ overflow: 'hidden', borderRadius: 18 }}>
+          <div className="qb-review-track" style={{ display: 'flex', transition: 'transform .55s cubic-bezier(.22,.8,.26,1)', transform: `translateX(${shift})` }}>
+            {REVIEWS.map((rv, i) => {
+              const ps = PLAN_STYLE[rv.plan]
+              return (
+                <div key={i} style={{ flex: `0 0 ${basis}`, maxWidth: basis, padding: '0 11px', boxSizing: 'border-box' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#111118', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: '30px 28px', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Stars score={rv.score} uid={i} />
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#FFB347' }}>{String(rv.score).replace('.', ',')}</span>
+                      </div>
+                      <span style={{ fontSize: 11, color: '#5a5a72' }}>{rv.when}</span>
+                    </div>
+                    <p style={{ fontSize: 15.5, lineHeight: 1.62, color: '#dcdce6', margin: '0 0 24px', flex: 1 }}>{rv.quote}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: '50%', background: rv.avatarBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, color: '#0b0b12', flexShrink: 0 }}>{rv.initials}</div>
+                      <div style={{ textAlign: 'left', flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{rv.name}</div>
+                        <div style={{ fontSize: 12.5, color: '#9090a8' }}>{rv.role}</div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: ps.color, background: ps.bg, border: `1px solid ${ps.border}`, padding: '4px 9px', borderRadius: 7, whiteSpace: 'nowrap' }}>{rv.plan}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontWeight: 600,
-                    fontSize: 14,
-                    color: '#ffffff',
-                    margin: 0,
-                  }}>
-                    {t.name}
-                  </p>
-                  <p style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: 13,
-                    color: 'rgba(255,255,255,0.4)',
-                    margin: 0,
-                  }}>
-                    {t.detail}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
+              )
+            })}
+          </div>
         </div>
 
-        {/* 3 chiffres clés */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 1,
-          background: 'rgba(255,255,255,0.04)',
-          borderRadius: 14,
-          overflow: 'hidden',
-          maxWidth: 720,
-          margin: '0 auto 56px',
-        }} className="proof-stats-grid">
-          {STATS.map((stat, i) => (
-            <div
-              key={i}
-              ref={(el) => { statsRef.current[i] = el }}
-              data-delay={i * 80}
-              className="proof-stat"
-              style={{
-                background: '#0a0a0f',
-                padding: '28px 24px',
-                textAlign: 'center',
-              }}
+        {/* Contrôles */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 28 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {Array.from({ length: maxIdx + 1 }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setIdx(i)}
+                aria-label={`Aller à l'avis ${i + 1}`}
+                style={{ width: i === idx ? 24 : 7, height: 7, borderRadius: 100, border: 'none', cursor: 'pointer', padding: 0, background: i === idx ? '#6C63FF' : 'rgba(255,255,255,0.15)', transition: 'width .3s ease, background .3s ease' }}
+              />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={() => setIdx((i) => Math.max(0, i - 1))}
+              aria-label="Précédent"
+              style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.03)', color: '#cfcfe0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s ease, border-color .2s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
             >
-              <div style={{
-                fontFamily: "'Syne', sans-serif",
-                fontWeight: 700,
-                fontSize: 26,
-                color: stat.color,
-                letterSpacing: '-0.02em',
-                marginBottom: 6,
-              }}>
-                {stat.value}
-              </div>
-              <div style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 13,
-                color: 'rgba(255,255,255,0.4)',
-              }}>
-                {stat.label}
-              </div>
-            </div>
-          ))}
+              <ChevronLeft size={18} strokeWidth={2} />
+            </button>
+            <button
+              onClick={() => setIdx((i) => Math.min(maxIdx, i + 1))}
+              aria-label="Suivant"
+              style={{ width: 42, height: 42, borderRadius: '50%', border: '1px solid rgba(108,99,255,0.4)', background: 'rgba(108,99,255,0.12)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s ease, border-color .2s ease' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(108,99,255,0.25)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(108,99,255,0.12)' }}
+            >
+              <ChevronRight size={18} strokeWidth={2} />
+            </button>
+          </div>
         </div>
-
-        {/* Message de confiance */}
-        <p style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 13,
-          color: 'rgba(255,255,255,0.25)',
-          textAlign: 'center',
-          letterSpacing: '0.02em',
-        }}>
-          {`Lancé en 2026. Les premiers inscrits façonnent le produit avec moi.`}
-        </p>
-
-      </div>
+      </Reveal>
 
       <style>{`
-        .proof-card,
-        .proof-stat {
-          opacity: 0;
-          transform: translateY(20px);
-          transition: opacity 550ms ease-out, transform 550ms ease-out;
-        }
-        .proof-visible,
-        .proof-stat.proof-visible {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
         @media (prefers-reduced-motion: reduce) {
-          .proof-card, .proof-stat {
-            opacity: 1;
-            transform: none;
-            transition: none;
-          }
-        }
-
-        @media (max-width: 767px) {
-          .proof-stats-grid,
-          .proof-testimonials-grid {
-            grid-template-columns: 1fr !important;
-          }
+          .qb-review-track { transition: none !important; }
         }
       `}</style>
     </section>

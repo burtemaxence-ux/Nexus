@@ -1,258 +1,137 @@
 'use client'
 
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
+import { Reveal } from '@/components/public/reveal'
 import { PlanningDemo } from '@/components/public/planning-demo'
 
-/* Hero — angle conformité (protection juridique) */
-const HERO_TITLE = "Un planning qui vous protège des prud'hommes."
-
-const HERO_SUBTITLE =
-  `Repos, durées maximales, pauses… Quartzbase passe vos plannings au crible du Code du Travail et vous prévient avant la faute. Vous planifiez l'esprit léger. À partir de 49€/mois, sans engagement.`
-
-const TRUST_BADGE = '30 jours gratuits · Sans carte bleue · Conforme Code du Travail'
+const FONT = 'var(--font-manrope), sans-serif'
 
 export function HeroSection() {
   return (
-    <section
-      className="hero-section"
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
+    <section style={{ position: 'relative', zIndex: 2 }}>
+      <div className="qb-hero-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: '1.05fr 0.95fr',
+        gap: 56,
         alignItems: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        background: 'linear-gradient(135deg, #0d0b1f 0%, #0a0a0f 55%, #0a0a0f 100%)',
-        paddingTop: 101, /* navbar 64px + reassurance bar 37px */
-      }}
-    >
-      {/* Glow violet en haut à gauche */}
-      <div style={{
-        position: 'absolute',
-        top: '-20%',
-        left: '-10%',
-        width: 600,
-        height: 600,
-        borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(108,99,255,0.12) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-
-      <div style={{
         maxWidth: 1200,
         margin: '0 auto',
-        padding: '80px 24px',
-        width: '100%',
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 64,
-        alignItems: 'center',
-      }} className="hero-grid">
+        padding: '60px 32px 80px',
+        fontFamily: FONT,
+      }}>
 
-        {/* ── Colonne texte ───────────────────────────────────── */}
-        <div>
-          {/* Badge de confiance */}
-          <div
-            className="hero-animate hero-delay-3"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              background: 'rgba(108,99,255,0.12)',
-              border: '1px solid rgba(108,99,255,0.25)',
-              borderRadius: 100,
-              padding: '6px 14px',
-              marginBottom: 28,
-            }}
-          >
-            <span style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 12,
-              color: 'rgba(255,255,255,0.65)',
-              letterSpacing: '0.01em',
-            }}>
-              {TRUST_BADGE}
+        {/* ── Colonne gauche ─────────────────────────────────────── */}
+        <Reveal>
+          {/* Eyebrow pill teal */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 9,
+            padding: '6px 14px',
+            borderRadius: 999,
+            background: 'rgba(0,212,170,0.08)',
+            border: '1px solid rgba(0,212,170,0.22)',
+            marginBottom: 28,
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#00D4AA', position: 'relative', display: 'inline-block' }}>
+              <span className="qb-ping" style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#00D4AA' }} />
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#7fe9cf', letterSpacing: '0.01em' }}>
+              Le planning intelligent qui pense à votre place
             </span>
           </div>
 
-          {/* ② Titre — gradient animé */}
-          <h1
-            className="hero-animate hero-delay-0"
-            style={{
-              fontFamily: "'Syne', sans-serif",
-              fontWeight: 700,
-              fontSize: 'clamp(32px, 4.5vw, 54px)',
-              lineHeight: 1.1,
-              letterSpacing: '-0.03em',
-              marginBottom: 24,
-              background: 'linear-gradient(90deg, #ffffff 0%, #c4c0ff 20%, #6C63FF 42%, #00D4AA 62%, #c4c0ff 82%, #ffffff 100%)',
-              backgroundSize: '200% auto',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            {HERO_TITLE}
+          {/* H1 */}
+          <h1 style={{ fontWeight: 700, fontSize: 58, lineHeight: 1.05, letterSpacing: '-0.03em', margin: '0 0 22px' }} className="qb-hero-h1">
+            Vos plannings faits en{' '}
+            <span style={{ position: 'relative', whiteSpace: 'nowrap', color: '#6C63FF' }}>
+              10 minutes
+              <svg width="100%" height="10" viewBox="0 0 300 10" preserveAspectRatio="none" style={{ position: 'absolute', left: 0, bottom: -6 }} aria-hidden="true">
+                <path d="M2 7 Q150 1 298 6" stroke="#00D4AA" strokeWidth="3" fill="none" strokeLinecap="round" />
+              </svg>
+            </span>
+            .<br />Pas en 2 heures.
           </h1>
 
           {/* Sous-titre */}
-          <p
-            className="hero-animate hero-delay-1"
-            style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 18,
-              lineHeight: 1.6,
-              color: 'rgba(255,255,255,0.6)',
-              marginBottom: 40,
-              maxWidth: 480,
-            }}
-          >
-            {HERO_SUBTITLE}
+          <p style={{ fontSize: 18, lineHeight: 1.6, color: '#a6a8b8', maxWidth: 460, margin: '0 0 32px' }}>
+            Quartzbase génère le planning de votre équipe, vérifie la conformité au Code du travail et prévient vos salariés. Sans Excel.
           </p>
 
           {/* CTAs */}
-          <div
-            className="hero-animate hero-delay-2"
-            style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}
-          >
-            {/* ③ CTA — shimmer */}
+          <div className="qb-hero-cta" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16, flexWrap: 'wrap' }}>
             <Link
               href="/register"
+              className="qb-cta-shine"
               style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 600,
-                fontSize: 15,
-                color: '#fff',
-                textDecoration: 'none',
-                padding: '13px 28px',
-                background: '#6C63FF',
-                borderRadius: 10,
-                display: 'inline-block',
                 position: 'relative',
                 overflow: 'hidden',
-                transition: 'background 200ms ease, transform 100ms ease',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#5a52e0')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#6C63FF')}
-            >
-              Essayer gratuitement 30 jours
-              <span className="cta-shimmer" aria-hidden="true" style={{
-                position: 'absolute',
-                top: 0,
-                left: '-80%',
-                width: '60%',
-                height: '100%',
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%)',
-                transform: 'skewX(-15deg)',
-              }} />
-            </Link>
-
-            {/* CTA secondaire — démo live */}
-            <a
-              href="https://demo.quartzbase.fr"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 600,
-                fontSize: 15,
-                color: 'rgba(255,255,255,0.85)',
-                textDecoration: 'none',
-                padding: '13px 26px',
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.18)',
-                borderRadius: 10,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 8,
-                transition: 'border-color 200ms ease, color 200ms ease',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = 'rgba(108,99,255,0.6)'
-                e.currentTarget.style.color = '#fff'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
-                e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+                gap: 10,
+                background: '#6C63FF',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 12,
+                padding: '17px 30px',
+                fontFamily: FONT,
+                fontSize: 16,
+                fontWeight: 700,
+                letterSpacing: '-0.01em',
+                textDecoration: 'none',
+                boxShadow: '0 10px 30px rgba(108,99,255,0.45)',
               }}
             >
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M5 3.5l7 4.5-7 4.5v-9z" fill="currentColor" />
-              </svg>
-              Voir la démo
-            </a>
-          </div>
-        </div>
+              <span style={{ position: 'relative', zIndex: 1 }}>Créer mon premier planning</span>
+              <span style={{ position: 'relative', zIndex: 1, display: 'flex' }}><ArrowRight size={18} strokeWidth={2.4} /></span>
+            </Link>
 
-        {/* ── Colonne mockup SVG — ① lévitation ───────────────── */}
-        <div
-          className="hero-mockup hero-animate hero-delay-1"
-          style={{ display: 'flex', justifyContent: 'center' }}
-        >
-          <div className="mockup-float">
-            <PlanningDemo />
+            <Link
+              href="#fonctionnalites"
+              style={{
+                background: 'transparent',
+                color: '#f0f0f8',
+                border: '1px solid rgba(255,255,255,0.14)',
+                borderRadius: 11,
+                padding: '16px 24px',
+                fontFamily: FONT,
+                fontSize: 15,
+                fontWeight: 600,
+                textDecoration: 'none',
+                transition: 'border-color 180ms ease',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(108,99,255,0.5)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)')}
+            >
+              Voir une démo →
+            </Link>
           </div>
-        </div>
+
+          {/* Réassurance */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 13.5, color: '#79828f', flexWrap: 'wrap' }}>
+            <span>14 jours gratuits</span>
+            <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#5a5a72' }} />
+            <span>Sans carte bancaire</span>
+            <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#5a5a72' }} />
+            <span>Sans engagement</span>
+          </div>
+        </Reveal>
+
+        {/* ── Colonne droite ─────────────────────────────────────── */}
+        <Reveal className="qb-hero-card" style={{ position: 'relative' }}>
+          <PlanningDemo />
+        </Reveal>
       </div>
 
-      {/* CSS animations + responsive */}
       <style>{`
-        @keyframes hero-fade-up {
-          from { opacity: 0; transform: translateY(24px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ① Lévitation mockup */
-        @keyframes hero-float {
-          0%, 100% { transform: translateY(0px); }
-          50%       { transform: translateY(-10px); }
-        }
-        .mockup-float {
-          animation: hero-float 3s ease-in-out infinite;
-        }
-
-        /* ② Gradient titre */
-        @keyframes gradient-flow {
-          0%   { background-position: 0% center; }
-          100% { background-position: 200% center; }
-        }
-        h1.hero-animate {
-          animation: hero-fade-up 600ms ease-out forwards, gradient-flow 5s linear 600ms infinite;
-        }
-
-        /* ③ Shimmer CTA */
-        @keyframes cta-shimmer {
-          0%   { left: -80%; }
-          45%  { left: 150%; }
-          100% { left: 150%; }
-        }
-        .cta-shimmer {
-          animation: cta-shimmer 3.5s ease-in-out infinite;
-        }
-
-        .hero-animate {
-          opacity: 0;
-          animation: hero-fade-up 600ms ease-out forwards;
-        }
-        .hero-delay-0 { animation-delay: 0ms; }
-        .hero-delay-1 { animation-delay: 150ms; }
-        .hero-delay-2 { animation-delay: 300ms; }
-        .hero-delay-3 { animation-delay: 450ms; }
-
-        @media (prefers-reduced-motion: reduce) {
-          .hero-animate { animation: none; opacity: 1; }
-          h1.hero-animate { animation: none; opacity: 1; }
-          .mockup-float { animation: none; }
-          .cta-shimmer  { animation: none; }
-        }
-
-        @media (max-width: 767px) {
-          .hero-grid {
-            grid-template-columns: 1fr !important;
-            gap: 48px !important;
-            text-align: center;
-          }
-          .hero-mockup { order: 2; }
-          .hero-section { padding-top: 64px !important; }
+        @keyframes qbPing { 0%{transform:scale(1);opacity:.6} 75%,100%{transform:scale(2.6);opacity:0} }
+        .qb-ping { animation: qbPing 1.8s cubic-bezier(0,0,0.2,1) infinite; }
+        @media (prefers-reduced-motion: reduce) { .qb-ping { animation: none; } }
+        @media (max-width: 900px) {
+          .qb-hero-grid { grid-template-columns: 1fr !important; gap: 64px !important; }
+          .qb-hero-card { order: 2; margin: 0 auto; }
+          .qb-hero-h1   { font-size: 40px !important; }
         }
       `}</style>
     </section>

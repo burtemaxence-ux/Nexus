@@ -2,73 +2,141 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { RefreshCw } from 'lucide-react'
+import { Reveal, useReveal } from '@/components/public/reveal'
 
-const PLANS = [
-  {
-    id: 'essential',
-    name: 'Essentiel',
-    monthlyPrice: 49,
-    annualPrice: 490,
-    description: 'Pour démarrer sans se prendre la tête.',
-    features: [
-      "Jusqu'à 10 employés",
-      'Planning + IA (3 générations/mois)',
-      'Présences & badgeuse mobile',
-      'Congés & conformité Code du Travail',
-      'Dossier RH : contrats, documents, photos',
-      'Support email',
-    ],
-    cta: "Démarrer l'essai gratuit",
-    popular: false,
-    accentColor: 'rgba(255,255,255,0.08)',
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    monthlyPrice: 89,
-    annualPrice: 890,
-    description: 'Le choix de la plupart des patrons.',
-    features: [
-      "Tout l'Essentiel, et en plus :",
-      '★ Pilotage productivité (coût/CA, masse salariale)',
-      '★ Absentéisme & turnover',
-      '★ Copilote IA : planning optimisé coût/CA',
-      'IA illimitée + remplacement en 1 clic',
-      'Documents de conformité',
-      "Jusqu'à 25 employés",
-    ],
-    cta: "Démarrer l'essai gratuit",
-    popular: true,
-    accentColor: 'rgba(108,99,255,0.08)',
-    borderColor: '#6C63FF',
-  },
-  {
-    id: 'multisite',
-    name: 'Multi-site',
-    monthlyPrice: 149,
-    annualPrice: 1490,
-    description: "Pour gérer plusieurs établissements.",
-    features: [
-      'Tout le Pro, et en plus :',
-      'Employés illimités · 3 établissements',
-      '★ Pilotage productivité multi-sites',
-      'Dashboard consolidé',
-      'Support prioritaire sous 4h · API',
-    ],
-    cta: "Démarrer l'essai gratuit",
-    popular: false,
-    accentColor: 'rgba(0,212,170,0.05)',
-    borderColor: 'rgba(0,212,170,0.2)',
-  },
+const FONT = 'var(--font-manrope), sans-serif'
+
+const ESSENTIEL_BASE = [
+  "Jusqu'à 10 employés",
+  'Planning IA (3 générations/mois)',
+  'Badgeuse mobile & présences',
+  'Congés & conformité légale',
+  'Dossier RH complet',
+  'Support email',
+]
+const PRO_EXTRAS = [
+  '★ Pilotage productivité (coût/CA)',
+  '★ Absentéisme & turnover',
+  '★ Copilote IA optimisé coût/CA',
+  'IA illimitée + remplacement 1 clic',
+  "Jusqu'à 25 employés",
+]
+const MULTI_EXTRAS = [
+  'Employés illimités · 3 sites',
+  '★ Pilotage multi-sites',
+  'Dashboard consolidé',
+  'Support prioritaire 4h · API',
 ]
 
-function CheckIcon({ color }: { color: string }) {
+type FeatRow =
+  | { kind: 'header'; text: string }
+  | { kind: 'item'; text: string; premium: boolean }
+
+function buildFeatrows(features: string[]): FeatRow[] {
+  return features.map((f) => {
+    if (f.endsWith(':')) return { kind: 'header', text: f }
+    const premium = f.startsWith('★')
+    return { kind: 'item', text: premium ? f.replace(/^★\s*/, '') : f, premium }
+  })
+}
+
+const PLANS = [
+  { name: 'Essentiel',  description: 'Pour démarrer sans se prendre la tête.', monthly: 49,  annual: 490,  featured: false, bg: '#111118', border: 'rgba(255,255,255,0.08)', pad: '32px 28px', priceColor: '#ffffff', btnBg: 'rgba(255,255,255,0.06)', btnColor: 'rgba(255,255,255,0.85)', featrows: buildFeatrows(ESSENTIEL_BASE) },
+  { name: 'Pro',        description: 'Le choix de la plupart des patrons.',    monthly: 89,  annual: 890,  featured: true,  bg: '#0f0e1e', border: '#6C63FF',               pad: '36px 32px', priceColor: '#6C63FF', btnBg: '#6C63FF',               btnColor: '#fff',                 featrows: buildFeatrows(['Tout le plan Essentiel, et en plus :', ...PRO_EXTRAS]) },
+  { name: 'Multi-site', description: 'Pour gérer plusieurs établissements.',   monthly: 149, annual: 1490, featured: false, bg: '#111118', border: 'rgba(0,212,170,0.2)',   pad: '32px 28px', priceColor: '#ffffff', btnBg: 'rgba(255,255,255,0.06)', btnColor: 'rgba(255,255,255,0.85)', featrows: buildFeatrows(['Tout le plan Pro, et en plus :', ...MULTI_EXTRAS]) },
+]
+
+function QuartzIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <circle cx="8" cy="8" r="7.5" fill={color} fillOpacity="0.12" />
-      <path d="M5 8l2.2 2.2L11 5.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width={22} height={22} viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id="qz" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#a78bfa" />
+          <stop offset="100%" stopColor="#00D4AA" />
+        </linearGradient>
+      </defs>
+      <path d="M12 2l5 5-5 15-5-15 5-5z" fill="url(#qz)" stroke="rgba(255,255,255,0.5)" strokeWidth={0.6} strokeLinejoin="round" />
+      <path d="M7 7h10M12 2v20" stroke="rgba(255,255,255,0.4)" strokeWidth={0.6} />
     </svg>
+  )
+}
+
+function TealCheck() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }} aria-hidden="true">
+      <circle cx={8} cy={8} r={7.5} fill="#00D4AA" fillOpacity={0.12} />
+      <path d="M5 8l2.2 2.2L11 5.5" stroke="#00D4AA" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function PlanCard({ plan, annual }: { plan: (typeof PLANS)[number]; annual: boolean }) {
+  const { ref, shown } = useReveal()
+  const [hovered, setHovered] = useState(false)
+  const displayPrice = annual ? Math.round(plan.annual / 12) : plan.monthly
+
+  return (
+    <div
+      ref={ref}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: plan.bg,
+        border: `1px solid ${plan.border}`,
+        borderRadius: 16,
+        padding: plan.pad,
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        opacity: shown ? 1 : 0,
+        transform: hovered ? 'translateY(-8px) scale(1.015)' : (shown ? 'none' : 'translateY(26px)'),
+        boxShadow: hovered ? '0 26px 60px rgba(0,0,0,0.55)' : 'none',
+        transition: 'opacity .6s cubic-bezier(.2,.7,.2,1), transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s ease',
+      }}
+    >
+      {plan.featured && (
+        <span className="qb-badge-in" style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#6C63FF', color: '#fff', fontSize: 12, fontWeight: 600, padding: '4px 16px', borderRadius: 100, whiteSpace: 'nowrap' }}>
+          Le plus populaire
+        </span>
+      )}
+
+      <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 6 }}>{plan.name}</div>
+      <div style={{ fontSize: 13, color: '#9090a8', marginBottom: 24, lineHeight: 1.4 }}>{plan.description}</div>
+
+      <div key={annual ? 'annual' : 'monthly'} className="qb-price-in" style={{ marginBottom: 26 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          {annual && (
+            <span style={{ fontWeight: 700, fontSize: 22, color: 'rgba(255,255,255,0.25)', textDecoration: 'line-through', letterSpacing: '-0.02em' }}>{plan.monthly}€</span>
+          )}
+          <span style={{ fontWeight: 700, fontSize: 42, letterSpacing: '-0.03em', color: plan.priceColor }}>{displayPrice}€</span>
+          <span style={{ fontSize: 14, color: '#9090a8' }}>/mois</span>
+        </div>
+        {annual && (
+          <div style={{ fontSize: 12, color: '#00D4AA', marginTop: 5 }}>Facturé {plan.annual}€/an, soit 2 mois offerts</div>
+        )}
+      </div>
+
+      <Link
+        href="/register"
+        style={{ width: '100%', border: 'none', borderRadius: 10, padding: 13, fontFamily: FONT, fontSize: 14, fontWeight: 600, cursor: 'pointer', marginBottom: 26, background: plan.btnBg, color: plan.btnColor, textAlign: 'center', textDecoration: 'none' }}
+      >
+        Démarrer l&apos;essai gratuit
+      </Link>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 11, flex: 1 }}>
+        {plan.featrows.map((f, i) =>
+          f.kind === 'header' ? (
+            <div key={i} style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#79828f' }}>{f.text}</div>
+          ) : (
+            <div key={i} className="qb-feat" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 4px', margin: '-2px -4px', borderRadius: 6 }}>
+              <TealCheck />
+              <span style={{ fontSize: 13, fontWeight: f.premium ? 600 : 400, color: f.premium ? '#ffffff' : 'rgba(255,255,255,0.62)' }}>{f.text}</span>
+            </div>
+          ),
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -76,336 +144,57 @@ export function PricingSection() {
   const [annual, setAnnual] = useState(false)
 
   return (
-    <section
-      id="tarifs"
-      style={{
-        background: 'linear-gradient(180deg, #0c0b18 0%, #0a0a0f 100%)',
-        padding: '96px 24px',
-        borderTop: '1px solid rgba(255,255,255,0.04)',
-      }}
-    >
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <section id="tarifs" style={{ position: 'relative', zIndex: 2, maxWidth: 1080, margin: '110px auto 0', padding: '0 32px', fontFamily: FONT }}>
+      <Reveal style={{ textAlign: 'center', maxWidth: 620, margin: '0 auto 30px' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#6C63FF', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>Tarifs</div>
+        <h2 style={{ fontWeight: 700, fontSize: 40, letterSpacing: '-0.025em', lineHeight: 1.12, margin: '0 0 14px' }}>Moins de 2 € par jour</h2>
+        <p style={{ fontSize: 17, color: '#a6a8b8', lineHeight: 1.6, margin: 0 }}>À partir de 49€/mois, sans engagement.</p>
+      </Reveal>
 
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <p style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: '#6C63FF',
-            marginBottom: 16,
-          }}>
-            Tarifs
-          </p>
-          <h2 style={{
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 700,
-            fontSize: 'clamp(26px, 3.5vw, 40px)',
-            color: '#ffffff',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.2,
-            marginBottom: 12,
-          }}>
-            Moins de 2 € par jour
-          </h2>
-          <p style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 16,
-            color: 'rgba(255,255,255,0.45)',
-          }}>
-            {`À partir de 49€/mois, sans engagement.`}
-          </p>
-        </div>
-
-        {/* Toggle mensuel / annuel */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 14,
-          marginBottom: 48,
-        }}>
-          <span style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 14,
-            color: annual ? 'rgba(255,255,255,0.4)' : '#ffffff',
-            transition: 'color 200ms ease',
-          }}>
-            Mensuel
+      {/* Toggle Mensuel / Annuel */}
+      <Reveal style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 44 }}>
+        <span style={{ fontSize: 14, fontWeight: 500, color: annual ? 'rgba(255,255,255,0.4)' : '#ffffff', transition: 'color .2s ease' }}>Mensuel</span>
+        <button
+          onClick={() => setAnnual((v) => !v)}
+          aria-label="Basculer entre tarif mensuel et annuel"
+          aria-pressed={annual}
+          style={{ width: 58, height: 28, borderRadius: 14, border: `1px solid ${annual ? 'rgba(108,99,255,0.5)' : 'rgba(255,255,255,0.14)'}`, cursor: 'pointer', position: 'relative', padding: 0, background: annual ? 'rgba(108,99,255,0.25)' : 'rgba(255,255,255,0.08)', transition: 'background .3s ease, border-color .3s ease' }}
+        >
+          <span className="qb-quartz" style={{ position: 'absolute', top: 2, left: annual ? 32 : 3, transform: `rotate(${annual ? 180 : 0}deg)`, transition: 'left .4s cubic-bezier(.34,1.56,.64,1), transform .4s cubic-bezier(.34,1.56,.64,1)', display: 'flex' }}>
+            <QuartzIcon />
           </span>
-
-          {/* Pill switch */}
-          <button
-            role="switch"
-            aria-checked={annual}
-            aria-label="Facturation annuelle"
-            onClick={() => setAnnual(v => !v)}
-            style={{
-              width: 48,
-              height: 26,
-              borderRadius: 13,
-              background: annual ? '#6C63FF' : 'rgba(255,255,255,0.12)',
-              border: 'none',
-              cursor: 'pointer',
-              position: 'relative',
-              transition: 'background 250ms ease',
-              padding: 0,
-            }}
-          >
-            <span style={{
-              position: 'absolute',
-              top: 3,
-              left: annual ? 25 : 3,
-              width: 20,
-              height: 20,
-              borderRadius: '50%',
-              background: '#ffffff',
-              transition: 'left 250ms ease',
-              display: 'block',
-            }} />
-          </button>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              color: annual ? '#ffffff' : 'rgba(255,255,255,0.4)',
-              transition: 'color 200ms ease',
-            }}>
-              Annuel
-            </span>
-            <span style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 11,
-              fontWeight: 600,
-              color: '#00D4AA',
-              background: 'rgba(0,212,170,0.1)',
-              border: '1px solid rgba(0,212,170,0.25)',
-              borderRadius: 100,
-              padding: '2px 8px',
-              whiteSpace: 'nowrap',
-            }}>
-              2 mois offerts
-            </span>
-          </div>
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 500, color: annual ? '#ffffff' : 'rgba(255,255,255,0.4)', transition: 'color .2s ease' }}>Annuel</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#00D4AA', background: 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.25)', borderRadius: 100, padding: '2px 8px', whiteSpace: 'nowrap' }}>2 mois offerts</span>
         </div>
+      </Reveal>
 
-        {/* Plans */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 20,
-          alignItems: 'start',
-        }} className="pricing-grid">
-          {PLANS.map((plan) => (
-            <div
-              key={plan.id}
-              style={{
-                background: plan.popular ? '#0f0e1e' : '#111118',
-                border: `1px solid ${plan.borderColor}`,
-                borderRadius: 16,
-                padding: plan.popular ? '36px 32px' : '32px 28px',
-                position: 'relative',
-                transition: 'transform 200ms ease',
-              }}
-              onMouseEnter={e => { if (!plan.popular) e.currentTarget.style.transform = 'translateY(-4px)' }}
-              onMouseLeave={e => { if (!plan.popular) e.currentTarget.style.transform = 'translateY(0)' }}
-            >
-              {/* Badge "Le plus populaire" */}
-              {plan.popular && (
-                <div style={{
-                  position: 'absolute',
-                  top: -14,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  background: '#6C63FF',
-                  color: '#fff',
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  padding: '4px 16px',
-                  borderRadius: 100,
-                  whiteSpace: 'nowrap',
-                }}>
-                  Le plus populaire
-                </div>
-              )}
-
-              {/* Nom + description */}
-              <h3 style={{
-                fontFamily: "'Syne', sans-serif",
-                fontWeight: 700,
-                fontSize: 20,
-                color: '#ffffff',
-                marginBottom: 6,
-              }}>
-                {plan.name}
-              </h3>
-              <p style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 13,
-                color: 'rgba(255,255,255,0.4)',
-                marginBottom: 24,
-              }}>
-                {plan.description}
-              </p>
-
-              {/* Prix — key force le remount pour rejouer l'animation au switch */}
-              <div key={annual ? 'annual' : 'monthly'} className="price-swap" style={{ marginBottom: 28 }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 8,
-                }}>
-                  {annual && (
-                    <span style={{
-                      fontFamily: "'Syne', sans-serif",
-                      fontWeight: 700,
-                      fontSize: 22,
-                      color: 'rgba(255,255,255,0.25)',
-                      textDecoration: 'line-through',
-                      letterSpacing: '-0.02em',
-                    }}>
-                      {plan.monthlyPrice}€
-                    </span>
-                  )}
-                  <span style={{
-                    fontFamily: "'Syne', sans-serif",
-                    fontWeight: 700,
-                    fontSize: 42,
-                    color: plan.popular ? '#6C63FF' : '#ffffff',
-                    letterSpacing: '-0.03em',
-                  }}>
-                    {annual
-                      ? Math.round(plan.annualPrice / 12)
-                      : plan.monthlyPrice}
-                    €
-                  </span>
-                  <span style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: 14,
-                    color: 'rgba(255,255,255,0.35)',
-                  }}>
-                    /mois
-                  </span>
-                </div>
-                {annual && (
-                  <p style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: 12,
-                    color: '#00D4AA',
-                    marginTop: 4,
-                  }}>
-                    {`Facturé ${plan.annualPrice}€/an, soit 2 mois offerts`}
-                  </p>
-                )}
-              </div>
-
-              {/* CTA */}
-              <Link
-                href="/register"
-                style={{
-                  display: 'block',
-                  textAlign: 'center',
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontWeight: 600,
-                  fontSize: 14,
-                  color: plan.popular ? '#fff' : 'rgba(255,255,255,0.85)',
-                  textDecoration: 'none',
-                  padding: '12px 20px',
-                  background: plan.popular ? '#6C63FF' : 'rgba(255,255,255,0.06)',
-                  borderRadius: 10,
-                  marginBottom: 28,
-                  border: plan.popular ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                  transition: 'background 200ms ease',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = plan.popular
-                    ? '#5a52e0'
-                    : 'rgba(255,255,255,0.1)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = plan.popular
-                    ? '#6C63FF'
-                    : 'rgba(255,255,255,0.06)'
-                }}
-              >
-                {`Démarrer l'essai gratuit`}
-              </Link>
-
-              {/* Features */}
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {plan.features.map((feature, i) => {
-                  // En-tête « Tout l'Essentiel/Pro, et en plus : »
-                  if (feature.endsWith(':')) {
-                    return (
-                      <li key={i} style={{
-                        fontFamily: "'DM Sans', sans-serif",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        letterSpacing: '0.06em',
-                        textTransform: 'uppercase',
-                        color: 'rgba(255,255,255,0.4)',
-                      }}>
-                        {feature}
-                      </li>
-                    )
-                  }
-                  const premium = feature.startsWith('★')
-                  return (
-                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <CheckIcon color={premium ? '#6C63FF' : plan.popular ? '#6C63FF' : '#00D4AA'} />
-                      <span style={{
-                        fontFamily: "'DM Sans', sans-serif",
-                        fontSize: 13,
-                        fontWeight: premium ? 600 : 400,
-                        color: premium ? '#ffffff' : 'rgba(255,255,255,0.6)',
-                      }}>
-                        {premium ? feature.replace(/^★\s*/, '') : feature}
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        {/* Note de réassurance */}
-        <p style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 13,
-          color: 'rgba(255,255,255,0.3)',
-          textAlign: 'center',
-          marginTop: 36,
-          letterSpacing: '0.01em',
-        }}>
-          {`30 jours gratuits · Sans carte bleue · Annulation en 1 clic`}
-        </p>
-
+      <div className="qb-pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20, alignItems: 'start' }}>
+        {PLANS.map((plan) => <PlanCard key={plan.name} plan={plan} annual={annual} />)}
       </div>
 
+      {/* Bandeau garantie */}
+      <Reveal style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 13, marginTop: 38, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 100, padding: '12px 24px', width: 'fit-content', marginLeft: 'auto', marginRight: 'auto' }}>
+        <span style={{ display: 'flex' }}><RefreshCw size={21} color="#9090a8" strokeWidth={1.9} /></span>
+        <span style={{ fontSize: 14, color: '#cfcfe0', lineHeight: 1.4 }}>
+          <strong style={{ color: '#fff', fontWeight: 700 }}>Votre équipe grandit&nbsp;?</strong> Changez de formule en cours de route, votre tarif s&apos;ajuste automatiquement.
+        </span>
+      </Reveal>
+
       <style>{`
-        @keyframes price-in {
-          from { opacity: 0; transform: translateY(6px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .price-swap {
-          animation: price-in 200ms ease-out;
-        }
-
+        @keyframes qbBadgeIn { 0%{opacity:0;transform:translateX(-50%) translateY(-8px) scale(.8)} 60%{transform:translateX(-50%) translateY(2px) scale(1.05)} 100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)} }
+        @keyframes qbPriceIn { from{opacity:0;transform:translateY(8px) scale(.96)} to{opacity:1;transform:none} }
+        @keyframes qbQuartzShimmer { 0%,100%{filter:drop-shadow(0 0 3px rgba(108,99,255,0.5))} 50%{filter:drop-shadow(0 0 7px rgba(0,212,170,0.7))} }
+        .qb-badge-in { animation: qbBadgeIn .5s cubic-bezier(.2,.8,.2,1) both; }
+        .qb-price-in { animation: qbPriceIn .25s ease-out; }
+        .qb-quartz   { animation: qbQuartzShimmer 3s ease-in-out infinite; }
+        .qb-feat:hover { background: rgba(255,255,255,0.03); }
         @media (prefers-reduced-motion: reduce) {
-          .price-swap { animation: none; }
+          .qb-badge-in, .qb-price-in, .qb-quartz { animation: none; }
         }
-
-        @media (max-width: 900px) {
-          .pricing-grid {
-            grid-template-columns: 1fr !important;
-            max-width: 480px;
-            margin: 0 auto;
-          }
+        @media (max-width: 880px) {
+          .qb-pricing-grid { grid-template-columns: 1fr !important; max-width: 420px; margin-left: auto; margin-right: auto; }
         }
       `}</style>
     </section>

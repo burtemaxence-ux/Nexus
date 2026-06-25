@@ -33,8 +33,8 @@ export function FloatingMobileCta() {
           style={{
             display: 'block',
             textAlign: 'center',
-            fontFamily: "'DM Sans', sans-serif",
-            fontWeight: 600,
+            fontFamily: 'var(--font-manrope), sans-serif',
+            fontWeight: 700,
             fontSize: 15,
             color: '#fff',
             textDecoration: 'none',
@@ -44,7 +44,7 @@ export function FloatingMobileCta() {
             boxShadow: '0 8px 32px rgba(108,99,255,0.45)',
           }}
         >
-          {`Essayer gratuitement 30 jours`}
+          {`Démarrer l'essai gratuit`}
         </Link>
       </div>
 
