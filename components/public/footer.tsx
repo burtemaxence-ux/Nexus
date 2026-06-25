@@ -10,25 +10,25 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Produit',
     links: [
-      { label: 'Fonctionnalités',  href: '#fonctionnalites' },
-      { label: 'Tarifs',           href: '#tarifs' },
-      { label: 'Conformité légale' }, // pas de page dédiée — à relier
+      { label: 'Fonctionnalités',  href: '/#fonctionnalites' },
+      { label: 'Tarifs',           href: '/#tarifs' },
+      { label: 'Conformité légale', href: '/conformite' },
     ],
   },
   {
     title: 'Ressources',
     links: [
-      { label: 'Guide de démarrage' },                                  // à relier
-      { label: 'Le Code du travail' },                                  // à relier
+      { label: 'Guide de démarrage', href: '/guide-demarrage' },
+      { label: 'Le Code du travail', href: '/code-du-travail' },
       { label: 'Nous contacter', href: 'mailto:hello@quartzbase.fr', external: true },
     ],
   },
   {
     title: 'Entreprise',
     links: [
-      { label: 'À propos' },                                            // à relier
-      { label: 'Sécurité & RGPD', href: '/legal/confidentialite' },
-      { label: 'Devenir partenaire' },                                  // à relier
+      { label: 'À propos', href: '/a-propos' },
+      { label: 'Sécurité & RGPD', href: '/securite' },
+      { label: 'Devenir partenaire', href: '/devenir-partenaire' },
     ],
   },
 ]

@@ -6,8 +6,8 @@ import Link from 'next/link'
 const FONT = 'var(--font-manrope), sans-serif'
 
 const NAV_LINKS: { label: string; href: string }[] = [
-  { label: 'Fonctionnalités', href: '#fonctionnalites' },
-  { label: 'Tarifs',          href: '#tarifs' },
+  { label: 'Fonctionnalités', href: '/#fonctionnalites' },
+  { label: 'Tarifs',          href: '/#tarifs' },
   { label: 'Connexion',       href: '/login' },
 ]
 
