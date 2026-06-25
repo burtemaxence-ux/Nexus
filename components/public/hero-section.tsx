@@ -87,8 +87,10 @@ export function HeroSection() {
               <span style={{ position: 'relative', zIndex: 1, display: 'flex' }}><ArrowRight size={18} strokeWidth={2.4} /></span>
             </Link>
 
-            <Link
-              href="#fonctionnalites"
+            <a
+              href="https://demo.quartzbase.fr"
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 background: 'transparent',
                 color: '#f0f0f8',
@@ -105,7 +107,7 @@ export function HeroSection() {
               onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)')}
             >
               Voir une démo →
-            </Link>
+            </a>
           </div>
 
           {/* Réassurance */}
