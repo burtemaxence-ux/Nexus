@@ -1,6 +1,35 @@
 'use client'
 
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
+import { Reveal } from '@/components/public/reveal'
+
+const FONT = 'var(--font-manrope), sans-serif'
+
+const FAQS = [
+  { q: 'Combien de temps avant de voir un résultat ?', a: "Dès la première semaine. Votre premier planning est prêt en 10 minutes, et vous récupérez vos dimanches soir immédiatement. La plupart des patrons ne reviennent jamais à Excel." },
+  { q: "Est-ce compliqué pour quelqu'un qui n'est pas à l'aise avec l'informatique ?", a: "Non. Si vous savez utiliser WhatsApp, vous saurez utiliser Quartzbase. La configuration prend 10 minutes et on vous guide pas à pas, en français." },
+  { q: 'Le prix est-il vraiment justifié pour ma petite équipe ?', a: "À partir de 49€/mois, soit moins de 2€ par jour. C'est l'équivalent d'un café : pour ne plus jamais refaire un planning à la main et éviter une seule amende, c'est vite rentabilisé." },
+  { q: 'Et si je suis déjà sur Excel ou un autre logiciel ?', a: "On récupère vos plannings et votre équipe sans tout ressaisir. Le changement se fait en douceur, on vous accompagne pour l'import." },
+  { q: 'Mes salariés doivent-ils installer une application ?', a: "Non, c'est optionnel. Ils reçoivent leur planning par SMS ou via un simple lien. Fini les photos floues dans le groupe WhatsApp." },
+  { q: "Que se passe-t-il après les 14 jours d'essai ?", a: "Rien d'automatique. Aucune carte bancaire n'est demandée à l'inscription : vous choisissez librement de continuer, ou pas. Zéro mauvaise surprise." },
+  { q: 'Puis-je arrêter quand je veux ?', a: "Oui, en 1 clic depuis votre compte. Sans engagement, sans préavis, sans frais de résiliation. Vous restez parce que ça marche, pas parce que vous êtes coincé." },
+  { q: 'Est-ce vraiment conforme à la loi française ?', a: "Oui. Repos de 11h, durées maximales, pauses, dimanches : 7 règles du Code du travail vérifiées à chaque planning, mises à jour avec la législation. Vos données sont hébergées en Europe et conformes au RGPD." },
+]
+
+function FaqCheck() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx={12} cy={12} r={11} fill="rgba(0,212,170,0.18)" />
+      <path d="M7 12.5l3 3 7-7" stroke="#00D4AA" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Accordéon FAQ réutilisable (utilisé par le centre d'aide du dashboard).
+   Conservé tel quel — ne pas confondre avec la FaqSection de la landing.
+   ────────────────────────────────────────────────────────────────────────── */
 
 const FAQ_ITEMS = [
   {
@@ -143,44 +172,83 @@ export function FAQ({ items = FAQ_ITEMS, accentColor = '#6C63FF' }: FAQProps) {
   )
 }
 
-/* Section wrapper pour la landing page */
 export function FaqSection() {
-  return (
-    <section
-      id="faq"
-      style={{
-        background: '#0a0a0f',
-        padding: '96px 24px',
-        borderTop: '1px solid rgba(255,255,255,0.04)',
-      }}
-    >
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <p style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: '#6C63FF',
-            marginBottom: 16,
-          }}>
-            FAQ
-          </p>
-          <h2 style={{
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 700,
-            fontSize: 'clamp(26px, 3.5vw, 40px)',
-            color: '#ffffff',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.2,
-          }}>
-            Vos questions, nos réponses
-          </h2>
-        </div>
+  const [open, setOpen] = useState(0)
 
-        <FAQ />
+  return (
+    <section id="faq" style={{ position: 'relative', zIndex: 2, maxWidth: 1080, margin: '110px auto 0', padding: '0 32px', fontFamily: FONT }}>
+      <div className="qb-faq-grid" style={{ display: 'grid', gridTemplateColumns: '0.85fr 1.15fr', gap: 56, alignItems: 'start' }}>
+
+        {/* Colonne gauche sticky */}
+        <Reveal className="qb-faq-left" style={{ position: 'sticky', top: 110 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#9090a8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>Questions fréquentes</div>
+          <h2 style={{ fontWeight: 700, fontSize: 40, letterSpacing: '-0.03em', lineHeight: 1.1, margin: '0 0 18px' }}>On répond à vos doutes</h2>
+          <p style={{ fontSize: 16, color: '#a6a8b8', lineHeight: 1.6, margin: '0 0 28px', maxWidth: 320 }}>Les questions que se posent la plupart des patrons avant de se lancer.</p>
+
+          {/* Illustration Q→A */}
+          <div style={{ background: '#0f0f15', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 22, maxWidth: 320 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
+              <div className="qb-bubble-q" style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px 14px 14px 4px', padding: '10px 14px' }}>
+                <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#9090a8' }}>?</span>
+                <span style={{ fontSize: 13, color: '#cfcfe0' }}>Une question…</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div className="qb-bubble-a" style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'rgba(108,99,255,0.14)', border: '1px solid rgba(108,99,255,0.3)', borderRadius: '14px 14px 4px 14px', padding: '10px 14px' }}>
+                <span className="qb-ans-check" style={{ display: 'inline-flex' }}><FaqCheck /></span>
+                <span style={{ fontSize: 13, color: '#e6e4ff', fontWeight: 500 }}>Une réponse claire.</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 24, maxWidth: 320 }}>
+            <span style={{ fontWeight: 700, fontSize: 30, letterSpacing: '-0.02em', color: '#fff' }}>9/10</span>
+            <span style={{ fontSize: 13.5, color: '#9090a8', lineHeight: 1.5 }}>patrons trouvent leur réponse ici, sans avoir à nous écrire.</span>
+          </div>
+        </Reveal>
+
+        {/* Colonne droite : accordéon */}
+        <Reveal style={{ display: 'flex', flexDirection: 'column' }}>
+          {FAQS.map((faq, i) => {
+            const isOpen = open === i
+            return (
+              <button
+                key={i}
+                onClick={() => setOpen(isOpen ? -1 : i)}
+                aria-expanded={isOpen}
+                style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: '22px 4px', cursor: 'pointer', background: 'none', textAlign: 'left', fontFamily: FONT, border: 'none', borderTopColor: 'rgba(255,255,255,0.08)' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: isOpen ? '#ffffff' : '#dcdce6', lineHeight: 1.4, transition: 'color .2s ease' }}>{faq.q}</span>
+                  <span style={{ width: 24, height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform .3s ease', transform: `rotate(${isOpen ? 45 : 0}deg)` }}>
+                    <Plus size={14} color={isOpen ? '#6C63FF' : '#79828f'} strokeWidth={2.2} />
+                  </span>
+                </div>
+                <div style={{ overflow: 'hidden', transition: 'max-height .35s ease, opacity .3s ease, margin-top .3s ease', maxHeight: isOpen ? 240 : 0, opacity: isOpen ? 1 : 0, marginTop: isOpen ? 14 : 0 }}>
+                  <span style={{ fontSize: 14.5, color: '#a6a8b8', lineHeight: 1.65, display: 'block', maxWidth: '90%' }}>{faq.a}</span>
+                </div>
+              </button>
+            )
+          })}
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }} />
+        </Reveal>
       </div>
+
+      <style>{`
+        @keyframes qbBubbleQ { 0%,8%{opacity:0;transform:translateY(8px)} 18%,46%{opacity:1;transform:none} 56%,100%{opacity:0.25;transform:none} }
+        @keyframes qbBubbleA { 0%,30%{opacity:0;transform:translateY(8px)} 44%,92%{opacity:1;transform:none} 100%{opacity:0;transform:translateY(8px)} }
+        @keyframes qbAnsCheck { 0%,32%{opacity:0;transform:scale(.4)} 46%,100%{opacity:1;transform:scale(1)} }
+        .qb-bubble-q  { animation: qbBubbleQ 6s ease-in-out infinite; }
+        .qb-bubble-a  { animation: qbBubbleA 6s ease-in-out infinite; }
+        .qb-ans-check { animation: qbAnsCheck 6s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .qb-bubble-q, .qb-bubble-a, .qb-ans-check { animation: none; opacity: 1; }
+        }
+        @media (max-width: 880px) {
+          .qb-faq-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+          .qb-faq-left { position: static !important; }
+        }
+      `}</style>
     </section>
   )
 }

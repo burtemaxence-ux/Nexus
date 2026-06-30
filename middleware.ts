@@ -1,6 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
+// Pages publiques marketing (groupe app/(public)) accessibles sans connexion.
+const PUBLIC_MARKETING_PAGES = [
+  '/securite',
+  '/conformite',
+  '/guide-demarrage',
+  '/code-du-travail',
+  '/a-propos',
+  '/devenir-partenaire',
+]
+
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
 
@@ -17,6 +27,7 @@ export async function middleware(request: NextRequest) {
   // Si l'utilisateur n'est pas connecté et tente d'accéder à une route protégée
   if (!user && pathname !== '/' && pathname !== '/login' && pathname !== '/register'
     && pathname !== '/billing'
+    && !PUBLIC_MARKETING_PAGES.includes(pathname)
     && !pathname.startsWith('/auth/')
     && !pathname.startsWith('/legal/')
     && !pathname.startsWith('/api/stripe/')

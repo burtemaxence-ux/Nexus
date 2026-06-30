@@ -1,250 +1,105 @@
-'use client'
+import { Zap, MousePointer2 } from 'lucide-react'
 
-import React, { useEffect, useRef, useState } from 'react'
+const FONT = 'var(--font-manrope), sans-serif'
 
-/* Démo animée : l'IA génère un planning à partir d'une phrase.
-   Boucle : frappe du prompt → réflexion → remplissage → conforme → pause. */
-
-const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven']
-const ROWS = [
-  { name: 'Sophie',  role: 'Boulanger', hours: '6h–14h',  color: '#6C63FF', days: [1, 1, 1, 0, 1] },
-  { name: 'Lucas',   role: 'Vendeur',   hours: '14h–22h', color: '#00D4AA', days: [1, 0, 1, 1, 1] },
-  { name: 'Camille', role: 'Pâtissier', hours: '6h–14h',  color: '#FFB347', days: [1, 1, 0, 1, 1] },
-  { name: 'Marc',    role: 'Vendeur',   hours: '10h–18h', color: '#FF8C42', days: [0, 1, 1, 1, 1] },
+const HERO_SHIFTS = [
+  { day: 'Lundi',    label: '06:00 – 13:00 · Fournil', bg: 'linear-gradient(90deg,rgba(108,99,255,0.35),rgba(108,99,255,0.18))', delay: '0.2s'  },
+  { day: 'Mardi',    label: '07:00 – 14:00 · Vente',   bg: 'linear-gradient(90deg,rgba(0,212,170,0.30),rgba(0,212,170,0.15))',   delay: '0.55s' },
+  { day: 'Mercredi', label: '06:00 – 13:00 · Fournil', bg: 'linear-gradient(90deg,rgba(108,99,255,0.35),rgba(108,99,255,0.18))', delay: '0.9s'  },
+  { day: 'Jeudi',    label: '14:00 – 20:00 · Vente',   bg: 'linear-gradient(90deg,rgba(0,212,170,0.30),rgba(0,212,170,0.15))',   delay: '1.25s' },
+  { day: 'Vendredi', label: '06:00 – 13:00 · Fournil', bg: 'linear-gradient(90deg,rgba(108,99,255,0.35),rgba(108,99,255,0.18))', delay: '1.6s'  },
 ]
 
-const PROMPT = 'Sophie le matin, Lucas en coupure, max 39h chacun'
-
-// Cellules travaillées, dans l'ordre de remplissage (par employé).
-const WORKED: string[] = []
-ROWS.forEach((row, r) => row.days.forEach((w, d) => { if (w) WORKED.push(`${r}-${d}`) }))
-const TOTAL = WORKED.length
-
-type Phase = 'typing' | 'thinking' | 'filling' | 'done'
-
+/** Carte hero : le planning qui se remplit tout seul. */
 export function PlanningDemo() {
-  const [typed, setTyped] = useState(0)
-  const [revealed, setRevealed] = useState(0)
-  const [phase, setPhase] = useState<Phase>('typing')
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    if (mq.matches) {
-      setTyped(PROMPT.length); setRevealed(TOTAL); setPhase('done')
-      return
-    }
-
-    let cancelled = false
-    let running = false
-    const shouldRun = { current: false }
-    const timers: number[] = []
-    const alive = () => shouldRun.current && !cancelled
-    const wait = (ms: number) =>
-      new Promise<void>((res) => { timers.push(window.setTimeout(res, ms)) })
-
-    async function run() {
-      if (running) return
-      running = true
-      try {
-        while (alive()) {
-          setPhase('typing'); setTyped(0); setRevealed(0)
-          for (let i = 1; i <= PROMPT.length; i++) { if (!alive()) return; setTyped(i); await wait(60) }
-          if (!alive()) return; await wait(650)
-          setPhase('thinking'); await wait(1300)
-          if (!alive()) return; setPhase('filling')
-          for (let i = 1; i <= TOTAL; i++) { if (!alive()) return; setRevealed(i); await wait(140) }
-          if (!alive()) return; setPhase('done'); await wait(4200)
-        }
-      } finally { running = false }
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        shouldRun.current = entry.isIntersecting
-        if (entry.isIntersecting) run()
-      },
-      { threshold: 0.25 }
-    )
-    if (ref.current) observer.observe(ref.current)
-
-    return () => {
-      cancelled = true
-      shouldRun.current = false
-      observer.disconnect()
-      timers.forEach(clearTimeout)
-    }
-  }, [])
-
-  const font = "'DM Sans', sans-serif"
-  const isThinking = phase === 'thinking'
-  const showBadge = phase === 'done'
-
   return (
-    <div
-      ref={ref}
-      role="img"
-      aria-label="Démonstration : l'IA génère un planning conforme à partir d'une phrase"
-      style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 16,
-        padding: 20,
-        maxWidth: 460,
-        width: '100%',
-      }}
-    >
-      {/* Barre de titre simulée */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FF6B6B' }} />
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FFB347' }} />
-        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#00D4AA' }} />
-        <span style={{ fontFamily: font, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>
-          Planning · Semaine 24
-        </span>
-      </div>
-
-      {/* Barre de prompt */}
+    <div style={{ position: 'relative', fontFamily: FONT }}>
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        background: 'rgba(108,99,255,0.08)',
-        border: '1px solid rgba(108,99,255,0.25)',
-        borderRadius: 10,
-        padding: '10px 12px',
-        marginBottom: 16,
-        minHeight: 58,
+        background: '#13131c',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 18,
+        padding: 22,
+        boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
       }}>
-        <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1 }}>✨</span>
-        <span style={{
-          flex: 1,
-          fontFamily: font,
-          fontSize: 12.5,
-          lineHeight: 1.4,
-          color: 'rgba(255,255,255,0.85)',
-        }}>
-          {PROMPT.slice(0, typed)}
-          {phase === 'typing' && <span className="demo-caret" />}
-        </span>
-        <span style={{
-          fontFamily: font,
-          fontSize: 11,
-          fontWeight: 600,
-          color: '#fff',
-          background: '#6C63FF',
-          borderRadius: 7,
-          padding: '6px 12px',
-          whiteSpace: 'nowrap',
-          display: 'inline-flex',
+        {/* En-tête */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>Planning · Semaine 24</div>
+            <div style={{ fontSize: 12, color: '#79828f', marginTop: 2 }}>Boulangerie Aubert — 6 salariés</div>
+          </div>
+          <span className="qb-hero-conform" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#00D4AA',
+            background: 'rgba(0,212,170,0.12)',
+            padding: '4px 10px',
+            borderRadius: 7,
+          }}>
+            <span style={{ fontWeight: 800 }}>✓</span>Conforme
+          </span>
+        </div>
+
+        {/* Barre « Générer le planning » + curseur qui clique */}
+        <div style={{
+          position: 'relative',
+          display: 'flex',
           alignItems: 'center',
-          gap: 6,
+          gap: 10,
+          background: 'rgba(108,99,255,0.12)',
+          border: '1px solid rgba(108,99,255,0.3)',
+          borderRadius: 11,
+          padding: '11px 14px',
+          marginBottom: 16,
         }}>
-          {isThinking && <span className="demo-spinner" aria-hidden="true" />}
-          {isThinking ? 'Génération…' : 'Générer'}
-        </span>
-      </div>
+          <span style={{ display: 'flex' }}><Zap size={16} color="#c8c4ff" strokeWidth={1.9} /></span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#c8c4ff' }}>Générer le planning</span>
+          <span className="qb-hero-cursor" style={{ position: 'absolute', right: 14, display: 'flex' }}>
+            <MousePointer2 size={17} color="#c8c4ff" strokeWidth={1.9} />
+          </span>
+        </div>
 
-      {/* Grille planning */}
-      <div style={{ position: 'relative' }}>
-        {isThinking && <div className="demo-shimmer" aria-hidden="true" />}
-        <div style={{ display: 'grid', gridTemplateColumns: '88px repeat(5, 1fr)', gap: 5 }}>
-          <div />
-          {DAYS.map((day) => (
-            <div key={day} style={{ fontFamily: font, fontSize: 10, color: 'rgba(255,255,255,0.35)', textAlign: 'center', paddingBottom: 4 }}>
-              {day}
-            </div>
-          ))}
-
-          {ROWS.map((row, r) => (
-            <React.Fragment key={row.name}>
-              <div style={{ paddingRight: 6, alignSelf: 'center' }}>
-                <div style={{ fontFamily: font, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.75)', lineHeight: 1.3 }}>{row.name}</div>
-                <div style={{ fontFamily: font, fontSize: 9, color: 'rgba(255,255,255,0.32)' }}>{row.role}</div>
+        {/* Lignes de créneaux qui apparaissent une par une */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+          {HERO_SHIFTS.map((row) => (
+            <div key={row.day} className="qb-hero-row" style={{ display: 'flex', alignItems: 'center', gap: 12, animationDelay: row.delay }}>
+              <div style={{ width: 62, fontSize: 12, color: '#79828f' }}>{row.day}</div>
+              <div style={{ flex: 1, height: 30, borderRadius: 7, background: row.bg, display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 11.5, color: '#cfcfe0' }}>
+                {row.label}
               </div>
-              {row.days.map((worked, d) => {
-                if (!worked) {
-                  return <div key={d} style={{ border: '1px dashed rgba(255,255,255,0.07)', borderRadius: 6 }} />
-                }
-                const order = WORKED.indexOf(`${r}-${d}`)
-                const shown = order < revealed
-                return (
-                  <div
-                    key={d}
-                    style={{
-                      background: row.color,
-                      borderRadius: 6,
-                      padding: '7px 2px',
-                      textAlign: 'center',
-                      opacity: shown ? 0.9 : 0,
-                      transform: shown ? 'scale(1)' : 'scale(0.85)',
-                      transition: 'opacity 220ms ease, transform 220ms ease',
-                    }}
-                  >
-                    <span style={{ fontFamily: font, fontSize: 8.5, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>
-                      {row.hours}
-                    </span>
-                  </div>
-                )
-              })}
-            </React.Fragment>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Badge conformité */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14, minHeight: 26 }}>
-        <span style={{
-          fontFamily: font, fontSize: 10.5, fontWeight: 600, color: '#00D4AA',
-          background: 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.25)',
-          borderRadius: 100, padding: '4px 12px',
-          opacity: showBadge ? 1 : 0,
-          transform: showBadge ? 'translateY(0)' : 'translateY(6px)',
-          transition: 'opacity 300ms ease, transform 300ms ease',
-        }}>
-          ✓ Conforme Code du Travail
-        </span>
+      {/* Mini-stat flottante */}
+      <div className="qb-hero-float" style={{
+        position: 'absolute',
+        bottom: -22,
+        left: -26,
+        background: '#1a1a26',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 13,
+        padding: '13px 16px',
+        boxShadow: '0 14px 34px rgba(0,0,0,0.45)',
+      }}>
+        <div style={{ fontWeight: 700, fontSize: 22, color: '#00D4AA', lineHeight: 1 }}>10 min</div>
+        <div style={{ fontSize: 11.5, color: '#9090a8', marginTop: 2 }}>au lieu de 2 heures</div>
       </div>
 
       <style>{`
-        .demo-caret {
-          display: inline-block;
-          width: 1.5px;
-          height: 13px;
-          background: #6C63FF;
-          margin-left: 1px;
-          vertical-align: -2px;
-          animation: demo-blink 1s step-end infinite;
-        }
-        @keyframes demo-blink { 50% { opacity: 0; } }
-
-        .demo-spinner {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          border: 1.5px solid rgba(255,255,255,0.4);
-          border-top-color: #fff;
-          animation: demo-spin 0.7s linear infinite;
-        }
-        @keyframes demo-spin { to { transform: rotate(360deg); } }
-
-        .demo-shimmer {
-          position: absolute;
-          inset: 0;
-          z-index: 2;
-          border-radius: 8px;
-          background: linear-gradient(100deg, transparent 30%, rgba(108,99,255,0.18) 50%, transparent 70%);
-          background-size: 200% 100%;
-          animation: demo-sweep 1.1s ease-in-out infinite;
-          pointer-events: none;
-        }
-        @keyframes demo-sweep {
-          0% { background-position: 150% 0; }
-          100% { background-position: -50% 0; }
-        }
-
+        @keyframes qbFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        @keyframes qbCheckPop { 0%,40%{opacity:0;transform:scale(.6)} 55%,100%{opacity:1;transform:scale(1)} }
+        @keyframes qbCursorClick { 0%,30%{transform:translate(0,0)} 38%{transform:translate(0,3px) scale(.92)} 46%,100%{transform:translate(0,0) scale(1)} }
+        @keyframes qbFillRow { 0%,8%{opacity:0;transform:translateX(-10px)} 16%,92%{opacity:1;transform:none} 100%{opacity:1;transform:none} }
+        .qb-hero-float   { animation: qbFloat 5s ease-in-out infinite; }
+        .qb-hero-conform { animation: qbCheckPop 5s ease-in-out infinite; }
+        .qb-hero-cursor  { animation: qbCursorClick 5s ease-in-out infinite; }
+        .qb-hero-row     { animation: qbFillRow 5s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .demo-caret, .demo-spinner, .demo-shimmer { animation: none; }
+          .qb-hero-float, .qb-hero-conform, .qb-hero-cursor, .qb-hero-row { animation: none; opacity: 1; }
         }
       `}</style>
     </div>

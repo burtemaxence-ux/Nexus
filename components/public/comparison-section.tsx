@@ -1,186 +1,104 @@
-const ROWS = [
-  { feature: 'Génération du planning par IA',    traditional: false, quartzbase: true  },
-  { feature: 'Vérification légale automatique',  traditional: false, quartzbase: true  },
-  { feature: 'Remplacement en 1 clic',           traditional: false, quartzbase: true  },
-  { feature: 'Notification mobile des employés', traditional: false, quartzbase: true  },
-  { feature: 'Badgeuse intégrée',                traditional: false, quartzbase: true  },
-  { feature: 'Gestion des congés',               traditional: true,  quartzbase: true  },
-  { feature: 'Support en français',              traditional: true,  quartzbase: true  },
-  { feature: 'Prix moyen / mois',                traditional: '~200€', quartzbase: 'dès 49€' },
+import Link from 'next/link'
+import { Check } from 'lucide-react'
+import { Reveal } from '@/components/public/reveal'
+
+const FONT = 'var(--font-manrope), sans-serif'
+
+type Cell = 'yes' | 'yesMuted' | 'dash' | string
+
+const ROWS: { feature: string; trad: Cell; qb: Cell }[] = [
+  { feature: 'Planning par glisser-déposer',          trad: 'yesMuted', qb: 'yes' },
+  { feature: 'Gestion des congés & absences',         trad: 'yesMuted', qb: 'yes' },
+  { feature: "Notifications mobile de l'équipe",      trad: 'yesMuted', qb: 'yes' },
+  { feature: 'Badgeuse & suivi des présences',        trad: 'yesMuted', qb: 'yes' },
+  { feature: 'Génération du planning par IA',         trad: 'dash',     qb: 'yes' },
+  { feature: 'Conformité Code du travail vérifiée',   trad: 'dash',     qb: 'yes' },
+  { feature: 'Remplacement trouvé en 1 clic',         trad: 'dash',     qb: 'yes' },
+  { feature: 'Pilotage productivité (coût / CA)',     trad: 'dash',     qb: 'yes' },
+  { feature: 'Prix moyen / mois',                     trad: '~200€',    qb: 'dès 49€' },
 ]
 
-function Yes() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-label="Oui">
-      <circle cx="10" cy="10" r="9.5" fill="rgba(0,212,170,0.12)" />
-      <path d="M6 10l2.5 2.5L14 7" stroke="#00D4AA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+function CellContent({ value }: { value: Cell }) {
+  if (value === 'yes') {
+    return (
+      <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,212,170,0.12)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Check size={13} color="#00D4AA" strokeWidth={2.4} />
+      </span>
+    )
+  }
+  if (value === 'yesMuted') {
+    return (
+      <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Check size={13} color="rgba(255,255,255,0.55)" strokeWidth={2.4} />
+      </span>
+    )
+  }
+  if (value === 'dash') {
+    return <span style={{ width: 16, height: 1.5, background: 'rgba(255,255,255,0.18)', display: 'inline-block' }} />
+  }
+  return <span>{value}</span>
 }
 
-function No() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-label="Non">
-      <circle cx="10" cy="10" r="9.5" fill="rgba(255,255,255,0.05)" />
-      <path d="M7 7l6 6M13 7l-6 6" stroke="rgba(255,255,255,0.45)" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
+const COLS = { ['--qb-cols' as string]: '1fr 170px 200px', ['--qb-band' as string]: '200px' } as React.CSSProperties
 
 export function ComparisonSection() {
-  const font = "'DM Sans', sans-serif"
-
   return (
-    <section
-      style={{
-        background: '#0a0a0f',
-        padding: '80px 24px',
-        borderTop: '1px solid rgba(255,255,255,0.04)',
-      }}
-    >
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
+    <section style={{ position: 'relative', zIndex: 2, maxWidth: 920, margin: '110px auto 0', padding: '0 32px', fontFamily: FONT }}>
+      <Reveal style={{ textAlign: 'center', margin: '0 auto 48px' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#9090a8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
+          Pourquoi Quartzbase
+        </div>
+        <h2 style={{ fontWeight: 700, fontSize: 40, letterSpacing: '-0.025em', lineHeight: 1.12, margin: '0 0 14px' }}>
+          La différence se voit tout de suite
+        </h2>
+        <p style={{ fontSize: 16, color: '#79828f', lineHeight: 1.6, margin: 0 }}>
+          Jusqu&apos;à 1 812 € économisés par an, et des heures retrouvées chaque semaine.
+        </p>
+      </Reveal>
 
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <p style={{
-            fontFamily: font,
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.3)',
-            marginBottom: 14,
-          }}>
-            Comparatif
-          </p>
-          <h2 style={{
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: 700,
-            fontSize: 'clamp(22px, 3vw, 34px)',
-            color: '#ffffff',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.2,
-            marginBottom: 12,
-          }}>
-            {`Payez moins. Obtenez plus.`}
-          </h2>
+      <Reveal className="qb-cmp" style={{ ...COLS, position: 'relative', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, overflow: 'hidden', background: '#0d0d14' }}>
+        {/* Bande de mise en valeur de la colonne Quartzbase */}
+        <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 'var(--qb-band)', background: 'linear-gradient(180deg,rgba(108,99,255,0.16),rgba(0,212,170,0.05))', borderLeft: '1px solid rgba(108,99,255,0.3)', pointerEvents: 'none' }} />
 
-          {/* Badge économies */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              fontFamily: font,
-              fontSize: 13,
-              fontWeight: 600,
-              color: '#00D4AA',
-              background: 'rgba(0,212,170,0.1)',
-              border: '1px solid rgba(0,212,170,0.25)',
-              borderRadius: 100,
-              padding: '5px 16px',
-            }}>
-              {`Économisez jusqu'à 1 812 € par an`}
-            </span>
+        {/* En-tête */}
+        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'var(--qb-cols)', alignItems: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#79828f', letterSpacing: '0.06em', textTransform: 'uppercase', paddingLeft: 28 }}>Fonctionnalité</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#79828f', textAlign: 'center', padding: '20px 0' }}>Une app similaire</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '18px 0' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#0b0b12', background: 'linear-gradient(135deg,#8b86ff,#00D4AA)', padding: '3px 10px', borderRadius: 100 }}>Recommandé</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' }}>Quartzbase</span>
           </div>
         </div>
 
-        {/* Table */}
-        <div style={{
-          border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 14,
-          overflow: 'hidden',
-        }}>
-
-          {/* Header row */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 160px 160px',
-            background: 'rgba(255,255,255,0.03)',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
-            padding: '14px 20px',
-          }} className="comparison-row">
-            <div />
-            <div style={{
-              fontFamily: font,
-              fontSize: 12,
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.3)',
-              textAlign: 'center',
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-            }}>
-              Logiciel traditionnel
-            </div>
-            <div style={{
-              fontFamily: "'Syne', sans-serif",
-              fontSize: 13,
-              fontWeight: 700,
-              color: '#6C63FF',
-              textAlign: 'center',
-              letterSpacing: '-0.01em',
-            }}>
-              Quartzbase
-            </div>
+        {/* Lignes */}
+        {ROWS.map((row, i) => (
+          <div key={i} className="qb-stagger qb-trow" style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'var(--qb-cols)', borderTop: '1px solid rgba(255,255,255,0.05)', alignItems: 'center', transitionDelay: `${i * 0.06}s` }}>
+            <span style={{ fontSize: 14.5, color: i >= 4 && i < 8 ? '#f0f0f8' : '#c2c2d0', padding: '15px 0 15px 28px' }}>{row.feature}</span>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: 13, color: '#6b6b80', padding: '15px 0' }}><CellContent value={row.trad} /></div>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: 13, fontWeight: 600, color: '#00D4AA', padding: '15px 0' }}><CellContent value={row.qb} /></div>
           </div>
+        ))}
 
-          {/* Data rows */}
-          {ROWS.map((row, i) => (
-            <div
-              key={i}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 160px 160px',
-                padding: '14px 20px',
-                borderBottom: i < ROWS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
-                alignItems: 'center',
-              }}
-              className="comparison-row"
-            >
-              <span style={{
-                fontFamily: font,
-                fontSize: 14,
-                color: 'rgba(255,255,255,0.7)',
-              }}>
-                {row.feature}
-              </span>
-
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                {typeof row.traditional === 'boolean'
-                  ? (row.traditional ? <Yes /> : <No />)
-                  : (
-                    <span style={{ fontFamily: font, fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
-                      {row.traditional}
-                    </span>
-                  )}
-              </div>
-
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}>
-                {typeof row.quartzbase === 'boolean'
-                  ? (row.quartzbase ? <Yes /> : <No />)
-                  : (
-                    <span style={{
-                      fontFamily: font,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: '#00D4AA',
-                    }}>
-                      {row.quartzbase}
-                    </span>
-                  )}
-              </div>
-            </div>
-          ))}
+        {/* Ligne CTA */}
+        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'var(--qb-cols)', borderTop: '1px solid rgba(255,255,255,0.05)', alignItems: 'center' }}>
+          <div style={{ fontSize: 13.5, color: '#9090a8', padding: '0 0 0 28px' }}>Tout ça, pour le prix d&apos;un café par jour.</div>
+          <div />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 24px' }}>
+            <Link href="/register" className="qb-cmp-btn" style={{ width: '100%', background: '#6C63FF', color: '#fff', border: 'none', borderRadius: 9, padding: 11, fontFamily: FONT, fontSize: 13, fontWeight: 700, boxShadow: '0 4px 16px rgba(108,99,255,0.4)', textAlign: 'center', textDecoration: 'none', transition: 'transform .18s ease, box-shadow .18s ease' }}>
+              Essayer
+            </Link>
+          </div>
         </div>
-      </div>
+      </Reveal>
 
       <style>{`
-        @media (max-width: 600px) {
-          .comparison-row {
-            grid-template-columns: 1fr 90px 90px !important;
-          }
+        .qb-trow { transition: background .18s ease, opacity .55s cubic-bezier(.2,.7,.2,1), transform .55s cubic-bezier(.2,.7,.2,1); }
+        .qb-trow:hover { background: rgba(255,255,255,0.018); }
+        .qb-cmp-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(108,99,255,0.5); }
+        @media (max-width: 640px) {
+          .qb-cmp { --qb-cols: 1fr 70px 96px; --qb-band: 96px; }
+          .qb-cmp .qb-trow span:first-child,
+          .qb-cmp > div > div:first-child { font-size: 13px; }
         }
       `}</style>
     </section>
