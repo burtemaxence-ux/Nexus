@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { humanizeBrief } from '@/lib/notifications/humanize-brief'
 import { Sparkles } from 'lucide-react'
 
-interface Brief { title: string | null; body: string | null; created_at: string }
+interface Brief { body: string | null; data: { full?: string } | null; created_at: string }
 
 // Neutral fallback shown until the weekly AI brief is generated (cron
-// weekly-brief-manager, stored as a 'weekly_brief' notification).
+// weekly-brief-manager runs every Monday, stored as a 'weekly_brief' notification).
 const FALLBACK =
-  "Votre point hebdomadaire apparaîtra ici dès qu'il sera généré. En attendant, gardez un œil sur les pointages du jour et la publication du planning."
+  "Votre point hebdomadaire apparaîtra ici dès qu'il sera généré, chaque lundi. En attendant, gardez un œil sur les pointages du jour et la publication du planning."
 
 /**
  * Brief IA de la semaine — résumé hebdo généré côté serveur, avec repli neutre
@@ -23,7 +24,7 @@ export function WeeklyBriefCard() {
     const since = new Date(Date.now() - 8 * 86400000).toISOString()
     createClient()
       .from('notifications')
-      .select('title, body, created_at')
+      .select('body, data, created_at')
       .eq('type', 'weekly_brief')
       .gte('created_at', since)
       .order('created_at', { ascending: false })
@@ -32,6 +33,10 @@ export function WeeklyBriefCard() {
       .then(({ data }) => { if (active && data) setBrief(data as Brief) })
     return () => { active = false }
   }, [])
+
+  // Texte du brief : version complète si présente, sinon le corps, toujours
+  // ré-humanisé au rendu (défensif pour d'anciennes notifications).
+  const briefText = brief ? humanizeBrief(brief.data?.full ?? brief.body) : ''
 
   return (
     <div
@@ -57,7 +62,7 @@ export function WeeklyBriefCard() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center" style={{ gap: '8px', marginBottom: '5px' }}>
             <span style={{ fontFamily: 'var(--font-syne)', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              {brief?.title ?? 'Brief de la semaine'}
+              Brief de la semaine
             </span>
             <span
               className="nx-ia-badge inline-flex items-center"
@@ -72,7 +77,7 @@ export function WeeklyBriefCard() {
             </span>
           </div>
           <p style={{ fontSize: '13px', lineHeight: 1.6, margin: 0, color: 'var(--text-secondary)' }}>
-            {brief?.body ?? FALLBACK}
+            {briefText || FALLBACK}
           </p>
         </div>
       </div>

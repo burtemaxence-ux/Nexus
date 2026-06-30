@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { notifyManagers } from '@/lib/notifications/notify'
 import { getISOWeekNumber, getLastWeekBounds, getThisWeekBounds, addDays } from '@/lib/utils/dates'
 import { sendWeeklyBriefEmail } from '@/lib/email/weekly-brief-email'
+import { humanizeBrief } from '@/lib/notifications/humanize-brief'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
 import { captureError } from '@/lib/logger'
@@ -26,30 +27,31 @@ async function generateBrief(contextData: string): Promise<string> {
   try {
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 280,
+      max_tokens: 300,
       messages: [{
         role: 'user',
-        content: `Tu es un collègue RH qui fait le point hebdomadaire à un manager de restauration/commerce.
-Rédige exactement 5 phrases en français direct, SANS titre, SANS bullet points, SANS mise en forme.
-Chaque phrase tient sur une ligne.
+        content: `Tu es un collègue RH chaleureux qui fait le point hebdomadaire, à l'oral, à un manager de restauration ou de commerce.
 
-Structure :
-- Phrase 1 : bilan présence (chiffre + comparaison semaine précédente si disponible)
-- Phrase 2 : point d'attention si anomalie (absence imprévue, retard récurrent, dépassement budget) — si aucune anomalie, phrase positive sur la régularité
-- Phrase 3 : alerte légale si active (conformité contractuelle) — sinon "Aucune alerte contractuelle active cette semaine."
-- Phrase 4 : point positif si existant — sinon "Semaine dans les normes."
-- Phrase 5 : 1 recommandation concrète et courte pour la semaine (si le planning de la semaine prochaine n'est pas encore préparé, le signaler en priorité)
+Rédige un paragraphe unique, fluide et naturel, de 3 à 4 phrases en français courant. Écris comme tu parlerais : ton humain et bienveillant, direct, jamais robotique.
+
+Couvre, en les liant naturellement dans le paragraphe : le bilan de présence de la semaine écoulée (avec le chiffre et la tendance vs la semaine précédente si disponible), le point d'attention le plus important s'il y en a un (absence imprévue, retards, dépassement), l'état de la conformité au Code du Travail, et une recommandation concrète pour la semaine (si le planning de la semaine prochaine n'est pas encore préparé, le signaler en priorité).
+
+Règles de forme STRICTES :
+- Aucun tiret de liste, aucune puce, aucun underscore, aucun caractère de mise en forme (pas de *, #, -, _, >).
+- Aucun émoji.
+- Aucun titre, aucune numérotation, aucun saut de ligne : un seul paragraphe.
+- N'invente aucun chiffre : utilise uniquement les données fournies.
 
 Données :
 ${contextData}
 
-Réponds uniquement avec les 5 phrases, séparées par un saut de ligne. Pas de numérotation.`,
+Réponds uniquement avec le paragraphe.`,
       }],
     })
     const block = msg.content[0]
     return block.type === 'text' ? block.text.trim() : contextData
   } catch {
-    return 'Brief non disponible cette semaine — données collectées et disponibles dans Quartzbase.'
+    return "Le point de la semaine n'a pas pu être généré cette fois. Toutes vos données restent disponibles dans Quartzbase."
   }
 }
 
@@ -203,8 +205,9 @@ export async function GET(request: NextRequest) {
         `Shifts publiés semaine prochaine : ${nextWeekShiftsCount ?? 0}${(nextWeekShiftsCount ?? 0) === 0 ? ' — ⚠️ planning pas encore préparé' : ''}`,
       ].join('\n')
 
-      // ── Génération brief via Claude ─────────────────────────────────────
-      const briefText = await generateBrief(contextLines)
+      // ── Génération brief via Claude (puis humanisation : pas de tirets,
+      //     underscores, markdown ni émojis — un seul paragraphe fluide) ──────
+      const briefText = humanizeBrief(await generateBrief(contextLines))
 
       // ── Envoi email + notification pour chaque manager ──────────────────
       const managerIds = managers.map((m: { id: string }) => m.id)
@@ -232,10 +235,12 @@ export async function GET(request: NextRequest) {
         establishmentId: est.id,
         type: 'weekly_brief',
         title: `📊 Brief ${weekLabel}`,
-        body: briefText.split('\n')[0].slice(0, 160),
+        body: briefText.slice(0, 220),
+        // Brief complet humanisé, lu tel quel par la carte « Brief IA » du home.
+        data: { full: briefText, week_label: weekLabel },
         actionUrl: '/manager',
         pushTitle: `📊 Brief semaine disponible`,
-        pushBody: briefText.split('\n')[0].slice(0, 100),
+        pushBody: briefText.slice(0, 100),
       })
 
       const webhookUrl = process.env.SLACK_WEBHOOK_URL

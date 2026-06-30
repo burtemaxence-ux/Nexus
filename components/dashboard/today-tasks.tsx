@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { Check } from 'lucide-react'
 
 export interface HomeTask {
@@ -13,39 +14,60 @@ export interface HomeTask {
   badgeColor?: string
 }
 
-const STORE_KEY = 'nx-home-tasks-done'
-
-// Checked state is kept per-day in localStorage (no server tasks model exists).
-function loadDone(today: string): Set<string> {
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORE_KEY) ?? '{}') as { date?: string; done?: string[] }
-    if (raw.date === today && Array.isArray(raw.done)) return new Set(raw.done)
-  } catch { /* ignore */ }
-  return new Set()
-}
-function saveDone(today: string, done: Set<string>) {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify({ date: today, done: Array.from(done) })) } catch { /* ignore */ }
-}
-
 /**
  * À faire aujourd'hui — actionable tasks derived from real signals (unpublished
  * planning, leave requests, unverified clock-ins…). Each task routes to the page
- * that resolves it; the checked state persists per-day in localStorage.
+ * that resolves it; the checked state is persisted per manager and per day in
+ * `home_task_completions`. Degrades to in-session state if the table is absent.
  */
 export function TodayTasks({ tasks }: { tasks: HomeTask[] }) {
   const router = useRouter()
   const today = new Date().toISOString().slice(0, 10)
   const [done, setDone] = useState<Set<string>>(new Set())
+  const ctx = useRef<{ userId: string; establishmentId: string | null } | null>(null)
 
-  useEffect(() => { setDone(loadDone(today)) }, [today])
+  // Charge l'état coché du jour pour ce manager.
+  useEffect(() => {
+    let active = true
+    const supabase = createClient()
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user || !active) return
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('active_establishment_id, establishment_id')
+        .eq('id', user.id)
+        .maybeSingle()
+      ctx.current = {
+        userId: user.id,
+        establishmentId: profile?.active_establishment_id ?? profile?.establishment_id ?? null,
+      }
+      const { data, error } = await supabase
+        .from('home_task_completions')
+        .select('task_key')
+        .eq('day', today)
+      if (active && !error && data) setDone(new Set(data.map((r: { task_key: string }) => r.task_key)))
+    })
+    return () => { active = false }
+  }, [today])
 
-  function toggle(id: string) {
+  async function toggle(id: string) {
+    const willBeDone = !done.has(id)
+    // Optimiste : on reflète tout de suite, on persiste ensuite.
     setDone(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      saveDone(today, next)
+      willBeDone ? next.add(id) : next.delete(id)
       return next
     })
+    const c = ctx.current
+    if (!c) return
+    const supabase = createClient()
+    if (willBeDone) {
+      await supabase.from('home_task_completions')
+        .upsert({ user_id: c.userId, establishment_id: c.establishmentId, task_key: id, day: today }, { onConflict: 'user_id,task_key,day' })
+    } else {
+      await supabase.from('home_task_completions')
+        .delete().eq('user_id', c.userId).eq('task_key', id).eq('day', today)
+    }
   }
 
   if (tasks.length === 0) return null

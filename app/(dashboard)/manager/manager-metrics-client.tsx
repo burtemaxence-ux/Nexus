@@ -51,6 +51,9 @@ interface Metrics {
   cddExpiring: number
   presenceSpark: number[]
   hoursSpark: number[]
+  retardsSpark: number[]
+  congesSpark: number[]
+  equipeSpark: number[]
   weekLoad: DayLoad[]
   weekPublished: boolean
   onboardingSteps: { title: string; description: string; done: boolean; href: string; cta: string }[]
@@ -110,6 +113,16 @@ export function ManagerMetricsClient() {
       const todayDate = iso(today)
       const in30 = iso(new Date(today.getTime() + 30 * 86400000))
 
+      // Fenêtre de 8 semaines (lundi→dimanche) pour les sparklines de tendance.
+      const SPARK_WEEKS = 8
+      const sparkBuckets: { start: string; end: string }[] = []
+      for (let i = SPARK_WEEKS - 1; i >= 0; i--) {
+        const wkMon = new Date(monday); wkMon.setDate(monday.getDate() - i * 7)
+        const wkSun = new Date(wkMon); wkSun.setDate(wkMon.getDate() + 6)
+        sparkBuckets.push({ start: iso(wkMon), end: iso(wkSun) })
+      }
+      const sparkFrom = sparkBuckets[0].start
+
       const [
         { data: employees },
         { data: pendingLeaves },
@@ -125,6 +138,9 @@ export function ManagerMetricsClient() {
         { count: postesCount },
         { count: exchangePending },
         { count: cddExpiring },
+        { data: latenessSpark },
+        { data: leavesSpark },
+        { data: contractsAll },
       ] = await Promise.all([
         supabase.from('profiles').select('id').eq('role', 'employee').eq('archived', false),
         supabase.from('leave_requests').select('id').eq('status', 'pending'),
@@ -140,6 +156,10 @@ export function ManagerMetricsClient() {
         supabase.from('postes').select('*', { count: 'exact', head: true }),
         supabase.from('shift_exchanges').select('id', { count: 'exact', head: true }).eq('status', 'pending_approval'),
         supabase.from('contracts').select('id', { count: 'exact', head: true }).not('end_date', 'is', null).gte('end_date', todayDate).lte('end_date', in30),
+        // Séries 8 semaines (sparklines réelles).
+        supabase.from('lateness_records').select('date').gte('date', sparkFrom),
+        supabase.from('leave_requests').select('created_at').gte('created_at', `${sparkFrom}T00:00:00`),
+        supabase.from('contracts').select('employee_id, start_date, end_date'),
       ])
 
       const employeeCount = employees?.length ?? 0
@@ -183,6 +203,19 @@ export function ManagerMetricsClient() {
       )
       const weekLoad: DayLoad[] = weekDates.map((date, i) => ({ day: DAY_LABELS[i], hours: hoursSpark[i], isToday: date === todayDate }))
 
+      // Sparklines de tendance sur 8 semaines (données réelles).
+      const latenessRows = (latenessSpark ?? []) as { date: string }[]
+      const retardsSpark = sparkBuckets.map(b => latenessRows.filter(r => r.date >= b.start && r.date <= b.end).length)
+      const leaveRows = (leavesSpark ?? []) as { created_at: string }[]
+      const congesSpark = sparkBuckets.map(b => leaveRows.filter(r => {
+        const d = r.created_at.slice(0, 10)
+        return d >= b.start && d <= b.end
+      }).length)
+      const contractRows = (contractsAll ?? []) as { employee_id: string; start_date: string; end_date: string | null }[]
+      const equipeSpark = sparkBuckets.map(b => new Set(
+        contractRows.filter(c => c.start_date <= b.end && (c.end_date === null || c.end_date >= b.start)).map(c => c.employee_id)
+      ).size)
+
       const isDefaultName = !nameRow?.value || nameRow.value === 'Mon établissement'
       const onboardingSteps = [
         { title: 'Nommer votre établissement', description: 'Ajoutez le nom et les informations de votre établissement.', done: !isDefaultName, href: '/manager/settings/organisation', cta: 'Configurer' },
@@ -196,7 +229,7 @@ export function ManagerMetricsClient() {
         employeeCount, pendingCount, latenessCount, plannedHours, hoursPct,
         todayRate, todayTotal, todayPointed, onDutyInitials,
         exchangePending: exchangePending ?? 0, cddExpiring: cddExpiring ?? 0,
-        presenceSpark, hoursSpark, weekLoad,
+        presenceSpark, hoursSpark, retardsSpark, congesSpark, equipeSpark, weekLoad,
         weekPublished: !!(weekStatus as { published?: boolean } | null)?.published,
         onboardingSteps, onboardingAllDone: onboardingSteps.every(s => s.done),
       })
@@ -210,7 +243,7 @@ export function ManagerMetricsClient() {
   const {
     employeeCount, pendingCount, latenessCount, plannedHours, hoursPct,
     todayRate, todayTotal, todayPointed, onDutyInitials,
-    exchangePending, cddExpiring, presenceSpark, hoursSpark, weekLoad, weekPublished,
+    exchangePending, cddExpiring, presenceSpark, hoursSpark, retardsSpark, congesSpark, equipeSpark, weekLoad, weekPublished,
     onboardingSteps, onboardingAllDone,
   } = metrics
 
@@ -271,7 +304,7 @@ export function ManagerMetricsClient() {
         <KpiCard
           label="Équipe active" value={employeeCount}
           color={PALETTE.violet.color} halo={PALETTE.violet.halo} glow={PALETTE.violet.glow} iconBg={PALETTE.violet.iconBg}
-          icon={Users} gradientId="kpi-team"
+          icon={Users} gradientId="kpi-team" sparkData={equipeSpark.some(v => v > 0) ? equipeSpark : undefined}
           footer={onDutyInitials.length === 0
             ? <span style={{ fontSize: '11.5px', color: 'var(--text-tertiary)' }}>Personne en poste</span>
             : <div className="flex items-center">
@@ -287,7 +320,7 @@ export function ManagerMetricsClient() {
         <KpiCard
           label="Congés en attente" value={pendingCount}
           color={PALETTE.orange.color} halo={PALETTE.orange.halo} glow={PALETTE.orange.glow} iconBg={PALETTE.orange.iconBg}
-          icon={Palmtree} gradientId="kpi-leaves"
+          icon={Palmtree} gradientId="kpi-leaves" sparkData={congesSpark.some(v => v > 0) ? congesSpark : undefined}
           footer={pendingCount === 0
             ? <div className="flex items-center" style={{ gap: '6px' }}>{dot('var(--success)')}<span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--success)' }}>Tout à jour</span></div>
             : <div className="flex items-center" style={{ gap: '6px' }}>{dot('var(--warning)')}<span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--warning)' }}>{pendingCount} à traiter</span></div>}
@@ -295,7 +328,7 @@ export function ManagerMetricsClient() {
         <KpiCard
           label="Retards ce mois" value={latenessCount}
           color={PALETTE.gray.color} halo={PALETTE.gray.halo} glow={PALETTE.gray.glow} iconBg={PALETTE.gray.iconBg}
-          icon={Clock} gradientId="kpi-late"
+          icon={Clock} gradientId="kpi-late" sparkData={retardsSpark.some(v => v > 0) ? retardsSpark : undefined}
           footer={latenessCount === 0
             ? <div className="flex items-center" style={{ gap: '6px' }}>{dot('var(--success)')}<span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--success)' }}>Aucun ce mois</span></div>
             : <div className="flex items-center" style={{ gap: '6px' }}>{dot('var(--danger)')}<span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--danger)' }}>{latenessCount} à vérifier</span></div>}
