@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { ManagerHomeHeader } from '@/components/dashboard/manager-home-header'
 import { ManagerMetricsClient } from './manager-metrics-client'
 
 export default async function ManagerDashboard() {
@@ -16,26 +17,16 @@ export default async function ManagerDashboard() {
   const isDefaultName = !nameRow?.value || nameRow.value === 'Mon établissement'
   const establishmentLabel = !isDefaultName ? nameRow!.value : null
 
-  const today = new Date()
-  const todayLabel = today.toLocaleDateString('fr-FR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  })
-
   return (
     <div className="min-h-screen dashboard-content" style={{ backgroundColor: 'var(--bg-page)' }}>
-      <div className="max-w-5xl mx-auto px-4 md:px-6 py-8 space-y-6">
+      <div className="max-w-[1000px] mx-auto px-6 pt-[30px] pb-16 flex flex-col gap-[22px]">
 
-        {/* ── HEADER ────────────────────────────────────────────────────────── */}
-        <div className="pt-1 dashboard-s0">
-          <h1 className="text-[20px] font-semibold tracking-[-0.02em]" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
-            Bonjour {firstName}
-          </h1>
-          <p className="text-[12px] mt-1 capitalize" style={{ color: 'var(--text-tertiary)' }}>
-            {establishmentLabel ? <>{establishmentLabel} · {todayLabel}</> : todayLabel}
-          </p>
+        {/* ── EN-TÊTE DE BIENVENUE ──────────────────────────────────────────── */}
+        <div className="dashboard-s0">
+          <ManagerHomeHeader firstName={firstName} establishmentName={establishmentLabel} />
         </div>
 
-        {/* ── MÉTRIQUES, ALERTES, MODULES (chargés côté client) ────────────── */}
+        {/* ── MÉTRIQUES & MODULES (chargés côté client) ─────────────────────── */}
         <ManagerMetricsClient />
 
       </div>

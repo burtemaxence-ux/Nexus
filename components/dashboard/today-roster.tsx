@@ -109,9 +109,16 @@ export function TodayRoster() {
               <span className="w-1.5 h-1.5 rounded-full dot-pulse-green" style={{ backgroundColor: 'var(--success)' }} title="En direct" />
             )}
           </p>
-          <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-            {shifts.length === 0 ? 'Aucun service planifié' : `${here}/${shifts.length} présent${here !== 1 ? 's' : ''}`}
-          </p>
+          {shifts.length === 0 ? (
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>Aucun service planifié</p>
+          ) : (
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="h-[5px] rounded-full overflow-hidden" style={{ width: 62, background: 'var(--border)' }}>
+                <span className="block h-full rounded-full bar-grow-right" style={{ width: `${Math.round((here / shifts.length) * 100)}%`, background: 'var(--success)' }} />
+              </span>
+              <p className="text-[11.5px]" style={{ color: 'var(--text-tertiary)' }}>{here}/{shifts.length} présent{here !== 1 ? 's' : ''}</p>
+            </div>
+          )}
         </div>
         <Link href="/manager/presences" className="flex items-center gap-1 text-[12px] font-medium flex-shrink-0" style={{ color: 'var(--accent)' }}>
           Pointages <ArrowRight className="h-3.5 w-3.5" />
