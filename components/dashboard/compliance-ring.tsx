@@ -4,44 +4,57 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Check, ArrowRight } from 'lucide-react'
 
-interface Alert { id: string; type: string; level: 'CRITICAL' | 'WARNING' | 'INFO' }
+// Violation counts keyed by the compliance engine's RuleId (see lib/compliance/rules).
+type ByRule = Partial<Record<string, number>>
 
-// The four Code-du-Travail controls shown on the home, each backed by the
-// `compliance_alerts.type` values produced by the compliance engine.
-const CONTROLS: { label: string; ok: string; types: string[] }[] = [
-  { label: 'Repos quotidien de 11 h',        ok: 'Respecté',   types: ['rest_daily'] },
-  { label: 'Durée hebdomadaire sous 48 h',   ok: 'Respecté',   types: ['hours_weekly_max'] },
-  { label: 'Pauses légales planifiées',      ok: 'Respectées', types: ['break_missing'] },
-  { label: 'Amplitude et coupures',          ok: 'Conformes',  types: ['hours_daily_max', 'days_consecutive', 'sunday_work', 'night_work'] },
+// The four Code-du-Travail controls shown on the home, each backed by the real
+// RuleId(s) emitted by checkCompliance() / GET /api/compliance.
+const CONTROLS: { label: string; ok: string; rules: string[] }[] = [
+  { label: 'Repos quotidien de 11 h',      ok: 'Respecté',   rules: ['rest_daily', 'weekly_rest_missing'] },
+  { label: 'Durée hebdomadaire sous 48 h', ok: 'Respecté',   rules: ['hours_weekly_max'] },
+  { label: 'Pauses légales planifiées',    ok: 'Respectées', rules: ['break_missing'] },
+  { label: 'Amplitude et coupures',        ok: 'Conformes',  rules: ['amplitude_max', 'hours_daily_max', 'days_consecutive', 'sunday_work', 'night_work'] },
 ]
 
 const RING_CIRCUMFERENCE = 113 // 2π·18, matches the SVG radius below.
 
+function weekRange(): { from: string; to: string } {
+  const now = new Date()
+  const dow = now.getDay() || 7
+  const monday = new Date(now); monday.setDate(now.getDate() - dow + 1)
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6)
+  const iso = (d: Date) => d.toISOString().split('T')[0]
+  return { from: iso(monday), to: iso(sunday) }
+}
+
 /**
- * Conformité — score ring + per-control checklist, derived from the active
- * compliance alerts (`/api/compliance/alerts`). Score = share of the four
- * controls with no active alert. Hidden if the user has no compliance access.
+ * Conformité — score ring + per-control checklist for the current week, using
+ * the real compliance analysis (GET /api/compliance: complianceScore + byRule).
+ * Hidden if the user has no compliance access.
  */
 export function ComplianceRing() {
-  const [alerts, setAlerts] = useState<Alert[] | null>(null)
+  const [data, setData] = useState<{ score: number; byRule: ByRule; total: number } | null>(null)
   const [hidden, setHidden] = useState(false)
   const [offset, setOffset] = useState(RING_CIRCUMFERENCE) // start empty, animate to target
 
   useEffect(() => {
     let active = true
-    fetch('/api/compliance/alerts')
+    const { from, to } = weekRange()
+    fetch(`/api/compliance?from=${from}&to=${to}`)
       .then(r => { if (!r.ok) { if (active) setHidden(true); return null } return r.json() })
-      .then(d => { if (active && d) setAlerts(d.alerts ?? []) })
+      .then(d => {
+        if (!active || !d) return
+        const byRule = (d.byRule ?? {}) as ByRule
+        setData({ score: d.complianceScore ?? 100, byRule, total: (d.violations ?? []).length })
+      })
       .catch(() => { if (active) setHidden(true) })
     return () => { active = false }
   }, [])
 
-  const ready = alerts !== null
-  const failByControl = CONTROLS.map(c => (alerts ?? []).filter(a => c.types.includes(a.type)).length)
-  const failingControls = failByControl.filter(n => n > 0).length
-  const score = ready ? Math.round(((CONTROLS.length - failingControls) / CONTROLS.length) * 100) : 0
-  const hasCritical = (alerts ?? []).some(a => a.level === 'CRITICAL')
-  const ringColor = score === 100 ? 'var(--success)' : hasCritical ? 'var(--danger)' : 'var(--warning)'
+  const ready = data !== null
+  const score = data?.score ?? 0
+  const hasCritical = score < 70
+  const ringColor = score >= 90 ? 'var(--success)' : score >= 70 ? 'var(--warning)' : 'var(--danger)'
 
   // Draw the arc to its target once we have a score (respects reduced motion).
   useEffect(() => {
@@ -58,6 +71,8 @@ export function ComplianceRing() {
   if (!ready) {
     return <div className="rounded-[14px] border h-[260px] animate-pulse" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }} />
   }
+
+  const failCount = (rules: string[]) => rules.reduce((n, r) => n + (data!.byRule[r] ?? 0), 0)
 
   return (
     <div
@@ -87,9 +102,9 @@ export function ComplianceRing() {
             {score === 100 ? 'Plannings conformes' : 'Conformité à vérifier'}
           </p>
           <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: '3px 0 0', lineHeight: 1.4 }}>
-            {alerts!.length === 0
+            {data!.total === 0
               ? 'Aucune alerte Code du Travail active.'
-              : `${alerts!.length} alerte${alerts!.length > 1 ? 's' : ''} active${alerts!.length > 1 ? 's' : ''} à traiter.`}
+              : `${data!.total} écart${data!.total > 1 ? 's' : ''} détecté${data!.total > 1 ? 's' : ''} cette semaine.`}
           </p>
         </div>
       </div>
@@ -98,8 +113,9 @@ export function ComplianceRing() {
 
       {/* Controls checklist */}
       <div style={{ padding: '8px 18px 6px' }}>
-        {CONTROLS.map((c, i) => {
-          const failing = failByControl[i] > 0
+        {CONTROLS.map(c => {
+          const fails = failCount(c.rules)
+          const failing = fails > 0
           const statusColor = failing ? (hasCritical ? 'var(--danger)' : 'var(--warning)') : 'var(--success)'
           return (
             <div key={c.label} className="flex items-center" style={{ gap: '10px', padding: '7px 0' }}>
@@ -113,7 +129,7 @@ export function ComplianceRing() {
               </span>
               <span className="flex-1" style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>{c.label}</span>
               <span style={{ fontSize: '11.5px', fontWeight: 500, color: statusColor }}>
-                {failing ? 'À vérifier' : c.ok}
+                {failing ? `${fails} à vérifier` : c.ok}
               </span>
             </div>
           )
