@@ -40,6 +40,15 @@ function timeToMinutes(t: string): number {
   return h * 60 + m
 }
 
+// Âge (années révolues) à une date — pour repérer les apprentis mineurs.
+function ageOn(birthDate: string, on: Date): number {
+  const b = new Date(birthDate + 'T00:00:00')
+  let age = on.getFullYear() - b.getFullYear()
+  const m = on.getMonth() - b.getMonth()
+  if (m < 0 || (m === 0 && on.getDate() < b.getDate())) age--
+  return age
+}
+
 function formatEuros(n: number): string {
   return `${Math.round(n).toLocaleString('fr-FR')} €`
 }
@@ -471,6 +480,11 @@ export function PlanningWeekTimeline({
                       const ds = shiftMap.get(`${emp.id}__${toISODate(date)}`) ?? []
                       return sum + ds.reduce((s, sh) => s + calcHours(sh.start_time, sh.end_time, sh.break_minutes), 0)
                     }, 0)
+                    // Repères conformité : apprenti mineur / temps partiel, pour
+                    // que le manager anticipe les règles renforcées.
+                    const minorAge = emp.birth_date ? ageOn(emp.birth_date, weekDates[0]) : null
+                    const isMinor = minorAge !== null && minorAge < 18
+                    const isPartTime = emp.weekly_hours != null && emp.weekly_hours > 0 && emp.weekly_hours < 35
                     return (
                       <tr key={emp.id}>
                         <td style={{ borderBottom: '0.5px solid var(--border)', borderRight: '0.5px solid var(--border)', padding: '12px 16px', verticalAlign: 'middle' }}>
@@ -479,7 +493,19 @@ export function PlanningWeekTimeline({
                               <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)' }}>{getInitials(emp.full_name)}</span>
                             </div>
                             <div style={{ minWidth: 0, flex: 1 }}>
-                              <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{emp.full_name ?? emp.email}</p>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+                                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>{emp.full_name ?? emp.email}</p>
+                                {isMinor && (
+                                  <span title={`Apprenti mineur (${minorAge} ans) — règles renforcées`} style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, color: '#B45309', background: '#FEF3C7', padding: '1px 5px', borderRadius: '999px', lineHeight: 1.4 }}>
+                                    {minorAge} ans
+                                  </span>
+                                )}
+                                {isPartTime && (
+                                  <span title={`Temps partiel (${emp.weekly_hours}h/sem.)`} style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, color: '#1D4ED8', background: '#DBEAFE', padding: '1px 5px', borderRadius: '999px', lineHeight: 1.4 }}>
+                                    {emp.weekly_hours}h
+                                  </span>
+                                )}
+                              </div>
                               {emp.position && <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '1px', lineHeight: 1 }}>{emp.position}</p>}
                             </div>
                             {weekTotal > 0 && <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', flexShrink: 0, whiteSpace: 'nowrap' }}>{formatHours(weekTotal)} / sem.</span>}
