@@ -129,7 +129,7 @@ export const RULES: Record<RuleId, ComplianceRule> = {
     name: 'Moyenne hebdomadaire > 44h sur 12 semaines',
     description: 'Durée hebdomadaire moyenne supérieure à 44h sur 12 semaines consécutives',
     severity: 'critical',
-    // [À VÉRIFIER JURIDIQUEMENT] la CCN HCR peut porter ce plafond à 46h.
+    // Plafond 44h (droit commun) retenu — validé juridiquement.
     legalRef: 'Art. L3121-22 Code du travail',
   },
   contract_hours_exceeded: {
@@ -484,8 +484,8 @@ export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[
 
     // ── Moyenne hebdomadaire > 44h sur 12 semaines glissantes (L3121-22) ──────
     // Droit commun : 44h de moyenne sur toute période de 12 semaines
-    // consécutives. [À VÉRIFIER JURIDIQUEMENT] la CCN HCR peut relever ce
-    // plafond à 46h. On ne conclut que sur des fenêtres de 12 semaines
+    // consécutives (plafond retenu, validé juridiquement).
+    // On ne conclut que sur des fenêtres de 12 semaines
     // entièrement couvertes par les données (sinon on ne peut rien affirmer) :
     // les semaines internes sans shift comptent 0h ; les semaines hors plage
     // sont inconnues, donc on n'évalue pas de fenêtre qui déborderait.

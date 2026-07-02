@@ -464,16 +464,24 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
   }, [form, rules, modalState, isEditing])
 
   const formViolations = useMemo<Violation[]>(() => {
+    const meta = modalState.type !== 'closed'
+      ? {
+          id: modalState.employee.id,
+          birthDate: modalState.employee.birth_date ?? null,
+          contractType: modalState.employee.contract_type ?? null,
+          weeklyHours: modalState.employee.weekly_hours ?? null,
+        }
+      : undefined
     if (modalState.type === 'create') {
       return computeComplianceViolations(
         form.startTime, form.endTime, parseInt(form.breakMinutes, 10),
-        modalState.employee.id, modalState.date, shifts,
+        modalState.employee.id, modalState.date, shifts, undefined, meta,
       )
     }
     if (modalState.type === 'view' && isEditing) {
       return computeComplianceViolations(
         form.startTime, form.endTime, parseInt(form.breakMinutes, 10),
-        modalState.employee.id, modalState.date, shifts, modalState.shift.id,
+        modalState.employee.id, modalState.date, shifts, modalState.shift.id, meta,
       )
     }
     return []

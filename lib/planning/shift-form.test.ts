@@ -74,6 +74,16 @@ describe('computeComplianceViolations', () => {
     // Editing s1 to add a 30 min break should not double-count it as a second shift.
     expect(v.some(x => x.ruleId === 'break_missing')).toBe(false)
   })
+  it('surface les règles mineurs dès la saisie quand la métadonnée est fournie', () => {
+    // 08:00–17:00 = 9h net → > 8h pour un apprenti mineur.
+    const minor = { id: 'e1', birthDate: '2010-01-01' } // ~16 ans en 2026
+    const v = computeComplianceViolations('08:00', '17:00', 0, 'e1', new Date('2026-06-15T00:00:00'), [], undefined, minor)
+    expect(v.some(x => x.ruleId === 'minor_hours_daily')).toBe(true)
+  })
+  it('ne surface pas les règles mineurs sans métadonnée (rétrocompat)', () => {
+    const v = computeComplianceViolations('08:00', '17:00', 0, 'e1', new Date('2026-06-15T00:00:00'), [])
+    expect(v.some(x => x.ruleId === 'minor_hours_daily')).toBe(false)
+  })
 })
 
 describe('parseRules', () => {
