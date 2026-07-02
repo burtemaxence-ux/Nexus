@@ -21,9 +21,16 @@ const LEGAL_RULES = [
   { label: 'Repos hebdomadaire',  value: '35h min.', detail: 'Repos continu (24h + 11h) sur chaque fenêtre de 7 jours.',   ref: 'L3132-2'  },
   { label: 'Durée max / jour',    value: '10h',      detail: 'Travail effectif sur une même journée.',                     ref: 'L3121-18' },
   { label: 'Durée max / semaine', value: '48h',      detail: 'Maximum absolu, heures supplémentaires comprises.',          ref: 'L3121-20' },
+  { label: 'Moyenne / 12 sem.',   value: '44h max.', detail: 'Moyenne hebdomadaire sur 12 semaines glissantes.',           ref: 'L3121-22' },
   { label: 'Amplitude / jour',    value: '13h max.', detail: 'Entre le début et la fin de la journée (split shifts inclus).', ref: 'L3121-1' },
   { label: 'Pause obligatoire',   value: '20 min',   detail: 'Dès 6h de travail consécutives.',                            ref: 'L3121-16' },
   { label: 'Jours consécutifs',   value: '6 max.',   detail: 'Un jour de repos hebdomadaire reste obligatoire.',           ref: 'L3132-1'  },
+  { label: 'Mineur — durée',      value: '8h / 35h', detail: 'Durée quotidienne et hebdomadaire max pour un apprenti mineur.', ref: 'L3162-1' },
+  { label: 'Mineur — nuit',       value: 'interdit', detail: 'Travail interdit 22h–6h (20h–6h avant 16 ans).',             ref: 'L3163-1'  },
+  { label: 'Mineur — repos',      value: '12h / 14h', detail: 'Repos quotidien renforcé (14h avant 16 ans).',              ref: 'L3164-1'  },
+  { label: 'Mineur — pause',      value: '30 min',   detail: 'Dès 4h30 de travail continu.',                               ref: 'L3162-3'  },
+  { label: 'Temps partiel',       value: '1 coupure', detail: 'Au plus une interruption par jour (spécificités CCN HCR).', ref: 'L3123-23' },
+  { label: 'Heures contractuelles', value: 'suivi',  detail: 'Alerte si les heures planifiées dépassent le contrat.',      ref: 'Contrat'  },
 ] as const
 
 // ── Toggle ──────────────────────────────────────────────────────────────────

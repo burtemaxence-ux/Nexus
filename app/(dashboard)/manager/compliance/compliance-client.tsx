@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CompliancePayload, ComplianceViolation } from '@/app/api/compliance/route'
-import type { RuleId, Severity } from '@/lib/compliance/rules'
+import { RULES_ORDERED, RULE_COUNT, type RuleId, type Severity } from '@/lib/compliance/rules'
 
 // ── Period presets ────────────────────────────────────────────────────────────
 
@@ -282,15 +282,13 @@ function EmptyState() {
 
 // ── Legal reference panel ─────────────────────────────────────────────────────
 
-const LEGAL_REFS = [
-  { rule: 'Repos quotidien (11h min)',         ref: 'L3131-1', severity: 'critical' as Severity },
-  { rule: 'Durée max quotidienne (10h)',        ref: 'L3121-18', severity: 'critical' as Severity },
-  { rule: 'Durée max hebdomadaire (48h)',       ref: 'L3121-20', severity: 'critical' as Severity },
-  { rule: 'Pause obligatoire (20 min / 6h)',   ref: 'L3121-16', severity: 'warning' as Severity },
-  { rule: 'Repos hebdomadaire (35h consécutives)', ref: 'L3132-1', severity: 'critical' as Severity },
-  { rule: 'Travail du dimanche',               ref: 'L3132-3', severity: 'info' as Severity },
-  { rule: 'Travail de nuit (21h–6h)',          ref: 'L3122-2', severity: 'warning' as Severity },
-]
+// Dérivé du moteur (RULES) : la liste et le compte restent justes
+// automatiquement quand on ajoute une règle.
+const LEGAL_REFS = RULES_ORDERED.map(r => ({
+  rule: r.name,
+  legalRef: r.legalRef,
+  severity: r.severity,
+}))
 
 function LegalPanel() {
   const [open, setOpen] = useState(false)
@@ -303,7 +301,7 @@ function LegalPanel() {
         <div className="flex items-center gap-2">
           <Scale className="h-4 w-4 text-[var(--accent)]" />
           <span className="text-[13px] font-semibold text-[var(--text-primary)]">
-            Règles vérifiées — Code du travail
+            {RULE_COUNT} règles vérifiées — Code du travail
           </span>
         </div>
         {open ? <ChevronUp className="h-4 w-4 text-[var(--text-tertiary)]" /> : <ChevronDown className="h-4 w-4 text-[var(--text-tertiary)]" />}
@@ -324,7 +322,7 @@ function LegalPanel() {
                 return (
                   <tr key={i} className="border-b border-[var(--border)] last:border-0">
                     <td className="px-5 py-2.5 text-[var(--text-primary)]">{r.rule}</td>
-                    <td className="px-3 py-2.5 font-mono text-[var(--text-secondary)]">Art. {r.ref} CT</td>
+                    <td className="px-3 py-2.5 font-mono text-[var(--text-secondary)]">{r.legalRef}</td>
                     <td className="px-3 py-2.5">
                       <span
                         className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold"

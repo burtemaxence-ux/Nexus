@@ -43,7 +43,7 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
   // ── Shared: fetch employees & postes ─────────────────────────────────────
   const { data: employeesData } = await supabase
     .from('profiles')
-    .select('id, email, full_name, role, position, created_at')
+    .select('id, email, full_name, role, position, created_at, birth_date, weekly_hours, contract_type')
     .eq('role', 'employee')
     .order('full_name', { ascending: true })
 

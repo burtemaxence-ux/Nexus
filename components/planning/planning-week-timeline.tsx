@@ -105,8 +105,16 @@ export function PlanningWeekTimeline({
     // évitables par l'ordonnancement) : affichés en « à vérifier » ambre,
     // jamais comptés comme infractions bloquantes.
     const CONTEXTUAL = new Set(['night_work', 'sunday_work'])
+    // Métadonnées employé → active les règles mineurs / temps partiel /
+    // dépassement contractuel directement dans la grille de planning.
+    const meta = employees.map(e => ({
+      id: e.id,
+      birthDate: e.birth_date ?? null,
+      contractType: e.contract_type ?? null,
+      weeklyHours: e.weekly_hours ?? null,
+    }))
     const m = new Map<string, CellViolation[]>()
-    for (const v of checkCompliance(records)) {
+    for (const v of checkCompliance(records, meta)) {
       const key = `${v.employeeId}__${v.date}`
       const rule = RULES[v.ruleId]
       const arr = m.get(key) ?? []
@@ -120,7 +128,7 @@ export function PlanningWeekTimeline({
       m.set(key, arr)
     }
     return m
-  }, [shifts])
+  }, [shifts, employees])
 
   // Ne compte que les infractions actionnables (les drapeaux contextuels
   // nuit/dimanche sont signalés à part, jamais comme « infractions »).

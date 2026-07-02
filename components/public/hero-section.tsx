@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Reveal } from '@/components/public/reveal'
 import { PlanningDemo } from '@/components/public/planning-demo'
+import { RULE_COUNT } from '@/lib/compliance/rules'
 
 const FONT = 'var(--font-manrope), sans-serif'
 
@@ -56,7 +57,7 @@ export function HeroSection() {
 
           {/* Sous-titre */}
           <p style={{ fontSize: 18, lineHeight: 1.6, color: '#a6a8b8', maxWidth: 460, margin: '0 0 32px' }}>
-            Quartzbase génère le planning de votre équipe, vérifie la conformité au Code du travail et prévient vos salariés. Sans Excel.
+            Quartzbase génère le planning de votre équipe, vérifie {RULE_COUNT} règles du Code du travail et prévient vos salariés. Sans Excel.
           </p>
 
           {/* CTAs */}

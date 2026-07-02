@@ -184,6 +184,16 @@ export const RULES: Record<RuleId, ComplianceRule> = {
   },
 }
 
+/**
+ * Nombre de règles légales vérifiées par le moteur — source unique pour le
+ * branding (landing, FAQ, dashboard…). Dérivé de RULES : reste juste
+ * automatiquement quand on ajoute/retire une règle.
+ */
+export const RULE_COUNT = Object.keys(RULES).length
+
+/** Liste ordonnée des règles, pour l'affichage (socle légal d'abord). */
+export const RULES_ORDERED: ComplianceRule[] = Object.values(RULES)
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function parseTimeMin(t: string): number {

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { AlertTriangle, AlarmClock, FileText, Calendar, Loader2, RefreshCw, ChevronRight, X } from 'lucide-react'
 import Link from 'next/link'
 import type { CddAlert, LatenessAlert, AbsenceAlert, ComplianceAlert } from '@/types'
-import { checkCompliance, type ShiftRecord, type Violation, RULES } from '@/lib/compliance/rules'
+import { checkCompliance, type ShiftRecord, type Violation, type EmployeeMeta, RULES } from '@/lib/compliance/rules'
 import { ComplianceOptionsPanel } from '@/components/compliance/compliance-options-panel'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -282,7 +282,7 @@ export default function AlertesPage() {
       supabase.from('lateness_records').select('id, employee_id, date, late_minutes, profiles:employee_id(full_name, email)').eq('justified', false).gte('date', ago7).order('date', { ascending: false }),
       supabase.from('shifts').select('id, employee_id, date, start_time, end_time, profiles:employee_id(full_name, email)').gte('date', ago7).lt('date', today),
       supabase.from('presences').select('employee_id, date, clock_in').gte('date', ago7).lt('date', today).not('clock_in', 'is', null),
-      supabase.from('shifts').select('id, employee_id, date, start_time, end_time, break_minutes, profiles:employee_id(full_name)').gte('date', ago7).lte('date', today),
+      supabase.from('shifts').select('id, employee_id, date, start_time, end_time, break_minutes, profiles:employee_id(full_name, birth_date, weekly_hours, contract_type)').gte('date', ago7).lte('date', today),
     ])
 
     if (settingsRes.data) {
@@ -309,11 +309,18 @@ export default function AlertesPage() {
 
     if (complianceShiftsRes.data) {
       const empNames = new Map<string, string | null>()
-      const records: ShiftRecord[] = (complianceShiftsRes.data as unknown as { id: string; employee_id: string; date: string; start_time: string; end_time: string; break_minutes: number; profiles: { full_name: string | null } | null }[]).map(s => {
+      const empMeta = new Map<string, EmployeeMeta>()
+      const records: ShiftRecord[] = (complianceShiftsRes.data as unknown as { id: string; employee_id: string; date: string; start_time: string; end_time: string; break_minutes: number; profiles: { full_name: string | null; birth_date: string | null; weekly_hours: number | null; contract_type: string | null } | null }[]).map(s => {
         if (!empNames.has(s.employee_id)) empNames.set(s.employee_id, s.profiles?.full_name ?? null)
+        if (!empMeta.has(s.employee_id)) empMeta.set(s.employee_id, {
+          id: s.employee_id,
+          birthDate: s.profiles?.birth_date ?? null,
+          contractType: s.profiles?.contract_type ?? null,
+          weeklyHours: s.profiles?.weekly_hours ?? null,
+        })
         return { id: s.id, employeeId: s.employee_id, date: s.date, startTime: s.start_time.slice(0, 5), endTime: s.end_time.slice(0, 5), breakMinutes: s.break_minutes }
       })
-      const violations = checkCompliance(records)
+      const violations = checkCompliance(records, Array.from(empMeta.values()))
       setComplianceViolations(violations.map(v => ({ ...v, employeeName: empNames.get(v.employeeId) ?? null })))
     }
 

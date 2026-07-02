@@ -338,15 +338,24 @@ const SECTIONS: HelpSection[] = [
     hrefLabel: 'Vérifier la conformité',
     blocks: [
       {
-        title: 'Règles vérifiées',
+        title: 'Règles vérifiées (17 au total)',
         items: [
           'Repos quotidien < 11h entre deux shifts (Art. L3131-1)',
+          'Repos hebdomadaire < 35h consécutives (Art. L3132-2)',
           'Durée quotidienne > 10h (Art. L3121-18)',
           'Durée hebdomadaire > 48h (Art. L3121-20)',
+          'Moyenne > 44h sur 12 semaines glissantes (Art. L3121-22)',
+          'Amplitude journalière > 13h (Art. L3121-1)',
           'Pause insuffisante : < 20 min pour un shift > 6h (Art. L3121-16)',
           'Plus de 6 jours consécutifs sans repos (Art. L3132-1)',
           'Travail du dimanche sans dérogation (Art. L3132-3)',
           'Travail de nuit : plus d\'1h entre 21h et 6h (Art. L3122-2)',
+          'Apprenti mineur : > 8h/jour ou > 35h/semaine (Art. L3162-1)',
+          'Apprenti mineur : travail de nuit interdit 22h–6h / 20h–6h (Art. L3163-1)',
+          'Apprenti mineur : repos quotidien < 12h (14h avant 16 ans) (Art. L3164-1)',
+          'Apprenti mineur : pause < 30 min dès 4h30 (Art. L3162-3)',
+          'Temps partiel : plus d\'une coupure par jour (Art. L3123-23 + CCN HCR)',
+          'Dépassement des heures contractuelles planifiées',
         ],
       },
       {

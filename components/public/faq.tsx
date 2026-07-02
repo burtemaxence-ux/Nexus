@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Reveal } from '@/components/public/reveal'
+import { RULE_COUNT } from '@/lib/compliance/rules'
 
 const FONT = 'var(--font-manrope), sans-serif'
 
@@ -14,7 +15,7 @@ const FAQS = [
   { q: 'Mes salariés doivent-ils installer une application ?', a: "Non, c'est optionnel. Ils reçoivent leur planning par SMS ou via un simple lien. Fini les photos floues dans le groupe WhatsApp." },
   { q: "Que se passe-t-il après les 14 jours d'essai ?", a: "Rien d'automatique. Aucune carte bancaire n'est demandée à l'inscription : vous choisissez librement de continuer, ou pas. Zéro mauvaise surprise." },
   { q: 'Puis-je arrêter quand je veux ?', a: "Oui, en 1 clic depuis votre compte. Sans engagement, sans préavis, sans frais de résiliation. Vous restez parce que ça marche, pas parce que vous êtes coincé." },
-  { q: 'Est-ce vraiment conforme à la loi française ?', a: "Oui. Repos de 11h, durées maximales, pauses, dimanches : 7 règles du Code du travail vérifiées à chaque planning, mises à jour avec la législation. Vos données sont hébergées en Europe et conformes au RGPD." },
+  { q: 'Est-ce vraiment conforme à la loi française ?', a: `Oui. Repos, durées maximales, pauses, travail de nuit, apprentis mineurs, temps partiel : ${RULE_COUNT} règles du Code du travail vérifiées à chaque planning, mises à jour avec la législation. Vos données sont hébergées en Europe et conformes au RGPD.` },
 ]
 
 function FaqCheck() {
@@ -34,7 +35,7 @@ function FaqCheck() {
 const FAQ_ITEMS = [
   {
     question: `Est-ce vraiment conforme au Code du Travail ?`,
-    answer: `Oui. Quartzbase vérifie automatiquement 7 règles légales : repos quotidien minimum (11h), durée journalière, durée hebdomadaire, pauses obligatoires, jours consécutifs, travail du dimanche et travail de nuit. Vous recevez une alerte immédiate si une anomalie est détectée dans votre planning.`,
+    answer: `Oui. Quartzbase vérifie automatiquement ${RULE_COUNT} règles légales : repos quotidien (11h) et hebdomadaire (35h), durées maximales (10h/jour, 48h/semaine, 44h en moyenne sur 12 semaines), pauses obligatoires, jours consécutifs, travail de nuit et du dimanche, règles spécifiques aux apprentis mineurs (8h/jour, 35h/semaine, travail de nuit interdit, repos renforcé), coupures des temps partiels et dépassement des heures contractuelles. Vous recevez une alerte immédiate si une anomalie est détectée dans votre planning.`,
   },
   {
     question: `Mes employés ont besoin d'un ordinateur ?`,

@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import { Zap, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Reveal } from '@/components/public/reveal'
+import { RULE_COUNT } from '@/lib/compliance/rules'
 
 const FONT = 'var(--font-manrope), sans-serif'
 
 const TABS = [
   { accent: '#6C63FF', tileOn: 'rgba(108,99,255,0.22)', Icon: Zap,         title: 'Planning fait en 2 minutes',          body: "Dites à l'IA vos contraintes de la semaine. Elle génère un planning complet, que vous validez ou ajustez avant de l'envoyer." },
   { accent: '#00D4AA', tileOn: 'rgba(0,212,170,0.2)',   Icon: RefreshCw,   title: 'Remplaçant trouvé en 1 clic',          body: "Un absent au dernier moment ? L'app envoie la demande aux disponibles. Vous confirmez depuis votre téléphone." },
-  { accent: '#FFB347', tileOn: 'rgba(255,179,71,0.2)',  Icon: ShieldCheck, title: 'Conformité vérifiée automatiquement',  body: 'Repos, durées maxi, pauses, dimanches… 7 règles du Code du travail passées en revue à chaque planning.' },
+  { accent: '#FFB347', tileOn: 'rgba(255,179,71,0.2)',  Icon: ShieldCheck, title: 'Conformité vérifiée automatiquement',  body: `Repos, durées maxi, pauses, nuit, apprentis mineurs, temps partiel… ${RULE_COUNT} règles du Code du travail passées en revue à chaque planning.` },
 ]
 
 const DEMO_GLOW = ['rgba(108,99,255,0.18)', 'rgba(0,212,170,0.16)', 'rgba(255,179,71,0.14)']
@@ -28,7 +29,7 @@ const CANDIDATES = [
   { n: 'Inès', s: 'Disponible',                  ok: true },
 ]
 
-const RULES = ['Repos quotidien 11h', 'Repos hebdomadaire 35h', 'Durée max 48h/sem.', 'Pause après 6h', 'Travail du dimanche', 'Heures supplémentaires', 'Coupures encadrées']
+const RULES = ['Repos quotidien 11h', 'Repos hebdomadaire 35h', 'Durée max 48h/sem.', 'Moyenne 44h / 12 sem.', 'Pause après 6h', 'Travail de nuit', 'Apprentis mineurs', 'Coupures temps partiel', 'Heures contractuelles']
 
 function FeatureDemo({ idx }: { idx: number }) {
   if (idx === 0) {
@@ -79,7 +80,7 @@ function FeatureDemo({ idx }: { idx: number }) {
   return (
     <div key="d2" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-        <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>7 règles vérifiées</div>
+        <div style={{ fontWeight: 700, fontSize: 15, color: '#fff' }}>{RULE_COUNT} règles vérifiées</div>
         <span style={{ fontSize: 11, fontWeight: 600, color: '#00D4AA', background: 'rgba(0,212,170,0.12)', padding: '4px 10px', borderRadius: 7 }}>À jour 2026</span>
       </div>
       <div className="qb-demo-rules" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
