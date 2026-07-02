@@ -52,6 +52,19 @@ export async function POST(request: NextRequest) {
 
     const { employee_id, date, start_time, end_time, position, poste_id, break_minutes, notes } = parsed.data
 
+    // Vérifie que l'employé est visible pour ce manager. Les profils sont scopés
+    // par établissement en RLS : un employee_id d'un autre établissement renvoie
+    // null ici, ce qui évite de créer un shift rattaché à un employé d'un autre
+    // tenant (le trigger force l'establishment_id du manager sur le shift).
+    const { data: emp } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', employee_id)
+      .maybeSingle()
+    if (!emp) {
+      return NextResponse.json({ error: 'Employé introuvable dans cet établissement' }, { status: 400 })
+    }
+
     const { data, error } = await supabase
       .from('shifts')
       .insert({
