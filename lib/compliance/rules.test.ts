@@ -58,6 +58,19 @@ describe('break_missing — shift > 6h avec < 20 min de pause', () => {
     // 09:00–15:00 = 360 min brut, la règle exige > 360.
     expect(ruleIds([shift(MON, '09:00', '15:00', 0)])).not.toContain('break_missing')
   })
+
+  it('déclenche pour une journée fractionnée (4h + 4h) sans pause', () => {
+    // 8h de travail effectif réparties sur deux créneaux < 6h chacun : chaque
+    // shift pris isolément passait, mais la pause reste due (> 6h sur la journée).
+    const ids = ruleIds([shift(MON, '08:00', '12:00', 0), shift(MON, '14:00', '18:00', 0)])
+    expect(ids).toContain('break_missing')
+  })
+
+  it('ne déclenche pas si la pause cumulée du jour atteint 20 min', () => {
+    // 4h + 4h = 8h de travail, 20 min de pause au total sur la journée → conforme.
+    const ids = ruleIds([shift(MON, '08:00', '12:00', 0), shift(MON, '14:00', '18:00', 20)])
+    expect(ids).not.toContain('break_missing')
+  })
 })
 
 describe('hours_weekly_max — > 48h net/semaine', () => {

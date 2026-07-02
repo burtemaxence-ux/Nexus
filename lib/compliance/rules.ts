@@ -204,18 +204,20 @@ export function checkCompliance(shifts: ShiftRecord[]): Violation[] {
         })
       }
 
-      // break_missing: gross shift > 6h (360 min) with < 20 min break
-      for (const s of dayShifts) {
-        const gross = shiftGrossMinutes(s)
-        if (gross > 360 && s.breakMinutes < 20) {
-          violations.push({
-            ruleId: 'break_missing',
-            employeeId: empId,
-            date,
-            description: `Shift de ${fmtH(gross)} avec seulement ${s.breakMinutes} min de pause (min. 20 min)`,
-            suggestedFix: 'Ajouter au moins 20 minutes de pause dans ce shift',
-          })
-        }
+      // break_missing (L3121-16) : une pause d'au moins 20 min est due dès que
+      // le temps de travail effectif *de la journée* dépasse 6h — pas par shift.
+      // On agrège sur la journée pour couvrir les journées fractionnées
+      // (ex. 4h + 4h = 8h de travail réparti sur deux créneaux < 6h chacun, que
+      // l'ancienne vérification par shift laissait passer). Seuil > 6h conservé.
+      const totalBreak = dayShifts.reduce((sum, s) => sum + s.breakMinutes, 0)
+      if (totalNet > 360 && totalBreak < 20) {
+        violations.push({
+          ruleId: 'break_missing',
+          employeeId: empId,
+          date,
+          description: `${fmtH(totalNet)} de travail effectif avec seulement ${totalBreak} min de pause (min. 20 min dès 6h)`,
+          suggestedFix: 'Ajouter au moins 20 minutes de pause sur la journée',
+        })
       }
 
       // sunday_work: getDay() === 0
