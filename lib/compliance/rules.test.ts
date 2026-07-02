@@ -223,3 +223,110 @@ describe('isolation par employé', () => {
     expect(ruleIds(shifts)).not.toContain('days_consecutive')
   })
 })
+
+// ── Nouvelles règles P1 (métadonnées employé) ──────────────────────────────
+
+import type { EmployeeMeta } from './rules'
+function ruleIdsMeta(shifts: ShiftRecord[], employees: EmployeeMeta[]): RuleId[] {
+  return checkCompliance(shifts, employees).map(v => v.ruleId)
+}
+// emp-1 mineur (16 ans à la date des tests) et < 16 ans.
+const MINOR_16: EmployeeMeta = { id: 'emp-1', birthDate: '2010-01-01' } // ~16 ans en 2026
+const MINOR_15: EmployeeMeta = { id: 'emp-1', birthDate: '2011-03-01' } // ~15 ans en 2026-06
+const ADULT: EmployeeMeta = { id: 'emp-1', birthDate: '1990-01-01' }
+
+describe('règles mineurs', () => {
+  it('minor_hours_daily : > 8h de travail pour un mineur', () => {
+    // 08:00–17:00 = 9h brut, pause 0 → 9h net > 8h.
+    expect(ruleIdsMeta([shift(MON, '08:00', '17:00', 0)], [MINOR_16])).toContain('minor_hours_daily')
+  })
+  it('ne flague pas un adulte à 9h', () => {
+    expect(ruleIdsMeta([shift(MON, '08:00', '17:00', 0)], [ADULT])).not.toContain('minor_hours_daily')
+  })
+  it('sans métadonnée, aucune règle mineur', () => {
+    expect(ruleIds([shift(MON, '08:00', '17:00', 0)])).not.toContain('minor_hours_daily')
+  })
+  it('minor_night_work : shift 22h–2h interdit pour un mineur', () => {
+    expect(ruleIdsMeta([shift(MON, '22:00', '02:00', 0)], [MINOR_16])).toContain('minor_night_work')
+  })
+  it('minor_night_work : plage étendue 20h–6h avant 16 ans', () => {
+    // 20:30–22:00 : hors 22h mais dans 20h pour un < 16 ans.
+    expect(ruleIdsMeta([shift(MON, '20:30', '22:00', 0)], [MINOR_15])).toContain('minor_night_work')
+    expect(ruleIdsMeta([shift(MON, '20:30', '22:00', 0)], [MINOR_16])).not.toContain('minor_night_work')
+  })
+  it('minor_break : 5h de travail sans pause', () => {
+    expect(ruleIdsMeta([shift(MON, '09:00', '14:00', 0)], [MINOR_16])).toContain('minor_break')
+  })
+  it('minor_hours_weekly : > 35h/sem pour un mineur', () => {
+    // 6 jours × 6h30 net = 39h.
+    const days = ['2026-06-15','2026-06-16','2026-06-17','2026-06-18','2026-06-19','2026-06-20']
+    expect(ruleIdsMeta(days.map(d => shift(d, '09:00', '15:30', 0)), [MINOR_16])).toContain('minor_hours_weekly')
+  })
+  it('minor_rest_daily : 10h de repos entre deux journées (< 12h)', () => {
+    // Lun fin 22:00, Mar début 08:00 → 10h de repos.
+    const shifts = [shift(MON, '14:00', '22:00', 0), shift(TUE, '08:00', '12:00', 0)]
+    expect(ruleIdsMeta(shifts, [MINOR_16])).toContain('minor_rest_daily')
+  })
+})
+
+describe('temps partiel — coupure', () => {
+  const PART_TIME: EmployeeMeta = { id: 'emp-1', weeklyHours: 24 }
+  it('part_time_split : 3 créneaux dans la journée', () => {
+    const shifts = [
+      shift(MON, '08:00', '10:00', 0),
+      shift(MON, '12:00', '14:00', 0),
+      shift(MON, '18:00', '20:00', 0),
+    ]
+    expect(ruleIdsMeta(shifts, [PART_TIME])).toContain('part_time_split')
+  })
+  it('ne flague pas 2 créneaux (1 coupure autorisée)', () => {
+    const shifts = [shift(MON, '08:00', '12:00', 0), shift(MON, '18:00', '20:00', 0)]
+    expect(ruleIdsMeta(shifts, [PART_TIME])).not.toContain('part_time_split')
+  })
+  it('ne flague pas un temps plein (35h)', () => {
+    const full: EmployeeMeta = { id: 'emp-1', weeklyHours: 35 }
+    const shifts = [
+      shift(MON, '08:00', '10:00', 0),
+      shift(MON, '12:00', '14:00', 0),
+      shift(MON, '18:00', '20:00', 0),
+    ]
+    expect(ruleIdsMeta(shifts, [full])).not.toContain('part_time_split')
+  })
+})
+
+describe('dépassement contractuel', () => {
+  it('contract_hours_exceeded : 30h planifiées pour un contrat 24h', () => {
+    // 5 jours × 6h.
+    const days = ['2026-06-15','2026-06-16','2026-06-17','2026-06-18','2026-06-19']
+    const emp: EmployeeMeta = { id: 'emp-1', weeklyHours: 24 }
+    expect(ruleIdsMeta(days.map(d => shift(d, '09:00', '15:00', 0)), [emp])).toContain('contract_hours_exceeded')
+  })
+})
+
+describe('hours_avg_weekly — 44h sur 12 semaines glissantes', () => {
+  it('flague une moyenne > 44h sur 12 semaines pleines', () => {
+    // 12 lundis consécutifs, 45h chacun (5×9h) → moyenne 45h > 44h.
+    const shifts: ShiftRecord[] = []
+    const monday = new Date('2026-01-05T00:00:00Z') // un lundi
+    for (let w = 0; w < 12; w++) {
+      for (let d = 0; d < 5; d++) {
+        const day = new Date(monday); day.setUTCDate(day.getUTCDate() + d)
+        shifts.push(shift(day.toISOString().slice(0, 10), '08:00', '17:00', 0))
+      }
+      monday.setUTCDate(monday.getUTCDate() + 7)
+    }
+    expect(ruleIds(shifts)).toContain('hours_avg_weekly')
+  })
+  it('ne flague pas avec moins de 12 semaines de données', () => {
+    const shifts: ShiftRecord[] = []
+    const monday = new Date('2026-01-05T00:00:00Z')
+    for (let w = 0; w < 8; w++) {
+      for (let d = 0; d < 5; d++) {
+        const day = new Date(monday); day.setUTCDate(day.getUTCDate() + d)
+        shifts.push(shift(day.toISOString().slice(0, 10), '08:00', '17:00', 0))
+      }
+      monday.setUTCDate(monday.getUTCDate() + 7)
+    }
+    expect(ruleIds(shifts)).not.toContain('hours_avg_weekly')
+  })
+})

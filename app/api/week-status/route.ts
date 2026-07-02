@@ -124,12 +124,25 @@ export async function POST(request: NextRequest) {
       const fetchFrom = new Date(new Date(week_monday + 'T00:00:00').getTime() - 86400000)
         .toISOString().split('T')[0]
 
-      const { data: weekShifts } = await supabase
-        .from('shifts')
-        .select('id, employee_id, date, start_time, end_time, break_minutes')
-        .gte('date', fetchFrom)
-        .lte('date', weekEnd)
-        .is('deleted_at', null)
+      const [{ data: weekShifts }, { data: weekProfiles }] = await Promise.all([
+        supabase
+          .from('shifts')
+          .select('id, employee_id, date, start_time, end_time, break_minutes')
+          .gte('date', fetchFrom)
+          .lte('date', weekEnd)
+          .is('deleted_at', null),
+        supabase
+          .from('profiles')
+          .select('id, birth_date, contract_type, weekly_hours')
+          .eq('role', 'employee'),
+      ])
+
+      const weekEmployees = (weekProfiles ?? []).map(p => ({
+        id: p.id,
+        birthDate: p.birth_date ?? null,
+        contractType: p.contract_type ?? null,
+        weeklyHours: p.weekly_hours ?? null,
+      }))
 
       const violations = checkCompliance((weekShifts ?? []).map(s => ({
         id: s.id,
@@ -138,7 +151,7 @@ export async function POST(request: NextRequest) {
         startTime: s.start_time,
         endTime: s.end_time,
         breakMinutes: s.break_minutes ?? 0,
-      })))
+      })), weekEmployees)
 
       const critical = violations.filter(v => RULES[v.ruleId].severity === 'critical')
       const criticalPayload = critical.map(v => ({

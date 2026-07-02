@@ -10,6 +10,14 @@ export type RuleId =
   | 'night_work'
   | 'amplitude_max'
   | 'weekly_rest_missing'
+  | 'hours_avg_weekly'
+  | 'contract_hours_exceeded'
+  | 'part_time_split'
+  | 'minor_hours_daily'
+  | 'minor_hours_weekly'
+  | 'minor_night_work'
+  | 'minor_rest_daily'
+  | 'minor_break'
 
 export type Severity = 'critical' | 'warning' | 'info'
 
@@ -28,6 +36,18 @@ export interface ShiftRecord {
   startTime: string  // HH:MM
   endTime: string    // HH:MM
   breakMinutes: number
+}
+
+/**
+ * Métadonnées employé optionnelles, nécessaires aux règles qui dépendent du
+ * statut du salarié (mineur, temps partiel, heures contractuelles). Facultatif :
+ * les règles concernées ne se déclenchent que si la métadonnée est fournie.
+ */
+export interface EmployeeMeta {
+  id: string
+  birthDate?: string | null    // YYYY-MM-DD — pour les règles mineurs
+  contractType?: string | null // libellé indicatif (non utilisé pour le seuil)
+  weeklyHours?: number | null   // heures contractuelles/semaine
 }
 
 export interface Violation {
@@ -104,6 +124,64 @@ export const RULES: Record<RuleId, ComplianceRule> = {
     severity: 'critical',
     legalRef: 'Art. L3132-2 Code du travail',
   },
+  hours_avg_weekly: {
+    id: 'hours_avg_weekly',
+    name: 'Moyenne hebdomadaire > 44h sur 12 semaines',
+    description: 'Durée hebdomadaire moyenne supérieure à 44h sur 12 semaines consécutives',
+    severity: 'critical',
+    // [À VÉRIFIER JURIDIQUEMENT] la CCN HCR peut porter ce plafond à 46h.
+    legalRef: 'Art. L3121-22 Code du travail',
+  },
+  contract_hours_exceeded: {
+    id: 'contract_hours_exceeded',
+    name: 'Dépassement des heures contractuelles',
+    description: 'Heures planifiées sur la semaine supérieures à la durée contractuelle',
+    severity: 'warning',
+    legalRef: 'Contrat de travail (heures compl./suppl. — cf. L3123-8 / L3121-28)',
+  },
+  part_time_split: {
+    id: 'part_time_split',
+    name: 'Coupure temps partiel',
+    description: 'Plus d\'une interruption dans la journée pour un salarié à temps partiel',
+    severity: 'warning',
+    // [À VÉRIFIER JURIDIQUEMENT] limites précises de coupure fixées par la CCN HCR.
+    legalRef: 'Art. L3123-23 Code du travail + CCN HCR',
+  },
+  minor_hours_daily: {
+    id: 'minor_hours_daily',
+    name: 'Mineur — durée quotidienne > 8h',
+    description: 'Plus de 8h de travail effectif en une journée pour un salarié mineur',
+    severity: 'critical',
+    legalRef: 'Art. L3162-1 Code du travail',
+  },
+  minor_hours_weekly: {
+    id: 'minor_hours_weekly',
+    name: 'Mineur — durée hebdomadaire > 35h',
+    description: 'Plus de 35h de travail sur la semaine pour un salarié mineur',
+    severity: 'critical',
+    legalRef: 'Art. L3162-1 Code du travail',
+  },
+  minor_night_work: {
+    id: 'minor_night_work',
+    name: 'Mineur — travail de nuit interdit',
+    description: 'Travail sur la plage de nuit interdite aux mineurs (22h–6h, ou 20h–6h avant 16 ans)',
+    severity: 'critical',
+    legalRef: 'Art. L3163-1 Code du travail',
+  },
+  minor_rest_daily: {
+    id: 'minor_rest_daily',
+    name: 'Mineur — repos quotidien insuffisant',
+    description: 'Moins de 12h de repos entre deux journées (14h avant 16 ans)',
+    severity: 'critical',
+    legalRef: 'Art. L3164-1 Code du travail',
+  },
+  minor_break: {
+    id: 'minor_break',
+    name: 'Mineur — pause insuffisante',
+    description: 'Moins de 30 min de pause pour 4h30 de travail continu (mineur)',
+    severity: 'warning',
+    legalRef: 'Art. L3162-3 Code du travail',
+  },
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -142,6 +220,34 @@ function calcNightMinutes(startTime: string, endTime: string): number {
   }, 0)
 }
 
+// Âge (en années révolues) à une date donnée.
+function ageAt(birthDate: string, onDate: string): number {
+  const b = new Date(birthDate + 'T00:00:00')
+  const d = new Date(onDate + 'T00:00:00')
+  let age = d.getFullYear() - b.getFullYear()
+  const m = d.getMonth() - b.getMonth()
+  if (m < 0 || (m === 0 && d.getDate() < b.getDate())) age--
+  return age
+}
+
+// Minutes travaillées sur la plage de nuit interdite aux mineurs :
+// [eveningStartMin, minuit) ∪ [minuit, 06:00) (le matin, y compris en overnight).
+function nightMinutesFrom(startTime: string, endTime: string, eveningStartMin: number): number {
+  const startMin = parseTimeMin(startTime)
+  let endMin = parseTimeMin(endTime)
+  if (endMin <= startMin) endMin += 1440
+  const ranges = [[0, 360], [eveningStartMin, 1440], [1440, 1440 + 360]] as const
+  return ranges.reduce((acc, [ns, ne]) => acc + Math.max(0, Math.min(endMin, ne) - Math.max(startMin, ns)), 0)
+}
+
+// Ajoute `weeks` semaines à un lundi ISO ('YYYY-MM-DD'), calcul en UTC pour
+// rester cohérent avec les clés produites par getWeekMonday.
+function addWeeksIso(mondayIso: string, weeks: number): string {
+  const d = new Date(mondayIso + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + weeks * 7)
+  return d.toISOString().split('T')[0]
+}
+
 function getWeekMonday(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
   const dow = d.getDay() === 0 ? 7 : d.getDay()
@@ -165,8 +271,10 @@ function shiftEndAbsoluteMin(s: ShiftRecord, baseMs: number): number {
 
 // ── Compliance engine ─────────────────────────────────────────────────────────
 
-export function checkCompliance(shifts: ShiftRecord[]): Violation[] {
+export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[]): Violation[] {
   const violations: Violation[] = []
+
+  const metaById = new Map<string, EmployeeMeta>((employees ?? []).map(e => [e.id, e]))
 
   // Group by employee
   const byEmployee = new Map<string, ShiftRecord[]>()
@@ -176,6 +284,10 @@ export function checkCompliance(shifts: ShiftRecord[]): Violation[] {
   }
 
   for (const [empId, empShifts] of Array.from(byEmployee.entries())) {
+    const meta = metaById.get(empId)
+    const birthDate = meta?.birthDate || null
+    const weeklyHours = (typeof meta?.weeklyHours === 'number' && meta.weeklyHours > 0) ? meta.weeklyHours : null
+    const isPartTime = weeklyHours !== null && weeklyHours < 35
     // Sort by date then start time
     const sorted = [...empShifts].sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date)
@@ -263,6 +375,61 @@ export function checkCompliance(shifts: ShiftRecord[]): Violation[] {
           suggestedFix: 'Resserrer les horaires pour préserver les 11h de repos quotidien',
         })
       }
+
+      // ── Temps partiel : au plus 1 coupure par jour (≤ 2 créneaux) ──────────
+      if (isPartTime && dayShifts.length > 2) {
+        violations.push({
+          ruleId: 'part_time_split',
+          employeeId: empId,
+          date,
+          description: `${dayShifts.length} créneaux dans la journée (> 1 coupure) pour un temps partiel`,
+          suggestedFix: 'Regrouper les créneaux : au plus une interruption par jour',
+        })
+      }
+
+      // ── Règles mineurs (âge à la date du shift) ────────────────────────────
+      if (birthDate) {
+        const age = ageAt(birthDate, date)
+        if (age < 18) {
+          const isUnder16 = age < 16
+
+          // minor_hours_daily : > 8h de travail effectif
+          if (totalNet > 480) {
+            violations.push({
+              ruleId: 'minor_hours_daily',
+              employeeId: empId,
+              date,
+              description: `${fmtH(totalNet)} de travail effectif (max 8h pour un mineur)`,
+              suggestedFix: 'Réduire la journée à 8h maximum',
+            })
+          }
+
+          // minor_break : 30 min de pause dès 4h30 de travail
+          if (totalNet > 270 && totalBreak < 30) {
+            violations.push({
+              ruleId: 'minor_break',
+              employeeId: empId,
+              date,
+              description: `${fmtH(totalNet)} de travail avec seulement ${totalBreak} min de pause (min. 30 min dès 4h30 pour un mineur)`,
+              suggestedFix: 'Ajouter au moins 30 minutes de pause',
+            })
+          }
+
+          // minor_night_work : plage interdite 22h–6h (20h–6h avant 16 ans)
+          const eveningStart = isUnder16 ? 1200 : 1320
+          const minorNight = dayShifts.reduce((sum, s) => sum + nightMinutesFrom(s.startTime, s.endTime, eveningStart), 0)
+          if (minorNight > 0) {
+            const windowLabel = isUnder16 ? '20h–6h' : '22h–6h'
+            violations.push({
+              ruleId: 'minor_night_work',
+              employeeId: empId,
+              date,
+              description: `${fmtH(minorNight)} de travail sur la plage de nuit interdite aux mineurs (${windowLabel})`,
+              suggestedFix: 'Déplacer le shift hors de la plage de nuit interdite',
+            })
+          }
+        }
+      }
     }
 
     // ── Weekly hours ─────────────────────────────────────────────────────────
@@ -280,6 +447,70 @@ export function checkCompliance(shifts: ShiftRecord[]): Violation[] {
           description: `${fmtH(totalMin)} sur la semaine (max absolu 48h)`,
           suggestedFix: 'Supprimer ou réduire des shifts sur cette semaine',
         })
+      }
+
+      // contract_hours_exceeded : heures planifiées > durée contractuelle
+      if (weeklyHours !== null && totalMin > weeklyHours * 60) {
+        violations.push({
+          ruleId: 'contract_hours_exceeded',
+          employeeId: empId,
+          date: weekStart,
+          description: `${fmtH(totalMin)} planifiées cette semaine (contrat ${weeklyHours}h) — heures compl./suppl. à vérifier`,
+          suggestedFix: 'Vérifier les heures complémentaires/supplémentaires et les plafonds applicables',
+        })
+      }
+
+      // minor_hours_weekly : > 35h/semaine pour un mineur (âge au lundi)
+      if (birthDate && ageAt(birthDate, weekStart) < 18 && totalMin > 2100) { // 35h = 2100 min
+        violations.push({
+          ruleId: 'minor_hours_weekly',
+          employeeId: empId,
+          date: weekStart,
+          description: `${fmtH(totalMin)} sur la semaine (max 35h pour un mineur)`,
+          suggestedFix: 'Réduire les shifts de la semaine sous 35h',
+        })
+      }
+    }
+
+    // ── Moyenne hebdomadaire > 44h sur 12 semaines glissantes (L3121-22) ──────
+    // Droit commun : 44h de moyenne sur toute période de 12 semaines
+    // consécutives. [À VÉRIFIER JURIDIQUEMENT] la CCN HCR peut relever ce
+    // plafond à 46h. On ne conclut que sur des fenêtres de 12 semaines
+    // entièrement couvertes par les données (sinon on ne peut rien affirmer) :
+    // les semaines internes sans shift comptent 0h ; les semaines hors plage
+    // sont inconnues, donc on n'évalue pas de fenêtre qui déborderait.
+    if (byWeek.size > 0) {
+      const weekStarts = Array.from(byWeek.keys()).sort()
+      const firstMonday = weekStarts[0]
+      const lastMonday = weekStarts[weekStarts.length - 1]
+      const spanWeeks = Math.round(
+        (new Date(lastMonday + 'T00:00:00Z').getTime() - new Date(firstMonday + 'T00:00:00Z').getTime()) / (7 * 86400000)
+      ) + 1
+      if (spanWeeks >= 12) {
+        // Série continue minutes/semaine sur toute la plage (semaines vides = 0).
+        const series: { monday: string; min: number }[] = []
+        for (let i = 0; i < spanWeeks; i++) {
+          const key = addWeeksIso(firstMonday, i)
+          series.push({ monday: key, min: byWeek.get(key) ?? 0 })
+        }
+        const WEEKLY_AVG_MAX = 44 * 60 // 2640 min
+        // On retient la fenêtre en infraction la plus récente (la plus
+        // actionnable) : une seule alerte par employé.
+        let worst: { endMonday: string; avg: number } | null = null
+        for (let i = 0; i + 12 <= series.length; i++) {
+          const windowSum = series.slice(i, i + 12).reduce((s, w) => s + w.min, 0)
+          const avg = windowSum / 12
+          if (avg > WEEKLY_AVG_MAX) worst = { endMonday: series[i + 11].monday, avg }
+        }
+        if (worst) {
+          violations.push({
+            ruleId: 'hours_avg_weekly',
+            employeeId: empId,
+            date: worst.endMonday, // semaine de fin de la fenêtre
+            description: `Moyenne de ${fmtH(Math.round(worst.avg))}/sem sur 12 semaines (max 44h)`,
+            suggestedFix: 'Réduire les heures sur cette période de 12 semaines glissantes',
+          })
+        }
       }
     }
 
@@ -308,6 +539,24 @@ export function checkCompliance(shifts: ShiftRecord[]): Violation[] {
           description: `Seulement ${fmtH(gapMin)} de repos entre les shifts (minimum légal 11h)`,
           suggestedFix: `Déplacer le shift du ${next.date} à partir de ${minRestEnd}`,
         })
+      }
+
+      // minor_rest_daily : repos quotidien 12h (14h avant 16 ans), entre deux
+      // journées distinctes uniquement (pas les coupures intra-journée).
+      if (birthDate && next.date !== curr.date) {
+        const age = ageAt(birthDate, next.date)
+        if (age < 18) {
+          const minRest = age < 16 ? 840 : 720 // 14h / 12h
+          if (gapMin >= 0 && gapMin < minRest) {
+            violations.push({
+              ruleId: 'minor_rest_daily',
+              employeeId: empId,
+              date: next.date,
+              description: `Seulement ${fmtH(gapMin)} de repos entre deux journées (min. ${age < 16 ? '14h' : '12h'} pour un mineur)`,
+              suggestedFix: 'Augmenter le repos quotidien entre les deux journées',
+            })
+          }
+        }
       }
     }
 

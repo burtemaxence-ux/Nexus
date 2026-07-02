@@ -89,6 +89,14 @@ const RULE_LABELS: Record<RuleId, string> = {
   night_work:          'Travail de nuit',
   amplitude_max:       'Amplitude journalière',
   weekly_rest_missing: 'Repos hebdomadaire',
+  hours_avg_weekly:    'Moyenne 44h/12 sem.',
+  contract_hours_exceeded: 'Dépassement contrat',
+  part_time_split:     'Coupure temps partiel',
+  minor_hours_daily:   'Mineur — 8h/jour',
+  minor_hours_weekly:  'Mineur — 35h/sem.',
+  minor_night_work:    'Mineur — travail de nuit',
+  minor_rest_daily:    'Mineur — repos quotidien',
+  minor_break:         'Mineur — pause',
 }
 
 // ── Score gauge ───────────────────────────────────────────────────────────────

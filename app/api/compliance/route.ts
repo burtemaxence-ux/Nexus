@@ -46,8 +46,9 @@ export async function GET(req: NextRequest) {
   const from = searchParams.get('from') ?? defaultFrom
   const to   = searchParams.get('to')   ?? defaultTo
 
-  // Fetch one day before `from` so we can check daily rest for the first day
-  const fetchFrom = new Date(new Date(from + 'T00:00:00').getTime() - 86400000)
+  // Remonter 12 semaines (84 j) avant `from` : nécessaire à la moyenne 44h sur
+  // 12 semaines glissantes (L3121-22). Couvre aussi le repos quotidien du 1er jour.
+  const fetchFrom = new Date(new Date(from + 'T00:00:00').getTime() - 84 * 86400000)
     .toISOString().split('T')[0]
 
   const [{ data: shifts }, { data: profiles }] = await Promise.all([
@@ -61,12 +62,19 @@ export async function GET(req: NextRequest) {
 
     supabaseAdmin
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, birth_date, contract_type, weekly_hours')
       .eq('establishment_id', establishmentId)
       .eq('role', 'employee'),
   ])
 
   const nameMap = new Map((profiles ?? []).map(p => [p.id, p.full_name ?? 'Employé']))
+
+  const employees = (profiles ?? []).map(p => ({
+    id: p.id,
+    birthDate: p.birth_date ?? null,
+    contractType: p.contract_type ?? null,
+    weeklyHours: p.weekly_hours ?? null,
+  }))
 
   const shiftRecords = (shifts ?? []).map(s => ({
     id: s.id,
@@ -77,10 +85,14 @@ export async function GET(req: NextRequest) {
     breakMinutes: s.break_minutes ?? 0,
   }))
 
-  const allViolations = checkCompliance(shiftRecords)
+  const allViolations = checkCompliance(shiftRecords, employees)
 
-  // Keep only violations whose date falls within the requested range
-  const inRange = allViolations.filter(v => v.date >= from && v.date <= to)
+  // Garder les violations dont la date tombe dans la plage demandée. La moyenne
+  // 44h/12 sem. (hours_avg_weekly) est datée à la fin de fenêtre, potentiellement
+  // hors plage : on la conserve toujours (max 1 par employé).
+  const inRange = allViolations.filter(
+    v => v.ruleId === 'hours_avg_weekly' || (v.date >= from && v.date <= to)
+  )
 
   const totalShifts = (shifts ?? []).filter(s => s.date >= from && s.date <= to).length
 

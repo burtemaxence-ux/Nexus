@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { checkCompliance, RULES, type ShiftRecord, type Severity } from '@/lib/compliance/rules'
+import { checkCompliance, RULES, type ShiftRecord, type EmployeeMeta, type Severity } from '@/lib/compliance/rules'
 import { getMondayOfWeek, addDays, toISODate } from '@/lib/utils/dates'
 
 const SEVERITY_TO_LEVEL: Record<Severity, 'CRITICAL' | 'WARNING' | 'INFO'> = {
@@ -38,13 +38,29 @@ export async function syncPlanningConformity(opts: {
     const monday = toISODate(getMondayOfWeek(new Date(anyDateInWeek + 'T00:00:00')))
     const sunday = toISODate(addDays(new Date(monday + 'T00:00:00'), 6))
 
-    const { data: shifts } = await supabaseAdmin
-      .from('shifts')
-      .select('id, employee_id, date, start_time, end_time, break_minutes')
-      .eq('employee_id', employeeId)
-      .gte('date', monday)
-      .lte('date', sunday)
-      .is('deleted_at', null)
+    const [{ data: shifts }, { data: profile }] = await Promise.all([
+      supabaseAdmin
+        .from('shifts')
+        .select('id, employee_id, date, start_time, end_time, break_minutes')
+        .eq('employee_id', employeeId)
+        .gte('date', monday)
+        .lte('date', sunday)
+        .is('deleted_at', null),
+      supabaseAdmin
+        .from('profiles')
+        .select('id, birth_date, contract_type, weekly_hours')
+        .eq('id', employeeId)
+        .maybeSingle(),
+    ])
+
+    const employees: EmployeeMeta[] = profile
+      ? [{
+          id: profile.id,
+          birthDate: profile.birth_date ?? null,
+          contractType: profile.contract_type ?? null,
+          weeklyHours: profile.weekly_hours ?? null,
+        }]
+      : []
 
     const records: ShiftRecord[] = (shifts ?? []).map((s: {
       id: string; employee_id: string; date: string
@@ -58,7 +74,7 @@ export async function syncPlanningConformity(opts: {
       breakMinutes: s.break_minutes ?? 0,
     }))
 
-    const violations = checkCompliance(records)
+    const violations = checkCompliance(records, employees)
 
     // Remplacement idempotent de l'instantané de la semaine pour cet employé.
     await supabaseAdmin
