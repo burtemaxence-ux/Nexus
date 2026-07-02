@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { ScrollText } from 'lucide-react'
 import ComplianceClient from './compliance-client'
 import { PageHeader } from '@/components/ui/page-header'
 
@@ -26,6 +28,15 @@ export default async function CompliancePage() {
         title="Conformité légale"
         subtitle="Détection automatique des anomalies par rapport au Code du travail français."
       />
+      <div className="mb-4">
+        <Link
+          href="/manager/compliance/journal"
+          className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--accent)] hover:underline"
+        >
+          <ScrollText className="h-4 w-4" />
+          Journal de conformité (trace horodatée)
+        </Link>
+      </div>
       <ComplianceClient />
     </div>
   )
