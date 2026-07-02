@@ -209,7 +209,7 @@ export async function POST(req: Request) {
     { data: postes },
     { data: settings },
   ] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false).limit(200),
+    supabase.from('profiles').select('id, full_name, position, contract_type, weekly_hours, birth_date').eq('role', 'employee').eq('archived', false).limit(200),
     supabase.from('leave_requests')
       .select('employee_id, type, start_date, end_date, profiles(full_name)')
       .lte('start_date', weekEndStr)
@@ -224,6 +224,14 @@ export async function POST(req: Request) {
   const posteMap = Object.fromEntries((postes ?? []).map(p => [p.id, p]))
   const employeeNameMap = Object.fromEntries((employees ?? []).map(e => [e.id, e.full_name ?? e.id]))
   const employeePositionMap = Object.fromEntries((employees ?? []).map(e => [e.id, e.position ?? null]))
+  // Métadonnées pour le réparateur de conformité (mineurs, temps partiel,
+  // heures contractuelles) : le filet de sécurité retire les créneaux illégaux.
+  const repairMeta = (employees ?? []).map(e => ({
+    id: e.id,
+    birthDate: e.birth_date ?? null,
+    contractType: e.contract_type ?? null,
+    weeklyHours: e.weekly_hours ?? null,
+  }))
 
   // Map employees on leave per day
   type LeaveRow = { employee_id: string; type: string; start_date: string; end_date: string; profiles: unknown }
@@ -286,7 +294,7 @@ export async function POST(req: Request) {
 
     // Filet de sécurité : garantit zéro infraction actionnable (no-op sur la
     // sortie du solveur, déjà conforme par construction).
-    const { shifts: cleaned } = repairPlan(enriched)
+    const { shifts: cleaned } = repairPlan(enriched, repairMeta)
 
     // Coût main d'œuvre estimé (premium).
     let algoCost = 0
@@ -436,7 +444,7 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
   // Filet de sécurité conformité : l'IA peut proposer des créneaux en
   // infraction (repos, 10h/jour, 6 jours…). On retire les fautifs pour que le
   // planning appliqué soit propre — le manager complète ensuite.
-  const { shifts: cleanedAi } = repairPlan(proposedShifts)
+  const { shifts: cleanedAi } = repairPlan(proposedShifts, repairMeta)
 
   // Coût main d'œuvre estimé du planning proposé → ratio coût/CA estimé (premium).
   let estimatedCost = 0
