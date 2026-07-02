@@ -175,14 +175,17 @@ export async function POST(req: Request) {
     if (tier === 'essential') {
       // DB-backed monthly quota: authoritative and persistent (unlike KV/in-memory,
       // which was bypassable across serverless instances).
-      const { data: quota, error: quotaErr } = await supabase.rpc('consume_ai_credit', { p_limit: 3 })
+      // On VÉRIFIE ici (lecture seule) sans décompter : le crédit n'est débité
+      // qu'après une génération réussie (cf. plus bas). Sinon un échec LLM (502)
+      // brûlerait un des 3 crédits mensuels pour rien.
+      const { data: used, error: quotaErr } = await supabase.rpc('get_ai_usage', { p_feature: 'plan' })
       if (quotaErr) {
         return Response.json(
           { error: "Impossible de vérifier votre quota IA pour le moment. Réessayez dans un instant." },
           { status: 503 }
         )
       }
-      if (quota && (quota as { allowed: boolean }).allowed === false) {
+      if (typeof used === 'number' && used >= 3) {
         return Response.json(
           { error: 'Quota IA atteint', upgrade_url: '/manager/settings/billing' },
           { status: 402 }
@@ -447,10 +450,12 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     ? Math.round((estimatedCost / eco.forecastTotal) * 100)
     : null
 
-  // Compteur de génération IA. Le plan Essentiel a déjà été décompté en amont
-  // (gate à 3/mois) ; les autres plans sont enregistrés ici (succès seulement).
-  if (tier !== 'essential') {
-    try { await supabase.rpc('consume_ai_credit', { p_limit: 1_000_000, p_feature: 'plan' }) } catch { /* non bloquant */ }
+  // Compteur de génération IA, décompté ici uniquement après une génération
+  // réussie. Le plan Essentiel applique sa limite de 3/mois (le RPC est atomique
+  // et re-plafonne en cas de course) ; les autres plans sont juste enregistrés.
+  {
+    const consumeLimit = tier === 'essential' ? 3 : 1_000_000
+    try { await supabase.rpc('consume_ai_credit', { p_limit: consumeLimit, p_feature: 'plan' }) } catch { /* non bloquant */ }
   }
 
   return Response.json({
