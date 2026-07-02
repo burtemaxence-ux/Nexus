@@ -1,6 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import { ShiftUpdateSchema, validationError } from '@/lib/validations'
+import { syncPlanningConformity } from '@/lib/compliance/persist'
+import { getMondayOfWeek, toISODate } from '@/lib/utils/dates'
 import { NextRequest, NextResponse } from 'next/server'
+
+// Recalcule et persiste la conformité planning des couples (employé, semaine)
+// touchés par une écriture. Dédup par semaine ISO ; non bloquant.
+async function syncTouchedWeeks(
+  establishmentId: string,
+  touched: Array<{ employeeId?: string | null; date?: string | null }>,
+) {
+  const pairs = new Map<string, { employeeId: string; anyDateInWeek: string }>()
+  for (const { employeeId, date } of touched) {
+    if (!employeeId || !date) continue
+    const monday = toISODate(getMondayOfWeek(new Date(date + 'T00:00:00')))
+    const key = `${employeeId}|${monday}`
+    if (!pairs.has(key)) pairs.set(key, { employeeId, anyDateInWeek: date })
+  }
+  await Promise.all(
+    Array.from(pairs.values()).map((p) => syncPlanningConformity({ establishmentId, ...p })),
+  )
+}
 
 async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
@@ -62,6 +82,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Aucune donnée à mettre à jour' }, { status: 400 })
     }
 
+    // État avant modif : nécessaire pour rafraîchir aussi la semaine/employé
+    // d'origine si le shift change de jour ou d'employé.
+    const { data: before } = await supabase
+      .from('shifts')
+      .select('employee_id, date')
+      .eq('id', id)
+      .eq('establishment_id', estId)
+      .maybeSingle()
+
     const { error } = await supabase
       .from('shifts')
       .update(updateData)
@@ -72,6 +101,15 @@ export async function PATCH(
       console.error('[shifts PATCH] error:', error)
       return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
+
+    // Trace de conformité planning (non bloquant) : ancien et nouvel état.
+    await syncTouchedWeeks(estId, [
+      { employeeId: before?.employee_id, date: before?.date },
+      {
+        employeeId: (updateData.employee_id as string | undefined) ?? before?.employee_id,
+        date: (updateData.date as string | undefined) ?? before?.date,
+      },
+    ])
 
     return NextResponse.json({ success: true })
   } catch (err) {
@@ -102,6 +140,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'ID du créneau requis' }, { status: 400 })
     }
 
+    // État avant suppression : pour rafraîchir la conformité de la semaine.
+    const { data: before } = await supabase
+      .from('shifts')
+      .select('employee_id, date')
+      .eq('id', id)
+      .eq('establishment_id', estId)
+      .is('deleted_at', null)
+      .maybeSingle()
+
     // Soft delete — shift stays in DB for audit trail and lateness references
     const { error } = await supabase
       .from('shifts')
@@ -113,6 +160,12 @@ export async function DELETE(
     if (error) {
       console.error('[shifts DELETE] error:', error)
       return NextResponse.json({ error: 'Erreur lors de la suppression du shift' }, { status: 500 })
+    }
+
+    // Trace de conformité planning (non bloquant) : la suppression peut lever
+    // une violation → l'instantané de la semaine est recalculé.
+    if (before) {
+      await syncTouchedWeeks(estId, [{ employeeId: before.employee_id, date: before.date }])
     }
 
     return NextResponse.json({ success: true })

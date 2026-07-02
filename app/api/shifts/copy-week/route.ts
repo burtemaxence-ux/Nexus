@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { syncPlanningConformity } from '@/lib/compliance/persist'
 import { NextRequest, NextResponse } from 'next/server'
 
 function addDays(dateStr: string, days: number): string {
@@ -25,13 +26,15 @@ export async function POST(request: NextRequest) {
     // Verify the user is a manager
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, establishment_id, active_establishment_id')
       .eq('id', user.id)
       .single()
 
     if (profileError || !profile || !['manager', 'supervisor'].includes(profile.role)) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
+
+    const establishmentId = profile.active_establishment_id ?? profile.establishment_id ?? null
 
     const body = await request.json()
     const { from_monday } = body as { from_monday: string }
@@ -108,6 +111,17 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error('[copy-week POST] error:', insertError)
       return NextResponse.json({ error: insertError.message }, { status: 500 })
+    }
+
+    // Trace de conformité planning (non bloquant) : une synchro par employé
+    // touché sur la semaine cible (toMonday appartient à cette semaine ISO).
+    if (establishmentId) {
+      const employees = Array.from(new Set(newShifts.map((s) => s.employee_id)))
+      await Promise.all(
+        employees.map((employeeId) =>
+          syncPlanningConformity({ establishmentId, employeeId, anyDateInWeek: toMonday }),
+        ),
+      )
     }
 
     return NextResponse.json({ copied: inserted?.length ?? 0 }, { status: 201 })

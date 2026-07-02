@@ -26,6 +26,10 @@ export async function GET(_req: NextRequest) {
     `)
     .eq('establishment_id', establishmentId)
     .eq('status', 'active')
+    // La conformité planning (type 'planning_conformity') est déjà affichée en
+    // direct sur la page Alertes via checkCompliance ; on l'exclut ici pour ne
+    // pas dupliquer. Les lignes persistées servent de trace serveur / audit.
+    .neq('type', 'planning_conformity')
     .or(`ignored_until.is.null,ignored_until.lt.${now}`)
     .order('created_at', { ascending: false })
 

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireAuth, requireManager } from '@/lib/api-auth'
 import { ShiftSchema, validationError } from '@/lib/validations'
 import { fireWebhook } from '@/lib/integrations/webhook'
+import { syncPlanningConformity } from '@/lib/compliance/persist'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -102,6 +103,11 @@ export async function POST(request: NextRequest) {
           })
         void empName
       })
+    }
+
+    // Trace de conformité planning (non bloquant — ne bloque jamais la sauvegarde).
+    if (establishmentId) {
+      await syncPlanningConformity({ establishmentId, employeeId: employee_id, anyDateInWeek: date })
     }
 
     return NextResponse.json({ shift: data }, { status: 201 })
