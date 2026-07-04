@@ -26,7 +26,23 @@ export async function getSubscription(
     .select('id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_end, cancel_at_period_end, trial_end')
     .eq('establishment_id', establishmentId)
     .maybeSingle()
-  return data as SubscriptionRow | null
+
+  const own = data as SubscriptionRow | null
+
+  // Cet établissement a son propre abonnement actif → on le renvoie tel quel.
+  if (isEntitledStatus(own?.status)) return own
+
+  // Sinon, Multi-site : un plan Multi-site du propriétaire couvre TOUS ses
+  // établissements (présents et futurs). On hérite alors de cet abonnement.
+  const { data: multi } = await supabase.rpc('owner_multisite_subscription', {
+    p_establishment_id: establishmentId,
+  })
+  const m = (Array.isArray(multi) ? multi[0] : multi) as Omit<SubscriptionRow, 'id'> | undefined
+  if (m) {
+    return { id: own?.id ?? '', ...m }
+  }
+
+  return own
 }
 
 /**

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
-import { isEntitledStatus, TRIAL_DAYS } from '@/lib/subscription'
+import { isEntitledStatus, TRIAL_DAYS, getSubscription } from '@/lib/subscription'
 import { AppShell } from '@/components/ui/app-shell'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { PaywallGate } from '@/components/ui/paywall-gate'
@@ -95,11 +95,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let pastDueBanner: ReactNode | null = null
   let currentPlan: string | undefined
   if (isManagerOrSupervisor && activeEstablishmentId) {
-    const { data: sub } = await supabase
-      .from('subscriptions')
-      .select('status, trial_end, plan')
-      .eq('establishment_id', activeEstablishmentId)
-      .maybeSingle()
+    // getSubscription résout aussi le Multi-site (couvre tous les établissements
+    // du même propriétaire), pas seulement l'abonnement de cet établissement.
+    const sub = await getSubscription(supabase, activeEstablishmentId)
 
     // Plan label shown in the account menu.
     const planLabels: Record<string, string> = { essential: 'Essentiel', pro: 'Pro', multisite: 'Multi-site' }
