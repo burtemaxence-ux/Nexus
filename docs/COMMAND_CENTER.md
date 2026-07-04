@@ -55,10 +55,14 @@ Adresse : **https://quartzbase.fr/admin** — réservé à toi.
 L'accès est filtré par email : seuls les emails listés dans la variable
 `OPERATOR_EMAILS` peuvent l'ouvrir (les autres sont redirigés). Tu y trouves :
 
+- **KPIs** — nombre de clients, clients payants, en essai, non activés, nouveaux cette semaine, employés gérés, MRR estimé, signalements ouverts.
+- **À relancer** — deux listes automatiques : clients inscrits mais **pas encore activés** (aucun planning créé), et **essais qui se terminent** dans ≤ 7 jours.
 - **Santé des services** — pastilles vert/rouge (base, emails, IA, push, paiements, crons, monitoring, alertes). Un rouge = une variable d'environnement manquante.
-- **Clients** — la liste des établissements avec leur plan et statut d'abonnement.
+- **Clients** — liste enrichie (proprio, employés, plannings, statut, dernière activité) avec **recherche** et **tri**. Clique une ligne → **fiche client détaillée** (`/admin/clients/[id]`) : abonnement, équipe, activité.
 - **Signalements** — tout ce qui arrive via le bouton « Signaler un problème », avec un bouton *Résolu* pour faire le tri.
 - **Tester une alerte** — envoie une alerte de test pour vérifier que tu reçois bien les notifications.
+
+> Techniquement, les chiffres viennent d'une fonction SQL agrégée `admin_client_overview()` (migration 043), verrouillée au service role — aucun client ne peut y accéder.
 
 ### Bouton « Signaler un problème »
 
