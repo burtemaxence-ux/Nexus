@@ -27,7 +27,7 @@ async function getHealth() {
       Paiements: !!process.env.STRIPE_SECRET_KEY,
       'Crons (tâches auto)': !!process.env.CRON_SECRET,
       'Monitoring (Sentry)': !!process.env.NEXT_PUBLIC_SENTRY_DSN,
-      'Alertes (Slack/email)': !!(process.env.SLACK_WEBHOOK_URL || process.env.RESEND_API_KEY),
+      'Alertes (Slack/email)': !!(process.env.SLACK_WEBHOOK_URL || process.env.OPS_RESEND_API_KEY || process.env.RESEND_API_KEY),
     } as Record<string, boolean>,
   }
 }

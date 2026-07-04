@@ -19,7 +19,7 @@ export async function POST() {
 
   const channels = [
     process.env.SLACK_WEBHOOK_URL ? 'Slack' : null,
-    process.env.RESEND_API_KEY ? 'email' : null,
+    (process.env.OPS_RESEND_API_KEY || process.env.RESEND_API_KEY) ? 'email' : null,
   ].filter(Boolean)
 
   return NextResponse.json({ ok: true, channels })

@@ -79,7 +79,7 @@ et son navigateur, puis :
 1. **Alertes internes (déjà branchées dans le code).** Il suffit de configurer un canal
    dans les variables d'environnement Vercel :
    - `SLACK_WEBHOOK_URL` → tu reçois les alertes sur Slack, **ou**
-   - `RESEND_API_KEY` + `OPS_ALERT_EMAIL` → tu les reçois par email.
+   - `OPS_RESEND_API_KEY` (clé Resend dédiée au back-office) + `OPS_ALERT_EMAIL` → tu les reçois par email. À défaut de clé dédiée, `RESEND_API_KEY` (celle des emails clients) est réutilisée.
    - Vérifie que ça marche : `/admin` → bouton **Tester une alerte**.
 
 2. **Surveillance de disponibilité (uptime).** Crée un moniteur gratuit (UptimeRobot ou

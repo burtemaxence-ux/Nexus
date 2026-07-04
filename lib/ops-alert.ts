@@ -25,7 +25,8 @@ export async function notifyOps({ subject, body }: { subject: string; body: stri
     )
   }
 
-  const apiKey = process.env.RESEND_API_KEY
+  // Clé dédiée au back-office si fournie, sinon la clé Resend de l'app.
+  const apiKey = process.env.OPS_RESEND_API_KEY ?? process.env.RESEND_API_KEY
   if (apiKey) {
     const to = process.env.OPS_ALERT_EMAIL ?? FALLBACK_OPS_EMAIL
     const from = process.env.RESEND_FROM_EMAIL ?? 'Quartzbase <noreply@quartzbase.fr>'
