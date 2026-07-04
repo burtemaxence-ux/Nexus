@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
+import { isOperator } from '@/lib/operator'
 
 // Pages publiques marketing (groupe app/(public)) accessibles sans connexion.
 const PUBLIC_MARKETING_PAGES = [
@@ -48,6 +49,16 @@ export async function middleware(request: NextRequest) {
 
     // Laisser passer la page de création de mot de passe sans redirect
     if (pathname === '/auth/set-password') {
+      return supabaseResponse
+    }
+
+    // Back-office opérateur : réservé aux emails listés dans OPERATOR_EMAILS
+    if (pathname.startsWith('/admin')) {
+      if (!isOperator(user.email)) {
+        const url = request.nextUrl.clone()
+        url.pathname = role === 'employee' ? '/employee' : '/manager'
+        return NextResponse.redirect(url)
+      }
       return supabaseResponse
     }
 

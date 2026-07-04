@@ -6,6 +6,7 @@ import { AppShell } from '@/components/ui/app-shell'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { PaywallGate } from '@/components/ui/paywall-gate'
 import { PastDueBanner } from '@/components/ui/past-due-banner'
+import { ReportButton } from '@/components/support/report-button'
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient()
@@ -145,6 +146,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         {pastDueBanner}
         {paywallGate ?? children}
       </ErrorBoundary>
+      <ReportButton />
     </AppShell>
   )
 }

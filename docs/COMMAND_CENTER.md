@@ -46,6 +46,53 @@ Avant de plonger, réponds à ces 3 questions — elles orientent 90 % des cas :
 
 ---
 
+## 🧰 Tes outils opérateur (dans l'app)
+
+### Back-office `/admin`
+
+Adresse : **https://quartzbase.fr/admin** — réservé à toi.
+
+L'accès est filtré par email : seuls les emails listés dans la variable
+`OPERATOR_EMAILS` peuvent l'ouvrir (les autres sont redirigés). Tu y trouves :
+
+- **Santé des services** — pastilles vert/rouge (base, emails, IA, push, paiements, crons, monitoring, alertes). Un rouge = une variable d'environnement manquante.
+- **Clients** — la liste des établissements avec leur plan et statut d'abonnement.
+- **Signalements** — tout ce qui arrive via le bouton « Signaler un problème », avec un bouton *Résolu* pour faire le tri.
+- **Tester une alerte** — envoie une alerte de test pour vérifier que tu reçois bien les notifications.
+
+### Bouton « Signaler un problème »
+
+Un bouton flottant (🛟, en bas à droite) présent sur **toutes les pages connectées**.
+Quand un client clique et décrit son souci, on capture **automatiquement** la page (URL)
+et son navigateur, puis :
+1. le signalement est enregistré et visible dans `/admin` ;
+2. tu reçois une **alerte** (Slack et/ou email) immédiatement.
+
+→ Fini le ping-pong « quelle page ? quel message ? » : tu as déjà le contexte.
+
+---
+
+## 🔔 Mettre en place les alertes (à faire une fois)
+
+**But : être prévenu AVANT le client.** Trois niveaux, du plus simple au plus complet :
+
+1. **Alertes internes (déjà branchées dans le code).** Il suffit de configurer un canal
+   dans les variables d'environnement Vercel :
+   - `SLACK_WEBHOOK_URL` → tu reçois les alertes sur Slack, **ou**
+   - `RESEND_API_KEY` + `OPS_ALERT_EMAIL` → tu les reçois par email.
+   - Vérifie que ça marche : `/admin` → bouton **Tester une alerte**.
+
+2. **Surveillance de disponibilité (uptime).** Crée un moniteur gratuit (UptimeRobot ou
+   Better Stack) qui appelle **https://quartzbase.fr/api/health** toutes les 1–5 min.
+   S'il ne répond pas ou renvoie `degraded`, tu reçois un SMS/email. C'est ce qui te
+   prévient si **tout le site tombe**.
+
+3. **Alertes Sentry.** Dans Sentry → *Alerts* → crée une règle « nouvelle erreur » et
+   « pic d'erreurs » → notification email/Slack. Comme le code envoie déjà les erreurs
+   (y compris celles des crons) à Sentry, ça couvre aussi les tâches automatiques.
+
+---
+
 ## 🩺 Playbooks par symptôme
 
 ### Playbook A — « Le site est cassé, lent, ou renvoie une erreur »
