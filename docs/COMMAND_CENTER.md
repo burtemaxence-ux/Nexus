@@ -247,6 +247,26 @@ Ces variables, si mal configurées, **ne provoquent aucune erreur visible** — 
 
 ---
 
+## 💳 Avant d'encaisser — checklist Stripe (à faire une fois)
+
+Le code Stripe est prêt (checkout, webhook idempotent, portail, verrou d'accès par
+plan). Mais **aucun vrai paiement n'a encore circulé** — à activer avant le lancement :
+
+1. **Déclarer le webhook** dans Stripe → *Developers → Webhooks → Add endpoint* :
+   - URL : `https://quartzbase.fr/api/stripe/webhook`
+   - Événements : `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`
+2. **`STRIPE_WEBHOOK_SECRET`** (le `whsec_…` du webhook ci-dessus) dans Vercel. Sans lui, **tous les paiements sont ignorés en silence** (l'abonnement client ne se met jamais à jour).
+3. **Les 6 IDs de prix** `STRIPE_PRICE_ESSENTIAL/PRO/MULTISITE_MONTHLY|YEARLY` dans Vercel (depuis tes produits Stripe). Manquant → le checkout renvoie « Plan non configuré ».
+4. **Même mode partout** : `STRIPE_SECRET_KEY`, les IDs de prix et le webhook doivent être **tous en Test ou tous en Live**. Un mélange = panne silencieuse.
+5. **Test de bout en bout** (mode test) : fais un achat → une ligne doit apparaître dans `subscriptions` **avec** `stripe_subscription_id`, et une ligne dans `stripe_webhook_events`.
+
+> Rappel technique : la table `subscriptions` utilise le vocabulaire du code —
+> `plan` ∈ `free/essential/pro/multisite`, `status` = statut Stripe brut. Aligné
+> par la migration 044 (avant, la base refusait `essential`/`multisite`/`free` et
+> faisait échouer le webhook).
+
+---
+
 ## 🚀 Corriger & déployer un bug
 
 Rappel du réflexe qualité (voir `CLAUDE.md`) : **reproduis avant de corriger.**
