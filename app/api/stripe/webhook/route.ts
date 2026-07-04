@@ -2,14 +2,7 @@ export const runtime = 'nodejs'
 
 import type Stripe from 'stripe'
 import { NextRequest, NextResponse } from 'next/server'
-import { getStripe, STRIPE_PRICES } from '@/lib/stripe'
-
-function resolvePlan(priceId: string): string {
-  if (priceId === STRIPE_PRICES.essential_monthly || priceId === STRIPE_PRICES.essential_yearly) return 'essential'
-  if (priceId === STRIPE_PRICES.pro_monthly || priceId === STRIPE_PRICES.pro_yearly) return 'pro'
-  if (priceId === STRIPE_PRICES.multisite_monthly || priceId === STRIPE_PRICES.multisite_yearly) return 'multisite'
-  return 'free'
-}
+import { getStripe, resolvePlan } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { markFirstMonthGranted, churnReferral, applyReferralDiscount } from '@/lib/referral'
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { isEntitledStatus, remainingTrialDays, TRIAL_DAYS } from './subscription'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { isEntitledStatus, remainingTrialDays, TRIAL_DAYS, getSubscription } from './subscription'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -49,5 +50,61 @@ describe('remainingTrialDays', () => {
   it('accepte une date ISO en entrée', () => {
     const day10 = new Date(created.getTime() + 10 * DAY)
     expect(remainingTrialDays('2026-01-01T00:00:00Z', day10)).toBe(TRIAL_DAYS - 10)
+  })
+})
+
+// ── getSubscription — résolution Multi-site au niveau propriétaire ─────────────
+// Mock Supabase minimal : `own` = abonnement propre de l'établissement,
+// `multi` = résultat du RPC owner_multisite_subscription (tableau).
+function makeSupabase(
+  own: Record<string, unknown> | null,
+  multi: Record<string, unknown>[],
+  onRpc?: () => void,
+): SupabaseClient {
+  return {
+    from: () => ({
+      select: () => ({
+        eq: () => ({ maybeSingle: async () => ({ data: own }) }),
+      }),
+    }),
+    rpc: async () => { onRpc?.(); return { data: multi } },
+  } as unknown as SupabaseClient
+}
+
+const MULTI = {
+  plan: 'multisite', status: 'active', trial_end: null,
+  current_period_end: null, cancel_at_period_end: false,
+  stripe_customer_id: 'cus_1', stripe_subscription_id: 'sub_1',
+}
+
+describe('getSubscription — Multi-site', () => {
+  it('renvoie l\'abonnement propre s\'il est actif, sans appeler le RPC', async () => {
+    let rpcCalled = false
+    const supa = makeSupabase({ id: 's1', plan: 'pro', status: 'active' }, [], () => { rpcCalled = true })
+    const sub = await getSubscription(supa, 'est-A')
+    expect(sub?.plan).toBe('pro')
+    expect(rpcCalled).toBe(false)
+  })
+
+  it('hérite du Multi-site du propriétaire quand l\'établissement n\'a pas d\'abonnement', async () => {
+    const sub = await getSubscription(makeSupabase(null, [MULTI]), 'est-B')
+    expect(sub?.plan).toBe('multisite')
+    expect(sub?.status).toBe('active')
+  })
+
+  it('hérite du Multi-site même si l\'abonnement propre est non entitlé (canceled)', async () => {
+    const sub = await getSubscription(makeSupabase({ id: 's2', plan: 'essential', status: 'canceled' }, [MULTI]), 'est-C')
+    expect(sub?.plan).toBe('multisite')
+  })
+
+  it('garde l\'abonnement propre non entitlé si le propriétaire n\'a pas de Multi-site', async () => {
+    const sub = await getSubscription(makeSupabase({ id: 's3', plan: 'essential', status: 'canceled' }, []), 'est-D')
+    expect(sub?.status).toBe('canceled')
+    expect(sub?.plan).toBe('essential')
+  })
+
+  it('renvoie null quand il n\'y a ni abonnement ni Multi-site', async () => {
+    const sub = await getSubscription(makeSupabase(null, []), 'est-E')
+    expect(sub).toBeNull()
   })
 })
