@@ -52,7 +52,9 @@ export function ReportButton() {
         <button
           aria-label="Signaler un problème"
           title="Signaler un problème"
-          className="fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95 sm:bottom-6 sm:right-6"
+          // Bas-gauche : évite le chatbot (bas-droite). Aligné sur sa hauteur
+          // (bottom-[80px] mobile pour passer au-dessus de la bottom nav, bottom-6 desktop).
+          className="fixed bottom-[80px] left-4 z-40 flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95 md:bottom-6"
           style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
         >
           <LifeBuoy className="h-5 w-5" />
