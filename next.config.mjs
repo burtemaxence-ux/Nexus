@@ -14,7 +14,7 @@ const cspReportOnly = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.supabase.co",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://api.stripe.com https://va.vercel-scripts.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://api.stripe.com https://va.vercel-scripts.com",
   "frame-src https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com",
   // Violations are POSTed to /api/csp-report (legacy report-uri + modern report-to).
   "report-uri /api/csp-report",
@@ -23,6 +23,8 @@ const cspReportOnly = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Active le hook instrumentation.ts (init Sentry serveur/edge) sur Next 14.
+  experimental: { instrumentationHook: true },
   async headers() {
     return [
       {
