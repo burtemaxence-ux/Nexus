@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 import type { Shift } from '@/types'
 
 function getSecret(): string {
@@ -7,24 +7,42 @@ function getSecret(): string {
   return s
 }
 
-export function generateCalendarToken(employeeId: string): string {
-  const hmac = createHmac('sha256', getSecret()).update(employeeId).digest('hex').slice(0, 16)
-  return employeeId.replace(/-/g, '') + hmac
+/**
+ * Le token est versionné par profil (profiles.calendar_token_version) pour être
+ * révocable : incrémenter la version invalide tous les liens émis avant.
+ * Version 1 = format historique (HMAC de l'id seul) — les liens déjà
+ * distribués restent valides tant que l'employé ne régénère pas.
+ */
+function tokenSignature(employeeId: string, version: number): string {
+  const payload = version <= 1 ? employeeId : `${employeeId}:v${version}`
+  return createHmac('sha256', getSecret()).update(payload).digest('hex').slice(0, 16)
 }
 
-export function parseCalendarToken(token: string): string | null {
+export function generateCalendarToken(employeeId: string, version = 1): string {
+  return employeeId.replace(/-/g, '') + tokenSignature(employeeId, version)
+}
+
+/**
+ * Extrait l'id employé candidat d'un token bien formé — SANS vérifier la
+ * signature. Le contrôle d'accès se fait ensuite via verifyCalendarToken()
+ * avec la version stockée sur le profil.
+ */
+export function extractCalendarEmployeeId(token: string): string | null {
   if (!/^[0-9a-f]{48}$/.test(token)) return null
   const idRaw = token.slice(0, 32)
-  const sig = token.slice(32)
-  const employeeId = [
+  return [
     idRaw.slice(0, 8),
     idRaw.slice(8, 12),
     idRaw.slice(12, 16),
     idRaw.slice(16, 20),
     idRaw.slice(20),
   ].join('-')
-  const expected = createHmac('sha256', getSecret()).update(employeeId).digest('hex').slice(0, 16)
-  return sig === expected ? employeeId : null
+}
+
+export function verifyCalendarToken(token: string, employeeId: string, version = 1): boolean {
+  const sig = Buffer.from(token.slice(32))
+  const expected = Buffer.from(tokenSignature(employeeId, version))
+  return sig.length === expected.length && timingSafeEqual(sig, expected)
 }
 
 function icsEscape(s: string): string {

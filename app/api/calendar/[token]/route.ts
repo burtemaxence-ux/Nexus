@@ -1,30 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { parseCalendarToken, generateICS } from '@/lib/integrations/ical'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { extractCalendarEmployeeId, verifyCalendarToken, generateICS } from '@/lib/integrations/ical'
 import type { Shift } from '@/types'
 
+// Flux consommé par Google/Apple Calendar : pas de cookies, pas de session.
+// Le contrôle d'accès EST le token (HMAC versionné par profil — révocable via
+// /api/calendar/regenerate). Les lectures passent par le service role : la RLS
+// (réservée au rôle authenticated) rendrait le flux vide pour un lecteur anonyme.
 export async function GET(_req: NextRequest, { params }: { params: { token: string } }) {
   try {
-    const employeeId = parseCalendarToken(params.token)
+    const employeeId = extractCalendarEmployeeId(params.token)
     if (!employeeId) {
       return new NextResponse('Token invalide', { status: 401 })
     }
 
-    const supabase = await createClient()
+    const { data: profileData } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name, email, establishment_id, calendar_token_version')
+      .eq('id', employeeId)
+      .maybeSingle()
 
-    const [{ data: profileData }, { data: shiftsData }, { data: orgData }] = await Promise.all([
-      supabase.from('profiles').select('full_name, email').eq('id', employeeId).single(),
-      supabase.from('shifts')
+    if (!profileData || !verifyCalendarToken(params.token, employeeId, profileData.calendar_token_version ?? 1)) {
+      return new NextResponse('Token invalide', { status: 401 })
+    }
+
+    const [{ data: shiftsData }, { data: orgData }] = await Promise.all([
+      supabaseAdmin.from('shifts')
         .select('*')
         .eq('employee_id', employeeId)
         .eq('status', 'published')
         .gte('date', new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10))
         .lte('date', new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10))
         .order('date', { ascending: true }),
-      supabase.from('settings').select('value').eq('key', 'organisation_name').single(),
+      supabaseAdmin.from('settings')
+        .select('value')
+        .eq('key', 'organisation_name')
+        .eq('establishment_id', profileData.establishment_id)
+        .maybeSingle(),
     ])
 
-    const employeeName = profileData?.full_name ?? profileData?.email ?? 'Employé'
+    const employeeName = profileData.full_name ?? profileData.email ?? 'Employé'
     const orgName = orgData?.value ?? 'Quartzbase'
     const shifts = (shiftsData ?? []) as Shift[]
 

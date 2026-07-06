@@ -47,15 +47,17 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
   const reqHeaders = await headers()
   const host = reqHeaders.get('host') ?? 'localhost:3000'
   const protocol = host.startsWith('localhost') ? 'http' : 'https'
-  const calendarUrl = `${protocol}://${host}/api/calendar/${generateCalendarToken(user.id)}`
 
   const { data: profileData } = await supabase
     .from('profiles')
-    .select('id, email, full_name, role, position, created_at')
+    .select('id, email, full_name, role, position, created_at, calendar_token_version')
     .eq('id', user.id)
     .single()
 
-  const employee: Profile = profileData as Profile ?? {
+  const tokenVersion = (profileData as { calendar_token_version?: number } | null)?.calendar_token_version ?? 1
+  const calendarUrl = `${protocol}://${host}/api/calendar/${generateCalendarToken(user.id, tokenVersion)}`
+
+  const employee: Profile = profileData as unknown as Profile ?? {
     id: user.id,
     email: user.email ?? '',
     full_name: (user.user_metadata?.full_name as string | undefined) ?? null,

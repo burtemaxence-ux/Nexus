@@ -2,7 +2,7 @@
 
 > ⚠️ **Règle d'or (audit 2026-07-06)** : un numéro = un fichier, jamais réutilisé.
 > Le test `supabase/migrations.test.ts` (exécuté par `npm run test`) fait échouer
-> la suite si deux migrations partagent un préfixe. Prochaine migration : **079**.
+> la suite si deux migrations partagent un préfixe. Prochaine migration : **080**.
 
 ## Statut prod (dernier commit référence : ea5b275)
 
@@ -240,8 +240,14 @@ compte self-service reçoit son propre établissement (`owner_id` = lui-même), 
 établissement. Appliquée via `apply_migration` et vérifiée (plus de `LIMIT 1`
 dans `pg_get_functiondef`).
 
+## 079_calendar_token_version — APPLIQUÉE (2026-07-06)
+
+`profiles.calendar_token_version int NOT NULL DEFAULT 1` : rend le lien iCal
+révocable (l'incrément invalide les tokens émis avant ; version 1 = format
+historique, liens existants toujours valides). Appliquée via `apply_migration`.
+
 ## Note sur les futures migrations
 
-La prochaine migration sera nommée **079_xxx.sql** (001→078 toutes appliquées en
+La prochaine migration sera nommée **080_xxx.sql** (001→079 toutes appliquées en
 prod, hors 034 — numéro jamais utilisé, saut assumé). Ne réutiliser aucun numéro :
 le test `supabase/migrations.test.ts` casse la CI en cas de collision.
