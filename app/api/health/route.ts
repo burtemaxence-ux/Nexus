@@ -25,6 +25,14 @@ export async function GET() {
         email: { status: process.env.RESEND_API_KEY ? 'configured' : 'missing' },
         push: { status: process.env.VAPID_PRIVATE_KEY ? 'configured' : 'missing' },
         slack: { status: process.env.SLACK_WEBHOOK_URL ? 'configured' : 'not_configured' },
+        // SMS = promesse client (« planning par SMS ») : sans Twilio, l'envoi
+        // est un no-op silencieux (lib/sms.ts) — le statut doit être visible.
+        sms: {
+          status:
+            process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER
+              ? 'configured'
+              : 'not_configured',
+        },
       },
     },
     {

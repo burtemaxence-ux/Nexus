@@ -42,7 +42,11 @@ Avant de plonger, réponds à ces 3 questions — elles orientent 90 % des cas :
 | **Stripe** | Paiements, abonnements, webhooks | https://dashboard.stripe.com |
 
 > **Health interne (public, sans login) :** https://quartzbase.fr/api/health
-> Renvoie l'état de : `database`, `ai`, `email`, `push`, `slack`.
+> Renvoie l'état de : `database`, `ai`, `email`, `push`, `slack`, `sms`.
+> `sms: not_configured` = variables `TWILIO_*` absentes → les envois SMS
+> (invitation employé, congés, planning) sont des **no-ops silencieux**
+> (`lib/sms.ts`). Tant que cette pastille n'est pas verte, ne pas promettre
+> « planning par SMS » à un client.
 
 ---
 

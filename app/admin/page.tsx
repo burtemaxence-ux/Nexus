@@ -31,6 +31,7 @@ async function getHealth() {
       'Crons (tâches auto)': !!process.env.CRON_SECRET,
       'Monitoring (Sentry)': !!process.env.NEXT_PUBLIC_SENTRY_DSN,
       'Alertes (Slack/email)': !!(process.env.SLACK_WEBHOOK_URL || process.env.OPS_RESEND_API_KEY || process.env.RESEND_API_KEY),
+      'SMS (Twilio)': !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER),
     } as Record<string, boolean>,
   }
 }
