@@ -7,7 +7,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
 import { captureError } from '@/lib/logger'
 
-// Vercel Cron : tous les vendredis à 18h00 UTC  →  "0 18 * * 5"
+// Cron RETIRÉ de vercel.json (décision M4, audit 2026-06-16) : coût IA sans
+// preuve d'usage. Route conservée pour déclenchement manuel (Bearer CRON_SECRET).
+// Pour réactiver : { "path": "/api/cron/weekly-summary-employee", "schedule": "0 18 * * 5" }
 
 const anthropic = new Anthropic()
 
