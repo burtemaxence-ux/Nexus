@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PageWrap, PageHeader, Section, CardGrid, InfoCard, FinalCta } from '@/components/public/content-page'
+import { TRIAL_DAYS } from '@/lib/subscription'
 
 export const metadata: Metadata = {
   title: 'Le Code du travail en clair',
@@ -55,7 +56,7 @@ export default function CodeDuTravailPage() {
         </p>
       </Section>
 
-      <FinalCta title="Restez en règle, automatiquement" text="Laissez Quartzbase vérifier le Code du travail à votre place. 14 jours gratuits." />
+      <FinalCta title="Restez en règle, automatiquement" text={`Laissez Quartzbase vérifier le Code du travail à votre place. ${TRIAL_DAYS} jours gratuits.`} />
     </PageWrap>
   )
 }

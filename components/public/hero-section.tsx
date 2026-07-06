@@ -5,6 +5,7 @@ import { ArrowRight } from 'lucide-react'
 import { Reveal } from '@/components/public/reveal'
 import { PlanningDemo } from '@/components/public/planning-demo'
 import { RULE_COUNT } from '@/lib/compliance/rules'
+import { TRIAL_DAYS } from '@/lib/subscription'
 
 const FONT = 'var(--font-manrope), sans-serif'
 
@@ -113,7 +114,7 @@ export function HeroSection() {
 
           {/* Réassurance */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 13.5, color: '#79828f', flexWrap: 'wrap' }}>
-            <span>14 jours gratuits</span>
+            <span>{TRIAL_DAYS} jours gratuits</span>
             <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#5a5a72' }} />
             <span>Sans carte bancaire</span>
             <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#5a5a72' }} />

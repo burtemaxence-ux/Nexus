@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Moon, Timer, CalendarDays, Coffee, CalendarRange, Sun, Clock, Gauge, Hourglass, GraduationCap, Scissors, FileText } from 'lucide-react'
 import { PageWrap, PageHeader, Section, CardGrid, InfoCard, FinalCta } from '@/components/public/content-page'
 import { RULE_COUNT } from '@/lib/compliance/rules'
+import { TRIAL_DAYS } from '@/lib/subscription'
 
 export const metadata: Metadata = {
   title: 'Conformité au Code du travail',
@@ -107,7 +108,7 @@ export default function ConformitePage() {
         </p>
       </Section>
 
-      <FinalCta title="Ne signez plus un planning à l’aveugle" text="Voyez vos infractions avant qu’elles n’arrivent. 14 jours gratuits, sans carte bancaire." />
+      <FinalCta title="Ne signez plus un planning à l’aveugle" text={`Voyez vos infractions avant qu’elles n’arrivent. ${TRIAL_DAYS} jours gratuits, sans carte bancaire.`} />
     </PageWrap>
   )
 }

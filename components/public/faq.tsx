@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Reveal } from '@/components/public/reveal'
 import { RULE_COUNT } from '@/lib/compliance/rules'
+import { TRIAL_DAYS } from '@/lib/subscription'
 
 const FONT = 'var(--font-manrope), sans-serif'
 
@@ -13,7 +14,7 @@ const FAQS = [
   { q: 'Le prix est-il vraiment justifié pour ma petite équipe ?', a: "À partir de 49€/mois, soit moins de 2€ par jour. C'est l'équivalent d'un café : pour ne plus jamais refaire un planning à la main et éviter une seule amende, c'est vite rentabilisé." },
   { q: 'Et si je suis déjà sur Excel ou un autre logiciel ?', a: "On récupère vos plannings et votre équipe sans tout ressaisir. Le changement se fait en douceur, on vous accompagne pour l'import." },
   { q: 'Mes salariés doivent-ils installer une application ?', a: "Non, c'est optionnel. Ils reçoivent leur planning par SMS ou via un simple lien. Fini les photos floues dans le groupe WhatsApp." },
-  { q: "Que se passe-t-il après les 14 jours d'essai ?", a: "Rien d'automatique. Aucune carte bancaire n'est demandée à l'inscription : vous choisissez librement de continuer, ou pas. Zéro mauvaise surprise." },
+  { q: `Que se passe-t-il après les ${TRIAL_DAYS} jours d'essai ?`, a: "Rien d'automatique. Aucune carte bancaire n'est demandée à l'inscription : vous choisissez librement de continuer, ou pas. Zéro mauvaise surprise." },
   { q: 'Puis-je arrêter quand je veux ?', a: "Oui, en 1 clic depuis votre compte. Sans engagement, sans préavis, sans frais de résiliation. Vous restez parce que ça marche, pas parce que vous êtes coincé." },
   { q: 'Est-ce vraiment conforme à la loi française ?', a: `Oui. Repos, durées maximales, pauses, travail de nuit, apprentis mineurs, temps partiel : ${RULE_COUNT} règles du Code du travail vérifiées à chaque planning, mises à jour avec la législation. Vos données sont hébergées en Europe et conformes au RGPD.` },
 ]

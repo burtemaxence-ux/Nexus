@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { PageWrap, PageHeader, Section, CardGrid, InfoCard, FinalCta } from '@/components/public/content-page'
+import { TRIAL_DAYS } from '@/lib/subscription'
 
 export const metadata: Metadata = {
   title: 'À propos de Quartzbase',
@@ -80,7 +81,7 @@ export default function AProposPage() {
         </CardGrid>
       </Section>
 
-      <FinalCta title="Faites connaissance avec l’outil" text="Le meilleur moyen de savoir si on parle votre langue, c'est d'essayer. 14 jours gratuits, sans carte bancaire." />
+      <FinalCta title="Faites connaissance avec l’outil" text={`Le meilleur moyen de savoir si on parle votre langue, c'est d'essayer. ${TRIAL_DAYS} jours gratuits, sans carte bancaire.`} />
     </PageWrap>
   )
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { UserPlus, Sparkles, Send, Clock, ListChecks, Smartphone } from 'lucide-react'
 import { PageWrap, PageHeader, Section, CardGrid, InfoCard, CheckList, FinalCta } from '@/components/public/content-page'
+import { TRIAL_DAYS } from '@/lib/subscription'
 
 export const metadata: Metadata = {
   title: 'Guide de démarrage Quartzbase',
@@ -49,7 +50,7 @@ export default function GuideDemarragePage() {
         </CardGrid>
       </Section>
 
-      <FinalCta title="Faites votre premier planning" text="10 minutes suffisent. 14 jours gratuits, sans carte bancaire, sans engagement." />
+      <FinalCta title="Faites votre premier planning" text={`10 minutes suffisent. ${TRIAL_DAYS} jours gratuits, sans carte bancaire, sans engagement.`} />
     </PageWrap>
   )
 }

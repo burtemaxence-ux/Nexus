@@ -2,6 +2,7 @@ import type { ReactNode, CSSProperties } from 'react'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { Reveal } from '@/components/public/reveal'
+import { TRIAL_DAYS } from '@/lib/subscription'
 
 const FONT = 'var(--font-manrope), sans-serif'
 
@@ -104,7 +105,7 @@ export function Placeholder({ children }: { children: ReactNode }) {
 /** Bloc CTA de conversion, réutilisé en bas des pages de contenu. */
 export function FinalCta({
   title = 'Prêt à récupérer vos soirées ?',
-  text = 'Créez votre premier planning conforme en 10 minutes. 14 jours gratuits, sans carte bancaire.',
+  text = `Créez votre premier planning conforme en 10 minutes. ${TRIAL_DAYS} jours gratuits, sans carte bancaire.`,
 }: {
   title?: string
   text?: string
