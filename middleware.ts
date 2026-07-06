@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  const { supabaseResponse, user } = await updateSession(request)
+  const { supabaseResponse, user, supabase } = await updateSession(request)
 
   // Si l'utilisateur n'est pas connecté et tente d'accéder à une route protégée
   if (!user && pathname !== '/' && pathname !== '/login' && pathname !== '/register'
@@ -45,18 +45,39 @@ export async function middleware(request: NextRequest) {
 
   // Si l'utilisateur est connecté
   if (user) {
-    const role = user.user_metadata?.role as string | undefined
-
     // Laisser passer la page de création de mot de passe sans redirect
     if (pathname === '/auth/set-password') {
       return supabaseResponse
+    }
+
+    // user_metadata est modifiable par le client (auth.updateUser) : il ne
+    // pilote plus aucune décision d'accès. Son absence signale seulement un
+    // compte self-service pas encore configuré (onboarding /manager).
+    const metaRole = user.user_metadata?.role as string | undefined
+    const onboarding = !metaRole
+
+    // Rôle autoritaire : lu en base (profiles, protégé RLS) — même source que
+    // requireManager/requireEmployee côté API. Uniquement sur les chemins où
+    // le rôle décide du routage, pour éviter une requête inutile ailleurs.
+    let role: string | undefined
+    if (
+      pathname === '/' || pathname === '/login' ||
+      pathname.startsWith('/manager') || pathname.startsWith('/employee') ||
+      pathname.startsWith('/admin')
+    ) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+      role = profile?.role ?? undefined
     }
 
     // Back-office opérateur : réservé aux emails listés dans OPERATOR_EMAILS
     if (pathname.startsWith('/admin')) {
       if (!isOperator(user.email)) {
         const url = request.nextUrl.clone()
-        url.pathname = role === 'employee' ? '/employee' : '/manager'
+        url.pathname = role === 'employee' && !onboarding ? '/employee' : '/manager'
         return NextResponse.redirect(url)
       }
       return supabaseResponse
@@ -65,21 +86,23 @@ export async function middleware(request: NextRequest) {
     // Redirect depuis /login vers le dashboard approprié
     if (pathname === '/login' || pathname === '/') {
       const url = request.nextUrl.clone()
-      url.pathname = role === 'manager' ? '/manager' : '/employee'
+      url.pathname = role === 'manager' || role === 'supervisor' || onboarding ? '/manager' : '/employee'
       return NextResponse.redirect(url)
     }
 
     // Protection des routes manager (managers et superviseurs autorisés)
-    // Un rôle indéfini (ex: nouveau compte Google) peut accéder à /manager — l'onboarding prend le relais
-    if (pathname.startsWith('/manager') && role && role !== 'manager' && role !== 'supervisor') {
+    // Un compte en onboarding (ex: nouveau compte Google) peut accéder à
+    // /manager — l'onboarding prend le relais (set-role vérifie la propriété
+    // de l'établissement avant tout upgrade).
+    if (pathname.startsWith('/manager') && !onboarding && role && role !== 'manager' && role !== 'supervisor') {
       const url = request.nextUrl.clone()
       url.pathname = '/employee'
       return NextResponse.redirect(url)
     }
 
     // Protection des routes employee (employés seulement)
-    // Un rôle indéfini peut accéder à /manager (onboarding) — pas à /employee
-    if (pathname.startsWith('/employee') && role && role !== 'employee') {
+    // Un compte en onboarding va sur /manager — pas sur /employee
+    if (pathname.startsWith('/employee') && (onboarding || (role && role !== 'employee'))) {
       const url = request.nextUrl.clone()
       url.pathname = '/manager'
       return NextResponse.redirect(url)

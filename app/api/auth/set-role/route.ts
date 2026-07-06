@@ -18,35 +18,47 @@ export async function POST() {
     .eq('id', user.id)
     .single()
 
-  if (existingProfile?.role === 'employee') {
-    return NextResponse.json(
-      { error: 'Accès refusé — action non autorisée pour un employé' },
-      { status: 403 }
-    )
-  }
-
-  if (existingProfile?.role === 'manager' && existingProfile?.establishment_id) {
+  // L'établissement du profil appartient-il à l'utilisateur ? Un employé
+  // invité n'est jamais owner ; un compte self-service (email ou Google, cf.
+  // trigger handle_new_user / migration 078) possède le sien. C'est ce signal
+  // — non falsifiable côté client — qui autorise l'upgrade en manager.
+  let ownedEstId: string | null = null
+  if (existingProfile?.establishment_id) {
     const { data: ownedEst } = await supabaseAdmin
       .from('establishments')
       .select('id')
       .eq('id', existingProfile.establishment_id)
       .eq('owner_id', user.id)
       .maybeSingle()
-    if (ownedEst) return NextResponse.json({ role: 'manager', already_setup: true })
+    ownedEstId = ownedEst?.id ?? null
   }
 
-  // Créer un établissement dédié pour ce nouveau manager Google
-  const { data: establishment, error: estError } = await supabaseAdmin
-    .from('establishments')
-    .insert({ name: 'Mon établissement', owner_id: user.id })
-    .select('id')
-    .single()
-
-  if (estError || !establishment) {
-    return NextResponse.json({ error: 'Impossible de créer l\'établissement' }, { status: 500 })
+  if (existingProfile?.role === 'employee' && !ownedEstId) {
+    return NextResponse.json(
+      { error: 'Accès refusé — action non autorisée pour un employé' },
+      { status: 403 }
+    )
   }
 
-  const estId = establishment.id
+  if (existingProfile?.role === 'manager' && ownedEstId) {
+    return NextResponse.json({ role: 'manager', already_setup: true })
+  }
+
+  // Réutiliser l'établissement possédé (créé par le trigger pour les comptes
+  // self-service), sinon en créer un dédié pour ce nouveau manager.
+  let estId = ownedEstId
+  if (!estId) {
+    const { data: establishment, error: estError } = await supabaseAdmin
+      .from('establishments')
+      .insert({ name: 'Mon établissement', owner_id: user.id })
+      .select('id')
+      .single()
+
+    if (estError || !establishment) {
+      return NextResponse.json({ error: 'Impossible de créer l\'établissement' }, { status: 500 })
+    }
+    estId = establishment.id
+  }
   const fullName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email?.split('@')[0] ?? 'Manager'
 
   // Mettre à jour le profil existant (créé par le trigger avec role='employee')

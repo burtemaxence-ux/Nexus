@@ -2,7 +2,7 @@
 
 > ⚠️ **Règle d'or (audit 2026-07-06)** : un numéro = un fichier, jamais réutilisé.
 > Le test `supabase/migrations.test.ts` (exécuté par `npm run test`) fait échouer
-> la suite si deux migrations partagent un préfixe. Prochaine migration : **078**.
+> la suite si deux migrations partagent un préfixe. Prochaine migration : **079**.
 
 ## Statut prod (dernier commit référence : ea5b275)
 
@@ -229,8 +229,19 @@ au passage l'ordre d'installation fraîche (077 indexe des tables créées en
 | `045_owner_multisite_entitlement.sql` | `076_owner_multisite_entitlement.sql` |
 | `046_perf_fk_indexes_and_rls.sql` | `077_perf_fk_indexes_and_rls.sql` |
 
+## 078_fix_handle_new_user_no_cross_tenant_fallback — APPLIQUÉE (2026-07-06)
+
+Supprime le fallback `SELECT id FROM establishments LIMIT 1` du trigger
+`handle_new_user` : un compte créé sans métadonnées (ex. Google OAuth) était
+rattaché comme employé au premier établissement de la base (accès RLS à un
+tenant étranger — latent, 0 compte concerné vérifié en prod). Désormais tout
+compte self-service reçoit son propre établissement (`owner_id` = lui-même), et
+`/api/auth/set-role` n'upgrade en manager que les comptes propriétaires de leur
+établissement. Appliquée via `apply_migration` et vérifiée (plus de `LIMIT 1`
+dans `pg_get_functiondef`).
+
 ## Note sur les futures migrations
 
-La prochaine migration sera nommée **078_xxx.sql** (001→077 toutes appliquées en
+La prochaine migration sera nommée **079_xxx.sql** (001→078 toutes appliquées en
 prod, hors 034 — numéro jamais utilisé, saut assumé). Ne réutiliser aucun numéro :
 le test `supabase/migrations.test.ts` casse la CI en cas de collision.
