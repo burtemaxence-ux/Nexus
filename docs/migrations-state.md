@@ -1,5 +1,9 @@
 # État des migrations Supabase
 
+> ⚠️ **Règle d'or (audit 2026-07-06)** : un numéro = un fichier, jamais réutilisé.
+> Le test `supabase/migrations.test.ts` (exécuté par `npm run test`) fait échouer
+> la suite si deux migrations partagent un préfixe. Prochaine migration : **078**.
+
 ## Statut prod (dernier commit référence : ea5b275)
 
 Les migrations **001 à 033** sont toutes appliquées en production.
@@ -182,7 +186,51 @@ sur `subscriptions` (advisor `duplicate_index`). Les `unused_index` (INFO) sont
 **conservés** : ce sont majoritairement les index FK de la migration 055, « unused »
 = trafic pré-lancement et non inutiles. Appliquée via `apply_migration`.
 
+## Migrations 063 → 077 — état certifié en prod (2026-07-06)
+
+Vérification directe sur le projet prod (`euvvibqzrhbleztqfdbu`) le **2026-07-06**
+via sondes `information_schema.columns` / `pg_policies` / `pg_constraint`
+(12 sondes, toutes vertes) + `list_migrations` (les 15 entrées correspondantes
+sont tracées dans `supabase_migrations.schema_migrations`) :
+
+| # | Fichier | Objet sondé | Statut prod |
+|---|---------|-------------|-------------|
+| 063 | webhook_retries_and_replay | colonnes `webhook_logs.attempts` + `payload` | ✅ |
+| 064 | restrict_sensitive_settings_read | policy `settings_read` | ✅ |
+| 065 | restrict_vapid_private_key_read | `settings_read` filtre les clés `vapid*` | ✅ |
+| 066 | fix_subscriptions_schema_drift | colonnes `trial_end`, `cancel_at_period_end`, `user_id` | ✅ |
+| 067 | employee_admin_fields | colonnes `social_security_number`, `iban`, `emergency_contact_name` | ✅ |
+| 068 | revenues | table `revenues` + policy `revenues_manage` | ✅ |
+| 069 | contract_compensation_benefits | colonnes `monthly_gross_salary`, `has_mutuelle`, `meal_voucher_value` | ✅ |
+| 070 | profiles_archived_at_avatar | colonnes `archived_at`, `avatar_url` | ✅ |
+| 071 | home_task_completions | table + 3 policies | ✅ |
+| 072 | planning_conformity_alerts *(ex-071 bis)* | contrainte `compliance_alerts_type_check` avec `planning_conformity` | ✅ |
+| 073 | support_reports *(ex-042 bis)* | table `support_reports` | ✅ (appliquée 2026-07-04) |
+| 074 | admin_client_overview *(ex-043 bis)* | fonction `admin_client_overview` | ✅ (2026-07-04) |
+| 075 | fix_subscription_plan_status_constraints *(ex-044 bis)* | contraintes `subscriptions_plan/status_check` | ✅ (2026-07-04) |
+| 076 | owner_multisite_entitlement *(ex-045 bis)* | fonction `owner_multisite_subscription` | ✅ (2026-07-04) |
+| 077 | perf_fk_indexes_and_rls *(ex-046 bis)* | index FK `support_reports`/`subscriptions`/`home_task_completions` | ✅ (2026-07-04) |
+
+### Renumérotation du 2026-07-06 (résolution des collisions)
+
+Six fichiers réutilisaient un numéro déjà pris (042-046, 071). La prod trace les
+migrations par **timestamp** (`apply_migration` MCP), pas par nom de fichier —
+le renommage repo est donc sans effet sur la prod. Les fichiers ont été
+renumérotés **en préservant l'ordre réel d'application en prod**, ce qui répare
+au passage l'ordre d'installation fraîche (077 indexe des tables créées en
+071/073 ; avec l'ancien numéro 046 il s'exécutait avant leur création) :
+
+| Ancien nom | Nouveau nom |
+|---|---|
+| `071_planning_conformity_alerts.sql` | `072_planning_conformity_alerts.sql` |
+| `042_support_reports.sql` | `073_support_reports.sql` |
+| `043_admin_client_overview.sql` | `074_admin_client_overview.sql` |
+| `044_fix_subscription_plan_status_constraints.sql` | `075_fix_subscription_plan_status_constraints.sql` |
+| `045_owner_multisite_entitlement.sql` | `076_owner_multisite_entitlement.sql` |
+| `046_perf_fk_indexes_and_rls.sql` | `077_perf_fk_indexes_and_rls.sql` |
+
 ## Note sur les futures migrations
 
-La prochaine migration sera nommée **063_xxx.sql** (056→062 appliquées).
-Ne pas réutiliser les numéros 017-021 ni 053-062 — tous appliqués en prod.
+La prochaine migration sera nommée **078_xxx.sql** (001→077 toutes appliquées en
+prod, hors 034 — numéro jamais utilisé, saut assumé). Ne réutiliser aucun numéro :
+le test `supabase/migrations.test.ts` casse la CI en cas de collision.

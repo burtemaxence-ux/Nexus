@@ -1,4 +1,4 @@
--- 045 — Multi-site : l'abonnement couvre TOUS les établissements du propriétaire.
+-- 076 — Multi-site : l'abonnement couvre TOUS les établissements du propriétaire.
 --
 -- Problème : un abonnement est rattaché à un seul establishment_id, et l'accès
 -- est vérifié par établissement actif. Résultat : un plan Multi-site ne couvrait

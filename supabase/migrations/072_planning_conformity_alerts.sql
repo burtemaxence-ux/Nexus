@@ -1,5 +1,5 @@
 -- ============================================================
--- 071 — Type d'alerte 'planning_conformity'
+-- 072 — Type d'alerte 'planning_conformity'
 -- ============================================================
 -- Ajoute le type 'planning_conformity' à compliance_alerts. Il persiste les
 -- violations de conformité planning (moteur déterministe lib/compliance/rules,

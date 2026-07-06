@@ -1,4 +1,4 @@
--- 044 — Aligne les contraintes de `subscriptions` sur le code et sur Stripe.
+-- 075 — Aligne les contraintes de `subscriptions` sur le code et sur Stripe.
 --
 -- Bug détecté : la CHECK `plan` n'autorisait que ('essentiel','pro','multi'),
 -- alors que le webhook Stripe (resolvePlan) écrit 'essential' / 'multisite' /

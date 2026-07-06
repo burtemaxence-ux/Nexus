@@ -1,4 +1,4 @@
--- 042 — Support reports (bouton « Signaler un problème »)
+-- 073 — Support reports (bouton « Signaler un problème »)
 -- Stocke les signalements envoyés par les utilisateurs depuis l'app.
 -- Lecture réservée à l'opérateur via le service role (back-office /admin).
 

@@ -1,4 +1,4 @@
--- 043 — Fonction d'agrégation pour le back-office opérateur (/admin)
+-- 074 — Fonction d'agrégation pour le back-office opérateur (/admin)
 -- Retourne une ligne enrichie par établissement (client). Verrouillée au
 -- service role : ni anon ni authenticated ne peuvent l'appeler.
 

@@ -1,4 +1,4 @@
--- 046 — Nettoyage perfs (advisors Supabase) : index de clés étrangères
+-- 077 — Nettoyage perfs (advisors Supabase) : index de clés étrangères
 -- manquants + optimisation de la policy RLS de support_reports.
 -- Purement additif / sans changement de comportement.
 
