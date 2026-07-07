@@ -39,6 +39,10 @@ next-env.d.ts
 # Claude Code
 .claude/*
 !.claude/settings.json
+# Docs de session référencées par CLAUDE.md (protocole de démarrage) — trackées.
+!.claude/COMMON_MISTAKES.md
+!.claude/QUICK_START.md
+!.claude/ARCHITECTURE_MAP.md
 !.claude/hooks/
 .claude/hooks/*
 !.claude/hooks/session-start.sh

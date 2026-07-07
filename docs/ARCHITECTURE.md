@@ -81,14 +81,14 @@ Nexus/
 │   ├── integrations/           # iCal, webhooks sortants
 │   ├── api-token.ts            # Génération/validation de tokens API
 │   ├── push.ts                 # Notifications push Web Push
-│   ├── rate-limit.ts           # Rate limiter in-memory
+│   ├── rate-limit.ts           # Rate limiter (Vercel KV + fallback in-memory)
 │   ├── validations.ts          # Schémas Zod
 │   └── utils/                  # Utilitaires dates, classes CSS
 │
 ├── types/index.ts              # Tous les types TypeScript du domaine
 ├── middleware.ts               # Auth middleware Next.js (protection des routes)
-├── supabase/migrations/        # 28 migrations SQL (historique complet)
-└── scripts/seed-demo.ts        # Script de seed de données de démonstration
+├── supabase/migrations/        # Migrations SQL (état prod : docs/migrations-state.md)
+└── scripts/check-migrations.ts # Sonde l'application des migrations en prod
 ```
 
 ---
@@ -523,7 +523,7 @@ Fichier de référence : `.env.example`
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Non** | Clé VAPID publique pour les notifications push |
 | `VAPID_PRIVATE_KEY` | Non** | Clé VAPID privée pour les notifications push |
 | `VAPID_EMAIL` | Non | Email de contact VAPID (défaut : `admin@nexus-app.fr`) |
-| `CALENDAR_SECRET` | Non | Secret HMAC pour les tokens iCal (défaut : `nexus-calendar-2024`) |
+| `CALENDAR_SECRET` | Oui* | Secret HMAC pour les tokens iCal — requis, aucune valeur par défaut |
 
 *Obligatoire pour la fonctionnalité correspondante.
 
@@ -547,17 +547,27 @@ Fichier de référence : `.env.example`
 
 ### Conformité légale (module compliance)
 
-Le moteur de conformité (`lib/compliance/rules.ts`) analyse les shifts et détecte automatiquement 7 types de violations du Code du travail français :
+Le moteur de conformité (`lib/compliance/rules.ts`) analyse les shifts et détecte automatiquement **17 types de violations** du Code du travail français (la constante exportée `RULE_COUNT` alimente la landing et la FAQ — le chiffre marketing suit le code) :
 
 | Règle | Sévérité | Référence légale |
 |---|---|---|
 | Repos quotidien < 11h | critique | Art. L3131-1 |
 | Durée quotidienne > 10h | critique | Art. L3121-18 |
 | Durée hebdomadaire > 48h | critique | Art. L3121-20 |
+| Moyenne hebdo > 44h sur 12 semaines | critique | Art. L3121-22 |
 | Pause < 20 min pour shift > 6h | warning | Art. L3121-16 |
 | Plus de 6 jours consécutifs | critique | Art. L3132-1 |
+| Repos hebdomadaire < 35h continues | critique | Art. L3132-2 |
+| Amplitude journalière > 13h | warning | Art. L3121-1 + L3131-1 |
 | Travail le dimanche | info | Art. L3132-3 |
 | Travail de nuit (21h–6h, ≥ 1h) | warning | Art. L3122-2 |
+| Dépassement des heures contractuelles | warning | Contrat (L3123-8 / L3121-28) |
+| Coupure temps partiel (> 1/jour ou > 5h) | warning | Art. L3123-29 + CCN HCR (avenant n°2 du 5 fév. 2007) |
+| Mineur — durée quotidienne > 8h | critique | Art. L3162-1 |
+| Mineur — durée hebdomadaire > 35h | critique | Art. L3162-1 |
+| Mineur — travail de nuit interdit | critique | Art. L3163-1 |
+| Mineur — repos quotidien < 12h (14h avant 16 ans) | critique | Art. L3164-1 |
+| Mineur — pause < 30 min pour 4h30 | warning | Art. L3162-3 |
 
 ### Webhooks sortants
 
@@ -590,7 +600,7 @@ L'API REST publique en `/api/v1/` est sécurisée par **Bearer token** :
 
 ### Rate limiting
 
-Implémentation in-memory (sliding window) dans `lib/rate-limit.ts`. Fonctionne par instance Node.js, donc sur Vercel (serverless), le compteur se remet à zéro sur cold start. Suffisant pour une protection de base contre l'abus.
+Implémentation dans `lib/rate-limit.ts` : **Vercel KV (Redis)** quand `KV_REST_API_URL` est configurée, avec fallback in-memory par instance (dev local, preview). Le quota IA mensuel — la limite qui compte — est de toute façon en Postgres, atomique et fail-closed (`consume_ai_credit`, migrations 048/052/060).
 
 ### Conventions de code
 
