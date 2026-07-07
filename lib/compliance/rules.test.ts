@@ -279,9 +279,20 @@ describe('temps partiel — coupure', () => {
     ]
     expect(ruleIdsMeta(shifts, [PART_TIME])).toContain('part_time_split')
   })
-  it('ne flague pas 2 créneaux (1 coupure autorisée)', () => {
-    const shifts = [shift(MON, '08:00', '12:00', 0), shift(MON, '18:00', '20:00', 0)]
+  it('ne flague pas 2 créneaux avec coupure ≤ 5h (1 coupure autorisée)', () => {
+    // Coupure 12:00 → 17:00 = 5h pile : plafond CCN HCR respecté.
+    const shifts = [shift(MON, '08:00', '12:00', 0), shift(MON, '17:00', '20:00', 0)]
     expect(ruleIdsMeta(shifts, [PART_TIME])).not.toContain('part_time_split')
+  })
+  it('flague une coupure unique > 5h (plafond CCN HCR)', () => {
+    // Coupure 12:00 → 18:00 = 6h.
+    const shifts = [shift(MON, '08:00', '12:00', 0), shift(MON, '18:00', '20:00', 0)]
+    expect(ruleIdsMeta(shifts, [PART_TIME])).toContain('part_time_split')
+  })
+  it('ne flague pas une coupure > 5h pour un temps plein', () => {
+    const full: EmployeeMeta = { id: 'emp-1', weeklyHours: 35 }
+    const shifts = [shift(MON, '08:00', '12:00', 0), shift(MON, '18:00', '20:00', 0)]
+    expect(ruleIdsMeta(shifts, [full])).not.toContain('part_time_split')
   })
   it('ne flague pas un temps plein (35h)', () => {
     const full: EmployeeMeta = { id: 'emp-1', weeklyHours: 35 }

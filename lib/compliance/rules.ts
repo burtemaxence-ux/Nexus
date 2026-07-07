@@ -142,10 +142,15 @@ export const RULES: Record<RuleId, ComplianceRule> = {
   part_time_split: {
     id: 'part_time_split',
     name: 'Coupure temps partiel',
-    description: 'Plus d\'une interruption dans la journée pour un salarié à temps partiel',
+    description: 'Plus d\'une interruption dans la journée, ou coupure de plus de 5h, pour un salarié à temps partiel',
     severity: 'warning',
-    // [À VÉRIFIER JURIDIQUEMENT] limites précises de coupure fixées par la CCN HCR.
-    legalRef: 'Art. L3123-23 Code du travail + CCN HCR',
+    // Sourcé le 2026-07-06 (Légifrance / LégiSocial) :
+    // — droit commun supplétif (L3123-29) : à défaut d'accord, au plus UNE
+    //   interruption par jour et aucune interruption > 2h ;
+    // — CCN HCR (IDCC 1979, avenant n°2 du 5 février 2007) déroge : une seule
+    //   coupure par jour, d'au plus 5h, séquences ≥ 3h, amplitude ≤ 12h.
+    // Le moteur retient le plafond HCR (cible CHR) : > 1 coupure, ou coupure > 5h.
+    legalRef: 'Art. L3123-29 Code du travail + CCN HCR (avenant n°2 du 5 février 2007)',
   },
   minor_hours_daily: {
     id: 'minor_hours_daily',
@@ -386,7 +391,9 @@ export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[
         })
       }
 
-      // ── Temps partiel : au plus 1 coupure par jour (≤ 2 créneaux) ──────────
+      // ── Temps partiel : au plus 1 coupure par jour (≤ 2 créneaux), et la
+      // coupure unique ne dépasse pas 5h (plafond CCN HCR ; le droit commun
+      // sans accord limite même à 2h — L3123-29) ─────────────────────────────
       if (isPartTime && dayShifts.length > 2) {
         violations.push({
           ruleId: 'part_time_split',
@@ -395,6 +402,18 @@ export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[
           description: `${dayShifts.length} créneaux dans la journée (> 1 coupure) pour un temps partiel`,
           suggestedFix: 'Regrouper les créneaux : au plus une interruption par jour',
         })
+      } else if (isPartTime && dayShifts.length === 2) {
+        const sorted = [...dayShifts].sort((a, b) => parseTimeMin(a.startTime) - parseTimeMin(b.startTime))
+        const gap = parseTimeMin(sorted[1].startTime) - parseTimeMin(sorted[0].endTime)
+        if (gap > 300) { // 5h = 300 min
+          violations.push({
+            ruleId: 'part_time_split',
+            employeeId: empId,
+            date,
+            description: `Coupure de ${fmtH(gap)} dans la journée pour un temps partiel (max 5h — CCN HCR)`,
+            suggestedFix: 'Réduire la coupure à 5h maximum (2h à défaut d\'accord de branche)',
+          })
+        }
       }
 
       // ── Règles mineurs (âge à la date du shift) ────────────────────────────
