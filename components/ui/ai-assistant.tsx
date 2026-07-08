@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Send, Loader2, RotateCcw, FileText, Copy, Check, Printer, CalendarCheck, CalendarX, CalendarPlus, UserPlus, CopyPlus, ArrowLeftRight, type LucideIcon } from 'lucide-react'
 import { QuartzBot } from '@/components/ui/quartz-bot-icon'
+import { AiQuotaBadge } from '@/components/ui/ai-quota-badge'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
@@ -18,12 +19,85 @@ interface Suggestion {
   message: string
 }
 
+// Renvoyé par /api/ai/context (mode manager) en plus des suggestions — sert
+// à choisir le message de la bulle contextuelle affichée bulle fermée.
+interface BubbleContext {
+  sousEffectif: number
+  planningPublie: boolean
+  nouveauCollaborateur: boolean
+}
+
 interface Props {
   establishmentName: string
   userName: string
   chatEndpoint?: string
   contextEndpoint?: string
   mode?: 'manager' | 'employee'
+  pendingLeavesCount?: number
+  alertesLegalesCount?: number
+}
+
+const NINA_GRADIENT = 'linear-gradient(135deg, #7C5CFC 0%, #B14BEB 50%, #F0629A 100%)'
+
+function partOfDay(d: Date): 'matin' | 'apres-midi' | 'soir' {
+  const h = d.getHours()
+  if (h < 12) return 'matin'
+  if (h < 18) return 'apres-midi'
+  return 'soir'
+}
+
+function isFinDeMois(d: Date): boolean {
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+  return lastDay - d.getDate() <= 3
+}
+
+// Message de la bulle de salut — un seul message, le premier dont la
+// condition est vraie, par priorité décroissante (voir handoff Nina §6).
+function buildBubbleMessage(p: {
+  prenom: string
+  premiereVisite: boolean
+  retourAbsenceJours: number
+  alertesLegales: number
+  sousEffectif: number
+  congesEnAttente: number
+  planningPublie: boolean
+  nouveauCollaborateur: boolean
+  quotaRestant: number | null
+  now: Date
+}): string {
+  const { prenom } = p
+  if (p.premiereVisite) {
+    return `Bonjour ${prenom}, moi c'est Nina. On prend deux minutes pour configurer votre première semaine ensemble ?`
+  }
+  if (p.retourAbsenceJours >= 2) {
+    return `Content de vous revoir, ${prenom}. J'ai gardé un œil sur tout — je vous fais le résumé de ce qui a bougé quand vous voulez.`
+  }
+  if (p.alertesLegales > 0) {
+    return `${prenom}, un petit point de vigilance sur les temps de repos cette semaine. Rien de grave, mais autant le régler ensemble maintenant.`
+  }
+  if (p.sousEffectif > 0) {
+    return `${prenom}, il reste ${p.sousEffectif} créneau(x) sans personne cette semaine. Je vous propose des remplaçants dès que vous êtes dispo.`
+  }
+  if (p.congesEnAttente > 0) {
+    return `${prenom}, ${p.congesEnAttente} demande(s) de congé attendent votre feu vert. Je m'en occupe dès que vous me le dites.`
+  }
+  const dow = p.now.getDay() // 5 = vendredi, 6 = samedi
+  if (!p.planningPublie && (dow === 5 || dow === 6)) {
+    return `${prenom}, le planning de la semaine prochaine n'est pas encore publié. On le boucle en deux minutes si vous voulez.`
+  }
+  if (p.nouveauCollaborateur) {
+    return `${prenom}, un nouvel arrivant rejoint l'équipe. Je peux préparer son contrat et ses accès pendant que vous soufflez.`
+  }
+  if (isFinDeMois(p.now)) {
+    return `${prenom}, c'est bientôt la clôture du mois. Je prépare les exports de paie dès que vous me donnez le top.`
+  }
+  if (p.quotaRestant !== null && p.quotaRestant <= 3) {
+    return `${prenom}, il me reste quelques échanges ce mois-ci — gardons-les pour l'essentiel. Je reste à côté.`
+  }
+  const moment = partOfDay(p.now)
+  if (moment === 'matin') return `Bonjour ${prenom}, belle journée qui commence. Tout est carré de mon côté, je reste dans le coin.`
+  if (moment === 'apres-midi') return `${prenom}, tout roule de mon côté. Je reste juste à côté si vous avez besoin d'un coup de main.`
+  return `Bonne fin de journée, ${prenom}. Rien d'urgent ce soir — je veille, filez tranquille.`
 }
 
 const FALLBACK_SUGGESTIONS: Suggestion[] = [
@@ -38,8 +112,14 @@ export function AiAssistant({
   chatEndpoint = '/api/ai/chat',
   contextEndpoint = '/api/ai/context',
   mode = 'manager',
+  pendingLeavesCount = 0,
+  alertesLegalesCount = 0,
 }: Props) {
   const [open, setOpen] = useState(false)
+  // Le panneau reste monté et joue qzPanelOut pendant la fermeture, avant de
+  // repasser complètement caché (et de laisser réapparaître la bulle Nina).
+  const [closingAnim, setClosingAnim] = useState(false)
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -47,11 +127,15 @@ export function AiAssistant({
   const [inputFocused, setInputFocused] = useState(false)
   const [suggestions, setSuggestions] = useState<Suggestion[]>(FALLBACK_SUGGESTIONS)
   const [suggestionsLoaded, setSuggestionsLoaded] = useState(false)
+  const [bubbleContext, setBubbleContext] = useState<BubbleContext | null>(null)
+  const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null)
+  const [visitState, setVisitState] = useState({ premiereVisite: false, retourAbsenceJours: 0 })
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const sendRef = useRef<((text: string) => void) | null>(null)
   const storageKey = `qb-chat:${mode}:${establishmentName}`
+  const panelVisible = open || closingAnim
 
   // Restore a previous conversation on mount so refresh/navigation doesn't lose it.
   useEffect(() => {
@@ -72,23 +156,52 @@ export function AiAssistant({
     } catch { /* ignore quota errors */ }
   }, [messages, storageKey])
 
-  // Fetch proactive suggestions once on first open
+  // Fetch proactive suggestions + bubble context once on mount (pas seulement
+  // à l'ouverture : la bulle de salut Nina doit s'afficher panneau fermé).
   useEffect(() => {
-    if (!open || suggestionsLoaded) return
+    if (suggestionsLoaded) return
     setSuggestionsLoaded(true)
     fetch(contextEndpoint)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.suggestions?.length) setSuggestions(data.suggestions)
+        if (data?.bubble) setBubbleContext(data.bubble)
       })
       .catch(() => {/* keep fallback */})
-  }, [open, suggestionsLoaded, contextEndpoint])
+  }, [suggestionsLoaded, contextEndpoint])
+
+  // Quota IA (manager uniquement) — alimente la bulle « quota bientôt épuisé ».
+  useEffect(() => {
+    if (mode !== 'manager') return
+    fetch('/api/ai/quota')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setQuota({ used: data.used, limit: data.limit }) })
+      .catch(() => {/* pas de bulle quota si indisponible */})
+  }, [mode])
+
+  // Première visite / retour après absence — dérivés d'un horodatage local
+  // (manager uniquement, sert la bulle de salut contextuelle).
+  useEffect(() => {
+    if (mode !== 'manager') return
+    const key = `qb-lastseen:${establishmentName}`
+    try {
+      const raw = localStorage.getItem(key)
+      const now = Date.now()
+      if (!raw) {
+        setVisitState({ premiereVisite: true, retourAbsenceJours: 0 })
+      } else {
+        const days = Math.floor((now - parseInt(raw, 10)) / 86400000)
+        setVisitState({ premiereVisite: false, retourAbsenceJours: days })
+      }
+      localStorage.setItem(key, String(now))
+    } catch { /* ignore */ }
+  }, [mode, establishmentName])
 
   // Listen for external open requests (e.g. "Générer le planning" button)
   useEffect(() => {
     function handleExternalOpen(e: Event) {
       const detail = (e as CustomEvent<{ message?: string }>).detail
-      setOpen(true)
+      openPanel()
       if (detail?.message) {
         // Delay so the panel opens and the greeting initialises first
         setTimeout(() => sendRef.current?.(detail.message!), 300)
@@ -96,7 +209,21 @@ export function AiAssistant({
     }
     window.addEventListener('ai:open', handleExternalOpen)
     return () => window.removeEventListener('ai:open', handleExternalOpen)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Échap referme l'assistant quand il est ouvert.
+  useEffect(() => {
+    if (!open) return
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') handleClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current) }, [])
 
   useEffect(() => {
     if (open && messages.length === 0) {
@@ -198,59 +325,119 @@ export function AiAssistant({
     el.style.height = `${Math.min(el.scrollHeight, 100)}px`
   }
 
+  function openPanel() {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+    setClosingAnim(false)
+    setOpen(true)
+  }
+
+  function handleClose() {
+    setOpen(false)
+    const reducedMotion = typeof window !== 'undefined'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion) { setClosingAnim(false); return }
+    setClosingAnim(true)
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+    closeTimerRef.current = setTimeout(() => setClosingAnim(false), 430)
+  }
+
+  function handleToggle() {
+    if (open) handleClose()
+    else openPanel()
+  }
+
   // True once the first token of the assistant reply has arrived (a growing
   // assistant bubble exists) — used to switch from "…" dots to a typing caret.
   const streaming = loading && messages.length > 0 && messages[messages.length - 1].role === 'assistant'
 
+  const bubbleMessage = useMemo(() => {
+    if (mode !== 'manager' || !bubbleContext) return null
+    return buildBubbleMessage({
+      prenom: userName.split(' ')[0] || 'vous',
+      premiereVisite: visitState.premiereVisite,
+      retourAbsenceJours: visitState.retourAbsenceJours,
+      alertesLegales: alertesLegalesCount,
+      sousEffectif: bubbleContext.sousEffectif,
+      congesEnAttente: pendingLeavesCount,
+      planningPublie: bubbleContext.planningPublie,
+      nouveauCollaborateur: bubbleContext.nouveauCollaborateur,
+      quotaRestant: quota && quota.limit > 0 ? quota.limit - quota.used : null,
+      now: new Date(),
+    })
+  }, [mode, bubbleContext, visitState, alertesLegalesCount, pendingLeavesCount, quota, userName])
+
+  const showGreetingBubble = mode === 'manager' && !panelVisible && !!bubbleMessage
+
   return (
     <>
+      {/* Bulle de salut contextuelle Nina — visible uniquement panneau fermé */}
+      {showGreetingBubble && (
+        <button
+          onClick={openPanel}
+          className="qz-bubble-in fixed right-4 z-50 max-w-[248px] rounded-2xl rounded-br-md px-3.5 py-2.5 text-left text-[12.5px] leading-snug shadow-lg bottom-[144px] md:bottom-[88px]"
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            border: '0.5px solid var(--border)',
+            color: 'var(--text-primary)',
+          }}
+        >
+          {bubbleMessage}
+        </button>
+      )}
+
       {/* Floating button — remonté au-dessus de la bottom nav sur mobile */}
       <button
-        onClick={() => setOpen(v => !v)}
-        aria-label="Assistant IA"
+        onClick={handleToggle}
+        aria-label={open ? "Fermer l'assistant Nina" : 'Ouvrir l’assistant Nina'}
         aria-expanded={open}
-        className="fixed right-4 z-50 flex items-center justify-center rounded-full transition-all duration-300 focus:outline-none bottom-[80px] md:bottom-6"
+        className="fixed right-4 z-50 flex items-center justify-center rounded-full transition-transform duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white bottom-[80px] md:bottom-6"
         style={{
           height: '52px',
           width: '52px',
-          backgroundColor: open ? 'var(--text-primary)' : 'var(--accent)',
+          background: NINA_GRADIENT,
           color: 'white',
           border: '0.5px solid var(--border)',
           transform: open ? 'scale(0.95)' : 'scale(1)',
         }}
       >
-        {open ? <X className="h-5 w-5" /> : <QuartzBot className="h-5 w-5" />}
+        {!open && <span className="qz-pulse-ring" aria-hidden="true" />}
+        <span className="qz-float inline-flex">
+          {open ? <X className="h-5 w-5" /> : <QuartzBot className="h-5 w-5" />}
+        </span>
       </button>
 
       {/* Chat panel */}
       <div
         role="dialog"
-        aria-label="Assistant Quartzbase"
-        aria-hidden={!open}
-        className={`fixed right-4 z-50 flex flex-col rounded-2xl transition-all duration-300 w-[calc(100vw-32px)] md:w-[380px] bottom-[144px] md:bottom-24 ${
-          open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'
-        }`}
+        aria-label="Assistant Nina"
+        aria-hidden={!panelVisible}
+        className={[
+          'fixed z-50 flex flex-col overflow-hidden inset-0 rounded-none',
+          'min-[480px]:max-md:inset-auto min-[480px]:max-md:right-3 min-[480px]:max-md:bottom-3',
+          'min-[480px]:max-md:w-[min(452px,calc(100vw-24px))] min-[480px]:max-md:h-[calc(100dvh-24px)] min-[480px]:max-md:rounded-[26px]',
+          'md:inset-auto md:right-6 md:bottom-6 md:w-[min(452px,calc(100vw-48px))] md:h-[min(788px,calc(100dvh-48px))] md:rounded-[26px]',
+          panelVisible ? (open ? 'qz-panel-in' : 'qz-panel-out') : 'opacity-0 pointer-events-none',
+        ].join(' ')}
         style={{
-          maxHeight: 'calc(100vh - 180px)',
-          minHeight: '460px',
           border: '0.5px solid var(--border)',
           backgroundColor: 'var(--bg-card)',
         }}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between rounded-t-2xl px-4 py-3"
-          style={{ backgroundColor: 'var(--accent)' }}
+          className="flex items-center justify-between px-4 py-3"
+          style={{ background: NINA_GRADIENT }}
         >
           <div className="flex items-center gap-2.5">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-full"
+              className="qz-float relative flex h-8 w-8 items-center justify-center rounded-full"
               style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
             >
-              <QuartzBot className="h-4 w-4 text-white" />
+              <span className="qz-halo" aria-hidden="true" />
+              <QuartzBot className="relative h-4 w-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-white">Assistant Quartzbase</p>
+              <p className="text-sm font-semibold text-white" style={{ fontFamily: 'var(--font-syne)' }}>Nina</p>
               <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.7)' }}>Propulsé par Claude</p>
             </div>
           </div>
@@ -267,7 +454,7 @@ export function AiAssistant({
               </button>
             )}
             <button
-              onClick={() => setOpen(false)}
+              onClick={handleClose}
               className="rounded-lg p-1.5 transition-colors"
               style={{ color: 'rgba(255,255,255,0.7)' }}
               title="Fermer"
@@ -278,16 +465,25 @@ export function AiAssistant({
           </div>
         </div>
 
+        {mode === 'manager' && (
+          <div
+            className="flex items-center justify-center px-3 py-1.5"
+            style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}
+          >
+            <AiQuotaBadge />
+          </div>
+        )}
+
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{ minHeight: 0 }} role="log" aria-live="polite" aria-atomic="false">
           {messages.map((msg, i) => (
-            <div key={i} className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+            <div key={i} className={`qz-msg-in flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               {msg.role === 'assistant' && (
                 <div
                   className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full mt-0.5"
-                  style={{ backgroundColor: 'var(--accent-light)' }}
+                  style={{ background: 'linear-gradient(135deg, rgba(124,92,252,0.16), rgba(240,98,154,0.16))' }}
                 >
-                  <QuartzBot className="h-3.5 w-3.5" style={{ color: 'var(--accent)' }} />
+                  <QuartzBot className="h-3.5 w-3.5" style={{ color: '#B14BEB' }} />
                 </div>
               )}
               <div
@@ -310,12 +506,12 @@ export function AiAssistant({
           ))}
 
           {loading && !streaming && (
-            <div className="flex gap-2.5">
+            <div className="qz-msg-in flex gap-2.5">
               <div
                 className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
-                style={{ backgroundColor: 'var(--accent-light)' }}
+                style={{ background: 'linear-gradient(135deg, rgba(124,92,252,0.16), rgba(240,98,154,0.16))' }}
               >
-                <QuartzBot className="h-3.5 w-3.5" style={{ color: 'var(--accent)' }} />
+                <QuartzBot className="h-3.5 w-3.5" style={{ color: '#B14BEB' }} />
               </div>
               <div
                 className="flex items-center gap-1 px-4 py-3"
@@ -350,7 +546,7 @@ export function AiAssistant({
         </div>
 
         {/* Input */}
-        <div className="p-3" style={{ borderTop: '0.5px solid var(--border)' }}>
+        <div className="p-3" style={{ borderTop: '0.5px solid var(--border)', paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
           <div
             className="flex items-end gap-2 rounded-xl px-3 py-2 transition-colors duration-150"
             style={{
@@ -373,7 +569,7 @@ export function AiAssistant({
             {loading ? (
               <button
                 onClick={handleStop}
-                className="flex-shrink-0 rounded-lg p-1.5 transition-colors"
+                className="flex h-11 w-11 md:h-8 md:w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors"
                 style={{ color: 'var(--text-secondary)' }}
                 title="Arrêter"
               >
@@ -383,7 +579,7 @@ export function AiAssistant({
               <button
                 onClick={() => send(input)}
                 disabled={!input.trim()}
-                className="flex-shrink-0 rounded-lg p-1.5 transition-colors disabled:opacity-30"
+                className="flex h-11 w-11 md:h-8 md:w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
                 style={{ color: 'var(--accent)' }}
                 title="Envoyer (Entrée)"
                 aria-label="Envoyer le message"

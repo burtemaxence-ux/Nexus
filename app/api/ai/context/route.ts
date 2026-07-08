@@ -23,6 +23,14 @@ export async function GET() {
   const today = new Date().toISOString().split('T')[0]
   const day30ago = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
   const day7ahead = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
+  const day3ago = new Date(Date.now() - 3 * 86400000).toISOString()
+
+  // Prochain lundi → dimanche (pour vérifier si le planning de la semaine
+  // prochaine est déjà publié).
+  const dow = new Date().getDay() // 0 = dimanche
+  const daysToNextMonday = ((8 - dow) % 7) || 7
+  const nextMonday = new Date(Date.now() + daysToNextMonday * 86400000).toISOString().split('T')[0]
+  const nextSunday = new Date(Date.now() + (daysToNextMonday + 6) * 86400000).toISOString().split('T')[0]
 
   const [
     { data: latenessRecords },
@@ -30,6 +38,8 @@ export async function GET() {
     { data: upcomingShifts },
     { data: marketplaceSlots },
     { data: shiftExchanges },
+    { count: nextWeekPublishedCount },
+    { count: newHiresCount },
   ] = await Promise.all([
     supabase.from('lateness_records')
       .select('date, late_minutes, justified, profiles(full_name)')
@@ -53,6 +63,15 @@ export async function GET() {
       .select('id, profiles!shift_exchanges_proposer_id_fkey(full_name)')
       .in('status', ['open', 'pending_approval'])
       .limit(5),
+    supabase.from('shifts')
+      .select('id', { count: 'exact', head: true })
+      .gte('date', nextMonday)
+      .lte('date', nextSunday)
+      .eq('status', 'published'),
+    supabase.from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'employee')
+      .gte('created_at', day3ago),
   ])
 
   const suggestions: ProactiveSuggestion[] = []
@@ -82,10 +101,8 @@ export async function GET() {
   for (const s of upcomingShifts ?? []) {
     shiftsByDay[s.date] = (shiftsByDay[s.date] ?? 0) + 1
   }
-  const understaffed = Object.entries(shiftsByDay)
-    .filter(([, count]) => count < 2)
-    .map(([date]) => date)
-    .slice(0, 2)
+  const understaffedAll = Object.entries(shiftsByDay).filter(([, count]) => count < 2)
+  const understaffed = understaffedAll.map(([date]) => date).slice(0, 2)
 
   if (understaffed.length > 0) {
     const dates = understaffed.map(d => new Date(d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })).join(' et ')
@@ -135,5 +152,12 @@ export async function GET() {
     )
   }
 
-  return Response.json({ suggestions: suggestions.slice(0, 4) })
+  return Response.json({
+    suggestions: suggestions.slice(0, 4),
+    bubble: {
+      sousEffectif: understaffedAll.length,
+      planningPublie: (nextWeekPublishedCount ?? 0) > 0,
+      nouveauCollaborateur: (newHiresCount ?? 0) > 0,
+    },
+  })
 }

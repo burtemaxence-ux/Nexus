@@ -164,6 +164,8 @@ export function AppShell({
           chatEndpoint="/api/ai/chat"
           contextEndpoint="/api/ai/context"
           mode="manager"
+          pendingLeavesCount={pendingLeavesCount}
+          alertesLegalesCount={complianceAlertsCount}
         />
       )}
       {role === 'employee' && (
