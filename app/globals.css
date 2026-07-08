@@ -856,3 +856,18 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .qz-pulse-ring { display: none; }
 }
+
+/* Bottom nav employé — barre d'onglet actif glissante */
+@keyframes nxIndic { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) {
+  .nx-indic { animation: nxIndic .3s ease both; }
+}
+
+/* Accueil employé — badge de statut : halo respirant + pastille pulsante */
+@keyframes nxBadgeGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); } 50% { box-shadow: 0 0 12px -3px currentColor; } }
+@media (prefers-reduced-motion: no-preference) {
+  .nx-badge-glow { animation: nxBadgeGlow 2.6s ease-in-out infinite; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-status-dot .animate-ping { animation: none; }
+}

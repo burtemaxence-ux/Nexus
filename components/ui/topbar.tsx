@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { getInitials, getEstablishmentInitials } from '@/lib/planning-utils'
 import {
-  LogOut, Sun, Moon, ChevronsUpDown, Check, Plus, Settings, CreditCard,
+  LogOut, Sun, Moon, ChevronsUpDown, Check, Plus, Settings, CreditCard, User,
 } from 'lucide-react'
 import { NotificationsBell } from './notifications-bell'
 import { Logo } from './logo'
@@ -131,6 +131,18 @@ export function AccountDropdown({ userName, userEmail, role, currentPlan, onSign
             }
             {dark ? 'Mode clair' : 'Mode sombre'}
           </button>
+
+          {/* Profil (employé) */}
+          {role === 'employee' && (
+            <Link
+              href="/employee/profil"
+              onClick={() => setOpen(false)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--accent-light)] hover:text-[var(--text-primary)] transition-colors duration-150"
+            >
+              <User className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
+              Voir mon profil
+            </Link>
+          )}
 
           {/* Settings */}
           {(role === 'manager' || role === 'supervisor') && (

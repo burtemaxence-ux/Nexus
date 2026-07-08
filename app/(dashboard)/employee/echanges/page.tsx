@@ -92,21 +92,27 @@ export default function EchangesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex mb-6 overflow-hidden" style={{ border: '0.5px solid var(--border)', borderRadius: '8px', width: 'fit-content' }}>
-        {([['mine', 'Mes offres'], ['available', 'Disponibles']] as [Tab, string][]).map(([t, label], i) => (
+      <div className="flex gap-1 p-1 mb-6 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        {([['mine', 'Mes offres'], ['available', 'Disponibles']] as [Tab, string][]).map(([t, label]) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className="px-4 py-2 text-[13px] font-medium transition-colors duration-150"
+            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[13px] font-medium transition-all"
             style={{
-              backgroundColor: tab === t ? 'var(--text-primary)' : 'transparent',
-              color: tab === t ? 'var(--bg-card)' : 'var(--text-tertiary)',
-              borderLeft: i > 0 ? '0.5px solid var(--border)' : undefined,
+              backgroundColor: tab === t ? 'var(--accent)' : 'transparent',
+              color: tab === t ? 'white' : 'var(--text-secondary)',
+              boxShadow: tab === t ? '0 1px 2px rgba(0,0,0,0.05)' : undefined,
             }}
           >
             {label}
             {t === 'available' && available.length > 0 && (
-              <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
+              <span
+                className="inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full text-[10px] font-bold"
+                style={{
+                  backgroundColor: tab === t ? 'rgba(255,255,255,0.25)' : 'var(--accent-light)',
+                  color: tab === t ? 'white' : 'var(--accent)',
+                }}
+              >
                 {available.length}
               </span>
             )}

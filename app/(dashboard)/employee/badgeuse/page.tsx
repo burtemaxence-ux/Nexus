@@ -427,8 +427,8 @@ export default function BadgeusePage() {
               </div>
             )}
 
-            {/* ── Réglage de l'heure (replié par défaut) ── */}
-            {state !== 'done' && state !== 'on_break' && (
+            {/* ── Réglage de l'heure (replié par défaut, avant pointage uniquement) ── */}
+            {state === 'idle' && (
               <div className="w-full mt-4">
                 <button
                   onClick={() => setShowPicker(v => !v)}

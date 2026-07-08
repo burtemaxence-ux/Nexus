@@ -133,9 +133,13 @@ export default async function EmployeeDashboard() {
             </p>
           </div>
           <span
-            className="flex-shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full mt-1"
+            className="nx-badge-glow flex-shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold pl-[9px] pr-[11px] py-1 rounded-full mt-1"
             style={{ color: statusColor, backgroundColor: statusBg, fontFamily: 'var(--font-dm-sans)' }}
           >
+            <span className="nx-status-dot relative inline-flex flex-shrink-0" style={{ width: 6, height: 6 }}>
+              <span className="animate-ping absolute inset-0 rounded-full" style={{ backgroundColor: 'currentColor', opacity: 0.6 }} />
+              <span className="relative rounded-full" style={{ width: 6, height: 6, backgroundColor: 'currentColor' }} />
+            </span>
             {statusLabel}
           </span>
         </div>
