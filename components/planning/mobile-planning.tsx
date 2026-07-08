@@ -207,7 +207,7 @@ export const MobileManagerPlanning = memo(function MobileManagerPlanning({
         <button
           onClick={() => setShowEmpPicker(true)}
           className="fixed right-4 z-20 w-12 h-12 rounded-full flex items-center justify-center shadow-lg md:hidden"
-          style={{ background: 'var(--accent)', color: '#fff', bottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 16px)' }}
+          style={{ background: 'var(--accent)', color: '#fff', bottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 80px)' }}
         >
           <Plus className="h-5 w-5" />
         </button>

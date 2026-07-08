@@ -59,8 +59,12 @@ export function PwaInstallBanner() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 p-3 safe-area-bottom"
-      style={{ backgroundColor: 'var(--bg-card)', borderTop: '0.5px solid var(--border)' }}
+      className="fixed left-0 right-0 z-50 p-3 bottom-[calc(60px+env(safe-area-inset-bottom,0px))] md:bottom-0"
+      style={{
+        backgroundColor: 'var(--bg-card)',
+        borderTop: '0.5px solid var(--border)',
+        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
+      }}
     >
       <div className="max-w-sm mx-auto">
         {isIOS ? (

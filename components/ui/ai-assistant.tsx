@@ -128,6 +128,7 @@ export function AiAssistant({
   const [suggestions, setSuggestions] = useState<Suggestion[]>(FALLBACK_SUGGESTIONS)
   const [suggestionsLoaded, setSuggestionsLoaded] = useState(false)
   const [bubbleContext, setBubbleContext] = useState<BubbleContext | null>(null)
+  const [bubbleDismissed, setBubbleDismissed] = useState(false)
   const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null)
   const [visitState, setVisitState] = useState({ premiereVisite: false, retourAbsenceJours: 0 })
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -366,7 +367,16 @@ export function AiAssistant({
     })
   }, [mode, bubbleContext, visitState, alertesLegalesCount, pendingLeavesCount, quota, userName])
 
-  const showGreetingBubble = mode === 'manager' && !panelVisible && !!bubbleMessage
+  // La bulle de salut s'efface toute seule après quelques secondes pour ne
+  // pas rester en permanence devant le contenu.
+  useEffect(() => {
+    if (!bubbleMessage) return
+    setBubbleDismissed(false)
+    const timer = setTimeout(() => setBubbleDismissed(true), 12000)
+    return () => clearTimeout(timer)
+  }, [bubbleMessage])
+
+  const showGreetingBubble = mode === 'manager' && !panelVisible && !!bubbleMessage && !bubbleDismissed
 
   return (
     <>
@@ -414,8 +424,8 @@ export function AiAssistant({
         className={[
           'fixed z-50 flex flex-col overflow-hidden inset-0 rounded-none',
           'min-[480px]:max-md:inset-auto min-[480px]:max-md:right-3 min-[480px]:max-md:bottom-3',
-          'min-[480px]:max-md:w-[min(452px,calc(100vw-24px))] min-[480px]:max-md:h-[calc(100dvh-24px)] min-[480px]:max-md:rounded-[26px]',
-          'md:inset-auto md:right-6 md:bottom-6 md:w-[min(452px,calc(100vw-48px))] md:h-[min(788px,calc(100dvh-48px))] md:rounded-[26px]',
+          'min-[480px]:max-md:w-[min(452px,calc(100vw-24px))] min-[480px]:max-md:h-[min(640px,calc(100dvh-24px))] min-[480px]:max-md:rounded-[26px]',
+          'md:inset-auto md:right-6 md:bottom-6 md:w-[min(452px,calc(100vw-48px))] md:h-[min(640px,calc(100dvh-48px))] md:rounded-[26px]',
           panelVisible ? (open ? 'qz-panel-in' : 'qz-panel-out') : 'opacity-0 pointer-events-none',
         ].join(' ')}
         style={{
