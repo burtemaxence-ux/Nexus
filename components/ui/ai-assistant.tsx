@@ -372,7 +372,7 @@ export function AiAssistant({
   useEffect(() => {
     if (!bubbleMessage) return
     setBubbleDismissed(false)
-    const timer = setTimeout(() => setBubbleDismissed(true), 12000)
+    const timer = setTimeout(() => setBubbleDismissed(true), 4000)
     return () => clearTimeout(timer)
   }, [bubbleMessage])
 
