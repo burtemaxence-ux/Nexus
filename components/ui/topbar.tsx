@@ -10,6 +10,7 @@ import {
   LogOut, Sun, Moon, ChevronsUpDown, Check, Plus, Settings, CreditCard,
 } from 'lucide-react'
 import { NotificationsBell } from './notifications-bell'
+import { Logo } from './logo'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -399,12 +400,7 @@ export function Topbar({
         href={role === 'employee' ? '/employee' : '/manager'}
         className="flex items-center gap-2 flex-shrink-0"
       >
-        <div
-          className="w-6 h-6 rounded-md flex items-center justify-center font-bold text-white text-[11px] select-none flex-shrink-0"
-          style={{ backgroundColor: '#6C63FF' }}
-        >
-          Q
-        </div>
+        <Logo size={24} className="flex-shrink-0" />
         <span className="text-[14px] font-semibold tracking-tight" style={{ color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}>
           Quartzbase
         </span>

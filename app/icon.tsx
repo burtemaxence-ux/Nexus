@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import { symbolDataUri } from '@/lib/brand/symbol'
 
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
@@ -12,11 +13,12 @@ export default function Icon() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#2D3A8C',
+        background: '#0d0b1f',
         borderRadius: '6px',
       }}
     >
-      <span style={{ color: 'white', fontSize: '20px', fontWeight: 700, fontFamily: 'sans-serif' }}>N</span>
+      {/* eslint-disable-next-line @next/next/no-img-element -- rendu via satori (next/og) */}
+      <img src={symbolDataUri()} width={26} height={26} alt="" />
     </div>,
     { ...size }
   )

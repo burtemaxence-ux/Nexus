@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Logo } from '@/components/ui/logo'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -30,12 +31,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* Logo centré en haut */}
       <div className="relative z-10 mb-10">
         <Link href="/" className="flex items-center gap-2.5">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-[17px] select-none"
-            style={{ backgroundColor: '#6C63FF' }}
-          >
-            Q
-          </div>
+          <Logo size={36} />
           <span
             className="text-[17px] font-semibold tracking-tight"
             style={{ color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}

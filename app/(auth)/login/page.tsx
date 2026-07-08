@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { Logo } from '@/components/ui/logo'
 
 // ── Supabase auth logic — NE PAS MODIFIER ─────────────────────────────────────
 
@@ -94,12 +95,7 @@ export default function LoginPage() {
       {/* Logo + sous-titre */}
       <div className="auth-cascade-1 flex flex-col items-center mb-8 text-center">
         <div className="flex items-center gap-2.5 mb-3">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-[17px] select-none"
-            style={{ backgroundColor: '#6C63FF', fontFamily: 'var(--font-syne)' }}
-          >
-            Q
-          </div>
+          <Logo size={36} />
           <span
             className="text-[18px] font-bold tracking-tight"
             style={{ color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}

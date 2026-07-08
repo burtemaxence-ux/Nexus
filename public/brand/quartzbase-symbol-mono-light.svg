@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="Quartzbase">
+  <g fill="none" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="50,6 88,28 88,72 50,94 12,72 12,28"></polygon>
+    <polygon points="50,30 67,40 67,60 50,70 33,60 33,40"></polygon>
+    <line x1="50" y1="6" x2="50" y2="30"></line>
+    <line x1="88" y1="28" x2="67" y2="40"></line>
+    <line x1="88" y1="72" x2="67" y2="60"></line>
+    <line x1="50" y1="94" x2="50" y2="70"></line>
+    <line x1="12" y1="72" x2="33" y2="60"></line>
+    <line x1="12" y1="28" x2="33" y2="40"></line>
+  </g>
+</svg>
