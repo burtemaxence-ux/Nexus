@@ -71,7 +71,7 @@ export function ComparisonSection() {
         {/* Lignes */}
         {ROWS.map((row, i) => (
           <div key={i} className="qb-stagger qb-trow" style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'var(--qb-cols)', borderTop: '1px solid rgba(255,255,255,0.05)', alignItems: 'center', transitionDelay: `${i * 0.06}s` }}>
-            <span style={{ fontSize: 14.5, color: i >= 4 && i < 8 ? '#f0f0f8' : '#c2c2d0', padding: '15px 0 15px 28px' }}>{row.feature}</span>
+            <span className="qb-tfeat" style={{ fontSize: 14.5, color: i >= 4 && i < 8 ? '#f0f0f8' : '#c2c2d0', padding: '15px 0 15px 28px' }}>{row.feature}</span>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: 13, color: '#6b6b80', padding: '15px 0' }}><CellContent value={row.trad} /></div>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: 13, fontWeight: 600, color: '#00D4AA', padding: '15px 0' }}><CellContent value={row.qb} /></div>
           </div>
@@ -100,16 +100,20 @@ export function ComparisonSection() {
            ni guillemets doubles dans ce bloc — React echappe ces caracteres dans
            les enfants texte de la balise style en SSR, ce qui provoque un
            hydration mismatch. Les selecteurs descendants sont equivalents ici. */
+        /* NB bis : cibler le libellé par sa classe .qb-tfeat, jamais par
+           span:first-child — en sélecteur descendant, la pastille (span
+           premier enfant de sa cellule) serait touchée aussi : son padding
+           écraserait le SVG de la coche à 0 de largeur. */
         @media (max-width: 640px) {
           .qb-cmp { --qb-cols: 1fr 70px 96px; --qb-band: 96px; }
-          .qb-cmp .qb-trow span:first-child { font-size: 13px !important; }
+          .qb-cmp .qb-tfeat { font-size: 13px !important; }
         }
         /* Sous 480px : layout empilé — libellé pleine largeur, cellules côte à côte dessous */
         @media (max-width: 480px) {
           .qb-cmp { --qb-cols: 1fr 1fr; }
           .qb-band { display: none; }
           .qb-thead div:first-child { display: none; }
-          .qb-trow span:first-child { grid-column: 1 / -1; padding: 13px 16px 2px !important; }
+          .qb-tfeat { grid-column: 1 / -1; padding: 13px 16px 2px !important; }
           .qb-trow div { padding: 2px 0 13px !important; }
           .qb-tcta div:first-child { grid-column: 1 / -1; padding: 14px 16px 0 !important; text-align: center; }
           .qb-tcta div:nth-child(2) { display: none; }
