@@ -38,8 +38,10 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // Base
+        // Base — max-h + scroll pour que les contenus longs (formulaires +
+        // warnings) restent atteignables sur petits écrans ; overridable via className.
         "fixed z-50 grid w-full gap-4 border bg-background p-6 shadow-lg duration-200",
+        "max-h-[85vh] overflow-y-auto",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         // Mobile: bottom sheet (default, < sm)

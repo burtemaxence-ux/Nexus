@@ -39,8 +39,6 @@ function CellContent({ value }: { value: Cell }) {
   return <span>{value}</span>
 }
 
-const COLS = { ['--qb-cols' as string]: '1fr 170px 200px', ['--qb-band' as string]: '200px' } as React.CSSProperties
-
 export function ComparisonSection() {
   return (
     <section style={{ position: 'relative', zIndex: 2, maxWidth: 920, margin: '110px auto 0', padding: '0 32px', fontFamily: FONT }}>
@@ -56,12 +54,12 @@ export function ComparisonSection() {
         </p>
       </Reveal>
 
-      <Reveal className="qb-cmp" style={{ ...COLS, position: 'relative', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, overflow: 'hidden', background: '#0d0d14' }}>
+      <Reveal className="qb-cmp" style={{ position: 'relative', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, overflow: 'hidden', background: '#0d0d14' }}>
         {/* Bande de mise en valeur de la colonne Quartzbase */}
-        <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 'var(--qb-band)', background: 'linear-gradient(180deg,rgba(108,99,255,0.16),rgba(0,212,170,0.05))', borderLeft: '1px solid rgba(108,99,255,0.3)', pointerEvents: 'none' }} />
+        <div className="qb-band" style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: 'var(--qb-band)', background: 'linear-gradient(180deg,rgba(108,99,255,0.16),rgba(0,212,170,0.05))', borderLeft: '1px solid rgba(108,99,255,0.3)', pointerEvents: 'none' }} />
 
         {/* En-tête */}
-        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'var(--qb-cols)', alignItems: 'center' }}>
+        <div className="qb-thead" style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'var(--qb-cols)', alignItems: 'center' }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: '#79828f', letterSpacing: '0.06em', textTransform: 'uppercase', paddingLeft: 28 }}>Fonctionnalité</div>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#79828f', textAlign: 'center', padding: '20px 0' }}>Une app similaire</div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '18px 0' }}>
@@ -80,7 +78,7 @@ export function ComparisonSection() {
         ))}
 
         {/* Ligne CTA */}
-        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'var(--qb-cols)', borderTop: '1px solid rgba(255,255,255,0.05)', alignItems: 'center' }}>
+        <div className="qb-tcta" style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'var(--qb-cols)', borderTop: '1px solid rgba(255,255,255,0.05)', alignItems: 'center' }}>
           <div style={{ fontSize: 13.5, color: '#9090a8', padding: '0 0 0 28px' }}>Tout ça, pour le prix d&apos;un café par jour.</div>
           <div />
           <div style={{ display: 'flex', justifyContent: 'center', padding: '16px 24px' }}>
@@ -92,13 +90,30 @@ export function ComparisonSection() {
       </Reveal>
 
       <style>{`
+        /* Colonnes définies ici (et non en style inline) pour que les media
+           queries ci-dessous puissent les surcharger. */
+        .qb-cmp { --qb-cols: 1fr 170px 200px; --qb-band: 200px; }
         .qb-trow { transition: background .18s ease, opacity .55s cubic-bezier(.2,.7,.2,1), transform .55s cubic-bezier(.2,.7,.2,1); }
         .qb-trow:hover { background: rgba(255,255,255,0.018); }
         .qb-cmp-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(108,99,255,0.5); }
+        /* NB : ni combinateur enfant, ni chevrons, ni esperluette, ni apostrophe,
+           ni guillemets doubles dans ce bloc — React echappe ces caracteres dans
+           les enfants texte de la balise style en SSR, ce qui provoque un
+           hydration mismatch. Les selecteurs descendants sont equivalents ici. */
         @media (max-width: 640px) {
           .qb-cmp { --qb-cols: 1fr 70px 96px; --qb-band: 96px; }
-          .qb-cmp .qb-trow span:first-child,
-          .qb-cmp > div > div:first-child { font-size: 13px; }
+          .qb-cmp .qb-trow span:first-child { font-size: 13px !important; }
+        }
+        /* Sous 480px : layout empilé — libellé pleine largeur, cellules côte à côte dessous */
+        @media (max-width: 480px) {
+          .qb-cmp { --qb-cols: 1fr 1fr; }
+          .qb-band { display: none; }
+          .qb-thead div:first-child { display: none; }
+          .qb-trow span:first-child { grid-column: 1 / -1; padding: 13px 16px 2px !important; }
+          .qb-trow div { padding: 2px 0 13px !important; }
+          .qb-tcta div:first-child { grid-column: 1 / -1; padding: 14px 16px 0 !important; text-align: center; }
+          .qb-tcta div:nth-child(2) { display: none; }
+          .qb-tcta div:last-child { grid-column: 1 / -1; }
         }
       `}</style>
     </section>

@@ -4,8 +4,11 @@
  * le reflet animé des CTA. Rendu une seule fois par page.
  */
 export function LandingStyles() {
+  // dangerouslySetInnerHTML (contenu statique) : en enfant texte, React
+  // echapperait les apostrophes du content:'' en SSR, d ou un hydration
+  // mismatch qui bascule toute la page en rendu client.
   return (
-    <style>{`
+    <style dangerouslySetInnerHTML={{ __html: `
       @keyframes qbGlow { 0%,100%{opacity:.55} 50%{opacity:1} }
       .qb-glow { animation-name: qbGlow; animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
 
@@ -36,6 +39,6 @@ export function LandingStyles() {
         .qb-reveal.qb-pre, .qb-pre .qb-stagger, .qb-step { opacity: 1 !important; transform: none !important; }
         .qb-line { transition: none !important; transform: scaleX(1) !important; }
       }
-    `}</style>
+    ` }} />
   )
 }

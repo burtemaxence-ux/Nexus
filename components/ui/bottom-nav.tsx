@@ -251,11 +251,12 @@ export function MobileHeader({ userName, userEmail, establishmentName, role }: M
         </div>
 
         <div className={cn('flex-shrink-0 relative')} ref={ref}>
+          {/* Zone tactile 44px (recommandation iOS/Android), cercle visuel 32px inchangé */}
           <button
             onClick={() => setMenuOpen((o: boolean) => !o)}
-            className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent-light)]"
+            className="flex items-center justify-center w-11 h-11 -m-1.5 rounded-full"
           >
-            <span className="text-[11px] font-semibold text-[var(--accent)]">
+            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent-light)] text-[11px] font-semibold text-[var(--accent)]">
               {getInitials(userName || userEmail)}
             </span>
           </button>

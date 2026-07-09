@@ -70,7 +70,7 @@ export function PublicFooter() {
         <div className="qb-footer-grid" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1fr', gap: 40 }}>
 
           {/* Marque */}
-          <div style={{ maxWidth: 300 }}>
+          <div className="qb-footer-brand" style={{ maxWidth: 300 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <span style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg,#6C63FF,#00D4AA)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: '#0b0b12' }}>Q</span>
               <span style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.01em' }}>Quartzbase</span>
@@ -126,7 +126,10 @@ export function PublicFooter() {
         a.qb-foot-link:hover, .qb-foot-link[href]:hover { color: #f0f0f8 !important; }
         @media (max-width: 767px) {
           .qb-footer-grid { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
-          .qb-footer-grid > div:first-child { grid-column: 1 / -1; }
+          /* Pas de combinateur enfant ni apostrophe ici (React echappe ces
+             caracteres dans les enfants texte de la balise style en SSR,
+             ce qui provoque un hydration mismatch). */
+          .qb-footer-brand { grid-column: 1 / -1; }
         }
       `}</style>
     </footer>

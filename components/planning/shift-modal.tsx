@@ -576,7 +576,7 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
   return (
     <>
       <Dialog open={isOpen && !showCopyDialog} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)] overflow-hidden">
+        <DialogContent className="sm:max-w-md max-w-[calc(100vw-2rem)] overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="leading-snug pr-6">
               Créneau — {firstName} — {dayLabel}
