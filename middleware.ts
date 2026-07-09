@@ -96,8 +96,10 @@ export const config = {
      * - _next/static (fichiers statiques)
      * - _next/image (optimisation d'images)
      * - favicon.ico
+     * - sw.js / manifest.webmanifest (PWA — doivent rester accessibles sans
+     *   session, sinon le service worker et le manifest échouent en 307 → /login)
      * - fichiers avec extensions (png, jpg, etc.)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
