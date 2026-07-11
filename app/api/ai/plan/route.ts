@@ -15,6 +15,13 @@ import { collectProposedShifts } from '@/lib/planning/plan-tools'
 // 60s couvre les deux tiers (max Hobby, default Pro).
 export const maxDuration = 60
 
+// Marge sous maxDuration pour arrêter la boucle LLM AVANT que Vercel ne tue la
+// fonction (ce qui renvoie un 504 non-JSON → « Erreur réseau » côté client,
+// avec zéro créneau récupérable). On préfère un plan partiel (créneaux déjà
+// acceptés + repairPlan) à une coupure sèche.
+const AI_LOOP_DEADLINE_MS = 42_000
+const ANTHROPIC_CALL_TIMEOUT_MS = 20_000
+
 const client = new Anthropic()
 
 const FR_DOW = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
@@ -138,6 +145,7 @@ export type ProposedShift = {
 }
 
 export async function POST(req: Request) {
+  const requestStartedAt = Date.now()
   const supabase = await createClient()
   let authUser: { id: string }
   let estId: string
@@ -390,6 +398,7 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
 
   const proposedShifts: ProposedShift[] = []
   let summary = ''
+  let partial = false
 
   const messages: Anthropic.MessageParam[] = [
     { role: 'user', content: 'Génère le planning complet pour cette semaine.' },
@@ -397,6 +406,15 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
 
   try {
     for (let iteration = 0; iteration < 16; iteration++) {
+      // Garde-fou de délai : on n'entame pas un nouvel appel si on est trop
+      // près de la coupure Vercel (maxDuration) — mieux vaut retourner ce qui
+      // a déjà été accepté que de laisser la fonction se faire tuer en plein
+      // appel (504 non-JSON, zéro créneau récupérable côté client).
+      if (Date.now() - requestStartedAt > AI_LOOP_DEADLINE_MS) {
+        partial = true
+        break
+      }
+
       const response = await client.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 8192,
@@ -409,7 +427,7 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
         ],
         tools: [tool],
         messages,
-      })
+      }, { timeout: ANTHROPIC_CALL_TIMEOUT_MS })
 
       messages.push({ role: 'assistant', content: response.content })
 
@@ -432,16 +450,21 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
       messages.push({ role: 'user', content: toolResults })
     }
   } catch (e) {
-    // Toute exception du SDK Anthropic (5xx, rate-limit, timeout) doit
-    // remonter en JSON exploitable côté client — sinon le fetch tombe sur
-    // une réponse non-JSON et le frontend affiche un générique « Erreur
-    // réseau ». Inclut un repli vers le moteur déterministe.
     console.error('[ai/plan] Anthropic error:', e)
-    const msg = e instanceof Error ? e.message : 'Erreur inconnue'
-    return Response.json(
-      { error: `La génération IA a échoué (${msg}). Vous pouvez réessayer ou basculer sur l'algorithme déterministe dans Réglages › Planning.` },
-      { status: 502 },
-    )
+    // Si rien n'a encore été accepté, il n'y a rien d'exploitable à renvoyer :
+    // on remonte l'erreur en JSON (sinon le fetch tombe sur une réponse
+    // non-JSON et le frontend affiche un générique « Erreur réseau »).
+    if (proposedShifts.length === 0) {
+      const msg = e instanceof Error ? e.message : 'Erreur inconnue'
+      return Response.json(
+        { error: `La génération IA a échoué (${msg}). Vous pouvez réessayer ou basculer sur l'algorithme déterministe dans Réglages › Planning.` },
+        { status: 502 },
+      )
+    }
+    // Des créneaux ont déjà été acceptés avant l'erreur (timeout d'un appel,
+    // 5xx transitoire…) : on les garde et on retourne un plan partiel plutôt
+    // que de tout jeter.
+    partial = true
   }
 
   // Filet de sécurité conformité : l'IA peut proposer des créneaux en
@@ -479,5 +502,6 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     estimatedCost: Math.round(estimatedCost),
     estimatedRatioPct,
     engine: 'ai',
+    partial,
   })
 }

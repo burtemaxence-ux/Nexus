@@ -113,7 +113,7 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
       // HTML/vide), on remonte le statut HTTP plutôt qu'un « Erreur réseau » opaque.
       const text = await res.text()
       let data: {
-        shifts?: ProposedShift[]; summary?: string; error?: string
+        shifts?: ProposedShift[]; summary?: string; error?: string; partial?: boolean
         targetPct?: number; estimatedRatioPct?: number | null; estimatedCost?: number
         forecastTotal?: number; historicalRatioPct?: number | null
       } = {}
@@ -132,7 +132,11 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
         return
       }
       const shifted = data.shifts ?? []
-      setSummary(data.summary ?? '')
+      // Génération interrompue avant la fin (délai) : on garde les créneaux
+      // déjà obtenus plutôt qu'un échec sec, mais on prévient qu'il en manque.
+      setSummary(data.partial
+        ? `${data.summary ?? ''}\n\n⚠️ Génération interrompue avant la fin (délai dépassé) — ${shifted.length} créneau${shifted.length > 1 ? 'x' : ''} généré${shifted.length > 1 ? 's' : ''}, complétez le reste manuellement ou relancez.`.trim()
+        : (data.summary ?? ''))
       if ((data.forecastTotal ?? 0) > 0) {
         setResult({
           targetPct: data.targetPct ?? Number(targetPct || 0),
