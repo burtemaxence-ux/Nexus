@@ -197,10 +197,28 @@ export async function POST(req: Request) {
     throw e
   }
 
-  // Choix du moteur de génération (réglage par établissement) : 'algorithm'
+  const {
+    week_monday, context, target_ratio, target_date, is_last_day, engine: engineOverride,
+  } = await req.json() as {
+    week_monday: string; context?: string; target_ratio?: number
+    // Génération jour par jour (cf. AI_LOOP_DEADLINE_MS_PER_DAY) : target_date
+    // restreint la génération à ce seul jour. Le contexte des jours précédents
+    // vient directement de la base (existingProposed) — ils sont déjà
+    // enregistrés au moment où le jour courant est généré. is_last_day indique
+    // le dernier appel de la série, pour ne décompter qu'UN seul crédit IA par
+    // semaine générée (pas un par jour). `engine` : override explicite du
+    // moteur choisi côté client (toggle du modal) — évite toute désynchro avec
+    // le réglage en base si celui-ci vient d'être changé (course PATCH/POST).
+    target_date?: string; is_last_day?: boolean; engine?: string
+  }
+
+  // Choix du moteur de génération : override explicite du client s'il est
+  // fourni (toggle du modal), sinon réglage par établissement. 'algorithm'
   // (solveur déterministe, instantané, conforme par construction) par DÉFAUT ;
   // 'ai' (LLM, texte libre) seulement si explicitement choisi.
-  const engine = await readEngine(supabase, estId)
+  const engine: 'ai' | 'algorithm' = engineOverride === 'ai' || engineOverride === 'algorithm'
+    ? engineOverride
+    : await readEngine(supabase, estId)
 
   const sub  = await getSubscription(supabase, estId)
   const tier = getPlanTier(sub)
@@ -241,19 +259,6 @@ export async function POST(req: Request) {
   // HTTP, pas en générations logiques (40 ≈ 5-6 semaines régénérées/heure).
   const rl = await checkRateLimit({ key: `ai-plan:${authUser.id}`, limit: 40, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
-
-  const {
-    week_monday, context, target_ratio, target_date, is_last_day,
-  } = await req.json() as {
-    week_monday: string; context?: string; target_ratio?: number
-    // Génération jour par jour (cf. AI_LOOP_DEADLINE_MS_PER_DAY) : target_date
-    // restreint la génération à ce seul jour. Le contexte des jours précédents
-    // vient directement de la base (existingProposed) — ils sont déjà
-    // enregistrés au moment où le jour courant est généré. is_last_day indique
-    // le dernier appel de la série, pour ne décompter qu'UN seul crédit IA par
-    // semaine générée (pas un par jour).
-    target_date?: string; is_last_day?: boolean
-  }
 
   const { weekDays, weekEndStr } = weekRange(week_monday)
   const dayScoped = typeof target_date === 'string' && weekDays.includes(target_date)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Sparkles, Loader2, CheckCircle, ChevronRight, Wand2, TrendingUp, Cpu } from 'lucide-react'
+import { X, Sparkles, Loader2, CheckCircle, ChevronRight, Wand2, TrendingUp, Cpu, Info } from 'lucide-react'
 import { type Profile, type Poste, type Shift } from '@/types'
 import { type ProposedShift } from '@/app/api/ai/plan/route'
 
@@ -62,6 +62,7 @@ interface AiPlanModalProps {
 export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSuccess, onClose }: AiPlanModalProps) {
   const [phase, setPhase] = useState<ModalPhase>('idle')
   const [engine, setEngine] = useState<Engine>('algorithm') // défaut = algorithme (instantané, conforme)
+  const [showEngineInfo, setShowEngineInfo] = useState(false)
   const [instructions, setInstructions] = useState('')
   const [summary, setSummary] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -90,6 +91,19 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
       })
       .catch(() => {})
   }, [weekMonday])
+
+  // Change le moteur : met à jour l'état local (pilote le flux + le texte) ET
+  // persiste le réglage (best-effort) pour la prochaine fois. La génération
+  // transmet de toute façon le moteur choisi en override, donc pas de course.
+  function selectEngine(next: Engine) {
+    if (next === engine) return
+    setEngine(next)
+    fetch('/api/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ planning_engine: next }),
+    }).catch(() => {})
+  }
 
   function captureResult(data: ResponseData) {
     if ((data.forecastTotal ?? 0) > 0) {
@@ -147,7 +161,7 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
       res = await fetch('/api/ai/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ week_monday: weekMonday, target_ratio: targetPct ? Number(targetPct) : undefined }),
+        body: JSON.stringify({ week_monday: weekMonday, engine: 'algorithm', target_ratio: targetPct ? Number(targetPct) : undefined }),
       })
     } catch { setError('Erreur réseau. Veuillez réessayer.'); setPhase('idle'); return }
 
@@ -189,6 +203,7 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           week_monday: weekMonday,
+          engine: 'ai',
           target_date: targetDate,
           is_last_day: isLastDay,
           context: instructions,
@@ -311,6 +326,65 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
           {/* ── Idle ── */}
           {phase === 'idle' && (
             <div className="space-y-4">
+              {/* Sélecteur de méthode : algorithme (défaut) ↔ IA, avec explication dépliable */}
+              <div className="rounded-xl p-3" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+                    Méthode de génération
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowEngineInfo(v => !v)}
+                    className="flex items-center gap-1 text-[11px] transition-colors"
+                    style={{ color: showEngineInfo ? 'var(--accent)' : 'var(--text-tertiary)' }}
+                    aria-expanded={showEngineInfo}
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                    Différence
+                  </button>
+                </div>
+
+                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  {([
+                    { value: 'algorithm' as Engine, icon: Cpu, label: 'Algorithme' },
+                    { value: 'ai' as Engine, icon: Sparkles, label: 'Assistant IA' },
+                  ]).map(opt => {
+                    const active = engine === opt.value
+                    const Icon = opt.icon
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => selectEngine(opt.value)}
+                        className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12.5px] font-medium transition-colors"
+                        style={{
+                          border: active ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                          backgroundColor: active ? 'var(--accent-light)' : 'var(--bg-card)',
+                          color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                        }}
+                        aria-pressed={active}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {showEngineInfo && (
+                  <div className="mt-2.5 space-y-2 text-[12px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="flex items-start gap-1.5">
+                      <Cpu className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                      <span><strong style={{ color: 'var(--text-primary)' }}>Algorithme</strong> — instantané et gratuit, respecte le Code du travail par construction (repos, pauses, contrats) et couvre tous les jours ouverts. Ne lit pas les consignes en texte libre.</span>
+                    </p>
+                    <p className="flex items-start gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                      <span><strong style={{ color: 'var(--text-primary)' }}>Assistant IA</strong> — comprend vos demandes en texte libre (« 3 serveurs le week-end… »), plus souple, mais plus lent et peut nécessiter des ajustements.</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {engine === 'algorithm' ? (
                 <div className="flex items-start gap-2.5 rounded-xl p-3.5" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
                   <Cpu className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
