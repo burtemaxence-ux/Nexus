@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Sparkles, Loader2, CheckCircle, ChevronRight, Wand2, TrendingUp } from 'lucide-react'
+import { X, Sparkles, Loader2, CheckCircle, ChevronRight, Wand2, TrendingUp, Cpu } from 'lucide-react'
 import { type Profile, type Poste, type Shift } from '@/types'
 import { type ProposedShift } from '@/app/api/ai/plan/route'
 
 type ModalPhase = 'idle' | 'running' | 'done'
+type Engine = 'ai' | 'algorithm'
 
 const SUGGESTIONS = [
   '3 serveurs chaque soir 18h–23h, fermé dimanche',
@@ -30,18 +31,21 @@ function weekDaysFrom(weekMonday: string): string[] {
   })
 }
 
-type DayResponseData = {
+type ResponseData = {
   shifts?: ProposedShift[]; summary?: string; error?: string; partial?: boolean; day_skipped?: boolean
   targetPct?: number; estimatedRatioPct?: number | null; estimatedCost?: number
   forecastTotal?: number; historicalRatioPct?: number | null
 }
 
 type DayResult =
-  | { kind: 'ok'; data: DayResponseData }
+  | { kind: 'ok'; data: ResponseData }
   | { kind: 'hard-stop'; message: string }
   | { kind: 'soft-fail' }
 
-type DayProgress = { current: number; total: number; label: string; step: 'ai' | 'save'; subCurrent: number; subTotal: number }
+// Progression : `step` distingue la phase (génération vs enregistrement) ;
+// `current/total` = jours (7 en IA, 1 en algorithme) ; `subCurrent/subTotal` =
+// créneaux enregistrés dans la phase d'enregistrement en cours.
+type Progress = { current: number; total: number; label: string; step: 'gen' | 'save'; subCurrent: number; subTotal: number }
 
 type ResultState = { targetPct: number; estimatedRatioPct: number | null; estimatedCost: number; forecastTotal: number; historicalRatioPct: number | null }
 
@@ -57,11 +61,12 @@ interface AiPlanModalProps {
 
 export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSuccess, onClose }: AiPlanModalProps) {
   const [phase, setPhase] = useState<ModalPhase>('idle')
+  const [engine, setEngine] = useState<Engine>('algorithm') // défaut = algorithme (instantané, conforme)
   const [instructions, setInstructions] = useState('')
   const [summary, setSummary] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [applied, setApplied] = useState(0)
-  const [dayProgress, setDayProgress] = useState<DayProgress | null>(null)
+  const [progress, setProgress] = useState<Progress | null>(null)
 
   // Copilote de productivité : prévision de CA + cible coût/CA.
   const [forecastTotal, setForecastTotal] = useState(0)
@@ -70,12 +75,14 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
   const [targetPct, setTargetPct] = useState('')
   const [result, setResult] = useState<ResultState | null>(null)
 
-  // Pré-remplit la cible suggérée et le CA prévu à l'ouverture (sans appel IA).
+  // Pré-remplit le moteur actif + la cible suggérée et le CA prévu à
+  // l'ouverture (sans appel IA). Le moteur détermine le flux de génération.
   useEffect(() => {
     fetch(`/api/ai/plan?week_monday=${weekMonday}`)
       .then(r => (r.ok ? r.json() : null))
       .then(d => {
         if (!d) return
+        if (d.engine === 'ai' || d.engine === 'algorithm') setEngine(d.engine)
         setForecastTotal(d.forecastTotal ?? 0)
         setHistoricalRatioPct(d.historicalRatioPct ?? null)
         setTargetBasis(d.targetBasis ?? 'sector')
@@ -84,14 +91,26 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
       .catch(() => {})
   }, [weekMonday])
 
-  // Enregistre en brouillon les créneaux d'UN jour. La conformité n'est pas
-  // revérifiée ici : elle a déjà été appliquée côté serveur pendant la
-  // génération (rejet en temps réel + repairPlan) — le manager vérifie
-  // ensuite via le bouton « Vérifier » du planning (cases en rouge).
-  async function applyDayShifts(toApply: ProposedShift[]): Promise<{ count: number; firstError: string | null }> {
+  function captureResult(data: ResponseData) {
+    if ((data.forecastTotal ?? 0) > 0) {
+      setResult({
+        targetPct: data.targetPct ?? Number(targetPct || 0),
+        estimatedRatioPct: data.estimatedRatioPct ?? null,
+        estimatedCost: data.estimatedCost ?? 0,
+        forecastTotal: data.forecastTotal ?? 0,
+        historicalRatioPct: data.historicalRatioPct ?? null,
+      })
+    }
+  }
+
+  // Enregistre une liste de créneaux en brouillon (POST /api/shifts, un par
+  // un — l'endpoint ne fait pas de batch). La conformité a déjà été garantie
+  // côté serveur (algorithme conforme par construction, ou IA vérifiée en
+  // temps réel + repairPlan).
+  async function applyShiftList(toApply: ProposedShift[]): Promise<{ count: number; firstError: string | null }> {
     let count = 0
     let firstError: string | null = null
-    setDayProgress(p => (p ? { ...p, subCurrent: 0, subTotal: toApply.length } : p))
+    setProgress(p => (p ? { ...p, step: 'save', subCurrent: 0, subTotal: toApply.length } : p))
     for (const shift of toApply) {
       try {
         const res = await fetch('/api/shifts', {
@@ -112,7 +131,7 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
         if (res.ok) {
           count++
           setApplied(a => a + 1)
-          setDayProgress(p => (p ? { ...p, subCurrent: p.subCurrent + 1 } : p))
+          setProgress(p => (p ? { ...p, subCurrent: p.subCurrent + 1 } : p))
         } else if (!firstError) {
           const d = await res.json().catch(() => ({}))
           firstError = d.error ?? `HTTP ${res.status}`
@@ -124,11 +143,47 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
     return { count, firstError }
   }
 
+  // ── Moteur ALGORITHME : un seul appel, semaine entière, instantané ────────
+  async function generateAlgorithm() {
+    setProgress({ current: 0, total: 1, label: 'la semaine', step: 'gen', subCurrent: 0, subTotal: 0 })
+    let res: Response
+    try {
+      res = await fetch('/api/ai/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ week_monday: weekMonday, target_ratio: targetPct ? Number(targetPct) : undefined }),
+      })
+    } catch { setError('Erreur réseau. Veuillez réessayer.'); setPhase('idle'); return }
+
+    const text = await res.text()
+    let data: ResponseData = {}
+    try { data = text ? JSON.parse(text) : {} } catch {
+      setError(`Réponse serveur invalide (HTTP ${res.status}).`); setPhase('idle'); return
+    }
+    if (!res.ok || data.error) { setError(data.error ?? 'Erreur lors de la génération'); setPhase('idle'); return }
+
+    captureResult(data)
+    const shifts = data.shifts ?? []
+    if (shifts.length === 0) {
+      setApplied(0)
+      setSummary(data.summary || "Aucun créneau généré : vérifiez les heures d'ouverture, les jours fermés et les contrats (Réglages › Règles).")
+      setPhase('done')
+      return
+    }
+
+    setProgress({ current: 1, total: 1, label: 'la semaine', step: 'save', subCurrent: 0, subTotal: shifts.length })
+    const { count } = await applyShiftList(shifts)
+    const days = new Set(shifts.map(s => s.date)).size
+    setSummary(`${count} créneau${count > 1 ? 'x' : ''} créé${count > 1 ? 's' : ''} en brouillon sur ${days} jour${days > 1 ? 's' : ''}. Planning conforme au Code du travail (repos 11h, max 10h/jour, heures contractuelles respectées).`)
+    setPhase('done')
+    if (count > 0) onSuccess()
+  }
+
+  // ── Moteur IA : jour par jour (option) ────────────────────────────────────
   // Génère UN jour. Body en texte d'abord : si JSON.parse échoue (504 Vercel
-  // renvoie du HTML/vide), on retombe sur le statut HTTP plutôt qu'une erreur
-  // opaque. Les statuts HARD_STOP (quota/rate-limit/clé manquante) affectent
-  // tous les jours identiquement — remontés à part pour que l'appelant arrête
-  // la boucle au lieu d'enchaîner 7 échecs identiques.
+  // renvoie du HTML/vide), on retombe sur le statut HTTP. Les statuts
+  // HARD_STOP affectent tous les jours identiquement → remontés à part pour
+  // arrêter la boucle au lieu d'enchaîner 7 échecs identiques.
   async function requestDay(targetDate: string, isLastDay: boolean, acceptedSoFar: ProposedShift[]): Promise<DayResult> {
     let res: Response
     try {
@@ -149,10 +204,10 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
     }
 
     const text = await res.text()
-    let data: DayResponseData = {}
+    let data: ResponseData = {}
     try { data = text ? JSON.parse(text) : {} } catch {
       return HARD_STOP_STATUSES.has(res.status)
-        ? { kind: 'hard-stop', message: "La génération IA a dépassé le délai. Réessayez ou utilisez l'algorithme déterministe (Réglages › Planning)." }
+        ? { kind: 'hard-stop', message: "La génération IA a dépassé le délai. Réessayez ou utilisez l'algorithme déterministe (Réglages › Règles)." }
         : { kind: 'soft-fail' }
     }
 
@@ -165,82 +220,62 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
     return { kind: 'ok', data }
   }
 
-  // Boucle jour par jour (lundi → dimanche) : un seul clic manager, mais 7
-  // appels internes courts plutôt qu'un seul appel géant qui dépasse le délai
-  // sur les établissements avec plusieurs employés. Chaque jour est appliqué
-  // en brouillon dès qu'il est généré (pas d'attente de la semaine complète),
-  // et le contexte des jours précédents (accepted_shifts) est transmis à
-  // chaque appel pour que le repos/jours consécutifs restent corrects.
+  async function generateAi() {
+    const days = weekDaysFrom(weekMonday)
+    let acceptedSoFar: ProposedShift[] = []
+    let totalApplied = 0
+    const coveredDays = new Set<string>()
+    const issueDays: string[] = []
+
+    for (let i = 0; i < days.length; i++) {
+      const day = days[i]
+      const label = DOW_LABELS[i]
+      setProgress({ current: i + 1, total: days.length, label, step: 'gen', subCurrent: 0, subTotal: 0 })
+
+      const outcome = await requestDay(day, i === days.length - 1, acceptedSoFar)
+
+      if (outcome.kind === 'hard-stop') {
+        if (totalApplied > 0) { issueDays.push(`${label} et suivants`); break }
+        setError(outcome.message); setPhase('idle'); return
+      }
+      if (outcome.kind === 'soft-fail') { issueDays.push(label); continue }
+
+      const { data } = outcome
+      if (data.day_skipped) continue
+      if (data.partial) issueDays.push(`${label} (incomplet)`)
+      captureResult(data)
+
+      const dayShifts = data.shifts ?? []
+      if (dayShifts.length > 0) {
+        acceptedSoFar = [...acceptedSoFar, ...dayShifts]
+        setProgress({ current: i + 1, total: days.length, label, step: 'save', subCurrent: 0, subTotal: dayShifts.length })
+        const { count } = await applyShiftList(dayShifts)
+        totalApplied += count
+        if (count > 0) coveredDays.add(day)
+        if (count < dayShifts.length && !issueDays.includes(label)) issueDays.push(label)
+      }
+    }
+
+    const issueNote = issueDays.length > 0
+      ? ` À compléter/relancer sur : ${issueDays.join(', ')}.`
+      : ''
+    setSummary(totalApplied > 0
+      ? `${totalApplied} créneau${totalApplied > 1 ? 'x' : ''} créé${totalApplied > 1 ? 's' : ''} en brouillon sur ${coveredDays.size} jour${coveredDays.size > 1 ? 's' : ''}.${issueNote}`
+      : `Aucun créneau généré.${issueNote}`)
+    setPhase('done')
+    if (totalApplied > 0) onSuccess()
+  }
+
+  // Un seul clic manager. Le flux dépend du moteur actif (algorithme = 1 appel
+  // instantané ; IA = jour par jour pour tenir sous la limite de temps).
   async function generate() {
     setError(null)
     setPhase('running')
     setApplied(0)
     setSummary('')
     setResult(null)
-
-    const days = weekDaysFrom(weekMonday)
-    let acceptedSoFar: ProposedShift[] = []
-    let totalApplied = 0
-    const summaries: string[] = []
-    const issueDays: string[] = []
-    let finalResult: ResultState | null = null
-
-    for (let i = 0; i < days.length; i++) {
-      const day = days[i]
-      const label = DOW_LABELS[i]
-      setDayProgress({ current: i + 1, total: days.length, label, step: 'ai', subCurrent: 0, subTotal: 0 })
-
-      const outcome = await requestDay(day, i === days.length - 1, acceptedSoFar)
-
-      if (outcome.kind === 'hard-stop') {
-        if (totalApplied > 0) {
-          // Une partie de la semaine a déjà été générée et enregistrée : on
-          // la garde plutôt que de tout jeter pour une erreur qui bloque
-          // seulement la suite (quota épuisé en cours de semaine, etc.).
-          issueDays.push(`${label} et suivants (${outcome.message})`)
-          break
-        }
-        setError(outcome.message)
-        setPhase('idle')
-        return
-      }
-
-      if (outcome.kind === 'soft-fail') {
-        issueDays.push(label)
-        continue
-      }
-
-      const { data } = outcome
-      if (data.day_skipped) continue
-      if (data.partial) issueDays.push(`${label} (génération incomplète)`)
-      if (data.summary) summaries.push(data.summary)
-      if ((data.forecastTotal ?? 0) > 0) {
-        finalResult = {
-          targetPct: data.targetPct ?? Number(targetPct || 0),
-          estimatedRatioPct: data.estimatedRatioPct ?? null,
-          estimatedCost: data.estimatedCost ?? 0,
-          forecastTotal: data.forecastTotal ?? 0,
-          historicalRatioPct: data.historicalRatioPct ?? null,
-        }
-      }
-
-      const dayShifts = data.shifts ?? []
-      if (dayShifts.length > 0) {
-        acceptedSoFar = [...acceptedSoFar, ...dayShifts]
-        setDayProgress({ current: i + 1, total: days.length, label, step: 'save', subCurrent: 0, subTotal: dayShifts.length })
-        const { count } = await applyDayShifts(dayShifts)
-        totalApplied += count
-        if (count < dayShifts.length && !issueDays.includes(label)) issueDays.push(label)
-      }
-    }
-
-    setResult(finalResult)
-    const issueNote = issueDays.length > 0
-      ? `\n\n⚠️ Souci sur : ${issueDays.join(', ')} — complétez manuellement ou relancez.`
-      : ''
-    setSummary(summaries.join('\n') + issueNote)
-    setPhase('done')
-    if (totalApplied > 0) onSuccess()
+    if (engine === 'algorithm') await generateAlgorithm()
+    else await generateAi()
   }
 
   return (
@@ -257,7 +292,7 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" style={{ color: 'var(--accent)' }} />
             <span className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>
-              Auto-planning IA
+              Auto-planning
             </span>
             <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
               {weekLabel}
@@ -279,36 +314,45 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
           {/* ── Idle ── */}
           {phase === 'idle' && (
             <div className="space-y-4">
-              <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-                Décrivez vos besoins pour la semaine. L&apos;IA génère et applique un planning complet en brouillon — vous le vérifiez et l&apos;ajustez ensuite sur le planning.
-              </p>
-
-              <textarea
-                value={instructions}
-                onChange={e => setInstructions(e.target.value)}
-                placeholder="Ex : J'ai besoin de 3 serveurs le week-end, Hugo ne peut pas le lundi, planning léger mercredi…"
-                rows={4}
-                className="w-full text-[13px] rounded-xl px-4 py-3 resize-none focus:outline-none"
-                style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)', color: 'var(--text-primary)' }}
-              />
-
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.06em] mb-2" style={{ color: 'var(--text-tertiary)' }}>
-                  Suggestions rapides
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {SUGGESTIONS.map(s => (
-                    <button
-                      key={s}
-                      onClick={() => setInstructions(s)}
-                      className="text-[12px] px-3 py-1.5 rounded-lg transition-colors"
-                      style={{ border: '0.5px solid var(--border)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-page)' }}
-                    >
-                      {s}
-                    </button>
-                  ))}
+              {engine === 'algorithm' ? (
+                <div className="flex items-start gap-2.5 rounded-xl p-3.5" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
+                  <Cpu className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                  <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                    Génération automatique d&apos;un planning <strong style={{ color: 'var(--text-primary)' }}>conforme et équilibré</strong> pour toute la semaine, en respectant repos, pauses et heures contractuelles. Instantané. Vous ajustez ensuite sur le planning.
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                    Décrivez vos besoins pour la semaine. L&apos;IA génère et applique un planning complet en brouillon — vous le vérifiez et l&apos;ajustez ensuite.
+                  </p>
+                  <textarea
+                    value={instructions}
+                    onChange={e => setInstructions(e.target.value)}
+                    placeholder="Ex : J'ai besoin de 3 serveurs le week-end, Hugo ne peut pas le lundi, planning léger mercredi…"
+                    rows={4}
+                    className="w-full text-[13px] rounded-xl px-4 py-3 resize-none focus:outline-none"
+                    style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)', color: 'var(--text-primary)' }}
+                  />
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.06em] mb-2" style={{ color: 'var(--text-tertiary)' }}>
+                      Suggestions rapides
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {SUGGESTIONS.map(s => (
+                        <button
+                          key={s}
+                          onClick={() => setInstructions(s)}
+                          className="text-[12px] px-3 py-1.5 rounded-lg transition-colors"
+                          style={{ border: '0.5px solid var(--border)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-page)' }}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Copilote de productivité — visible seulement si du CA est saisi */}
               {forecastTotal > 0 && (
@@ -355,12 +399,12 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
             </div>
           )}
 
-          {/* ── Running (génération + application, jour par jour) ── */}
+          {/* ── Running (génération + application) ── */}
           {phase === 'running' && (
             <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
               <div className="relative">
                 <div className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
-                  {dayProgress?.step === 'save'
+                  {progress?.step === 'save'
                     ? <Wand2 className="h-5 w-5" style={{ color: 'var(--accent)' }} />
                     : <Sparkles className="h-5 w-5" style={{ color: 'var(--accent)' }} />}
                 </div>
@@ -370,24 +414,34 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
               </div>
               <div>
                 <p className="text-[14px] font-medium capitalize" style={{ color: 'var(--text-primary)' }}>
-                  {dayProgress
-                    ? `${dayProgress.step === 'save' ? 'Enregistrement' : 'Génération'} : ${dayProgress.label} (${dayProgress.current}/${dayProgress.total})…`
-                    : 'Génération en cours…'}
+                  {progress?.step === 'save'
+                    ? 'Enregistrement du planning…'
+                    : engine === 'ai' && progress
+                      ? `Génération : ${progress.label} (${progress.current}/${progress.total})…`
+                      : 'Génération en cours…'}
                 </p>
                 <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  {dayProgress?.step === 'save'
-                    ? `${dayProgress.subCurrent} / ${dayProgress.subTotal} créneaux enregistrés`
-                    : "L'IA construit ce jour en respectant le Code du travail"}
+                  {progress?.step === 'save'
+                    ? `${progress.subCurrent} / ${progress.subTotal} créneaux enregistrés`
+                    : engine === 'algorithm'
+                      ? 'Calcul instantané, conforme au Code du travail'
+                      : "L'IA construit ce jour en respectant le Code du travail"}
                 </p>
-                <div className="mt-3 h-1.5 w-48 rounded-full overflow-hidden mx-auto" style={{ backgroundColor: 'var(--border)' }}>
-                  <div
-                    className="h-full rounded-full transition-all duration-300"
-                    style={{
-                      width: `${dayProgress ? (dayProgress.current / dayProgress.total) * 100 : 0}%`,
-                      backgroundColor: 'var(--accent)',
-                    }}
-                  />
-                </div>
+                {(engine === 'ai' || progress?.step === 'save') && (
+                  <div className="mt-3 h-1.5 w-48 rounded-full overflow-hidden mx-auto" style={{ backgroundColor: 'var(--border)' }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: progress
+                          ? `${progress.step === 'save' && progress.subTotal > 0
+                              ? (progress.subCurrent / progress.subTotal) * 100
+                              : (progress.current / progress.total) * 100}%`
+                          : '0%',
+                        backgroundColor: 'var(--accent)',
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -402,11 +456,11 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
                 <p className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>
                   {applied > 0 ? 'Planning appliqué !' : 'Aucun shift à créer'}
                 </p>
-                <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  {applied > 0
-                    ? `${applied} shift${applied > 1 ? 's' : ''} ajouté${applied > 1 ? 's' : ''} en mode brouillon.`
-                    : 'L’IA n’a proposé aucun shift pour ces critères.'}
-                </p>
+                {summary && (
+                  <p className="text-[13px] mt-1.5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    {summary}
+                  </p>
+                )}
                 {result && result.estimatedRatioPct != null && (() => {
                   const r = result.estimatedRatioPct
                   const color = r <= result.targetPct ? 'var(--success)' : r <= result.targetPct + 3 ? 'var(--warning)' : 'var(--danger)'
@@ -425,16 +479,10 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
                     </div>
                   )
                 })()}
-                {summary && (
-                  <div
-                    className="rounded-xl p-3 mt-3 text-[12px] leading-relaxed whitespace-pre-wrap text-left"
-                    style={{ backgroundColor: 'var(--accent-light)', color: 'var(--text-primary)', border: '0.5px solid var(--border)' }}
-                  >
-                    {summary}
-                  </div>
-                )}
                 <p className="text-[12px] mt-3" style={{ color: 'var(--text-tertiary)' }}>
-                  Utilisez « Vérifier » sur le planning pour repérer les éventuelles infractions (cases en rouge), puis publiez.
+                  {engine === 'algorithm'
+                    ? 'Ajustez les créneaux si besoin, puis publiez.'
+                    : 'Utilisez « Vérifier » sur le planning pour repérer les éventuelles infractions (cases en rouge), puis publiez.'}
                 </p>
               </div>
             </div>

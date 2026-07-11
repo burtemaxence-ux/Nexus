@@ -121,7 +121,25 @@ async function loadEconomics(
   return { forecast, forecastTotal, suggestedTargetPct: sectorTargetPct(actSetting?.value), targetBasis: 'sector', historicalRatioPct: null, rateMap }
 }
 
-// GET — aperçu (CA prévu + cible suggérée) pour pré-remplir le modal, sans IA.
+// Moteur de génération de l'établissement. 'algorithm' (déterministe,
+// instantané, conforme par construction) est le DÉFAUT ; 'ai' (LLM, texte
+// libre) uniquement si explicitement choisi dans Réglages › Règles.
+async function readEngine(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  estId: string,
+): Promise<'ai' | 'algorithm'> {
+  const { data } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('establishment_id', estId)
+    .eq('key', 'planning_engine')
+    .maybeSingle()
+  return data?.value === 'ai' ? 'ai' : 'algorithm'
+}
+
+// GET — aperçu (moteur actif + CA prévu + cible suggérée) pour pré-remplir le
+// modal, sans IA. Le moteur est renvoyé pour TOUS les plans : le modal choisit
+// le bon flux (algorithme = 1 appel semaine entière ; IA = jour par jour).
 export async function GET(req: Request) {
   const supabase = await createClient()
   let estId: string
@@ -135,9 +153,11 @@ export async function GET(req: Request) {
   const weekMonday = new URL(req.url).searchParams.get('week_monday')
   if (!weekMonday) return Response.json({ error: 'week_monday requis' }, { status: 400 })
 
+  const engine = await readEngine(supabase, estId)
+
   // Le copilote de productivité (prévision CA + cible coût/CA) est premium.
   if (!isPro(getPlanTier(await getSubscription(supabase, estId)))) {
-    return Response.json({ premium: false, forecastTotal: 0 })
+    return Response.json({ premium: false, forecastTotal: 0, engine })
   }
 
   const { weekDays, weekEndStr } = weekRange(weekMonday)
@@ -147,6 +167,7 @@ export async function GET(req: Request) {
     suggestedTargetPct: eco.suggestedTargetPct,
     targetBasis: eco.targetBasis,
     historicalRatioPct: eco.historicalRatioPct,
+    engine,
   })
 }
 
@@ -176,16 +197,10 @@ export async function POST(req: Request) {
     throw e
   }
 
-  // Choix du moteur de génération (réglage par établissement) : 'ai' (LLM) ou
-  // 'algorithm' (solveur déterministe gratuit). Default : 'ai' pour préserver
-  // le comportement existant.
-  const { data: engineSetting } = await supabase
-    .from('settings')
-    .select('value')
-    .eq('establishment_id', estId)
-    .eq('key', 'planning_engine')
-    .maybeSingle()
-  const engine: 'ai' | 'algorithm' = engineSetting?.value === 'algorithm' ? 'algorithm' : 'ai'
+  // Choix du moteur de génération (réglage par établissement) : 'algorithm'
+  // (solveur déterministe, instantané, conforme par construction) par DÉFAUT ;
+  // 'ai' (LLM, texte libre) seulement si explicitement choisi.
+  const engine = await readEngine(supabase, estId)
 
   const sub  = await getSubscription(supabase, estId)
   const tier = getPlanTier(sub)

@@ -173,7 +173,7 @@ const DEFAULTS: Settings = {
   color_absence: '#EF4444',
   color_conge: '#10B981',
   color_overtime: '#F59E0B',
-  planning_engine: 'ai',
+  planning_engine: 'algorithm',
 }
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
@@ -658,16 +658,16 @@ export default function ReglesPage() {
           <div className="space-y-2">
             {([
               {
+                value: 'algorithm',
+                icon: Cpu,
+                title: 'Algorithme déterministe (recommandé)',
+                desc: 'Le solveur place les shifts en suivant des règles claires : repos 11h, max 10h/jour, heures contractuelles, prévision de CA. Instantané, gratuit, sans erreur de conformité, tous les jours couverts.',
+              },
+              {
                 value: 'ai',
                 icon: Sparkles,
                 title: 'Assistant IA',
-                desc: 'Le modèle propose un planning à partir de votre contexte libre (note, demandes spécifiques). Plus créatif, peut hésiter ou consommer du quota.',
-              },
-              {
-                value: 'algorithm',
-                icon: Cpu,
-                title: 'Algorithme déterministe',
-                desc: 'Le solveur place les shifts en suivant des règles claires : repos 11h, max 10h/jour, heures contractuelles, prévision de CA. Instantané, gratuit, reproductible.',
+                desc: 'Le modèle propose un planning à partir de votre contexte libre (note, demandes spécifiques). Plus créatif mais plus lent, peut hésiter et consomme du quota.',
               },
             ] as const).map(opt => {
               const isSelected = settings.planning_engine === opt.value
