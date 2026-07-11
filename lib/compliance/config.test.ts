@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildComplianceConfig, complianceConfigFromRows } from './config'
+import { buildComplianceConfig, complianceConfigFromRows, defaultAlertsForConvention } from './config'
 
 describe('buildComplianceConfig', () => {
   it('désactive nuit + dimanche par défaut quand une convention est renseignée', () => {
@@ -46,5 +46,25 @@ describe('complianceConfigFromRows', () => {
   it('gère l\'absence de données (défauts prudents : tout actif)', () => {
     const c = complianceConfigFromRows(null)
     expect(c).toEqual({ night_work: true, sunday_work: true, part_time_split: true, hours_avg_weekly: true })
+  })
+})
+
+describe('defaultAlertsForConvention', () => {
+  it('nuit + dimanche off pour la valeur historique « HCR » (seedée à la création)', () => {
+    const d = defaultAlertsForConvention('HCR')
+    expect(d.night_work).toBe(false)
+    expect(d.sunday_work).toBe(false)
+    expect(d.part_time_split).toBe(true)
+    expect(d.hours_avg_weekly).toBe(true)
+  })
+
+  it('nuit + dimanche off pour une convention connue (boulangerie)', () => {
+    expect(defaultAlertsForConvention('IDCC 3061').night_work).toBe(false)
+  })
+
+  it('tout actif pour une convention inconnue/custom ou absente', () => {
+    expect(defaultAlertsForConvention('IDCC 9999').night_work).toBe(true)
+    expect(defaultAlertsForConvention('Autre').sunday_work).toBe(true)
+    expect(defaultAlertsForConvention(null).night_work).toBe(true)
   })
 })

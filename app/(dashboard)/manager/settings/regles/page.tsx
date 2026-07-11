@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2, Check, ChevronRight, BookOpen, Cpu, Sparkles, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { buildComplianceConfig } from '@/lib/compliance/config'
+import { buildComplianceConfig, defaultAlertsForConvention } from '@/lib/compliance/config'
 
 // ── Activity types ────────────────────────────────────────────────────────────
 
@@ -265,6 +265,22 @@ export default function ReglesPage() {
     setSettings(prev => ({ ...prev, [key]: value }))
   }
 
+  // Choisit une convention ET réinitialise les alertes contextuelles sur les
+  // défauts de cette convention (nuit/dimanche off pour le secteur, etc.).
+  // C'est ce qui rend l'état des alertes « automatique selon la convention
+  // choisie » : changer de convention repositionne les interrupteurs.
+  function chooseConvention(ccn: string) {
+    const d = defaultAlertsForConvention(ccn)
+    setSettings(prev => ({
+      ...prev,
+      collective_agreement: ccn,
+      alert_night_work: d.night_work ? 'on' : 'off',
+      alert_sunday_work: d.sunday_work ? 'on' : 'off',
+      alert_part_time_split: d.part_time_split ? 'on' : 'off',
+      alert_hours_avg_weekly: d.hours_avg_weekly ? 'on' : 'off',
+    }))
+  }
+
   function toggleDay(idx: number) {
     setClosedDays(prev =>
       prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx]
@@ -273,10 +289,10 @@ export default function ReglesPage() {
 
   function selectActivityType(id: ActivityTypeId) {
     setActivityType(id)
-    // Auto-select convention if only one option
+    // Auto-select convention if only one option (applique aussi ses défauts d'alertes)
     const options = ACTIVITY_CONVENTIONS[id]
-    if (options.length === 1) set('collective_agreement', options[0])
-    else if (id === 'other') set('collective_agreement', 'Autre')
+    if (options.length === 1) chooseConvention(options[0])
+    else if (id === 'other') chooseConvention('Autre')
   }
 
   async function handleSave() {
@@ -389,7 +405,7 @@ export default function ReglesPage() {
                       <Label className="text-xs">Numéro IDCC (facultatif)</Label>
                       <Input
                         value={settings.collective_agreement === 'Autre' ? '' : settings.collective_agreement}
-                        onChange={e => set('collective_agreement', e.target.value || 'Autre')}
+                        onChange={e => chooseConvention(e.target.value || 'Autre')}
                         placeholder="Ex: IDCC 9999"
                         className="h-8 text-sm"
                       />
@@ -405,7 +421,7 @@ export default function ReglesPage() {
                     return (
                       <button
                         key={code}
-                        onClick={() => set('collective_agreement', code)}
+                        onClick={() => chooseConvention(code)}
                         className="w-full flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors duration-150"
                         style={{
                           border: isSelected ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
