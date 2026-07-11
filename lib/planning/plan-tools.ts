@@ -45,17 +45,32 @@ function newViolations(accepted: ProposedShift[], candidate: ProposedShift, empl
 // la réponse s'est arrêtée sur max_tokens en plein milieu d'un appel d'outil.
 // Les appels incomplets reçoivent un tool_result marqué is_error.
 //
+// Au-delà de ce nombre de rejets pour le même employé/jour, on accepte le
+// créneau malgré la violation restante plutôt que de laisser le modèle
+// boucler indéfiniment sur un cas qu'il n'arrive pas à corriger (chaque rejet
+// coûte un aller-retour complet vers l'API — sur un cas récalcitrant, ça peut
+// épuiser tout le budget de temps de la génération pour un seul créneau). Le
+// filet de sécurité habituel (repairPlan / alertes de conformité) prend alors
+// le relais, comme avant l'ajout de cette vérification en temps réel.
+const MAX_REJECTIONS_PER_SLOT = 2
+
 // `priorShifts` = créneaux déjà acceptés dans les itérations précédentes de la
 // boucle LLM (cf. app/api/ai/plan/route.ts) : sert de base pour détecter les
 // infractions introduites par un nouveau créneau. Un créneau non conforme est
 // REJETÉ (is_error) avec le détail de la règle violée, pour que le modèle se
 // corrige immédiatement au lieu de laisser passer une infraction qui
 // n'apparaîtrait qu'après coup en alerte de conformité.
+//
+// `rejectionCounts` = compteur de rejets par employé/jour, partagé (même Map)
+// entre tous les appels de la boucle LLM (cf. app/api/ai/plan/route.ts) pour
+// appliquer MAX_REJECTIONS_PER_SLOT sur l'ensemble de la génération, pas juste
+// au sein d'un seul appel.
 export function collectProposedShifts(
   content: Anthropic.ContentBlock[],
   lookups: ShiftLookups,
   priorShifts: ProposedShift[] = [],
   employees?: EmployeeMeta[],
+  rejectionCounts: Map<string, number> = new Map(),
 ): { shifts: ProposedShift[]; toolResults: Anthropic.ToolResultBlockParam[]; hasToolUse: boolean } {
   const { employeeNameMap, employeePositionMap, posteMap } = lookups
   const shifts: ProposedShift[] = []
@@ -95,6 +110,24 @@ export function collectProposedShifts(
 
     const violations = newViolations(accepted, candidate, employees)
     if (violations.length > 0) {
+      const slotKey = `${candidate.employee_id}__${candidate.date}`
+      const rejections = (rejectionCounts.get(slotKey) ?? 0) + 1
+      rejectionCounts.set(slotKey, rejections)
+
+      if (rejections > MAX_REJECTIONS_PER_SLOT) {
+        // Le modèle n'arrive pas à corriger ce créneau après plusieurs essais :
+        // on l'accepte tel quel plutôt que de continuer à consommer des
+        // allers-retours, et on laisse le filet de sécurité s'en occuper.
+        accepted.push(candidate)
+        shifts.push(candidate)
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: block.id,
+          content: `OK (créé malgré une non-conformité persistante après ${rejections} essais — sera signalé dans les alertes de conformité) : ${candidate.date} ${candidate.start_time}-${candidate.end_time} pour ${candidate.employee_name}`,
+        })
+        continue
+      }
+
       const detail = violations
         .map(v => `${RULES[v.ruleId].name} (${v.description})${v.suggestedFix ? ` → ${v.suggestedFix}` : ''}`)
         .join(' ; ')

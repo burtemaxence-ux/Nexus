@@ -370,8 +370,8 @@ ${economicsSection}
 - Maximum 48h par semaine.
 - Amplitude d'une journée ≤ 13h (début → fin).
 - Ne JAMAIS planifier un employé marqué ABSENT.
-- Pause de 30 min dès qu'un service dépasse 6h.
-- Chaque appel à propose_shift est vérifié automatiquement. Si le résultat commence par « REJETÉ », le créneau N'A PAS été ajouté : corrige immédiatement les horaires (ou la pause) selon le motif indiqué et rappelle propose_shift pour ce même employé/jour — ne renvoie jamais deux fois un créneau rejeté à l'identique.
+- Dès qu'un service (ou le total d'une journée pour un même employé) dépasse 6h de travail effectif, renseigne break_minutes ≥ 20 sur le créneau — sinon la pause légale est considérée manquante. Exemple : un service de 09:00 à 17:00 (8h) doit avoir break_minutes ≥ 20, jamais 0.
+- Chaque appel à propose_shift est vérifié automatiquement. Si le résultat commence par « REJETÉ », le créneau N'A PAS été ajouté : corrige immédiatement les horaires ou la pause selon le motif indiqué et rappelle propose_shift pour ce même employé/jour — ne renvoie jamais deux fois un créneau rejeté à l'identique.
 
 ## Demande du manager
 ${context?.trim() || 'Générer un planning équilibré pour toute la semaine en couvrant les besoins standard de l\'établissement.'}
@@ -397,6 +397,7 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
   }
 
   const proposedShifts: ProposedShift[] = []
+  const rejectionCounts = new Map<string, number>()
   let summary = ''
   let partial = false
 
@@ -443,6 +444,7 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
         { employeeNameMap, employeePositionMap, posteMap },
         proposedShifts,
         repairMeta,
+        rejectionCounts,
       )
       proposedShifts.push(...newShifts)
 

@@ -112,4 +112,24 @@ describe('collectProposedShifts — rejette en temps réel les créneaux non con
     expect(toolResults[0].is_error).toBeUndefined()
     expect(String(toolResults[0].content)).toContain('OK')
   })
+
+  it('plafonne les rejets répétés du même créneau : accepté malgré la violation après plusieurs essais', () => {
+    // 08:00-20:00 sans pause = 11h30 net > 10h (hours_daily_max), toujours rejeté.
+    const badInput = { employee_id: 'e1', date: '2026-06-22', start_time: '08:00', end_time: '20:00', break_minutes: 0 }
+    const rejectionCounts = new Map<string, number>()
+
+    const first = collectProposedShifts([toolUse('a', badInput)], lookups, [], undefined, rejectionCounts)
+    expect(first.shifts).toHaveLength(0)
+    expect(first.toolResults[0].is_error).toBe(true)
+
+    const second = collectProposedShifts([toolUse('b', badInput)], lookups, [], undefined, rejectionCounts)
+    expect(second.shifts).toHaveLength(0)
+    expect(second.toolResults[0].is_error).toBe(true)
+
+    // Après MAX_REJECTIONS_PER_SLOT essais infructueux, on n'insiste plus.
+    const third = collectProposedShifts([toolUse('c', badInput)], lookups, [], undefined, rejectionCounts)
+    expect(third.shifts).toHaveLength(1)
+    expect(third.toolResults[0].is_error).toBeUndefined()
+    expect(String(third.toolResults[0].content)).toContain('non-conformité persistante')
+  })
 })
