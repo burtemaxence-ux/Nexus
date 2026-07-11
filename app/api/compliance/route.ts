@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireManager } from '@/lib/api-auth'
 import { checkCompliance, RULES, type Violation, type RuleId, type Severity } from '@/lib/compliance/rules'
+import { complianceConfigFromRows, COMPLIANCE_SETTINGS_KEYS } from '@/lib/compliance/config'
 import { NextRequest, NextResponse } from 'next/server'
 
 // ── Public types ──────────────────────────────────────────────────────────────
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
   const fetchFrom = new Date(new Date(from + 'T00:00:00').getTime() - 84 * 86400000)
     .toISOString().split('T')[0]
 
-  const [{ data: shifts }, { data: profiles }] = await Promise.all([
+  const [{ data: shifts }, { data: profiles }, { data: cfgRows }] = await Promise.all([
     supabaseAdmin
       .from('shifts')
       .select('id, employee_id, date, start_time, end_time, break_minutes')
@@ -65,6 +66,12 @@ export async function GET(req: NextRequest) {
       .select('id, full_name, birth_date, contract_type, weekly_hours')
       .eq('establishment_id', establishmentId)
       .eq('role', 'employee'),
+
+    supabaseAdmin
+      .from('settings')
+      .select('key, value')
+      .eq('establishment_id', establishmentId)
+      .in('key', COMPLIANCE_SETTINGS_KEYS),
   ])
 
   const nameMap = new Map((profiles ?? []).map(p => [p.id, p.full_name ?? 'Employé']))
@@ -85,7 +92,8 @@ export async function GET(req: NextRequest) {
     breakMinutes: s.break_minutes ?? 0,
   }))
 
-  const allViolations = checkCompliance(shiftRecords, employees)
+  const config = complianceConfigFromRows(cfgRows)
+  const allViolations = checkCompliance(shiftRecords, employees, config)
 
   // Garder les violations dont la date tombe dans la plage demandée. La moyenne
   // 44h/12 sem. (hours_avg_weekly) est datée à la fin de fenêtre, potentiellement

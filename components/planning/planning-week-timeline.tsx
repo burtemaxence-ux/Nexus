@@ -13,7 +13,7 @@ import { type Profile, type Shift, type Poste, type LeaveRequest } from '@/types
 import { SosReplacementModal } from '@/components/planning/sos-replacement-modal'
 import { getWeekLabel, toISODate, addDays } from '@/lib/utils/dates'
 import { calcHours, formatHours, formatTime, isToday, getInitials } from '@/lib/planning-utils'
-import { checkCompliance, RULES, type ShiftRecord } from '@/lib/compliance/rules'
+import { checkCompliance, RULES, type ShiftRecord, type ComplianceConfig } from '@/lib/compliance/rules'
 import { ShiftModal, type ModalState } from '@/components/planning/shift-modal'
 import dynamic from 'next/dynamic'
 import {
@@ -72,10 +72,11 @@ export interface PlanningWeekTimelineProps {
   weekPublished: boolean
   postes: Poste[]
   hourlyRateMap: Record<string, number>
+  complianceConfig: ComplianceConfig
 }
 
 export function PlanningWeekTimeline({
-  weekDates, employees, shifts, leaveRequests, weekLocked, weekPublished, postes, hourlyRateMap,
+  weekDates, employees, shifts, leaveRequests, weekLocked, weekPublished, postes, hourlyRateMap, complianceConfig,
 }: PlanningWeekTimelineProps) {
   const router = useRouter()
   const mondayStr = toISODate(weekDates[0])
@@ -123,7 +124,7 @@ export function PlanningWeekTimeline({
       weeklyHours: e.weekly_hours ?? null,
     }))
     const m = new Map<string, CellViolation[]>()
-    for (const v of checkCompliance(records, meta)) {
+    for (const v of checkCompliance(records, meta, complianceConfig)) {
       const key = `${v.employeeId}__${v.date}`
       const rule = RULES[v.ruleId]
       const arr = m.get(key) ?? []
@@ -137,7 +138,7 @@ export function PlanningWeekTimeline({
       m.set(key, arr)
     }
     return m
-  }, [shifts, employees])
+  }, [shifts, employees, complianceConfig])
 
   // Ne compte que les infractions actionnables (les drapeaux contextuels
   // nuit/dimanche sont signalés à part, jamais comme « infractions »).
@@ -635,7 +636,7 @@ export function PlanningWeekTimeline({
       </div>
 
       {/* ── Modaux ──────────────────────────────────────────────────────────────────────────────── */}
-      <ShiftModal modalState={modal} onClose={() => setModal({ type: 'closed' })} postes={postes} employees={employees} weekDates={weekDates} shifts={shifts} />
+      <ShiftModal modalState={modal} onClose={() => setModal({ type: 'closed' })} postes={postes} employees={employees} weekDates={weekDates} shifts={shifts} complianceConfig={complianceConfig} />
 
       {sosState && (
         <SosReplacementModal shift={sosState.shift} employee={sosState.employee}

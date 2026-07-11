@@ -8,6 +8,7 @@ import { AlertTriangle, AlarmClock, FileText, Calendar, Loader2, RefreshCw, Chev
 import Link from 'next/link'
 import type { CddAlert, LatenessAlert, AbsenceAlert, ComplianceAlert } from '@/types'
 import { checkCompliance, type ShiftRecord, type Violation, type EmployeeMeta, RULES } from '@/lib/compliance/rules'
+import { complianceConfigFromRows, COMPLIANCE_SETTINGS_KEYS } from '@/lib/compliance/config'
 import { ComplianceOptionsPanel } from '@/components/compliance/compliance-options-panel'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -277,7 +278,7 @@ export default function AlertesPage() {
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
 
     const [settingsRes, cddRes, latenessRes, shiftsRes, presencesRes, complianceShiftsRes] = await Promise.all([
-      supabase.from('settings').select('key, value').in('key', ['automation_rules']),
+      supabase.from('settings').select('key, value').in('key', ['automation_rules', ...COMPLIANCE_SETTINGS_KEYS]),
       supabase.from('contracts').select('id, employee_id, type, end_date, profiles:employee_id(id, full_name, email)').not('end_date', 'is', null).gte('end_date', today).lte('end_date', in30).order('end_date'),
       supabase.from('lateness_records').select('id, employee_id, date, late_minutes, profiles:employee_id(full_name, email)').eq('justified', false).gte('date', ago7).order('date', { ascending: false }),
       supabase.from('shifts').select('id, employee_id, date, start_time, end_time, profiles:employee_id(full_name, email)').gte('date', ago7).lt('date', today),
@@ -320,7 +321,8 @@ export default function AlertesPage() {
         })
         return { id: s.id, employeeId: s.employee_id, date: s.date, startTime: s.start_time.slice(0, 5), endTime: s.end_time.slice(0, 5), breakMinutes: s.break_minutes }
       })
-      const violations = checkCompliance(records, Array.from(empMeta.values()))
+      const config = complianceConfigFromRows(settingsRes.data)
+      const violations = checkCompliance(records, Array.from(empMeta.values()), config)
       setComplianceViolations(violations.map(v => ({ ...v, employeeName: empNames.get(v.employeeId) ?? null })))
     }
 

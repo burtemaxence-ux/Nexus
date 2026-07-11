@@ -6,6 +6,7 @@ import { PlanningClientWrapper } from './planning-client'
 import { PlanningMonth } from '@/components/planning/planning-month'
 import { PlanningDay } from '@/components/planning/planning-day'
 import { getWeekDates, toISODate } from '@/lib/utils/dates'
+import { buildComplianceConfig, COMPLIANCE_ALERT_KEYS } from '@/lib/compliance/config'
 import type { Profile, Shift, Poste, WeekStatus, LeaveRequest } from '@/types'
 
 interface PlanningPageProps {
@@ -153,6 +154,7 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
     { data: leaveData },
     { data: contractsData },
     { data: weekStatusData },
+    { data: settingsData },
   ] = await Promise.all([
     supabase.from('shifts').select('*').gte('date', mondayStr).lte('date', sundayStr),
     supabase.from('leave_requests').select('*')
@@ -164,7 +166,15 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
       .not('hourly_rate', 'is', null)
       .order('start_date', { ascending: false }),
     supabase.from('week_status').select('*').eq('week_monday', mondayStr).single(),
+    supabase.from('settings').select('key, value').in('key', ['collective_agreement', ...COMPLIANCE_ALERT_KEYS]),
   ])
+
+  // Config des alertes contextuelles (nuit/dimanche/coupure/44h) selon la
+  // convention collective + réglages : la grille n'affiche « à vérifier » que
+  // pour les alertes activées.
+  const settingsMap: Record<string, string> = {}
+  for (const row of (settingsData ?? []) as { key: string; value: string }[]) settingsMap[row.key] = row.value
+  const complianceConfig = buildComplianceConfig(settingsMap)
 
   if (shiftsError) console.error('Error fetching shifts:', shiftsError)
   const shifts: Shift[] = (shiftsData ?? []) as Shift[]
@@ -197,6 +207,7 @@ export default async function PlanningPage({ searchParams }: PlanningPageProps) 
         weekPublished={weekStatus.published}
         postes={postes}
         hourlyRateMap={hourlyRateMap}
+        complianceConfig={complianceConfig}
       />
     </PlanningShell>
   )

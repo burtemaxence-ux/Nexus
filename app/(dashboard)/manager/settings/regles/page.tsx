@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Check, ChevronRight, BookOpen, Cpu, Sparkles } from 'lucide-react'
+import { Loader2, Check, ChevronRight, BookOpen, Cpu, Sparkles, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { buildComplianceConfig } from '@/lib/compliance/config'
 
 // ── Activity types ────────────────────────────────────────────────────────────
 
@@ -154,6 +155,10 @@ type Settings = {
   color_conge: string
   color_overtime: string
   planning_engine: string  // 'ai' | 'algorithm'
+  alert_night_work: string       // 'on' | 'off'
+  alert_sunday_work: string      // 'on' | 'off'
+  alert_part_time_split: string  // 'on' | 'off'
+  alert_hours_avg_weekly: string // 'on' | 'off'
 }
 
 const DEFAULTS: Settings = {
@@ -174,6 +179,10 @@ const DEFAULTS: Settings = {
   color_conge: '#10B981',
   color_overtime: '#F59E0B',
   planning_engine: 'algorithm',
+  alert_night_work: 'on',
+  alert_sunday_work: 'on',
+  alert_part_time_split: 'on',
+  alert_hours_avg_weekly: 'on',
 }
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
@@ -229,6 +238,18 @@ export default function ReglesPage() {
           color_conge:            data.color_conge            ?? DEFAULTS.color_conge,
           color_overtime:         data.color_overtime         ?? DEFAULTS.color_overtime,
           planning_engine:        (data.planning_engine === 'algorithm' || data.planning_engine === 'ai') ? data.planning_engine : DEFAULTS.planning_engine,
+          // Alertes contextuelles : réglage explicite s'il existe, sinon défaut
+          // dérivé de la convention collective (nuit/dimanche off si CCN
+          // renseignée). buildComplianceConfig gère les deux cas.
+          ...(() => {
+            const c = buildComplianceConfig(data)
+            return {
+              alert_night_work:       c.night_work ? 'on' : 'off',
+              alert_sunday_work:      c.sunday_work ? 'on' : 'off',
+              alert_part_time_split:  c.part_time_split ? 'on' : 'off',
+              alert_hours_avg_weekly: c.hours_avg_weekly ? 'on' : 'off',
+            }
+          })(),
         })
         if (data.closed_days) {
           try { setClosedDays(JSON.parse(data.closed_days)) } catch { /* keep empty */ }
@@ -636,6 +657,49 @@ export default function ReglesPage() {
               onToggle={() => set('meal_allowance_enabled', settings.meal_allowance_enabled === 'true' ? 'false' : 'true')}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Alertes de conformité (contextuelles) ─────────────────────── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+              <ShieldCheck className="h-4 w-4 text-amber-500" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Alertes de conformité</CardTitle>
+              <CardDescription>
+                Ces situations sont légales mais méritent parfois une vérification (majorations, dérogations). Désactivez celles que votre convention collective encadre déjà pour ne pas être alerté inutilement. Les plafonds obligatoires (repos 11h, 10h/jour, 48h, mineurs…) restent toujours contrôlés.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-1">
+            {([
+              { key: 'alert_night_work' as const, title: 'Travail de nuit', desc: 'Service touchant la plage 21h–6h (ouverture tôt / fermeture tard).' },
+              { key: 'alert_sunday_work' as const, title: 'Travail le dimanche', desc: 'Shift planifié un dimanche.' },
+              { key: 'alert_part_time_split' as const, title: 'Coupure temps partiel', desc: 'Plus d’une interruption dans la journée pour un temps partiel.' },
+              { key: 'alert_hours_avg_weekly' as const, title: 'Moyenne 44h sur 12 semaines', desc: 'Durée hebdomadaire moyenne > 44h sur 12 semaines glissantes.' },
+            ]).map(row => (
+              <div key={row.key} className="flex items-start justify-between gap-4 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{row.title}</p>
+                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{row.desc}</p>
+                </div>
+                <Toggle
+                  checked={settings[row.key] === 'on'}
+                  onToggle={() => set(row.key, settings[row.key] === 'on' ? 'off' : 'on')}
+                />
+              </div>
+            ))}
+          </div>
+          {conventionDetails && (
+            <p className="text-[12px] mt-3 rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--bg-page)', color: 'var(--text-secondary)' }}>
+              Convention <strong>{conventionDetails.label}</strong> détectée : le travail de nuit et du dimanche sont désactivés par défaut (encadrés par votre convention). Réactivez-les si vous voulez conserver le rappel.
+            </p>
+          )}
         </CardContent>
       </Card>
 

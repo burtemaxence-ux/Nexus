@@ -135,6 +135,25 @@ describe('night_work — ≥ 1h entre 21h et 6h', () => {
   it('ne déclenche pas pour un shift de jour (09:00–17:00)', () => {
     expect(ruleIds([shift(MON, '09:00', '17:00', 30)])).not.toContain('night_work')
   })
+
+  it('supprimé quand la config désactive l\'alerte travail de nuit', () => {
+    const ids = checkCompliance([shift(MON, '22:00', '23:30', 0)], undefined, { night_work: false }).map(v => v.ruleId)
+    expect(ids).not.toContain('night_work')
+  })
+})
+
+describe('ComplianceConfig — désactivation des alertes contextuelles', () => {
+  it('désactive dimanche sans toucher aux autres règles', () => {
+    // Dimanche + 11h net (dépassement 10h) : seule sunday_work doit disparaître.
+    const sun = '2026-06-21' // dimanche
+    const shifts = [shift(sun, '08:00', '20:00', 30)] // 11h30 net
+    const on = checkCompliance(shifts).map(v => v.ruleId)
+    expect(on).toContain('sunday_work')
+    expect(on).toContain('hours_daily_max')
+    const off = checkCompliance(shifts, undefined, { sunday_work: false }).map(v => v.ruleId)
+    expect(off).not.toContain('sunday_work')
+    expect(off).toContain('hours_daily_max') // plafond dur toujours signalé
+  })
 })
 
 describe('amplitude_max — > 13h entre début et fin de journée', () => {

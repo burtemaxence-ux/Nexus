@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import type { Profile, Shift, Poste, LeaveRequest } from '@/types'
+import type { ComplianceConfig } from '@/lib/compliance/rules'
 
 function PlanningSkeletonLoader() {
   return (
@@ -61,6 +62,7 @@ interface Props {
   weekPublished: boolean
   postes: Poste[]
   hourlyRateMap: Record<string, number>
+  complianceConfig: ComplianceConfig
 }
 
 export function PlanningClientWrapper(props: Props) {

@@ -8,6 +8,7 @@ import { sendPushToMany } from '@/lib/push'
 import { sendSms } from '@/lib/sms'
 import { createNotification } from '@/lib/notifications/create'
 import { checkCompliance, RULES } from '@/lib/compliance/rules'
+import { complianceConfigFromRows, COMPLIANCE_SETTINGS_KEYS } from '@/lib/compliance/config'
 import type { Profile, Shift } from '@/types'
 
 async function getManagerUser(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -144,6 +145,11 @@ export async function POST(request: NextRequest) {
         weeklyHours: p.weekly_hours ?? null,
       }))
 
+      const estId = profile?.establishment_id ?? ''
+      const { data: cfgRows } = estId
+        ? await supabase.from('settings').select('key, value').eq('establishment_id', estId).in('key', COMPLIANCE_SETTINGS_KEYS)
+        : { data: null }
+      const config = complianceConfigFromRows(cfgRows)
       const violations = checkCompliance((weekShifts ?? []).map(s => ({
         id: s.id,
         employeeId: s.employee_id,
@@ -151,7 +157,7 @@ export async function POST(request: NextRequest) {
         startTime: s.start_time,
         endTime: s.end_time,
         breakMinutes: s.break_minutes ?? 0,
-      })), weekEmployees)
+      })), weekEmployees, config)
 
       const critical = violations.filter(v => RULES[v.ruleId].severity === 'critical')
       const criticalPayload = critical.map(v => ({

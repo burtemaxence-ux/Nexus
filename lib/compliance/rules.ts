@@ -58,6 +58,20 @@ export interface Violation {
   suggestedFix?: string
 }
 
+/**
+ * Active/désactive les alertes CONTEXTUELLES (ni infraction bloquante, ni
+ * évitable par l'ordonnancement) selon la convention collective / les réglages
+ * de l'établissement. Absent = tout activé (comportement historique). Ne
+ * concerne QUE ces quatre règles ; les plafonds durs (repos, 10h/jour, 48h,
+ * mineurs…) ne sont jamais désactivables.
+ */
+export interface ComplianceConfig {
+  night_work?: boolean       // alerte « travail de nuit » (défaut on)
+  sunday_work?: boolean      // alerte « travail le dimanche » (défaut on)
+  part_time_split?: boolean  // alerte « coupure temps partiel » (défaut on)
+  hours_avg_weekly?: boolean // alerte « moyenne 44h/12 sem. » (défaut on)
+}
+
 // ── Rule definitions ──────────────────────────────────────────────────────────
 
 export const RULES: Record<RuleId, ComplianceRule> = {
@@ -281,8 +295,14 @@ function shiftEndAbsoluteMin(s: ShiftRecord, baseMs: number): number {
 
 // ── Compliance engine ─────────────────────────────────────────────────────────
 
-export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[]): Violation[] {
+export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[], config?: ComplianceConfig): Violation[] {
   const violations: Violation[] = []
+
+  // Alertes contextuelles activées sauf désactivation explicite (config?.X === false).
+  const alertNight = config?.night_work !== false
+  const alertSunday = config?.sunday_work !== false
+  const alertPartTimeSplit = config?.part_time_split !== false
+  const alertAvgWeekly = config?.hours_avg_weekly !== false
 
   const metaById = new Map<string, EmployeeMeta>((employees ?? []).map(e => [e.id, e]))
 
@@ -343,7 +363,7 @@ export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[
       }
 
       // sunday_work: getDay() === 0
-      if (new Date(date + 'T00:00:00').getDay() === 0) {
+      if (alertSunday && new Date(date + 'T00:00:00').getDay() === 0) {
         violations.push({
           ruleId: 'sunday_work',
           employeeId: empId,
@@ -354,7 +374,7 @@ export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[
 
       // night_work: cumulate night minutes, trigger if ≥ 60 min
       const totalNight = dayShifts.reduce((sum, s) => sum + calcNightMinutes(s.startTime, s.endTime), 0)
-      if (totalNight >= 60) {
+      if (alertNight && totalNight >= 60) {
         violations.push({
           ruleId: 'night_work',
           employeeId: empId,
@@ -387,7 +407,7 @@ export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[
       }
 
       // ── Temps partiel : au plus 1 coupure par jour (≤ 2 créneaux) ──────────
-      if (isPartTime && dayShifts.length > 2) {
+      if (alertPartTimeSplit && isPartTime && dayShifts.length > 2) {
         violations.push({
           ruleId: 'part_time_split',
           employeeId: empId,
@@ -512,7 +532,7 @@ export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[
           const avg = windowSum / 12
           if (avg > WEEKLY_AVG_MAX) worst = { endMonday: series[i + 11].monday, avg }
         }
-        if (worst) {
+        if (alertAvgWeekly && worst) {
           violations.push({
             ruleId: 'hours_avg_weekly',
             employeeId: empId,

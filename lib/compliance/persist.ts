@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkCompliance, RULES, type ShiftRecord, type EmployeeMeta, type Severity } from '@/lib/compliance/rules'
+import { complianceConfigFromRows, COMPLIANCE_SETTINGS_KEYS } from '@/lib/compliance/config'
 import { getMondayOfWeek, addDays, toISODate } from '@/lib/utils/dates'
 import { notifyManagers } from '@/lib/notifications/notify'
 
@@ -39,7 +40,7 @@ export async function syncPlanningConformity(opts: {
     const monday = toISODate(getMondayOfWeek(new Date(anyDateInWeek + 'T00:00:00')))
     const sunday = toISODate(addDays(new Date(monday + 'T00:00:00'), 6))
 
-    const [{ data: shifts }, { data: profile }, { data: prevRows }] = await Promise.all([
+    const [{ data: shifts }, { data: profile }, { data: prevRows }, { data: cfgRows }] = await Promise.all([
       supabaseAdmin
         .from('shifts')
         .select('id, employee_id, date, start_time, end_time, break_minutes')
@@ -60,6 +61,11 @@ export async function syncPlanningConformity(opts: {
         .eq('employee_id', employeeId)
         .eq('type', 'planning_conformity')
         .eq('options->>week_monday', monday),
+      supabaseAdmin
+        .from('settings')
+        .select('key, value')
+        .eq('establishment_id', establishmentId)
+        .in('key', COMPLIANCE_SETTINGS_KEYS),
     ])
 
     const employees: EmployeeMeta[] = profile
@@ -83,7 +89,10 @@ export async function syncPlanningConformity(opts: {
       breakMinutes: s.break_minutes ?? 0,
     }))
 
-    const violations = checkCompliance(records, employees)
+    // Alertes contextuelles filtrées selon la convention collective / réglages
+    // de l'établissement (ex. pas d'alerte « travail de nuit » en CHR).
+    const config = complianceConfigFromRows(cfgRows)
+    const violations = checkCompliance(records, employees, config)
 
     // Clés des infractions critiques déjà connues sur cette semaine (rule+date),
     // pour ne notifier que ce qui vient d'apparaître (anti-spam sur ré-éditions).

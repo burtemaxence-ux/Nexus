@@ -3,7 +3,7 @@
 // single source of truth in lib/compliance/rules.ts.
 import type { Shift } from '@/types'
 import { toISODate } from '@/lib/utils/dates'
-import { checkCompliance, type ShiftRecord, type EmployeeMeta, type Violation } from '@/lib/compliance/rules'
+import { checkCompliance, type ShiftRecord, type EmployeeMeta, type Violation, type ComplianceConfig } from '@/lib/compliance/rules'
 
 // ── Establishment-configurable shift duration bounds ───────────────────────────
 // Break (break_missing) and daily rest (rest_daily) are judged authoritatively
@@ -71,6 +71,7 @@ export function computeComplianceViolations(
   allShifts: Shift[],
   excludeShiftId?: string,
   employeeMeta?: EmployeeMeta,
+  config?: ComplianceConfig,
 ): Violation[] {
   const dateStr = toISODate(date)
 
@@ -97,8 +98,8 @@ export function computeComplianceViolations(
   // Métadonnées employé → active les règles mineurs / temps partiel / contrat
   // dès la saisie dans le modal (aperçu avant sauvegarde).
   const employees = employeeMeta ? [employeeMeta] : undefined
-  const baseline = checkCompliance(existing, employees)
-  const withProposed = checkCompliance([...existing, proposed], employees)
+  const baseline = checkCompliance(existing, employees, config)
+  const withProposed = checkCompliance([...existing, proposed], employees, config)
 
   return withProposed.filter(v =>
     !baseline.some(b => b.ruleId === v.ruleId && b.employeeId === v.employeeId && b.date === v.date)

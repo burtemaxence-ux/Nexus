@@ -23,7 +23,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { type Profile, type Shift, type Poste } from '@/types'
 import { toISODate } from '@/lib/utils/dates'
-import { type Violation, RULES } from '@/lib/compliance/rules'
+import { type Violation, type ComplianceConfig, RULES } from '@/lib/compliance/rules'
 import {
   DEFAULT_RULES,
   parseRules,
@@ -227,9 +227,10 @@ interface ShiftModalProps {
   employees: Profile[]
   weekDates: Date[]
   shifts?: Shift[]
+  complianceConfig?: ComplianceConfig
 }
 
-export function ShiftModal({ modalState, onClose, postes, employees, weekDates, shifts = [] }: ShiftModalProps) {
+export function ShiftModal({ modalState, onClose, postes, employees, weekDates, shifts = [], complianceConfig }: ShiftModalProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -475,17 +476,17 @@ export function ShiftModal({ modalState, onClose, postes, employees, weekDates, 
     if (modalState.type === 'create') {
       return computeComplianceViolations(
         form.startTime, form.endTime, parseInt(form.breakMinutes, 10),
-        modalState.employee.id, modalState.date, shifts, undefined, meta,
+        modalState.employee.id, modalState.date, shifts, undefined, meta, complianceConfig,
       )
     }
     if (modalState.type === 'view' && isEditing) {
       return computeComplianceViolations(
         form.startTime, form.endTime, parseInt(form.breakMinutes, 10),
-        modalState.employee.id, modalState.date, shifts, modalState.shift.id, meta,
+        modalState.employee.id, modalState.date, shifts, modalState.shift.id, meta, complianceConfig,
       )
     }
     return []
-  }, [form, modalState, isEditing, shifts])
+  }, [form, modalState, isEditing, shifts, complianceConfig])
 
   if (modalState.type === 'closed') {
     return null
