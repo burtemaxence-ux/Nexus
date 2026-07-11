@@ -9,8 +9,10 @@ const lookups: ShiftLookups = {
 }
 
 // Simule les blocs de contenu renvoyés par l'API Anthropic.
+// `caller` (invocation directe du modèle) est requis par le type ToolUseBlock
+// du SDK depuis sa dernière version.
 function toolUse(id: string, input: Record<string, unknown>, name = 'propose_shift') {
-  return { type: 'tool_use' as const, id, name, input }
+  return { type: 'tool_use' as const, id, name, input, caller: { type: 'direct' as const } }
 }
 function text(t: string) {
   return { type: 'text' as const, text: t }

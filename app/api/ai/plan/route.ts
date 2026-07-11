@@ -9,18 +9,23 @@ import { solvePlanning } from '@/lib/planning/solver'
 import { repairPlan } from '@/lib/planning/repair'
 import { collectProposedShifts } from '@/lib/planning/plan-tools'
 
-// La boucle LLM (jusqu'à 12 itérations Claude Sonnet) peut prendre 30–60s sur
-// une semaine vierge avec beaucoup d'employés. Sans maxDuration explicite,
-// Vercel coupe à 10s (Hobby) → réponse tronquée → "Erreur réseau" côté client.
-// 60s couvre les deux tiers (max Hobby, default Pro).
+// La boucle LLM (1 aller-retour Anthropic par lot de créneaux, jusqu'à
+// AI_LOOP_ITERATIONS_LIMIT) peut prendre 30–60s sur une semaine vierge avec
+// beaucoup d'employés. Sans maxDuration explicite, Vercel coupe à 10s (Hobby)
+// → réponse tronquée → "Erreur réseau" côté client. 60s couvre les deux tiers
+// (max Hobby, default Pro).
 export const maxDuration = 60
 
 // Marge sous maxDuration pour arrêter la boucle LLM AVANT que Vercel ne tue la
 // fonction (ce qui renvoie un 504 non-JSON → « Erreur réseau » côté client,
 // avec zéro créneau récupérable). On préfère un plan partiel (créneaux déjà
-// acceptés + repairPlan) à une coupure sèche.
+// acceptés + repairPlan) à une coupure sèche. C'est ce délai — pas le compteur
+// d'itérations ci-dessous — qui borne le temps réel de la boucle : le compteur
+// n'est qu'un filet de sécurité généreux pour les cas rapides (peu d'employés)
+// où le délai n'est jamais atteint.
 const AI_LOOP_DEADLINE_MS = 42_000
 const ANTHROPIC_CALL_TIMEOUT_MS = 20_000
+const AI_LOOP_ITERATIONS_LIMIT = 40
 
 const client = new Anthropic()
 
@@ -406,7 +411,7 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
   ]
 
   try {
-    for (let iteration = 0; iteration < 16; iteration++) {
+    for (let iteration = 0; iteration < AI_LOOP_ITERATIONS_LIMIT; iteration++) {
       // Garde-fou de délai : on n'entame pas un nouvel appel si on est trop
       // près de la coupure Vercel (maxDuration) — mieux vaut retourner ce qui
       // a déjà été accepté que de laisser la fonction se faire tuer en plein
