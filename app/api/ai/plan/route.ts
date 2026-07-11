@@ -363,6 +363,7 @@ ${economicsSection}
 - Amplitude d'une journée ≤ 13h (début → fin).
 - Ne JAMAIS planifier un employé marqué ABSENT.
 - Pause de 30 min dès qu'un service dépasse 6h.
+- Chaque appel à propose_shift est vérifié automatiquement. Si le résultat commence par « REJETÉ », le créneau N'A PAS été ajouté : corrige immédiatement les horaires (ou la pause) selon le motif indiqué et rappelle propose_shift pour ce même employé/jour — ne renvoie jamais deux fois un créneau rejeté à l'identique.
 
 ## Demande du manager
 ${context?.trim() || 'Générer un planning équilibré pour toute la semaine en couvrant les besoins standard de l\'établissement.'}
@@ -422,6 +423,8 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
       const { shifts: newShifts, toolResults, hasToolUse } = collectProposedShifts(
         response.content,
         { employeeNameMap, employeePositionMap, posteMap },
+        proposedShifts,
+        repairMeta,
       )
       proposedShifts.push(...newShifts)
 

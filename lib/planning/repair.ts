@@ -11,7 +11,7 @@
 import { checkCompliance, type ShiftRecord, type EmployeeMeta, type RuleId } from '@/lib/compliance/rules'
 import type { ProposedShift } from './solver'
 
-const ACTIONABLE = new Set<RuleId>([
+export const ACTIONABLE = new Set<RuleId>([
   'rest_daily',
   'hours_daily_max',
   'hours_weekly_max',
@@ -29,7 +29,7 @@ const ACTIONABLE = new Set<RuleId>([
   'contract_hours_exceeded',
 ])
 
-function toRecords(shifts: ProposedShift[]): ShiftRecord[] {
+export function toRecords(shifts: ProposedShift[]): ShiftRecord[] {
   return shifts.map((s, i) => ({
     id: String(i),
     employeeId: s.employee_id,

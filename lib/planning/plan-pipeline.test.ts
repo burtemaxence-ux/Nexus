@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { solvePlanning, type SolverEmployee } from './solver'
-import { repairPlan } from './repair'
+import { repairPlan, ACTIONABLE } from './repair'
 import { checkCompliance, type ShiftRecord, RULES } from '@/lib/compliance/rules'
 import { ShiftSchema } from '@/lib/validations'
 
@@ -24,11 +24,6 @@ const EMPLOYEES: SolverEmployee[] = [
   { id: '66666666-6666-4666-8666-666666666666', full_name: 'Thomas M.',  position: 'Cuisinier', weekly_hours: 24 },
 ]
 const WEEK = ['2026-06-22', '2026-06-23', '2026-06-24', '2026-06-25', '2026-06-26', '2026-06-27', '2026-06-28']
-
-const ACTIONABLE = new Set([
-  'rest_daily', 'hours_daily_max', 'hours_weekly_max',
-  'break_missing', 'days_consecutive', 'weekly_rest_missing', 'amplitude_max',
-])
 
 function netHours(s: { start_time: string; end_time: string; break_minutes: number }): number {
   const [sh, sm] = s.start_time.split(':').map(Number)
