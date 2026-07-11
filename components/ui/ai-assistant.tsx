@@ -646,6 +646,7 @@ function parseMessageBlocks(text: string): ParsedBlock[] {
 }
 
 type ActionParams = Record<string, unknown>
+type CardStatus = 'idle' | 'loading' | 'done' | 'error'
 
 // Confirmable actions the assistant can propose. Nothing runs without a click.
 // `build` validates the params and returns the API request, or null if invalid.
@@ -746,10 +747,20 @@ const ACTION_CONFIG: Record<string, {
   },
 }
 
-function ActionCard({ tag, content }: { tag: string; content: string }) {
+// L'état ('idle'/'loading'/'done'/'error') est contrôlé par le parent
+// (MarkdownText) plutôt que local à la carte : ça permet au bouton « Valider
+// tout » (BatchConfirmBar) de piloter plusieurs cartes create_shift depuis un
+// seul clic, sans dupliquer la logique d'appel réseau.
+function ActionCard({
+  tag, content, status, errMsg, onStatusChange,
+}: {
+  tag: string
+  content: string
+  status: CardStatus
+  errMsg: string
+  onStatusChange: (state: CardStatus, errMsg?: string) => void
+}) {
   const router = useRouter()
-  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
-  const [errMsg, setErrMsg] = useState('')
 
   const cfg = ACTION_CONFIG[tag]
   let parsed: ActionParams = {}
@@ -763,9 +774,10 @@ function ActionCard({ tag, content }: { tag: string; content: string }) {
   const details = cfg.details?.(parsed) ?? []
   const Icon = cfg.icon
   const accent = cfg.danger ? 'var(--danger)' : 'var(--accent)'
+  const state = status
 
   async function run() {
-    setState('loading'); setErrMsg('')
+    onStatusChange('loading')
     try {
       const res = await fetch(request!.url, {
         method: request!.method,
@@ -776,10 +788,10 @@ function ActionCard({ tag, content }: { tag: string; content: string }) {
         const d = await res.json().catch(() => ({}))
         throw new Error(d.error ?? `Erreur ${res.status}`)
       }
-      setState('done')
+      onStatusChange('done')
       router.refresh()
     } catch (e) {
-      setState('error'); setErrMsg(e instanceof Error ? e.message : 'Erreur')
+      onStatusChange('error', e instanceof Error ? e.message : 'Erreur')
     }
   }
 
@@ -826,6 +838,96 @@ function ActionCard({ tag, content }: { tag: string; content: string }) {
           {state === 'error' && <p className="text-[11px] mt-1" style={{ color: 'var(--danger)' }}>{errMsg}</p>}
         </div>
       </div>
+    </div>
+  )
+}
+
+// Bouton unique qui exécute d'un coup tous les create_shift en attente d'un
+// message (au lieu de cliquer « Créer » sur chaque carte) : boucle séquentielle
+// sur /api/shifts, même logique que applyShifts (components/planning/ai-plan-modal.tsx),
+// et reporte la progression carte par carte via setStatus pour que chaque
+// ActionCard reflète l'état réel (done/error) sans double-soumission possible.
+function BatchConfirmBar({
+  blocks, indices, setStatus,
+}: {
+  blocks: ParsedBlock[]
+  indices: number[]
+  setStatus: (i: number, state: CardStatus, errMsg?: string) => void
+}) {
+  const router = useRouter()
+  const [running, setRunning] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [failed, setFailed] = useState(0)
+  const total = indices.length
+
+  async function runAll() {
+    setRunning(true)
+    setProgress(0)
+    setFailed(0)
+    let created = 0
+    let errors = 0
+    for (const i of indices) {
+      const block = blocks[i]
+      if (block.type !== 'action') { setProgress(p => p + 1); continue }
+      const cfg = ACTION_CONFIG[block.tag]
+      let parsed: ActionParams = {}
+      try { parsed = JSON.parse(block.content) } catch { /* malformed */ }
+      const request = cfg?.build(parsed) ?? null
+      if (!cfg || !request) { setProgress(p => p + 1); continue }
+
+      setStatus(i, 'loading')
+      try {
+        const res = await fetch(request.url, {
+          method: request.method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request.body),
+        })
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}))
+          throw new Error(d.error ?? `Erreur ${res.status}`)
+        }
+        setStatus(i, 'done')
+        created++
+      } catch (e) {
+        setStatus(i, 'error', e instanceof Error ? e.message : 'Erreur')
+        errors++
+      }
+      setProgress(p => p + 1)
+    }
+    setFailed(errors)
+    setRunning(false)
+    if (created > 0) router.refresh()
+  }
+
+  if (running) {
+    return (
+      <div className="rounded-xl px-3 py-2.5" style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
+        <div className="flex items-center gap-2 text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+          <Loader2 className="h-3.5 w-3.5 animate-spin flex-shrink-0" style={{ color: 'var(--accent)' }} aria-hidden="true" />
+          Création des créneaux… {progress}/{total}
+        </div>
+        <div className="mt-1.5 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border)' }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${total ? (progress / total) * 100 : 0}%`, backgroundColor: 'var(--accent)' }} />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--accent)' }}>
+      <button
+        onClick={runAll}
+        className="flex w-full items-center justify-center gap-1.5 px-3 py-2.5 text-[12px] font-semibold transition-opacity hover:opacity-90"
+        style={{ backgroundColor: 'var(--accent)', color: 'white' }}
+      >
+        <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
+        Valider les {total} créneaux d&apos;un coup
+      </button>
+      {failed > 0 && (
+        <p className="px-3 py-1.5 text-[11px]" style={{ color: 'var(--danger)', backgroundColor: 'var(--bg-page)' }}>
+          {failed} créneau(x) n&apos;ont pas pu être créés — corrigez-les individuellement ci-dessous.
+        </p>
+      )}
     </div>
   )
 }
@@ -902,11 +1004,37 @@ const MD_COMPONENTS: Components = {
 // markdown rendered through react-markdown + rehype-sanitize (no raw HTML, no XSS).
 export function MarkdownText({ text }: { text: string }) {
   const blocks = parseMessageBlocks(text)
+  // État des cartes d'action de CE message, tenu ici (et non dans ActionCard)
+  // pour que BatchConfirmBar puisse piloter plusieurs cartes depuis un clic.
+  const [statuses, setStatuses] = useState<Record<number, { state: CardStatus; errMsg: string }>>({})
+  const setStatus = (i: number, state: CardStatus, errMsg = '') =>
+    setStatuses(prev => ({ ...prev, [i]: { state, errMsg } }))
+
+  // Plusieurs create_shift encore en attente (idle/error) dans ce message →
+  // propose de tous les valider en un clic plutôt qu'un par un.
+  const pendingShiftIndices = blocks
+    .map((b, i) => i)
+    .filter(i => blocks[i].type === 'action' && blocks[i].tag === 'create_shift' && (statuses[i]?.state ?? 'idle') !== 'done')
+
   return (
     <div className="space-y-2">
+      {pendingShiftIndices.length > 1 && (
+        <BatchConfirmBar blocks={blocks} indices={pendingShiftIndices} setStatus={setStatus} />
+      )}
       {blocks.map((block, bi) => {
         if (block.type === 'doc') return <DocumentCard key={bi} docType={block.tag} content={block.content} />
-        if (block.type === 'action') return <ActionCard key={bi} tag={block.tag} content={block.content} />
+        if (block.type === 'action') {
+          return (
+            <ActionCard
+              key={bi}
+              tag={block.tag}
+              content={block.content}
+              status={statuses[bi]?.state ?? 'idle'}
+              errMsg={statuses[bi]?.errMsg ?? ''}
+              onStatusChange={(state, errMsg) => setStatus(bi, state, errMsg)}
+            />
+          )
+        }
         return (
           <ReactMarkdown
             key={bi}

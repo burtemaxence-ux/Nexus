@@ -131,3 +131,38 @@ describe('MarkdownText — action cards', () => {
     expect(container).toBeTruthy()
   })
 })
+
+describe('MarkdownText — validation groupée de plusieurs create_shift', () => {
+  function shiftBlock(id: string, date: string) {
+    return `[ACTION:create_shift]{"employee_id":"${id}","date":"${date}","start_time":"09:00","end_time":"17:00","break_minutes":30,"label":"${id} · ${date}"}[/ACTION]`
+  }
+
+  it('affiche un bouton unique pour plusieurs créneaux proposés, et les crée tous en un clic', async () => {
+    const text = [shiftBlock('emp1', '2026-06-15'), shiftBlock('emp2', '2026-06-16'), shiftBlock('emp3', '2026-06-17')].join('\n')
+    render(<MarkdownText text={text} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Valider les 3 créneaux/ }))
+
+    await waitFor(() => expect((globalThis as any).fetch).toHaveBeenCalledTimes(3))
+    expect(await screen.findAllByText('Créneau créé')).toHaveLength(3)
+    // Le bouton groupé disparaît une fois tous les créneaux créés.
+    expect(screen.queryByRole('button', { name: /Valider les/ })).toBeNull()
+  })
+
+  it("n'affiche pas de bouton groupé pour un seul créneau proposé", () => {
+    render(<MarkdownText text={shiftBlock('emp1', '2026-06-15')} />)
+    expect(screen.queryByText(/d'un coup/)).toBeNull()
+    expect(screen.getByRole('button', { name: 'Créer' })).toBeInTheDocument()
+  })
+
+  it('signale les créneaux en échec après une validation groupée, sans bloquer les autres', async () => {
+    ;(globalThis as any).fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({ error: 'Erreur serveur' }) })
+    const text = [shiftBlock('emp1', '2026-06-15'), shiftBlock('emp2', '2026-06-16')].join('\n')
+    render(<MarkdownText text={text} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Valider les 2 créneaux/ }))
+
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Réessayer' })).toHaveLength(2))
+    expect(screen.getByText(/2 créneau\(x\) n'ont pas pu être créés/)).toBeInTheDocument()
+  })
+})
