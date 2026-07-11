@@ -27,9 +27,22 @@ const AI_LOOP_DEADLINE_MS = 42_000
 const ANTHROPIC_CALL_TIMEOUT_MS = 20_000
 const AI_LOOP_ITERATIONS_LIMIT = 40
 
+// Génération JOUR PAR JOUR (target_date fourni) : le client (ai-plan-modal)
+// appelle cet endpoint une fois par jour de la semaine plutôt qu'une seule
+// fois pour les 7 jours. Un seul jour demande beaucoup moins d'allers-retours
+// LLM, donc un budget de temps plus court suffit largement — et ça borne le
+// pire cas à ~20s par requête HTTP au lieu de ~42s pour la semaine entière.
+const AI_LOOP_DEADLINE_MS_PER_DAY = 20_000
+const AI_LOOP_ITERATIONS_LIMIT_PER_DAY = 12
+
 const client = new Anthropic()
 
 const FR_DOW = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
+
+// 0 = lundi … 6 = dimanche (aligné sur closed_days, cf. lib/planning/solver.ts).
+function isoDayIdx(date: string): number {
+  return (new Date(date + 'T00:00:00').getDay() + 6) % 7
+}
 
 function weekRange(weekMonday: string): { weekDays: string[]; weekEndStr: string } {
   const weekStart = new Date(weekMonday + 'T00:00:00')
@@ -207,13 +220,28 @@ export async function POST(req: Request) {
     }
   }
 
-  // Rate-limit commun aux deux moteurs (anti-abus).
-  const rl = await checkRateLimit({ key: `ai-plan:${authUser.id}`, limit: 10, windowMs: 60 * 60 * 1000 })
+  // Rate-limit commun aux deux moteurs (anti-abus). Une génération IA « jour
+  // par jour » (cf. target_date) fait jusqu'à 7 appels à cet endpoint pour
+  // UNE seule action manager — la limite est donc dimensionnée en appels
+  // HTTP, pas en générations logiques (40 ≈ 5-6 semaines régénérées/heure).
+  const rl = await checkRateLimit({ key: `ai-plan:${authUser.id}`, limit: 40, windowMs: 60 * 60 * 1000 })
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
-  const { week_monday, context, target_ratio } = await req.json() as { week_monday: string; context?: string; target_ratio?: number }
+  const {
+    week_monday, context, target_ratio, target_date, accepted_shifts, is_last_day,
+  } = await req.json() as {
+    week_monday: string; context?: string; target_ratio?: number
+    // Génération jour par jour (cf. AI_LOOP_DEADLINE_MS_PER_DAY) : target_date
+    // restreint la génération à ce seul jour ; accepted_shifts = créneaux déjà
+    // acceptés pour les jours précédents CETTE semaine (sert de contexte pour
+    // le repos/jours consécutifs et n'est jamais renvoyé tel quel) ; is_last_day
+    // indique au client que c'est le dernier appel de la série, pour ne
+    // décompter qu'UN seul crédit IA par semaine générée (pas un par jour).
+    target_date?: string; accepted_shifts?: ProposedShift[]; is_last_day?: boolean
+  }
 
   const { weekDays, weekEndStr } = weekRange(week_monday)
+  const dayScoped = typeof target_date === 'string' && weekDays.includes(target_date)
 
   const [
     { data: employees },
@@ -234,6 +262,13 @@ export async function POST(req: Request) {
   ])
 
   const settingsMap = Object.fromEntries((settings ?? []).map(s => [s.key, s.value]))
+  // Jours fermés (index 0=lundi..6=dimanche) : utilisé par le solveur ET par la
+  // génération IA jour par jour (pour répondre instantanément sans appeler le
+  // LLM quand target_date tombe un jour de fermeture).
+  const closedDaysIdx: number[] = (() => {
+    try { const v = JSON.parse(settingsMap.closed_days ?? '[]'); return Array.isArray(v) ? v.filter((n: unknown) => typeof n === 'number') : [] }
+    catch { return [] }
+  })()
   const posteMap = Object.fromEntries((postes ?? []).map(p => [p.id, p]))
   const employeeNameMap = Object.fromEntries((employees ?? []).map(e => [e.id, e.full_name ?? e.id]))
   const employeePositionMap = Object.fromEntries((employees ?? []).map(e => [e.id, e.position ?? null]))
@@ -265,10 +300,6 @@ export async function POST(req: Request) {
 
   // ── Branche algorithme déterministe (gratuit, instantané, auditable) ─────
   if (engine === 'algorithm') {
-    const closedDaysIdx: number[] = (() => {
-      try { const v = JSON.parse(settingsMap.closed_days ?? '[]'); return Array.isArray(v) ? v.filter((n: unknown) => typeof n === 'number') : [] }
-      catch { return [] }
-    })()
     const breakTrigger = parseInt(settingsMap.break_trigger_minutes ?? '360', 10) || 360
 
     const { shifts: algoShifts, summary: algoSummary } = solvePlanning({
@@ -337,6 +368,37 @@ export async function POST(req: Request) {
     })
   }
 
+  // Ne décompter qu'UN SEUL crédit IA pour toute la semaine, même si le client
+  // fait 7 appels (un par jour) : sur une génération jour par jour, seul le
+  // dernier appel (is_last_day) décompte. Sur une génération semaine entière
+  // (target_date absent, comportement historique), on décompte comme avant.
+  const shouldConsumeAiCredit = !dayScoped || is_last_day === true
+
+  // Génération jour par jour tombant un jour de fermeture : rien à planifier,
+  // on répond immédiatement sans appeler le LLM (économise un aller-retour
+  // inutile). On respecte quand même is_last_day pour ne pas perdre le
+  // décompte du crédit si ce jour fermé est le dernier de la boucle côté
+  // client (ex. dimanche fermé = 7ème et dernier appel).
+  if (dayScoped && closedDaysIdx.includes(isoDayIdx(target_date!))) {
+    if (shouldConsumeAiCredit) {
+      const consumeLimit = tier === 'essential' ? 3 : 1_000_000
+      try { await supabase.rpc('consume_ai_credit', { p_limit: consumeLimit, p_feature: 'plan' }) } catch { /* non bloquant */ }
+    }
+    return Response.json({
+      shifts: [],
+      summary: '',
+      forecastTotal: eco?.forecastTotal ?? 0,
+      targetPct,
+      targetBasis: eco?.targetBasis ?? 'sector',
+      historicalRatioPct: eco?.historicalRatioPct ?? null,
+      estimatedCost: 0,
+      estimatedRatioPct: null,
+      engine: 'ai',
+      partial: false,
+      day_skipped: true,
+    })
+  }
+
   const economicsSection = eco && eco.forecastTotal > 0 ? `
 ## Prévision d'activité (chiffre d'affaires estimé, basé sur l'historique)
 ${eco.forecast.map(d => `- ${d.date} (${FR_DOW[new Date(d.date + 'T12:00:00').getDay()]}) : ~${d.amount} €`).join('\n')}
@@ -348,12 +410,27 @@ CA total prévu : ~${eco.forecastTotal} € sur la semaine.
 - Vise une couverture suffisante AU MOINDRE COÛT pour tenir cette cible, sans jamais descendre sous le minimum opérationnel de sécurité.
 ` : ''
 
+  // Génération jour par jour : les créneaux déjà acceptés pour les jours
+  // précédents CETTE semaine (fournis par le client, pas encore en base) sont
+  // fusionnés avec les shifts déjà en base pour donner au modèle le contexte
+  // complet de la semaine en cours — indispensable pour le repos entre jours
+  // et les jours consécutifs, même si on ne génère qu'un jour à la fois.
+  const priorShiftRows = [
+    ...(existingShifts ?? []).map(s => ({ employee_id: s.employee_id, date: s.date, start_time: s.start_time, end_time: s.end_time, position: s.position })),
+    ...(dayScoped ? (accepted_shifts ?? []).map(s => ({ employee_id: s.employee_id, date: s.date, start_time: s.start_time, end_time: s.end_time, position: s.position })) : []),
+  ]
+
+  const dayScopeSection = dayScoped ? `
+
+## Portée de cette génération — IMPORTANT
+Tu génères UNIQUEMENT les créneaux du ${target_date} (${FR_DOW[new Date(target_date + 'T12:00:00').getDay()]}). Les autres jours de la semaine sont générés par des appels séparés, avant ou après celui-ci : n'appelle JAMAIS propose_shift pour une autre date que ${target_date}.` : ''
+
   const systemPrompt = `Tu es l'assistant IA de Quartzbase, expert en génération de plannings pour la restauration française.
 
 ## Établissement : ${settingsMap.establishment_name ?? 'Non renseigné'}
 - Convention collective : ${settingsMap.collective_agreement ?? 'Non définie — applique les règles générales'}
 - Horaires d'ouverture : ${settingsMap.opening_time ?? '?'} → ${settingsMap.closing_time ?? '?'}
-- Semaine : ${week_monday} (lundi) au ${weekEndStr} (dimanche)
+- Semaine : ${week_monday} (lundi) au ${weekEndStr} (dimanche)${dayScopeSection}
 
 ## Employés actifs (${employees?.length ?? 0})
 ${employees?.map(e => {
@@ -365,7 +442,7 @@ ${employees?.map(e => {
 ${postes?.map(p => `- ID: ${p.id} | ${p.name} | pause standard: ${p.break_minutes}min`).join('\n') ?? 'Aucun poste défini'}
 
 ## Shifts déjà planifiés cette semaine
-${existingShifts?.length ? existingShifts.map(s => `- ${employeeNameMap[s.employee_id] ?? s.employee_id} | ${s.date} | ${s.start_time}-${s.end_time} | ${s.position ?? '—'}`).join('\n') : 'Aucun shift existant — semaine vierge'}
+${priorShiftRows.length ? priorShiftRows.map(s => `- ${employeeNameMap[s.employee_id] ?? s.employee_id} | ${s.date} | ${s.start_time}-${s.end_time} | ${s.position ?? '—'}`).join('\n') : 'Aucun shift existant — semaine vierge'}
 ${economicsSection}
 ## Règles légales à respecter ABSOLUMENT (aucune infraction tolérée)
 - Respecte le volume horaire de chaque employé : un employé Xh/sem doit totaliser ~X h sur la semaine (ni nettement moins, ni plus). Un 35h fait ~35h, pas 16h ni 23h.
@@ -381,7 +458,9 @@ ${economicsSection}
 ## Demande du manager
 ${context?.trim() || 'Générer un planning équilibré pour toute la semaine en couvrant les besoins standard de l\'établissement.'}
 
-Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les shifts, écris un bref résumé (2-3 phrases) de ta logique.`
+${dayScoped
+  ? `Utilise l'outil propose_shift pour chaque créneau du ${target_date} UNIQUEMENT. Après avoir créé tous les créneaux du jour, écris un bref résumé (1 phrase) de ta logique pour cette journée.`
+  : "Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les shifts, écris un bref résumé (2-3 phrases) de ta logique."}`
 
   const tool: Anthropic.Tool = {
     name: 'propose_shift',
@@ -401,22 +480,33 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     },
   }
 
-  const proposedShifts: ProposedShift[] = []
+  // Génération jour par jour : on part des créneaux déjà acceptés pour les
+  // jours précédents (fournis par le client) comme base de conformité — la
+  // vérification en temps réel (rest_daily, jours consécutifs…) porte ainsi
+  // sur la semaine en cours, pas seulement sur le jour du jour. On filtre à la
+  // toute fin pour ne renvoyer que les NOUVEAUX créneaux du jour demandé (cf.
+  // plus bas) : le client a déjà ceux des jours précédents, pas la peine de
+  // les lui redonner.
+  const proposedShifts: ProposedShift[] = dayScoped ? [...(accepted_shifts ?? [])] : []
+  const seedCount = proposedShifts.length
   const rejectionCounts = new Map<string, number>()
   let summary = ''
   let partial = false
 
+  const loopDeadlineMs = dayScoped ? AI_LOOP_DEADLINE_MS_PER_DAY : AI_LOOP_DEADLINE_MS
+  const loopIterationsLimit = dayScoped ? AI_LOOP_ITERATIONS_LIMIT_PER_DAY : AI_LOOP_ITERATIONS_LIMIT
+
   const messages: Anthropic.MessageParam[] = [
-    { role: 'user', content: 'Génère le planning complet pour cette semaine.' },
+    { role: 'user', content: dayScoped ? `Génère le planning du ${target_date} uniquement.` : 'Génère le planning complet pour cette semaine.' },
   ]
 
   try {
-    for (let iteration = 0; iteration < AI_LOOP_ITERATIONS_LIMIT; iteration++) {
+    for (let iteration = 0; iteration < loopIterationsLimit; iteration++) {
       // Garde-fou de délai : on n'entame pas un nouvel appel si on est trop
       // près de la coupure Vercel (maxDuration) — mieux vaut retourner ce qui
       // a déjà été accepté que de laisser la fonction se faire tuer en plein
       // appel (504 non-JSON, zéro créneau récupérable côté client).
-      if (Date.now() - requestStartedAt > AI_LOOP_DEADLINE_MS) {
+      if (Date.now() - requestStartedAt > loopDeadlineMs) {
         partial = true
         break
       }
@@ -450,6 +540,7 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
         proposedShifts,
         repairMeta,
         rejectionCounts,
+        dayScoped ? target_date : undefined,
       )
       proposedShifts.push(...newShifts)
 
@@ -458,10 +549,12 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     }
   } catch (e) {
     console.error('[ai/plan] Anthropic error:', e)
-    // Si rien n'a encore été accepté, il n'y a rien d'exploitable à renvoyer :
-    // on remonte l'erreur en JSON (sinon le fetch tombe sur une réponse
-    // non-JSON et le frontend affiche un générique « Erreur réseau »).
-    if (proposedShifts.length === 0) {
+    // Si rien de NOUVEAU n'a été accepté (le compte des créneaux « seedés »
+    // depuis les jours précédents n'a pas bougé), il n'y a rien d'exploitable
+    // à renvoyer pour CE jour : on remonte l'erreur en JSON (sinon le fetch
+    // tombe sur une réponse non-JSON et le frontend affiche un générique
+    // « Erreur réseau »).
+    if (proposedShifts.length === seedCount) {
       const msg = e instanceof Error ? e.message : 'Erreur inconnue'
       return Response.json(
         { error: `La génération IA a échoué (${msg}). Vous pouvez réessayer ou basculer sur l'algorithme déterministe dans Réglages › Planning.` },
@@ -476,13 +569,24 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
 
   // Filet de sécurité conformité : l'IA peut proposer des créneaux en
   // infraction (repos, 10h/jour, 6 jours…). On retire les fautifs pour que le
-  // planning appliqué soit propre — le manager complète ensuite.
-  const { shifts: cleanedAi } = repairPlan(proposedShifts, repairMeta)
+  // planning appliqué soit propre — le manager complète ensuite. Opère sur
+  // TOUTE la semaine accumulée (seed + jour courant) : le réparateur cible
+  // toujours la date la PLUS TARDIVE en infraction, donc en génération jour
+  // par jour il ne retire jamais un créneau d'un jour précédent déjà appliqué
+  // — seulement, le cas échéant, un créneau du jour courant.
+  const { shifts: cleanedAll } = repairPlan(proposedShifts, repairMeta)
+  // On ne renvoie que les créneaux du jour demandé : le client a déjà ceux
+  // des jours précédents (il les a reçus et appliqués lors des appels
+  // précédents de cette même génération).
+  const cleanedAi = dayScoped ? cleanedAll.filter(s => s.date === target_date) : cleanedAll
 
-  // Coût main d'œuvre estimé du planning proposé → ratio coût/CA estimé (premium).
+  // Coût main d'œuvre estimé → ratio coût/CA estimé (premium). Calculé sur
+  // TOUTE la semaine accumulée (pas seulement le jour courant) : en
+  // génération jour par jour, le dernier appel renvoie donc le ratio complet
+  // et définitif de la semaine — le client n'a pas besoin de cumuler lui-même.
   let estimatedCost = 0
   if (eco) {
-    for (const s of cleanedAi) {
+    for (const s of cleanedAll) {
       const rate = eco.rateMap[s.employee_id]
       if (rate) estimatedCost += shiftHours(s.start_time, s.end_time, s.break_minutes) * rate
     }
@@ -492,9 +596,11 @@ Utilise l'outil propose_shift pour chaque créneau. Après avoir créé tous les
     : null
 
   // Compteur de génération IA, décompté ici uniquement après une génération
-  // réussie. Le plan Essentiel applique sa limite de 3/mois (le RPC est atomique
-  // et re-plafonne en cas de course) ; les autres plans sont juste enregistrés.
-  {
+  // réussie, et une seule fois par semaine générée (cf. shouldConsumeAiCredit
+  // plus haut — pas une fois par jour). Le plan Essentiel applique sa limite
+  // de 3/mois (le RPC est atomique et re-plafonne en cas de course) ; les
+  // autres plans sont juste enregistrés.
+  if (shouldConsumeAiCredit) {
     const consumeLimit = tier === 'essential' ? 3 : 1_000_000
     try { await supabase.rpc('consume_ai_credit', { p_limit: consumeLimit, p_feature: 'plan' }) } catch { /* non bloquant */ }
   }

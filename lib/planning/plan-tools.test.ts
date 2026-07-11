@@ -135,3 +135,28 @@ describe('collectProposedShifts — rejette en temps réel les créneaux non con
     expect(String(third.toolResults[0].content)).toContain('non-conformité persistante')
   })
 })
+
+describe('collectProposedShifts — génération jour par jour (targetDate)', () => {
+  it('ignore un créneau proposé pour une autre date que celle demandée', () => {
+    const { shifts, toolResults } = collectProposedShifts(
+      [toolUse('a', { employee_id: 'e1', date: '2026-06-23', start_time: '09:00', end_time: '17:00', break_minutes: 30 })],
+      lookups, [], undefined, new Map(), '2026-06-22',
+    )
+    expect(shifts).toHaveLength(0)
+    expect(toolResults[0].is_error).toBe(true)
+    expect(String(toolResults[0].content)).toContain('hors du jour demandé')
+  })
+
+  it('accepte un créneau conforme à la date demandée, en tenant compte des créneaux de jours précédents', () => {
+    // Créneau accepté (jour précédent, hors de la boucle courante) : lundi 15:00–23:00.
+    const prior = [priorShift('e1', '2026-06-22', '15:00', '23:00', 30)]
+    const { shifts, toolResults } = collectProposedShifts(
+      // Mardi 09:00 → seulement 10h de repos depuis lundi 23:00 : doit rester rejeté
+      // même en génération jour par jour, grâce au contexte de la semaine transmis.
+      [toolUse('a', { employee_id: 'e1', date: '2026-06-23', start_time: '09:00', end_time: '17:00', break_minutes: 30 })],
+      lookups, prior, undefined, new Map(), '2026-06-23',
+    )
+    expect(shifts).toHaveLength(0)
+    expect(String(toolResults[0].content)).toContain('Repos quotidien insuffisant')
+  })
+})

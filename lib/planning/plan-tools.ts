@@ -65,12 +65,17 @@ const MAX_REJECTIONS_PER_SLOT = 2
 // entre tous les appels de la boucle LLM (cf. app/api/ai/plan/route.ts) pour
 // appliquer MAX_REJECTIONS_PER_SLOT sur l'ensemble de la génération, pas juste
 // au sein d'un seul appel.
+//
+// `targetDate` (génération jour par jour) : tout créneau proposé pour une
+// AUTRE date est ignoré — le modèle ne doit produire que le jour demandé,
+// les autres jours étant générés par des appels séparés (cf. route.ts).
 export function collectProposedShifts(
   content: Anthropic.ContentBlock[],
   lookups: ShiftLookups,
   priorShifts: ProposedShift[] = [],
   employees?: EmployeeMeta[],
   rejectionCounts: Map<string, number> = new Map(),
+  targetDate?: string,
 ): { shifts: ProposedShift[]; toolResults: Anthropic.ToolResultBlockParam[]; hasToolUse: boolean } {
   const { employeeNameMap, employeePositionMap, posteMap } = lookups
   const shifts: ProposedShift[] = []
@@ -89,6 +94,16 @@ export function collectProposedShifts(
         type: 'tool_result',
         tool_use_id: block.id,
         content: 'Ignoré : données de créneau incomplètes.',
+        is_error: true,
+      })
+      continue
+    }
+
+    if (targetDate && input.date !== targetDate) {
+      toolResults.push({
+        type: 'tool_result',
+        tool_use_id: block.id,
+        content: `Ignoré : ce créneau (${input.date}) est hors du jour demandé (${targetDate}). Ne propose que des créneaux du ${targetDate}.`,
         is_error: true,
       })
       continue
