@@ -6,7 +6,7 @@ import { getSubscription } from '@/lib/subscription'
 import { getPlanTier, isPro } from '@/lib/plan-guard'
 import { forecastRevenue, sectorTargetPct, median, shiftHours, isoWeekKey, type DayCA } from '@/lib/forecast'
 import { solvePlanning } from '@/lib/planning/solver'
-import { repairPlan } from '@/lib/planning/repair'
+import { repairPlan, shiftKey } from '@/lib/planning/repair'
 import { collectProposedShifts } from '@/lib/planning/plan-tools'
 
 // La boucle LLM (1 aller-retour Anthropic par lot de créneaux, jusqu'à
@@ -243,16 +243,16 @@ export async function POST(req: Request) {
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const {
-    week_monday, context, target_ratio, target_date, accepted_shifts, is_last_day,
+    week_monday, context, target_ratio, target_date, is_last_day,
   } = await req.json() as {
     week_monday: string; context?: string; target_ratio?: number
     // Génération jour par jour (cf. AI_LOOP_DEADLINE_MS_PER_DAY) : target_date
-    // restreint la génération à ce seul jour ; accepted_shifts = créneaux déjà
-    // acceptés pour les jours précédents CETTE semaine (sert de contexte pour
-    // le repos/jours consécutifs et n'est jamais renvoyé tel quel) ; is_last_day
-    // indique au client que c'est le dernier appel de la série, pour ne
-    // décompter qu'UN seul crédit IA par semaine générée (pas un par jour).
-    target_date?: string; accepted_shifts?: ProposedShift[]; is_last_day?: boolean
+    // restreint la génération à ce seul jour. Le contexte des jours précédents
+    // vient directement de la base (existingProposed) — ils sont déjà
+    // enregistrés au moment où le jour courant est généré. is_last_day indique
+    // le dernier appel de la série, pour ne décompter qu'UN seul crédit IA par
+    // semaine générée (pas un par jour).
+    target_date?: string; is_last_day?: boolean
   }
 
   const { weekDays, weekEndStr } = weekRange(week_monday)
@@ -271,7 +271,7 @@ export async function POST(req: Request) {
       .lte('start_date', weekEndStr)
       .gte('end_date', week_monday)
       .in('status', ['approved', 'pending']),
-    supabase.from('shifts').select('employee_id, date, start_time, end_time, position').gte('date', week_monday).lte('date', weekEndStr).is('deleted_at', null),
+    supabase.from('shifts').select('employee_id, date, start_time, end_time, position, break_minutes').gte('date', week_monday).lte('date', weekEndStr).is('deleted_at', null),
     supabase.from('postes').select('id, name, break_minutes'),
     supabase.from('settings').select('key, value').in('key', ['collective_agreement', 'opening_time', 'closing_time', 'establishment_name', 'closed_days', 'break_trigger_minutes']),
   ])
@@ -295,6 +295,26 @@ export async function POST(req: Request) {
     contractType: e.contract_type ?? null,
     weeklyHours: e.weekly_hours ?? null,
   }))
+
+  // Créneaux DÉJÀ enregistrés cette semaine, convertis au format ProposedShift.
+  // Ils sont passés au réparateur ET au contrôle de conformité temps réel comme
+  // contexte VERROUILLÉ : la conformité est évaluée sur la semaine complète
+  // (repos entre jours, jours consécutifs, heures hebdo…) mais ces créneaux ne
+  // sont jamais supprimés ni renvoyés au client (il les a déjà). Corrige les
+  // infractions qui n'apparaissaient qu'après coup sur les semaines déjà
+  // partiellement remplies.
+  const existingProposed: ProposedShift[] = (existingShifts ?? []).map(s => ({
+    employee_id: s.employee_id,
+    employee_name: employeeNameMap[s.employee_id] ?? s.employee_id,
+    date: s.date,
+    start_time: s.start_time,
+    end_time: s.end_time,
+    break_minutes: s.break_minutes ?? 0,
+    poste_id: null,
+    position: s.position ?? null,
+    notes: null,
+  }))
+  const lockedKeys = new Set(existingProposed.map(shiftKey))
 
   // Map employees on leave per day
   type LeaveRow = { employee_id: string; type: string; start_date: string; end_date: string; profiles: unknown }
@@ -351,9 +371,13 @@ export async function POST(req: Request) {
       poste_id: s.position ? (posteByName.get(s.position) ?? null) : null,
     }))
 
-    // Filet de sécurité : garantit zéro infraction actionnable (no-op sur la
-    // sortie du solveur, déjà conforme par construction).
-    const { shifts: cleaned } = repairPlan(enriched, repairMeta)
+    // Filet de sécurité : garantit zéro infraction actionnable, en tenant
+    // compte des créneaux DÉJÀ en base (verrouillés) — sinon le solveur peut
+    // créer un shift qui casse le repos de 11h contre un jour déjà planifié.
+    // On ne renvoie ensuite que les NOUVEAUX créneaux (les existants sont déjà
+    // enregistrés).
+    const { shifts: repairedAll } = repairPlan([...existingProposed, ...enriched], repairMeta, lockedKeys)
+    const cleaned = repairedAll.filter(s => !lockedKeys.has(shiftKey(s)))
 
     // Coût main d'œuvre estimé (premium).
     let algoCost = 0
@@ -425,15 +449,12 @@ CA total prévu : ~${eco.forecastTotal} € sur la semaine.
 - Vise une couverture suffisante AU MOINDRE COÛT pour tenir cette cible, sans jamais descendre sous le minimum opérationnel de sécurité.
 ` : ''
 
-  // Génération jour par jour : les créneaux déjà acceptés pour les jours
-  // précédents CETTE semaine (fournis par le client, pas encore en base) sont
-  // fusionnés avec les shifts déjà en base pour donner au modèle le contexte
-  // complet de la semaine en cours — indispensable pour le repos entre jours
-  // et les jours consécutifs, même si on ne génère qu'un jour à la fois.
-  const priorShiftRows = [
-    ...(existingShifts ?? []).map(s => ({ employee_id: s.employee_id, date: s.date, start_time: s.start_time, end_time: s.end_time, position: s.position })),
-    ...(dayScoped ? (accepted_shifts ?? []).map(s => ({ employee_id: s.employee_id, date: s.date, start_time: s.start_time, end_time: s.end_time, position: s.position })) : []),
-  ]
+  // Créneaux déjà planifiés cette semaine, montrés au modèle comme contexte.
+  // En génération jour par jour, les jours précédents ont déjà été enregistrés
+  // en base avant l'appel du jour courant → ils sont donc déjà dans
+  // existingProposed (source unique de vérité), indispensable pour le repos
+  // entre jours et les jours consécutifs même en générant un jour à la fois.
+  const priorShiftRows = existingProposed
 
   const dayScopeSection = dayScoped ? `
 
@@ -495,14 +516,13 @@ ${dayScoped
     },
   }
 
-  // Génération jour par jour : on part des créneaux déjà acceptés pour les
-  // jours précédents (fournis par le client) comme base de conformité — la
-  // vérification en temps réel (rest_daily, jours consécutifs…) porte ainsi
-  // sur la semaine en cours, pas seulement sur le jour du jour. On filtre à la
-  // toute fin pour ne renvoyer que les NOUVEAUX créneaux du jour demandé (cf.
-  // plus bas) : le client a déjà ceux des jours précédents, pas la peine de
-  // les lui redonner.
-  const proposedShifts: ProposedShift[] = dayScoped ? [...(accepted_shifts ?? [])] : []
+  // On amorce avec les créneaux DÉJÀ en base cette semaine (verrouillés) : la
+  // vérification de conformité en temps réel (rest_daily, jours consécutifs,
+  // heures hebdo…) porte ainsi sur la semaine complète, pas seulement sur les
+  // créneaux que ce même appel propose. Ces créneaux verrouillés sont retirés
+  // du résultat final (le client les a déjà). Vaut pour les deux modes : jour
+  // par jour (les jours précédents sont déjà enregistrés) et semaine entière.
+  const proposedShifts: ProposedShift[] = [...existingProposed]
   const seedCount = proposedShifts.length
   const rejectionCounts = new Map<string, number>()
   let summary = ''
@@ -585,23 +605,23 @@ ${dayScoped
   // Filet de sécurité conformité : l'IA peut proposer des créneaux en
   // infraction (repos, 10h/jour, 6 jours…). On retire les fautifs pour que le
   // planning appliqué soit propre — le manager complète ensuite. Opère sur
-  // TOUTE la semaine accumulée (seed + jour courant) : le réparateur cible
-  // toujours la date la PLUS TARDIVE en infraction, donc en génération jour
-  // par jour il ne retire jamais un créneau d'un jour précédent déjà appliqué
-  // — seulement, le cas échéant, un créneau du jour courant.
-  const { shifts: cleanedAll } = repairPlan(proposedShifts, repairMeta)
-  // On ne renvoie que les créneaux du jour demandé : le client a déjà ceux
-  // des jours précédents (il les a reçus et appliqués lors des appels
-  // précédents de cette même génération).
+  // TOUTE la semaine (créneaux verrouillés déjà en base + nouveaux) : les
+  // verrouillés comptent dans la conformité mais ne sont jamais supprimés, si
+  // bien qu'un nouveau créneau cassant le repos contre un jour déjà planifié
+  // est retiré, jamais l'inverse.
+  const { shifts: repairedAll } = repairPlan(proposedShifts, repairMeta, lockedKeys)
+  // On ne renvoie que les NOUVEAUX créneaux (les verrouillés sont déjà en
+  // base), et en mode jour par jour uniquement ceux du jour demandé.
+  const cleanedAll = repairedAll.filter(s => !lockedKeys.has(shiftKey(s)))
   const cleanedAi = dayScoped ? cleanedAll.filter(s => s.date === target_date) : cleanedAll
 
   // Coût main d'œuvre estimé → ratio coût/CA estimé (premium). Calculé sur
-  // TOUTE la semaine accumulée (pas seulement le jour courant) : en
-  // génération jour par jour, le dernier appel renvoie donc le ratio complet
-  // et définitif de la semaine — le client n'a pas besoin de cumuler lui-même.
+  // TOUTE la semaine (verrouillés + nouveaux) : en génération jour par jour, le
+  // dernier appel renvoie donc le ratio complet et définitif de la semaine — le
+  // client n'a pas besoin de cumuler lui-même.
   let estimatedCost = 0
   if (eco) {
-    for (const s of cleanedAll) {
+    for (const s of repairedAll) {
       const rate = eco.rateMap[s.employee_id]
       if (rate) estimatedCost += shiftHours(s.start_time, s.end_time, s.break_minutes) * rate
     }

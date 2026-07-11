@@ -83,6 +83,11 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
+      // Doublon exact bloqué par l'index unique partiel (migration 072) :
+      // message clair en 409 plutôt qu'un 500 opaque.
+      if ((error as { code?: string }).code === '23505') {
+        return NextResponse.json({ error: 'Ce créneau existe déjà pour cet employé.' }, { status: 409 })
+      }
       console.error('[shifts POST] error:', error)
       return NextResponse.json({ error: 'Erreur lors de la création du shift' }, { status: 500 })
     }

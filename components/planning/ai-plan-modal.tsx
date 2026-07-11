@@ -103,44 +103,40 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
     }
   }
 
-  // Enregistre une liste de créneaux en brouillon (POST /api/shifts, un par
-  // un — l'endpoint ne fait pas de batch). La conformité a déjà été garantie
-  // côté serveur (algorithme conforme par construction, ou IA vérifiée en
-  // temps réel + repairPlan).
-  async function applyShiftList(toApply: ProposedShift[]): Promise<{ count: number; firstError: string | null }> {
-    let count = 0
-    let firstError: string | null = null
+  // Enregistre une liste de créneaux en brouillon en UN SEUL appel groupé
+  // (/api/shifts/bulk) : une seule requête + une seule synchro de conformité
+  // par employé/semaine côté serveur (au lieu de N requêtes). La conformité a
+  // déjà été garantie côté serveur (algorithme conforme par construction, ou
+  // IA vérifiée en temps réel + repairPlan). `skipped` = créneaux écartés côté
+  // serveur (chevauchement/doublon).
+  async function applyShiftList(toApply: ProposedShift[]): Promise<{ count: number; skipped: number; firstError: string | null }> {
     setProgress(p => (p ? { ...p, step: 'save', subCurrent: 0, subTotal: toApply.length } : p))
-    for (const shift of toApply) {
-      try {
-        const res = await fetch('/api/shifts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            employee_id: shift.employee_id,
-            date: shift.date,
-            start_time: shift.start_time,
-            end_time: shift.end_time,
-            break_minutes: shift.break_minutes,
-            poste_id: shift.poste_id,
-            position: shift.position,
-            notes: shift.notes,
-            status: 'draft',
-          }),
-        })
-        if (res.ok) {
-          count++
-          setApplied(a => a + 1)
-          setProgress(p => (p ? { ...p, subCurrent: p.subCurrent + 1 } : p))
-        } else if (!firstError) {
-          const d = await res.json().catch(() => ({}))
-          firstError = d.error ?? `HTTP ${res.status}`
-        }
-      } catch {
-        if (!firstError) firstError = 'réseau'
-      }
+    try {
+      const res = await fetch('/api/shifts/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shifts: toApply.map(s => ({
+            employee_id: s.employee_id,
+            date: s.date,
+            start_time: s.start_time,
+            end_time: s.end_time,
+            break_minutes: s.break_minutes,
+            poste_id: s.poste_id,
+            position: s.position,
+            notes: s.notes,
+          })),
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) return { count: 0, skipped: 0, firstError: data.error ?? `HTTP ${res.status}` }
+      const count = data.created ?? 0
+      setApplied(a => a + count)
+      setProgress(p => (p ? { ...p, subCurrent: count } : p))
+      return { count, skipped: data.skipped ?? 0, firstError: null }
+    } catch {
+      return { count: 0, skipped: 0, firstError: 'réseau' }
     }
-    return { count, firstError }
   }
 
   // ── Moteur ALGORITHME : un seul appel, semaine entière, instantané ────────
@@ -172,9 +168,10 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
     }
 
     setProgress({ current: 1, total: 1, label: 'la semaine', step: 'save', subCurrent: 0, subTotal: shifts.length })
-    const { count } = await applyShiftList(shifts)
+    const { count, skipped } = await applyShiftList(shifts)
     const days = new Set(shifts.map(s => s.date)).size
-    setSummary(`${count} créneau${count > 1 ? 'x' : ''} créé${count > 1 ? 's' : ''} en brouillon sur ${days} jour${days > 1 ? 's' : ''}. Planning conforme au Code du travail (repos 11h, max 10h/jour, heures contractuelles respectées).`)
+    const skipNote = skipped > 0 ? ` ${skipped} ignoré${skipped > 1 ? 's' : ''} (créneau déjà présent).` : ''
+    setSummary(`${count} créneau${count > 1 ? 'x' : ''} créé${count > 1 ? 's' : ''} en brouillon sur ${days} jour${days > 1 ? 's' : ''}.${skipNote} Planning conforme au Code du travail (repos 11h, max 10h/jour, heures contractuelles respectées).`)
     setPhase('done')
     if (count > 0) onSuccess()
   }
@@ -184,7 +181,7 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
   // renvoie du HTML/vide), on retombe sur le statut HTTP. Les statuts
   // HARD_STOP affectent tous les jours identiquement → remontés à part pour
   // arrêter la boucle au lieu d'enchaîner 7 échecs identiques.
-  async function requestDay(targetDate: string, isLastDay: boolean, acceptedSoFar: ProposedShift[]): Promise<DayResult> {
+  async function requestDay(targetDate: string, isLastDay: boolean): Promise<DayResult> {
     let res: Response
     try {
       res = await fetch('/api/ai/plan', {
@@ -193,7 +190,6 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
         body: JSON.stringify({
           week_monday: weekMonday,
           target_date: targetDate,
-          accepted_shifts: acceptedSoFar,
           is_last_day: isLastDay,
           context: instructions,
           target_ratio: targetPct ? Number(targetPct) : undefined,
@@ -222,17 +218,19 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
 
   async function generateAi() {
     const days = weekDaysFrom(weekMonday)
-    let acceptedSoFar: ProposedShift[] = []
     let totalApplied = 0
     const coveredDays = new Set<string>()
     const issueDays: string[] = []
 
+    // Chaque jour est généré PUIS enregistré avant de passer au suivant : le
+    // contexte de conformité du jour suivant (repos, jours consécutifs) vient
+    // directement de la base, où les jours précédents sont déjà écrits.
     for (let i = 0; i < days.length; i++) {
       const day = days[i]
       const label = DOW_LABELS[i]
       setProgress({ current: i + 1, total: days.length, label, step: 'gen', subCurrent: 0, subTotal: 0 })
 
-      const outcome = await requestDay(day, i === days.length - 1, acceptedSoFar)
+      const outcome = await requestDay(day, i === days.length - 1)
 
       if (outcome.kind === 'hard-stop') {
         if (totalApplied > 0) { issueDays.push(`${label} et suivants`); break }
@@ -247,7 +245,6 @@ export function AiPlanModal({ weekMonday, weekLabel, employees, postes, onSucces
 
       const dayShifts = data.shifts ?? []
       if (dayShifts.length > 0) {
-        acceptedSoFar = [...acceptedSoFar, ...dayShifts]
         setProgress({ current: i + 1, total: days.length, label, step: 'save', subCurrent: 0, subTotal: dayShifts.length })
         const { count } = await applyShiftList(dayShifts)
         totalApplied += count

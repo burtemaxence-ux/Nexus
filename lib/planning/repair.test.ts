@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { repairPlan, actionableViolationCount } from './repair'
+import { repairPlan, actionableViolationCount, shiftKey } from './repair'
 import type { ProposedShift } from './solver'
 
 function shift(employee_id: string, date: string, start_time: string, end_time: string, break_minutes = 0): ProposedShift {
@@ -78,5 +78,32 @@ describe('repairPlan — règles mineurs / contrat (métadonnées)', () => {
     const bad = ['15', '16', '17', '18', '19'].map(d => shift('P', `2026-06-${d}`, '09:00', '15:00', 0)) // 30h
     const { shifts } = repairPlan(bad, PART)
     expect(actionableViolationCount(shifts, PART)).toBe(0)
+  })
+})
+
+describe('repairPlan — créneaux verrouillés (déjà en base)', () => {
+  it('retire le NOUVEAU créneau qui casse le repos contre un créneau existant, jamais l\'existant', () => {
+    // Existant (verrouillé) : lundi 15:00–23:00. Nouveau : mardi 06:00–12:00 → 7h de repos.
+    const existing = shift('A', '2026-06-15', '15:00', '23:00', 30)
+    const fresh = shift('A', '2026-06-16', '06:00', '12:00', 0)
+    const locked = new Set([shiftKey(existing)])
+
+    const { shifts, dropped } = repairPlan([existing, fresh], undefined, locked)
+    expect(dropped).toBe(1)
+    // L'existant est préservé, le nouveau (fautif) est retiré.
+    expect(shifts.some(s => s.date === '2026-06-15')).toBe(true)
+    expect(shifts.some(s => s.date === '2026-06-16')).toBe(false)
+    expect(actionableViolationCount(shifts)).toBe(0)
+  })
+
+  it('ne supprime rien si l\'infraction est entièrement entre créneaux verrouillés', () => {
+    // Deux créneaux existants qui se cassent le repos entre eux : rien de
+    // nouveau à retirer → on laisse tel quel (préexistant, hors génération).
+    const a = shift('A', '2026-06-15', '15:00', '23:00', 30)
+    const b = shift('A', '2026-06-16', '06:00', '12:00', 0)
+    const locked = new Set([shiftKey(a), shiftKey(b)])
+    const { shifts, dropped } = repairPlan([a, b], undefined, locked)
+    expect(dropped).toBe(0)
+    expect(shifts).toHaveLength(2)
   })
 })

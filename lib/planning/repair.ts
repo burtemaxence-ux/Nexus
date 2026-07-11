@@ -40,15 +40,33 @@ export function toRecords(shifts: ProposedShift[]): ShiftRecord[] {
   }))
 }
 
+// Clé d'identité d'un créneau (employé + date + horaires) : sert à marquer les
+// créneaux « verrouillés » (déjà en base) que le réparateur compte dans la
+// conformité mais ne doit JAMAIS supprimer.
+export function shiftKey(s: ProposedShift): string {
+  return `${s.employee_id}__${s.date}__${s.start_time.slice(0, 5)}__${s.end_time.slice(0, 5)}`
+}
+
 export function actionableViolationCount(shifts: ProposedShift[], employees?: EmployeeMeta[]): number {
   return checkCompliance(toRecords(shifts), employees).filter(v => ACTIONABLE.has(v.ruleId)).length
 }
 
 // Retire les créneaux en infraction jusqu'à obtenir un planning conforme.
 // Converge : chaque tour supprime au moins un créneau (ou s'arrête).
-export function repairPlan(shifts: ProposedShift[], employees?: EmployeeMeta[]): { shifts: ProposedShift[]; dropped: number } {
+//
+// `lockedKeys` (cf. shiftKey) : créneaux déjà enregistrés en base, passés pour
+// que la conformité soit évaluée sur la semaine COMPLÈTE (repos entre jours,
+// jours consécutifs…), mais qu'on ne supprime jamais — seuls des créneaux
+// nouvellement proposés sont retirés pour lever une infraction. Sans
+// lockedKeys, comportement historique inchangé.
+export function repairPlan(
+  shifts: ProposedShift[],
+  employees?: EmployeeMeta[],
+  lockedKeys?: Set<string>,
+): { shifts: ProposedShift[]; dropped: number } {
   let current = [...shifts]
   let dropped = 0
+  const isLocked = (s: ProposedShift) => lockedKeys?.has(shiftKey(s)) ?? false
 
   for (let iter = 0; iter < 100 && current.length > 0; iter++) {
     const violations = checkCompliance(toRecords(current), employees).filter(v => ACTIONABLE.has(v.ruleId))
@@ -56,7 +74,8 @@ export function repairPlan(shifts: ProposedShift[], employees?: EmployeeMeta[]):
 
     // Pour chaque employé concerné, on cible la date la PLUS TARDIVE en
     // infraction (repos/jours consécutifs pointent la fin de la série) :
-    // retirer la queue préserve les créneaux de début de semaine.
+    // retirer la queue préserve les créneaux de début de semaine. On ne
+    // supprime jamais un créneau verrouillé (déjà en base).
     const latestByEmp = new Map<string, string>()
     for (const v of violations) {
       const cur = latestByEmp.get(v.employeeId)
@@ -65,29 +84,31 @@ export function repairPlan(shifts: ProposedShift[], employees?: EmployeeMeta[]):
     const dropKeys = new Set<string>()
     for (const [emp, date] of Array.from(latestByEmp.entries())) dropKeys.add(`${emp}__${date}`)
 
-    let next = current.filter(s => !dropKeys.has(`${s.employee_id}__${s.date}`))
+    let next = current.filter(s => isLocked(s) || !dropKeys.has(`${s.employee_id}__${s.date}`))
 
-    // Garde-fou de progression : les règles hebdomadaires (heures/semaine,
-    // moyenne, contrat) datent leur infraction au LUNDI. Si ce lundi n'a plus
-    // de créneau, le drop ci-dessus ne progresse pas → on retire alors le
-    // dernier créneau planifié de chaque employé fautif pour converger.
+    // Garde-fou de progression : soit la date ciblée n'a que des créneaux
+    // verrouillés, soit l'infraction hebdomadaire est datée au lundi sans
+    // créneau ce jour-là. On retire alors le dernier créneau NON VERROUILLÉ de
+    // chaque employé fautif pour converger.
     if (next.length === current.length) {
       const offending = new Set(Array.from(latestByEmp.keys()))
       const latestShift = new Map<string, string>()
       for (const s of current) {
-        if (!offending.has(s.employee_id)) continue
+        if (!offending.has(s.employee_id) || isLocked(s)) continue
         const cur = latestShift.get(s.employee_id)
         if (!cur || s.date > cur) latestShift.set(s.employee_id, s.date)
       }
       const fallbackKeys = new Set<string>()
       for (const [emp, date] of Array.from(latestShift.entries())) fallbackKeys.add(`${emp}__${date}`)
-      next = current.filter(s => !fallbackKeys.has(`${s.employee_id}__${s.date}`))
+      next = current.filter(s => isLocked(s) || !fallbackKeys.has(`${s.employee_id}__${s.date}`))
     }
 
     const before = current.length
     current = next
     dropped += before - current.length
-    if (before === current.length) break // garde-fou anti-boucle
+    // Aucun créneau supprimable (infraction entre créneaux verrouillés seuls) →
+    // on s'arrête : l'infraction préexiste et ne vient pas des nouveaux créneaux.
+    if (before === current.length) break
   }
 
   return { shifts: current, dropped }
