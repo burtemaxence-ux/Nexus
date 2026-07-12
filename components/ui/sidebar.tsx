@@ -1,6 +1,6 @@
 'use client'
 
-import type { ElementType } from 'react'
+import type { ElementType, CSSProperties } from 'react'
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -12,7 +12,7 @@ import {
   Home, Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap, BookOpen,
   Palmtree, AlertTriangle, Upload, CreditCard,
   Settings, ChevronLeft, ChevronRight, ChevronDown, LogOut,
-  ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight,
+  ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight, Moon, Sun,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -97,20 +97,35 @@ const employeeNav: NavGroup[] = [
   },
 ]
 
-// ── Badge ─────────────────────────────────────────────────────────────────────
+// ── Establishment tile (purple gradient logo, or image when provided) ──────────
 
-function Badge({ count, color }: { count: number; color: 'orange' | 'red' }) {
-  if (!count || count === 0) return null
+function EstTile({
+  size, text, name, logoUrl,
+}: { size: number; text: string; name: string; logoUrl?: string }) {
+  if (logoUrl) {
+    return (
+      <div
+        className="qb-esttile rounded-[10px] overflow-hidden flex-shrink-0 bg-white"
+        style={{ width: size, height: size, border: '1px solid rgba(138,131,255,0.7)' }}
+      >
+        <Image src={logoUrl} alt={name} width={size} height={size} className="object-cover w-full h-full" />
+      </div>
+    )
+  }
   return (
-    <span className={cn(
-      'ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold leading-none',
-      count > 0 && 'animate-pulse',
-      color === 'orange'
-        ? 'bg-orange-500 text-white'
-        : 'bg-red-500 text-white'
-    )}>
-      {count > 99 ? '99+' : count}
-    </span>
+    <div
+      className="qb-esttile flex items-center justify-center flex-shrink-0 rounded-[10px]"
+      style={{
+        width: size, height: size,
+        background: 'linear-gradient(145deg,#8079ff,#6C63FF)',
+        border: '1px solid rgba(138,131,255,0.7)',
+        boxShadow: '0 4px 12px rgba(108,99,255,0.42), inset 0 1px 0 rgba(255,255,255,0.4)',
+      }}
+    >
+      <span className={cn('font-extrabold text-white tracking-[0.02em]', text)}>
+        {getEstablishmentInitials(name)}
+      </span>
+    </div>
   )
 }
 
@@ -142,11 +157,14 @@ export function Sidebar({
   const switcherRef = useRef<HTMLDivElement>(null)
   // Collapsible groups — default open; persisted across sessions.
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
+  // Theme toggle lives in the footer (Nexus `.dark` mechanism, `dp-theme` key).
+  const [isDark, setIsDark] = useState(true)
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem('qb-sidebar-groups')
       if (raw) setOpenGroups(JSON.parse(raw))
+      setIsDark(localStorage.getItem('dp-theme') !== 'light')
     } catch { /* ignore */ }
   }, [])
 
@@ -168,6 +186,13 @@ export function Sidebar({
     })
   }
   const isGroupOpen = (name: string) => openGroups[name] !== false
+
+  function toggleTheme() {
+    const next = !isDark
+    setIsDark(next)
+    try { localStorage.setItem('dp-theme', next ? 'dark' : 'light') } catch { /* ignore */ }
+    document.documentElement.classList.toggle('dark', next)
+  }
 
   async function handleSwitch(id: string) {
     if (id === activeEstablishmentId || switching) return
@@ -207,36 +232,40 @@ export function Sidebar({
   }
 
   const canSwitch = establishments.length > 1
+  const roleBadgeShow = role !== 'employee'
+  const roleLabel = role === 'supervisor' ? 'Superviseur' : 'Manager'
 
-  // Establishment avatar (logo or initials) — reused in pill & collapsed rail.
-  const orgAvatar = (size: number, text: string) => (
-    orgLogoUrl ? (
-      <div className="rounded-lg overflow-hidden flex-shrink-0 bg-white border border-white/10" style={{ width: size, height: size }}>
-        <Image src={orgLogoUrl} alt={establishmentName} width={size} height={size} className="object-cover w-full h-full" />
-      </div>
-    ) : (
-      <div className="rounded-lg bg-[var(--accent-light)] flex items-center justify-center flex-shrink-0" style={{ width: size, height: size }}>
-        <span className={cn('font-bold text-[var(--accent)]', text)}>{getEstablishmentInitials(establishmentName)}</span>
-      </div>
-    )
-  )
+  // Animated label — max-width/opacity collapse (matches prototype).
+  const labelStyle: CSSProperties = {
+    flex: '1 1 auto', minWidth: 0,
+    marginLeft: collapsed ? 0 : 11,
+    maxWidth: collapsed ? 0 : 170,
+    opacity: collapsed ? 0 : 1,
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+    transition: 'opacity .2s ease, max-width .3s cubic-bezier(.4,0,.2,1), margin-left .3s cubic-bezier(.4,0,.2,1)',
+    transitionDelay: collapsed ? '0s' : '.07s',
+  }
+
+  // Cascade index for staggered item entrance.
+  let itemIndex = 0
 
   return (
     <aside
       className={cn(
-        'flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out flex-shrink-0 relative z-20',
+        'qb-aside flex flex-col h-screen flex-shrink-0 relative z-20',
+        collapsed && 'qb-aside--collapsed',
         collapsed ? 'w-16' : 'w-[248px]'
       )}
     >
-      {/* ── Establishment switcher (pill, top) ───────────────────────── */}
+      {/* ── Establishment switcher (top) ─────────────────────────────── */}
       <div className="p-3 flex-shrink-0">
         {collapsed ? (
           <button
             onClick={onToggle}
-            className="w-full flex items-center justify-center py-1.5 rounded-xl hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+            className="qb-esttile-btn w-full flex items-center justify-center py-1.5 rounded-xl transition-colors hover:bg-[rgb(var(--sidebar-overlay)/0.05)]"
             title={establishmentName}
           >
-            {orgAvatar(30, 'text-[11px]')}
+            <EstTile size={34} text="text-[12px]" name={establishmentName} logoUrl={orgLogoUrl} />
           </button>
         ) : (
           <div className="relative" ref={switcherRef}>
@@ -244,22 +273,46 @@ export function Sidebar({
               onClick={() => canSwitch && setSwitcherOpen(o => !o)}
               disabled={switching || !canSwitch}
               className={cn(
-                'w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl border border-black/[0.06] dark:border-white/[0.07] bg-black/[0.02] dark:bg-white/[0.05] transition-colors',
-                canSwitch && 'hover:bg-black/[0.04] dark:hover:bg-white/[0.09] cursor-pointer',
+                'qb-switcher w-full flex items-center rounded-[14px]',
+                canSwitch && 'qb-switcher--interactive',
                 switching && 'opacity-60'
               )}
+              style={{
+                gap: 11, padding: '9px 10px',
+                border: '1px solid rgb(var(--sidebar-overlay) / 0.09)',
+                background: 'linear-gradient(180deg, rgb(var(--sidebar-overlay) / 0.07), rgb(var(--sidebar-overlay) / 0.02))',
+                boxShadow: '0 2px 10px var(--sidebar-shadow), inset 0 1px 0 rgb(var(--sidebar-overlay) / 0.05)',
+                cursor: canSwitch ? 'pointer' : 'default',
+              }}
             >
-              {orgAvatar(30, 'text-[11px]')}
-              <span className="flex-1 text-left text-[13.5px] font-semibold text-sidebar-foreground-active truncate leading-tight">
-                {establishmentName}
-              </span>
-              {canSwitch && <ChevronsUpDown className="h-4 w-4 text-sidebar-foreground/40 flex-shrink-0" />}
+              <EstTile size={36} text="text-[12px]" name={establishmentName} logoUrl={orgLogoUrl} />
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-[8.5px] font-bold uppercase tracking-[0.14em] mb-0.5 text-[rgb(var(--sidebar-foreground)/0.6)]">
+                  Espace
+                </p>
+                <p className="text-[13.5px] font-bold leading-[1.1] truncate text-[rgb(var(--sidebar-foreground-active))]">
+                  {establishmentName}
+                </p>
+              </div>
+              {canSwitch && (
+                <span className="flex items-center justify-center flex-shrink-0 rounded-[7px] w-[22px] h-[22px] bg-[rgb(var(--sidebar-overlay)/0.06)]">
+                  <ChevronsUpDown className="h-3.5 w-3.5 text-[rgb(var(--sidebar-foreground)/0.85)]" />
+                </span>
+              )}
             </button>
 
             {switcherOpen && canSwitch && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 bg-[var(--bg-elevated)] border border-sidebar-border rounded-xl shadow-xl overflow-hidden z-50">
+              <div
+                className="absolute top-full left-0 right-0 mt-1.5 rounded-xl overflow-hidden z-50"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid rgb(var(--sidebar-border))',
+                  boxShadow: '0 12px 32px var(--sidebar-shadow)',
+                  animation: 'qbDropIn .18s ease',
+                }}
+              >
                 <div className="px-3 pt-2.5 pb-1">
-                  <p className="text-[9px] font-bold tracking-[0.12em] text-sidebar-foreground/40 uppercase">
+                  <p className="text-[9px] font-bold tracking-[0.12em] uppercase text-[rgb(var(--sidebar-foreground)/0.55)]">
                     Changer d&apos;établissement
                   </p>
                 </div>
@@ -267,14 +320,14 @@ export function Sidebar({
                   <button
                     key={est.id}
                     onClick={() => handleSwitch(est.id)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-colors"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-[rgb(var(--sidebar-overlay)/0.05)]"
                   >
                     <div className="h-6 w-6 rounded-md bg-[var(--accent-light)] flex items-center justify-center flex-shrink-0">
                       <span className="text-[9px] font-bold text-[var(--accent)]">
                         {getEstablishmentInitials(est.name)}
                       </span>
                     </div>
-                    <span className="flex-1 text-[13px] text-sidebar-foreground-active truncate">
+                    <span className="flex-1 text-[13px] truncate text-[rgb(var(--sidebar-foreground-active))]">
                       {est.name}
                     </span>
                     {est.id === activeEstablishmentId && (
@@ -284,16 +337,16 @@ export function Sidebar({
                 ))}
                 {role === 'manager' && (
                   <>
-                    <div className="mx-3 my-1 border-t border-sidebar-border/50" />
+                    <div className="mx-3 my-1" style={{ borderTop: '1px solid var(--sidebar-divider)' }} />
                     <Link
                       href="/manager/settings/establishments"
                       onClick={() => setSwitcherOpen(false)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-colors"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-[rgb(var(--sidebar-overlay)/0.05)]"
                     >
-                      <div className="h-6 w-6 rounded-md bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-                        <Plus className="h-3.5 w-3.5 text-sidebar-foreground/60" />
+                      <div className="h-6 w-6 rounded-md bg-[rgb(var(--sidebar-overlay)/0.06)] flex items-center justify-center flex-shrink-0">
+                        <Plus className="h-3.5 w-3.5 text-[rgb(var(--sidebar-foreground)/0.7)]" />
                       </div>
-                      <span className="text-[13px] text-sidebar-foreground/70">
+                      <span className="text-[13px] text-[rgb(var(--sidebar-foreground)/0.8)]">
                         Gérer les établissements
                       </span>
                     </Link>
@@ -306,110 +359,138 @@ export function Sidebar({
       </div>
 
       {/* ── Navigation ───────────────────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto px-2.5 pb-3 scrollbar-thin">
+      <nav className="qb-scroll flex-1 overflow-y-auto px-2.5 pb-3">
         {navGroups.map((group, gi) => {
           const open = isGroupOpen(group.group)
+          const groupOpen = collapsed || open
           return (
-            <div key={gi} className="mb-0.5">
-              {/* Group header */}
-              {!collapsed ? (
+            <div key={group.group} className="mb-0.5">
+              {/* Divider between groups when collapsed */}
+              {collapsed && gi > 0 && (
+                <div className="mx-3 my-2" style={{ borderTop: '1px solid var(--sidebar-divider)' }} />
+              )}
+
+              {/* Group header (expanded only) */}
+              {!collapsed && (
                 <button
                   onClick={() => toggleGroup(group.group)}
-                  className="group/gh w-full flex items-center gap-1.5 px-3 pt-3.5 pb-1.5"
+                  className="qb-group-header w-full flex items-center gap-2"
+                  style={{ padding: '15px 10px 7px' }}
                 >
-                  <span className="flex-1 text-left text-[10.5px] font-semibold tracking-[0.1em] text-sidebar-foreground/45 uppercase group-hover/gh:text-sidebar-foreground/70 transition-colors">
+                  <span
+                    className="flex-shrink-0 rounded-[2px]"
+                    style={{
+                      width: 3, height: 11,
+                      background: 'linear-gradient(180deg,#8079ff,#6C63FF)',
+                      boxShadow: '0 0 6px rgba(108,99,255,0.5)',
+                    }}
+                  />
+                  <span className="flex-1 text-left text-[10.5px] font-bold uppercase tracking-[0.11em]" style={{ color: 'inherit' }}>
                     {group.group}
                   </span>
-                  <ChevronDown className={cn(
-                    'h-3.5 w-3.5 text-sidebar-foreground/35 transition-transform duration-200',
-                    !open && '-rotate-90'
-                  )} />
+                  <ChevronDown
+                    className="h-3.5 w-3.5 flex-shrink-0"
+                    style={{
+                      transform: open ? 'none' : 'rotate(-90deg)',
+                      transition: 'transform .25s cubic-bezier(.4,0,.2,1)',
+                    }}
+                  />
                 </button>
-              ) : (
-                gi > 0 && <div className="mx-3 my-2 border-t border-sidebar-border/50" />
               )}
 
-              {/* Items */}
-              {(collapsed || open) && (
-                <ul className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const active = isActive(item.href)
-                    const Icon = item.icon
-                    const disabled = item.comingSoon
+              {/* Items — animated grid-rows collapse */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateRows: groupOpen ? '1fr' : '0fr',
+                  transition: 'grid-template-rows .3s cubic-bezier(.4,0,.2,1)',
+                }}
+              >
+                <div style={{ overflow: 'hidden', minWidth: 0 }}>
+                  <ul className="list-none m-0 p-0 flex flex-col gap-0.5">
+                    {group.items.map((item) => {
+                      const active = isActive(item.href)
+                      const Icon = item.icon
+                      const count = item.badge ?? 0
+                      const color = item.badgeColor
+                      const delay = `${itemIndex++ * 32}ms`
+                      const linkStyle: CSSProperties = {
+                        justifyContent: collapsed ? 'center' : 'flex-start',
+                        animation: 'qbItemIn .5s cubic-bezier(.22,1,.36,1) backwards',
+                        animationDelay: delay,
+                      }
 
-                    return (
-                      <li key={item.href}>
-                        {disabled ? (
-                          <div
-                            className={cn(
-                              'flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] opacity-40 cursor-not-allowed select-none',
-                              collapsed ? 'justify-center' : ''
-                            )}
-                            title={collapsed ? `${item.label} (bientôt)` : undefined}
-                          >
-                            <Icon className="h-[18px] w-[18px] flex-shrink-0 text-sidebar-foreground" />
-                            {!collapsed && (
-                              <>
-                                <span className="flex-1 truncate text-sidebar-foreground">{item.label}</span>
-                                <span className="text-[9px] font-semibold text-sidebar-foreground/60 uppercase tracking-wide bg-black/[0.05] dark:bg-white/[0.06] px-1.5 py-0.5 rounded">
-                                  Bientôt
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        ) : (
+                      const inner = (
+                        <>
+                          <span className="qb-ico">
+                            <Icon className="h-5 w-5" style={{ color: 'currentColor' }} />
+                          </span>
+                          <span style={labelStyle}>{item.label}</span>
+                          {!collapsed && count > 0 && color && (
+                            <span className={cn('qb-badge', color === 'red' ? 'qb-badge--red' : 'qb-badge--orange')}>
+                              {count > 99 ? '99+' : count}
+                            </span>
+                          )}
+                          {collapsed && count > 0 && color && (
+                            <span className={cn('qb-dot', color === 'red' ? 'qb-dot--red' : 'qb-dot--orange')} />
+                          )}
+                        </>
+                      )
+
+                      if (item.comingSoon) {
+                        return (
+                          <li key={item.href}>
+                            <div
+                              className="qb-item opacity-40 cursor-not-allowed select-none"
+                              style={{ justifyContent: collapsed ? 'center' : 'flex-start' }}
+                              title={collapsed ? `${item.label} (bientôt)` : undefined}
+                            >
+                              <span className="qb-ico">
+                                <Icon className="h-5 w-5" style={{ color: 'currentColor' }} />
+                              </span>
+                              <span style={labelStyle}>{item.label}</span>
+                            </div>
+                          </li>
+                        )
+                      }
+
+                      return (
+                        <li key={item.href}>
                           <Link
                             href={item.href}
-                            className={cn(
-                              'relative flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] transition-all duration-150 group',
-                              collapsed ? 'justify-center' : '',
-                              active
-                                ? 'bg-[var(--accent-light)] text-[var(--accent)] font-medium'
-                                : 'text-sidebar-foreground hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-sidebar-foreground-active'
-                            )}
+                            className={cn('qb-item', active && 'qb-item--active')}
+                            style={linkStyle}
                             title={collapsed ? item.label : undefined}
                           >
-                            <Icon className={cn(
-                              'h-[18px] w-[18px] flex-shrink-0 transition-colors',
-                              active
-                                ? 'text-[var(--accent)]'
-                                : 'text-sidebar-foreground/65 group-hover:text-sidebar-foreground-active'
-                            )} />
-                            {!collapsed && (
-                              <>
-                                <span className="flex-1 truncate">{item.label}</span>
-                                {item.badge !== undefined && item.badgeColor && (
-                                  <Badge count={item.badge} color={item.badgeColor} />
-                                )}
-                              </>
-                            )}
-                            {collapsed && item.badge && item.badge > 0 ? (
-                              <span className={cn(
-                                'absolute top-1 right-1 h-2 w-2 rounded-full',
-                                item.badgeColor === 'orange' ? 'bg-orange-500' : 'bg-red-500'
-                              )} />
-                            ) : null}
+                            {inner}
                           </Link>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              </div>
             </div>
           )
         })}
       </nav>
 
-      {/* ── Bottom section ────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 border-t border-sidebar-border p-2">
+      {/* ── Bottom section ───────────────────────────────────────────── */}
+      <div className="flex-shrink-0 p-2" style={{ borderTop: '1px solid rgb(var(--sidebar-border))' }}>
         {/* User row */}
-        <div className={cn(
-          'flex items-center rounded-xl gap-2.5 px-2 py-2',
-          collapsed ? 'justify-center' : ''
-        )}>
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent-light)] flex-shrink-0">
-            <span className="text-[11px] font-bold text-[var(--accent)]">
+        <div
+          className={cn('qb-user', !collapsed && 'qb-user--interactive')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10, borderRadius: 12, padding: 8,
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            background: collapsed ? 'transparent' : 'rgb(var(--sidebar-overlay) / 0.03)',
+            border: collapsed ? '1px solid transparent' : '1px solid rgb(var(--sidebar-overlay) / 0.07)',
+            boxShadow: collapsed ? 'none' : 'inset 0 1px 0 rgb(var(--sidebar-overlay) / 0.03)',
+            cursor: 'pointer',
+          }}
+        >
+          <div className="qb-avatar flex items-center justify-center flex-shrink-0" style={{ width: 34, height: 34 }}>
+            <span className="text-[14px] font-bold tracking-[0.02em] text-[var(--accent)]">
               {getInitials(userName || userEmail)}
             </span>
           </div>
@@ -417,25 +498,29 @@ export function Sidebar({
             <>
               <div className="flex-1 overflow-hidden min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <p className="text-[12.5px] font-medium text-sidebar-foreground-active truncate leading-tight">
+                  <p className="text-[12.5px] font-medium leading-[1.2] truncate text-[rgb(var(--sidebar-foreground-active))]">
                     {userName || 'Utilisateur'}
                   </p>
-                  {role !== 'employee' && (
-                    <span className={cn(
-                      'shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none',
-                      role === 'manager'
-                        ? 'bg-[var(--accent-light)] text-[var(--accent)]'
-                        : 'bg-amber-500/20 text-amber-500'
-                    )}>
-                      {role === 'manager' ? 'Manager' : 'Superviseur'}
+                  {roleBadgeShow && (
+                    <span
+                      className="flex-shrink-0 text-[9px] font-bold leading-none text-white"
+                      style={{
+                        padding: '2px 7px', borderRadius: 9999, letterSpacing: '.02em',
+                        background: 'linear-gradient(135deg,#8079ff,#6C63FF)',
+                        boxShadow: '0 2px 7px rgba(108,99,255,0.45)',
+                      }}
+                    >
+                      {roleLabel}
                     </span>
                   )}
                 </div>
-                <p className="text-[10.5px] text-sidebar-foreground/55 truncate leading-tight">{userEmail}</p>
+                <p className="text-[10.5px] leading-[1.3] truncate text-[rgb(var(--sidebar-foreground)/0.7)]">
+                  {userEmail}
+                </p>
               </div>
               <button
                 onClick={handleSignOut}
-                className="flex-shrink-0 p-1.5 rounded-lg text-sidebar-foreground/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                className="qb-logout flex-shrink-0 flex p-1.5 rounded-lg text-[rgb(var(--sidebar-foreground)/0.6)]"
                 title="Se déconnecter"
               >
                 <LogOut className="h-4 w-4" />
@@ -444,22 +529,37 @@ export function Sidebar({
           )}
         </div>
 
-        {/* Collapse toggle */}
-        <button
-          onClick={onToggle}
-          className="mt-1 w-full flex items-center justify-center py-2 rounded-xl text-sidebar-foreground/40 hover:text-sidebar-foreground-active hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
-          title={collapsed ? 'Déplier' : 'Replier'}
+        {/* Footer buttons — theme toggle + collapse */}
+        <div
+          style={{
+            display: 'flex', gap: 6, marginTop: 6,
+            flexDirection: collapsed ? 'column' : 'row',
+          }}
         >
-          {collapsed
-            ? <ChevronRight className="h-4 w-4" />
-            : (
-              <span className="flex items-center gap-1 text-[11px] font-medium tracking-wide">
+          <button
+            onClick={toggleTheme}
+            className="qb-foot-btn qb-theme flex-1 min-w-0"
+            title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+          >
+            {isDark ? <Moon className="h-[15px] w-[15px]" /> : <Sun className="h-[15px] w-[15px]" />}
+            {!collapsed && <span>{isDark ? 'Sombre' : 'Clair'}</span>}
+          </button>
+
+          <button
+            onClick={onToggle}
+            className="qb-foot-btn qb-collapse flex-1 min-w-0"
+            title={collapsed ? 'Déplier' : 'Replier'}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <>
                 <ChevronLeft className="h-3.5 w-3.5" />
-                Replier
-              </span>
-            )
-          }
-        </button>
+                <span>Replier</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </aside>
   )
