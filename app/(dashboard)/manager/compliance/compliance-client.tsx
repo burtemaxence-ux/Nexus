@@ -53,26 +53,29 @@ function buildPresets(): PeriodPreset[] {
 
 // ── Severity config ───────────────────────────────────────────────────────────
 
-const SEV: Record<Severity, { icon: React.ElementType; color: string; bg: string; border: string; label: string }> = {
+const SEV: Record<Severity, { icon: React.ElementType; color: string; bg: string; border: string; chip: string; label: string }> = {
   critical: {
     icon:   XCircle,
-    color:  '#DC2626',
-    bg:     '#FEF2F2',
-    border: '#FECACA',
+    color:  'var(--sev-critical-fg)',
+    bg:     'var(--sev-critical-bg)',
+    border: 'var(--sev-critical-border)',
+    chip:   'var(--sev-critical-chip)',
     label:  'Critique',
   },
   warning: {
     icon:   AlertTriangle,
-    color:  '#D97706',
-    bg:     '#FFFBEB',
-    border: '#FDE68A',
+    color:  'var(--sev-warning-fg)',
+    bg:     'var(--sev-warning-bg)',
+    border: 'var(--sev-warning-border)',
+    chip:   'var(--sev-warning-chip)',
     label:  'Avertissement',
   },
   info: {
     icon:   Info,
-    color:  '#2563EB',
-    bg:     '#EFF6FF',
-    border: '#BFDBFE',
+    color:  'var(--sev-info-fg)',
+    bg:     'var(--sev-info-bg)',
+    border: 'var(--sev-info-border)',
+    chip:   'var(--sev-info-chip)',
     label:  'Information',
   },
 }
@@ -102,7 +105,7 @@ const RULE_LABELS: Record<RuleId, string> = {
 // ── Score gauge ───────────────────────────────────────────────────────────────
 
 function ScoreGauge({ score }: { score: number }) {
-  const color = score >= 90 ? '#16A34A' : score >= 70 ? '#D97706' : '#DC2626'
+  const color = score >= 90 ? 'var(--success)' : score >= 70 ? 'var(--sev-warning-fg)' : 'var(--sev-critical-fg)'
   const Icon = score >= 90 ? ShieldCheck : score >= 70 ? Shield : ShieldAlert
 
   return (
@@ -180,7 +183,7 @@ function ViolationCard({ v }: { v: ComplianceViolation }) {
             <span className="text-[13px] font-semibold" style={{ color: s.color }}>{v.ruleName}</span>
             <span
               className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-              style={{ color: s.color, background: `${s.color}20` }}
+              style={{ color: s.color, background: s.chip }}
             >
               {s.label}
             </span>
@@ -269,8 +272,8 @@ function RuleSummary({ byRule }: { byRule: Partial<Record<RuleId, number>> }) {
 function EmptyState() {
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl px-6 py-12 flex flex-col items-center gap-3 text-center">
-      <div className="w-14 h-14 rounded-full bg-[#DCFCE7] flex items-center justify-center">
-        <CheckCircle2 className="h-7 w-7 text-[#16A34A]" />
+      <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'var(--sev-success-bg)' }}>
+        <CheckCircle2 className="h-7 w-7" style={{ color: 'var(--success)' }} />
       </div>
       <p className="text-[15px] font-semibold text-[var(--text-primary)]">Planning conforme</p>
       <p className="text-[13px] text-[var(--text-secondary)] max-w-xs">
@@ -436,7 +439,7 @@ export default function ComplianceClient() {
 
       {/* ── Error ─────────────────────────────────────────────────────────── */}
       {error && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-[13px]">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl border text-[13px]" style={{ background: 'var(--sev-critical-bg)', borderColor: 'var(--sev-critical-border)', color: 'var(--sev-critical-fg)' }}>
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
           <button
