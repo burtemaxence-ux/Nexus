@@ -171,7 +171,7 @@ function PublishDialog({ onClose, onPublished }: { onClose: () => void; onPublis
           </div>
 
           {error && (
-            <p className="text-[12px] text-[#DC2626] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-2">{error}</p>
+            <p className="text-[12px] border rounded-lg px-3 py-2" style={{ color: 'var(--sev-critical-fg)', background: 'var(--sev-critical-bg)', borderColor: 'var(--sev-critical-border)' }}>{error}</p>
           )}
 
           <div className="flex gap-3 pt-1">
@@ -234,28 +234,28 @@ function SlotCard({ slot, onRefresh }: { slot: MarketplaceSlot; onRefresh: () =>
   }
 
   const statusColors = {
-    open:      { bg: '#EFF6FF', text: '#2563EB', label: 'Ouvert' },
-    filled:    { bg: '#DCFCE7', text: '#16A34A', label: 'Pourvu' },
-    expired:   { bg: '#F3F4F6', text: '#6B7280', label: 'Expiré' },
-    cancelled: { bg: '#FEF2F2', text: '#DC2626', label: 'Annulé' },
+    open:      { bg: 'var(--sev-info-bg)',    text: 'var(--sev-info-fg)',    label: 'Ouvert' },
+    filled:    { bg: 'var(--sev-success-bg)', text: 'var(--sev-success-fg)', label: 'Pourvu' },
+    expired:   { bg: 'var(--sev-neutral-bg)', text: 'var(--sev-neutral-fg)', label: 'Expiré' },
+    cancelled: { bg: 'var(--sev-critical-bg)',text: 'var(--sev-critical-fg)',label: 'Annulé' },
   }
   const sc = statusColors[slot.status]
 
   return (
     <div className={cn(
       'bg-[var(--bg-card)] border rounded-xl overflow-hidden',
-      slot.status === 'open' && slot.applications.length > 0 ? 'border-[#BFDBFE]' : 'border-[var(--border)]'
+      slot.status === 'open' && slot.applications.length > 0 ? 'border-[var(--sev-info-border)]' : 'border-[var(--border)]'
     )}>
       {/* Header */}
       <div className="px-4 py-3.5 flex items-start gap-3">
-        <div className={cn(
-          'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0',
-          slot.status === 'open' ? 'bg-[#EFF6FF]' : 'bg-[var(--bg-page)]'
-        )}>
-          {slot.status === 'open'     && <Clock    className="h-4 w-4 text-[#2563EB]" />}
-          {slot.status === 'filled'   && <CheckCircle2 className="h-4 w-4 text-[#16A34A]" />}
-          {slot.status === 'expired'  && <Timer    className="h-4 w-4 text-[#6B7280]" />}
-          {slot.status === 'cancelled'&& <XCircle  className="h-4 w-4 text-[#DC2626]" />}
+        <div
+          className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: slot.status === 'open' ? 'var(--sev-info-bg)' : 'var(--bg-page)' }}
+        >
+          {slot.status === 'open'     && <Clock    className="h-4 w-4" style={{ color: 'var(--sev-info-fg)' }} />}
+          {slot.status === 'filled'   && <CheckCircle2 className="h-4 w-4" style={{ color: 'var(--sev-success-fg)' }} />}
+          {slot.status === 'expired'  && <Timer    className="h-4 w-4" style={{ color: 'var(--sev-neutral-fg)' }} />}
+          {slot.status === 'cancelled'&& <XCircle  className="h-4 w-4" style={{ color: 'var(--sev-critical-fg)' }} />}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -292,7 +292,7 @@ function SlotCard({ slot, onRefresh }: { slot: MarketplaceSlot; onRefresh: () =>
             <div className="flex items-center gap-3 mt-1.5">
               <span className={cn(
                 'flex items-center gap-1 text-[11px] font-medium',
-                expiry.urgent ? 'text-[#D97706]' : 'text-[var(--text-tertiary)]'
+                expiry.urgent ? 'text-[var(--sev-warning-fg)]' : 'text-[var(--text-tertiary)]'
               )}>
                 <Timer className="h-3 w-3" />
                 {expiry.label}
@@ -311,7 +311,7 @@ function SlotCard({ slot, onRefresh }: { slot: MarketplaceSlot; onRefresh: () =>
               <button
                 onClick={handleCancel}
                 disabled={cancelling}
-                className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
+                className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--sev-critical-fg)] hover:bg-[var(--sev-critical-bg)] transition-colors"
                 title="Annuler le slot"
               >
                 <Trash2 className="h-4 w-4" />
@@ -340,7 +340,7 @@ function SlotCard({ slot, onRefresh }: { slot: MarketplaceSlot; onRefresh: () =>
               key={app.id}
               className={cn(
                 'flex items-center gap-3 px-4 py-2.5 border-t border-[var(--border)]',
-                app.status === 'accepted' && 'bg-[#F0FDF4]',
+                app.status === 'accepted' && 'bg-[var(--sev-success-bg)]',
                 app.status === 'rejected' && 'bg-[var(--bg-page)] opacity-60',
               )}
             >
@@ -371,19 +371,19 @@ function SlotCard({ slot, onRefresh }: { slot: MarketplaceSlot; onRefresh: () =>
               )}
 
               {app.status === 'accepted' && (
-                <span className="flex items-center gap-1 text-[11px] font-semibold text-[#16A34A]">
+                <span className="flex items-center gap-1 text-[11px] font-semibold text-[var(--sev-success-fg)]">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Confirmé
                 </span>
               )}
               {app.status === 'rejected' && (
-                <span className="flex items-center gap-1 text-[11px] text-[#6B7280]">
+                <span className="flex items-center gap-1 text-[11px] text-[var(--sev-neutral-fg)]">
                   <XCircle className="h-3.5 w-3.5" /> Refusé
                 </span>
               )}
             </div>
           ))}
           {error && (
-            <p className="px-4 py-2 text-[12px] text-[#DC2626]">{error}</p>
+            <p className="px-4 py-2 text-[12px] text-[var(--sev-critical-fg)]">{error}</p>
           )}
         </div>
       )}
@@ -463,7 +463,7 @@ export default function MarketplaceManagerClient() {
 
         {/* Pending badge */}
         {pendingApps > 0 && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FEF3C7] border border-[#FDE68A] text-[#D97706] text-[12px] font-medium">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[12px] font-medium" style={{ background: 'var(--sev-warning-bg)', borderColor: 'var(--sev-warning-border)', color: 'var(--sev-warning-fg)' }}>
             <AlertTriangle className="h-3.5 w-3.5" />
             {pendingApps} candidature{pendingApps > 1 ? 's' : ''} en attente
           </div>
@@ -488,7 +488,7 @@ export default function MarketplaceManagerClient() {
 
       {/* ── Error ─────────────────────────────────────────────────────────── */}
       {error && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-[13px]">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl border text-[13px]" style={{ background: 'var(--sev-critical-bg)', borderColor: 'var(--sev-critical-border)', color: 'var(--sev-critical-fg)' }}>
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           {error}
         </div>

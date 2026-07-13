@@ -58,7 +58,14 @@ html {
     --sev-info-bg:         #EFF6FF;
     --sev-info-border:     #BFDBFE;
     --sev-info-chip:       rgba(37,99,235,0.12);
-    --sev-success-bg:      rgba(18,184,134,0.12);
+    --sev-success-fg:      #16A34A;
+    --sev-success-bg:      #DCFCE7;
+    --sev-success-border:  #86EFAC;
+    --sev-success-chip:    rgba(22,163,74,0.12);
+    --sev-neutral-fg:      #6B7280;
+    --sev-neutral-bg:      #F3F4F6;
+    --sev-neutral-border:  #E5E7EB;
+    --sev-neutral-chip:    rgba(107,114,128,0.12);
 
     /* ── shadcn/ui tokens (mapped) ────────────────────── */
     --background:     var(--bg-page);
@@ -133,7 +140,14 @@ html {
     --sev-info-bg:         rgba(59,130,246,0.10);
     --sev-info-border:     rgba(59,130,246,0.30);
     --sev-info-chip:       rgba(59,130,246,0.22);
-    --sev-success-bg:      rgba(0,212,170,0.12);
+    --sev-success-fg:      #4ADE80;
+    --sev-success-bg:      rgba(74,222,128,0.12);
+    --sev-success-border:  rgba(74,222,128,0.28);
+    --sev-success-chip:    rgba(74,222,128,0.20);
+    --sev-neutral-fg:      #9BA1B0;
+    --sev-neutral-bg:      rgba(255,255,255,0.05);
+    --sev-neutral-border:  rgba(255,255,255,0.12);
+    --sev-neutral-chip:    rgba(255,255,255,0.10);
 
     /* ── shadcn/ui tokens (mapped) ────────────────────── */
     --background:     var(--bg-page);
