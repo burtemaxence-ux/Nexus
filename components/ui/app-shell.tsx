@@ -7,7 +7,6 @@ import { createClient } from '@/lib/supabase/client'
 import { Sidebar } from './sidebar'
 import { AccountDropdown } from './topbar'
 import { NotificationsBell } from './notifications-bell'
-import { ThemeToggle } from './theme-toggle'
 import { TopbarSearch } from './topbar-search'
 import { FullscreenToggle } from './fullscreen-toggle'
 import { Settings } from 'lucide-react'
@@ -61,9 +60,18 @@ export function AppShell({
   useEffect(() => {
     try {
       document.documentElement.classList.toggle('dark', localStorage.getItem('dp-theme') !== 'light')
+      setCollapsed(localStorage.getItem('qb-sidebar-collapsed') === '1')
     } catch { /* ignore */ }
     return () => { document.documentElement.classList.add('dark') }
   }, [])
+
+  function toggleCollapsed() {
+    setCollapsed(c => {
+      const next = !c
+      try { localStorage.setItem('qb-sidebar-collapsed', next ? '1' : '0') } catch { /* ignore */ }
+      return next
+    })
+  }
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -87,7 +95,7 @@ export function AppShell({
             establishments={establishments}
             activeEstablishmentId={activeEstablishmentId}
             collapsed={collapsed}
-            onToggle={() => setCollapsed(c => !c)}
+            onToggle={toggleCollapsed}
           />
         </div>
 
@@ -119,7 +127,6 @@ export function AppShell({
                 <Settings className="h-[18px] w-[18px]" />
               </Link>
             )}
-            <ThemeToggle />
             <NotificationsBell />
             <FullscreenToggle />
             <AccountDropdown

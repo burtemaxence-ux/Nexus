@@ -13,9 +13,9 @@ import {
 import { cn } from '@/lib/utils'
 import type { AnalyticsPayload, EmployeeAnalytics } from '@/app/api/analytics/route'
 
-// ── Palette (no CSS vars in recharts) ────────────────────────────────────────
+// ── Palette (no CSS vars in recharts → themed in JS) ─────────────────────────
 
-const C = {
+const BASE = {
   primary:   '#2D3A8C',
   primaryLt: '#EEF0FA',
   success:   '#16A34A',
@@ -38,7 +38,42 @@ const C = {
     rtt:     '#818CF8',
     autres:  '#FBBF24',
   },
-} as const
+}
+
+// Dark-mode overrides — surfaces (grid, axis text, KPI tiles) and the navy
+// series colour would otherwise render as a light theme on the dark canvas.
+// Data colours (absence.*) stay bright enough for both themes.
+const DARK: Partial<typeof BASE> = {
+  primary:   '#8B9BFF',
+  primaryLt: 'rgba(139,155,255,0.14)',
+  success:   '#4ADE80',
+  successLt: 'rgba(74,222,128,0.14)',
+  warning:   '#FFB347',
+  warningLt: 'rgba(245,158,11,0.14)',
+  danger:    '#FF6B6B',
+  dangerLt:  'rgba(239,68,68,0.14)',
+  border:    '#2A2D3A',
+  text:      '#F0F2F8',
+  textSec:   '#8B90A7',
+  textTer:   '#5A5A72',
+  bg:        '#13131c',
+  card:      '#1A1D27',
+  real:      '#8B9BFF',
+}
+
+// Reactive dark-mode flag — updates when the `.dark` class flips (footer toggle).
+function useIsDark() {
+  const [isDark, setIsDark] = useState(false)
+  useEffect(() => {
+    const el = document.documentElement
+    const update = () => setIsDark(el.classList.contains('dark'))
+    update()
+    const obs = new MutationObserver(update)
+    obs.observe(el, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
+  return isDark
+}
 
 // ── Period options ────────────────────────────────────────────────────────────
 
@@ -77,7 +112,7 @@ interface KpiCardProps {
   accentLight?: string
 }
 
-function KpiCard({ icon: Icon, label, value, sub, accentColor = C.primary, accentLight = C.primaryLt }: KpiCardProps) {
+function KpiCard({ icon: Icon, label, value, sub, accentColor = BASE.primary, accentLight = BASE.primaryLt }: KpiCardProps) {
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 flex items-start gap-3">
       <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: accentLight }}>
@@ -109,9 +144,9 @@ function Section({ title, children, action }: { title: string; children: React.R
 // ── Flag badge ────────────────────────────────────────────────────────────────
 
 const FLAG_META: Record<EmployeeAnalytics['flags'][number], { label: string; color: string; light: string }> = {
-  sick_frequent: { label: 'Maladie fréq.',  color: C.danger,  light: C.dangerLt },
-  late_chronic:  { label: 'Retards chron.', color: C.warning, light: C.warningLt },
-  absence_high:  { label: 'Abs. élevée',    color: '#7C3AED', light: '#EDE9FE' },
+  sick_frequent: { label: 'Maladie fréq.',  color: 'var(--sev-critical-fg)', light: 'var(--sev-critical-chip)' },
+  late_chronic:  { label: 'Retards chron.', color: 'var(--sev-warning-fg)',  light: 'var(--sev-warning-chip)' },
+  absence_high:  { label: 'Abs. élevée',    color: 'var(--accent)',          light: 'var(--accent-light)' },
 }
 
 function FlagBadge({ flag }: { flag: keyof typeof FLAG_META }) {
@@ -245,8 +280,8 @@ function TurnoverSection({ data }: { data: AnalyticsPayload['turnover'] }) {
           <div className="space-y-1.5">
             {byMonth[mk].map((e, i) => (
               <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[var(--bg-page)] border border-[var(--border)]">
-                <div className="w-7 h-7 rounded-full bg-[#FEE2E2] flex items-center justify-center flex-shrink-0">
-                  <UserMinus className="h-3.5 w-3.5 text-[#DC2626]" />
+                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--sev-critical-bg)' }}>
+                  <UserMinus className="h-3.5 w-3.5" style={{ color: 'var(--sev-critical-fg)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium text-[var(--text-primary)] truncate">{e.name}</p>
@@ -304,7 +339,7 @@ function ChronicTable({ employees }: { employees: EmployeeAnalytics[] }) {
                 <td className="py-2.5 px-3 text-right">
                   <span className={cn(
                     'font-semibold',
-                    e.absenceRate >= 20 ? 'text-[#DC2626]' : e.absenceRate >= 10 ? 'text-[#D97706]' : 'text-[var(--text-primary)]'
+                    e.absenceRate >= 20 ? 'text-[var(--sev-critical-fg)]' : e.absenceRate >= 10 ? 'text-[var(--sev-warning-fg)]' : 'text-[var(--text-primary)]'
                   )}>
                     {e.absenceRate} %
                   </span>
@@ -334,6 +369,9 @@ function ChronicTable({ employees }: { employees: EmployeeAnalytics[] }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AnalyticsClient() {
+  // Theme-aware chart palette (recharts needs literal colours, not CSS vars).
+  const isDark = useIsDark()
+  const C = isDark ? { ...BASE, ...DARK } : BASE
   const [period, setPeriod] = useState<PeriodKey>('3m')
   const [data, setData] = useState<AnalyticsPayload | null>(null)
   const [loading, setLoading] = useState(true)
@@ -401,7 +439,7 @@ export default function AnalyticsClient() {
 
       {/* ── Error ─────────────────────────────────────────────────────────── */}
       {error && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#FEE2E2] border border-[#FCA5A5] text-[#DC2626] text-[13px]">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl border text-[13px]" style={{ background: 'var(--sev-critical-bg)', borderColor: 'var(--sev-critical-border)', color: 'var(--sev-critical-fg)' }}>
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           <span>{error}</span>
           <button onClick={() => fetchData(period)} className="ml-auto flex items-center gap-1 text-[12px] underline underline-offset-2">
@@ -723,7 +761,7 @@ export default function AnalyticsClient() {
                         <td className="py-2.5 pl-3 text-right">
                           <span className={cn(
                             'font-semibold',
-                            e.absenceRate >= 20 ? 'text-[#DC2626]' : e.absenceRate >= 10 ? 'text-[#D97706]' : 'text-[var(--text-secondary)]'
+                            e.absenceRate >= 20 ? 'text-[var(--sev-critical-fg)]' : e.absenceRate >= 10 ? 'text-[var(--sev-warning-fg)]' : 'text-[var(--text-secondary)]'
                           )}>
                             {e.absenceRate} %
                           </span>

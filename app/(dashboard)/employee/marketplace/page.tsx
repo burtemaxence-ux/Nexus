@@ -53,15 +53,15 @@ function SlotCard({ slot, onRefresh }: { slot: MarketplaceSlot; onRefresh: () =>
   }
 
   const appColors = {
-    pending:  { bg: '#FFFBEB', border: '#FDE68A', text: '#D97706', label: 'En attente' },
-    accepted: { bg: '#DCFCE7', border: '#86EFAC', text: '#16A34A', label: 'Accepté ✓' },
-    rejected: { bg: '#F3F4F6', border: '#E5E7EB', text: '#6B7280', label: 'Non retenu' },
+    pending:  { bg: 'var(--sev-warning-bg)', border: 'var(--sev-warning-border)', text: 'var(--sev-warning-fg)', label: 'En attente' },
+    accepted: { bg: 'var(--sev-success-bg)', border: 'var(--sev-success-border)', text: 'var(--sev-success-fg)', label: 'Accepté ✓' },
+    rejected: { bg: 'var(--sev-neutral-bg)', border: 'var(--sev-neutral-border)', text: 'var(--sev-neutral-fg)', label: 'Non retenu' },
   }
 
   return (
     <div className={cn(
       'bg-[var(--bg-card)] border rounded-xl overflow-hidden',
-      myApp?.status === 'accepted' ? 'border-[#86EFAC]' : 'border-[var(--border)]'
+      myApp?.status === 'accepted' ? 'border-[var(--sev-success-border)]' : 'border-[var(--border)]'
     )}>
       <div className="p-4">
         {/* Position + date */}
@@ -106,7 +106,7 @@ function SlotCard({ slot, onRefresh }: { slot: MarketplaceSlot; onRefresh: () =>
         <div className="flex items-center gap-2 mt-2">
           <span className={cn(
             'flex items-center gap-1 text-[11px] font-medium',
-            expiry.urgent ? 'text-[#D97706]' : 'text-[var(--text-tertiary)]'
+            expiry.urgent ? 'text-[var(--sev-warning-fg)]' : 'text-[var(--text-tertiary)]'
           )}>
             <Timer className="h-3 w-3" />
             Expire dans {expiry.label}
@@ -115,7 +115,7 @@ function SlotCard({ slot, onRefresh }: { slot: MarketplaceSlot; onRefresh: () =>
 
         {/* Error */}
         {error && (
-          <p className="mt-2 text-[12px] text-[#DC2626] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-1.5">
+          <p className="mt-2 text-[12px] rounded-lg px-3 py-1.5 border" style={{ color: 'var(--sev-critical-fg)', background: 'var(--sev-critical-bg)', borderColor: 'var(--sev-critical-border)' }}>
             {error}
           </p>
         )}
@@ -136,7 +136,7 @@ function SlotCard({ slot, onRefresh }: { slot: MarketplaceSlot; onRefresh: () =>
         )}
 
         {myApp?.status === 'accepted' && (
-          <div className="mt-3 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#DCFCE7] text-[#16A34A] text-[13px] font-medium">
+          <div className="mt-3 flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium" style={{ background: 'var(--sev-success-bg)', color: 'var(--sev-success-fg)' }}>
             <CheckCircle2 className="h-4 w-4" />
             Shift confirmé — rendez-vous le {fmtDate(slot.shift.date)} !
           </div>
@@ -231,7 +231,7 @@ export default function EmployeeMarketplacePage() {
       <div className="px-4 pb-6 space-y-3">
         {/* Error */}
         {error && (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-[13px]">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl border text-[13px]" style={{ background: 'var(--sev-critical-bg)', borderColor: 'var(--sev-critical-border)', color: 'var(--sev-critical-fg)' }}>
             <AlertTriangle className="h-4 w-4 flex-shrink-0" />
             {error}
             <button onClick={fetchSlots} className="ml-auto">

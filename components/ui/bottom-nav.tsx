@@ -33,16 +33,17 @@ function NavIcon({
   active,
   badge,
   accent,
-  indicator,
+  badgeColor = 'orange',
 }: {
   icon: React.ElementType
   label: string
   active: boolean
   badge?: number
   accent?: boolean
-  indicator?: boolean
+  badgeColor?: 'orange' | 'red'
 }) {
   if (accent) {
+    // Floating action tab (badgeuse employé) — dégradé signature Quartzbase.
     return (
       <div className="flex flex-col items-center justify-center gap-[3px]">
         <div
@@ -51,8 +52,8 @@ function NavIcon({
             width: 44,
             height: 44,
             marginTop: -14,
-            background: 'linear-gradient(150deg, #8B84FF, var(--accent))',
-            boxShadow: '0 4px 14px rgba(108,99,255,.55), 0 0 22px rgba(108,99,255,.45)',
+            background: 'linear-gradient(145deg,#8079ff,#6C63FF)',
+            boxShadow: '0 5px 14px rgba(108,99,255,.55), 0 0 22px rgba(108,99,255,.45)',
             border: '3px solid var(--bg-page)',
           }}
         >
@@ -64,14 +65,18 @@ function NavIcon({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-[3px]">
-      <div className="relative flex items-center justify-center w-7 h-7 rounded-full transition-all duration-150" style={{ backgroundColor: active ? 'var(--accent-light)' : undefined }}>
-        {indicator && active && (
-          <span className="nx-indic absolute -top-[9px] w-[26px] h-[3px] rounded-b-[3px]" style={{ backgroundColor: 'var(--accent)' }} />
-        )}
-        <Icon className={cn('h-[17px] w-[17px]', active ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]')} />
+    <div className="flex flex-col items-center justify-center gap-[4px]">
+      <div
+        className="relative flex items-center justify-center w-8 h-8 rounded-[10px] transition-all duration-200"
+        style={active ? {
+          background: 'linear-gradient(145deg,#8079ff,#6C63FF)',
+          border: '1px solid rgba(138,131,255,0.7)',
+          boxShadow: '0 5px 14px rgba(108,99,255,0.5), inset 0 1px 0 rgba(255,255,255,0.4)',
+        } : undefined}
+      >
+        <Icon className={cn('h-[18px] w-[18px]', active ? 'text-white' : 'text-[var(--text-tertiary)]')} />
         {badge !== undefined && badge > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-[14px] min-w-[14px] px-[3px] rounded-full bg-[#D97706] text-white text-[9px] font-bold flex items-center justify-center leading-none">
+          <span className={cn('qb-nav-badge', badgeColor === 'red' && 'qb-nav-badge--red')}>
             {badge > 9 ? '9+' : badge}
           </span>
         )}
@@ -142,21 +147,28 @@ function ManagerMoreDrawer({
                 href={href}
                 onClick={onClose}
                 className={cn(
-                  'flex items-center gap-3 px-4 py-3.5 rounded-xl text-[14px] transition-colors',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] transition-colors',
                   active
-                    ? 'bg-[var(--accent-light)] text-[var(--accent)]'
+                    ? 'bg-[var(--accent-light)] text-[var(--accent)] font-medium'
                     : 'text-[var(--text-primary)]'
                 )}
               >
-                <Icon
-                  className={cn(
-                    'h-[18px] w-[18px] flex-shrink-0',
-                    active ? 'text-[var(--accent)]' : 'text-[var(--text-tertiary)]'
-                  )}
-                />
+                <span
+                  className="flex items-center justify-center w-[30px] h-[30px] rounded-[9px] flex-shrink-0"
+                  style={active ? {
+                    background: 'linear-gradient(145deg,#8079ff,#6C63FF)',
+                    border: '1px solid rgba(138,131,255,0.7)',
+                    boxShadow: '0 5px 14px rgba(108,99,255,0.5), inset 0 1px 0 rgba(255,255,255,0.4)',
+                  } : undefined}
+                >
+                  <Icon className={cn('h-[18px] w-[18px]', active ? 'text-white' : 'text-[var(--text-tertiary)]')} />
+                </span>
                 <span className="flex-1">{label}</span>
                 {badge !== undefined && badge > 0 && (
-                  <span className="flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-medium leading-none">
+                  <span
+                    className="flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full text-white text-[11px] font-bold leading-none"
+                    style={{ background: 'linear-gradient(140deg,#f98a8a,#ef4444)', boxShadow: '0 1px 4px rgba(239,68,68,0.5)' }}
+                  >
                     {badge > 99 ? '99+' : badge}
                   </span>
                 )}
@@ -396,16 +408,16 @@ export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0, compl
       style={navBarStyle}
     >
       <Link href="/employee" className="flex-1 flex items-center justify-center active:scale-90 transition-transform duration-100">
-        <NavIcon icon={Home} label="Accueil" active={pathname === '/employee'} indicator />
+        <NavIcon icon={Home} label="Accueil" active={pathname === '/employee'} />
       </Link>
       <Link href="/employee/badgeuse" className="flex-1 flex items-center justify-center active:scale-90 transition-transform duration-100">
         <NavIcon icon={Clock} label="Badgeuse" active={isActive('/employee/badgeuse', pathname)} accent />
       </Link>
       <Link href="/employee/planning" className="flex-1 flex items-center justify-center active:scale-90 transition-transform duration-100">
-        <NavIcon icon={Calendar} label="Planning" active={isActive('/employee/planning', pathname)} indicator />
+        <NavIcon icon={Calendar} label="Planning" active={isActive('/employee/planning', pathname)} />
       </Link>
       <Link href="/employee/conges" className="flex-1 flex items-center justify-center active:scale-90 transition-transform duration-100">
-        <NavIcon icon={Palmtree} label="Congés" active={isActive('/employee/conges', pathname)} indicator />
+        <NavIcon icon={Palmtree} label="Congés" active={isActive('/employee/conges', pathname)} />
       </Link>
     </nav>
   )
