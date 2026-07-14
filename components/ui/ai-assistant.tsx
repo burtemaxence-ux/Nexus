@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Send, Loader2, RotateCcw, FileText, Copy, Check, Printer, CalendarCheck, CalendarX, CalendarPlus, UserPlus, CopyPlus, ArrowLeftRight, type LucideIcon } from 'lucide-react'
+import { X, Send, Loader2, RotateCcw, FileText, Copy, Check, Printer, CalendarCheck, CalendarX, CalendarPlus, UserPlus, CopyPlus, ArrowLeftRight, Calendar, BarChart3, Scale, AlertTriangle, TrendingDown, ClipboardList, RefreshCw, Repeat, ChevronRight, Sparkles, type LucideIcon } from 'lucide-react'
 import { QuartzBot } from '@/components/ui/quartz-bot-icon'
 import { AiQuotaBadge } from '@/components/ui/ai-quota-badge'
 import ReactMarkdown, { type Components } from 'react-markdown'
@@ -535,10 +535,20 @@ export function AiAssistant({
 
           {/* Suggestions proactives (uniquement au démarrage) */}
           {messages.length === 1 && !loading && (
-            <div className="space-y-2 pt-1">
-              {suggestions.map((s) => (
-                <SuggestionBtn key={s.label} label={s.label} onPress={() => send(s.message)} />
-              ))}
+            <div className="pt-1">
+              <p className="mb-2 px-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
+                Suggestions pour vous
+              </p>
+              <div className="overflow-hidden rounded-xl" style={{ border: '0.5px solid var(--border)' }}>
+                {suggestions.map((s, i) => (
+                  <SuggestionRow
+                    key={s.label}
+                    label={s.label}
+                    isLast={i === suggestions.length - 1}
+                    onPress={() => send(s.message)}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
@@ -600,21 +610,50 @@ export function AiAssistant({
   )
 }
 
-function SuggestionBtn({ label, onPress }: { label: string; onPress: () => void }) {
+// Labels des suggestions démarrent toujours par un émoji (voir FALLBACK_SUGGESTIONS
+// et /api/ai/context) — on l'extrait pour l'afficher comme icône plutôt qu'en texte.
+const SUGGESTION_ICONS: Record<string, LucideIcon> = {
+  '📅': Calendar,
+  '📊': BarChart3,
+  '⚖️': Scale,
+  '⚠️': AlertTriangle,
+  '📉': TrendingDown,
+  '📋': ClipboardList,
+  '🔄': RefreshCw,
+  '🔁': Repeat,
+}
+
+function parseSuggestionLabel(label: string): { Icon: LucideIcon; text: string } {
+  const spaceIdx = label.indexOf(' ')
+  if (spaceIdx === -1) return { Icon: Sparkles, text: label }
+  const emoji = label.slice(0, spaceIdx)
+  return { Icon: SUGGESTION_ICONS[emoji] ?? Sparkles, text: label.slice(spaceIdx + 1) }
+}
+
+function SuggestionRow({ label, isLast, onPress }: { label: string; isLast: boolean; onPress: () => void }) {
   const [hovered, setHovered] = useState(false)
+  const { Icon, text } = parseSuggestionLabel(label)
   return (
     <button
       onClick={onPress}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="w-full rounded-xl px-3 py-2 text-left text-xs transition-colors duration-150"
+      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs transition-colors duration-150"
       style={{
-        border: hovered ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+        borderBottom: isLast ? 'none' : '0.5px solid var(--border)',
         backgroundColor: hovered ? 'var(--accent-light)' : 'var(--bg-card)',
-        color: hovered ? 'var(--accent)' : 'var(--text-secondary)',
       }}
     >
-      {label}
+      <span
+        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
+        style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 14%, transparent)', color: 'var(--accent)' }}
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <span className="flex-1 font-medium" style={{ color: hovered ? 'var(--accent)' : 'var(--text-secondary)' }}>
+        {text}
+      </span>
+      <ChevronRight className="h-3.5 w-3.5 flex-shrink-0" style={{ color: hovered ? 'var(--accent)' : 'var(--text-tertiary)' }} />
     </button>
   )
 }
