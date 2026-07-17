@@ -1,10 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Check, FileText, ShieldCheck, Info } from 'lucide-react'
+import { Loader2, Check, FileText, ShieldCheck, Info, Save, BadgeCheck, FileClock, Sun, Zap } from 'lucide-react'
 import {
   CONTRACT_TYPES,
   parseContractConfig,
@@ -13,9 +10,18 @@ import {
   type ContractTypesConfig,
 } from '@/lib/contracts'
 
+// Métadonnées d'affichage par type (icône + sous-titre). Le type reste piloté
+// par lib/contracts ; ceci n'ajoute que la présentation.
+const TYPE_META: Record<ContractType, { icon: typeof FileText; sub: string }> = {
+  'CDI 35h':        { icon: BadgeCheck, sub: 'Temps plein · engagement durable' },
+  'CDI 28h':        { icon: BadgeCheck, sub: 'Temps partiel · engagement durable' },
+  'CDD':            { icon: FileClock,  sub: 'Durée déterminée' },
+  'CDD Saisonnier': { icon: Sun,        sub: 'Saison · durée déterminée' },
+  'Extra':          { icon: Zap,        sub: 'Renfort ponctuel · à l’heure' },
+}
+
 // Règles légales vérifiées automatiquement par le moteur de conformité
-// (lib/compliance/rules.ts). Affichées ici en lecture seule : elles s'appliquent
-// quelle que soit la convention collective.
+// (lib/compliance/rules.ts). Affichées ici en lecture seule.
 const LEGAL_RULES = [
   { label: 'Repos quotidien',     value: '11h min.', detail: 'Entre la fin d’un service et le début du suivant.',          ref: 'L3131-1'  },
   { label: 'Repos hebdomadaire',  value: '35h min.', detail: 'Repos continu (24h + 11h) sur chaque fenêtre de 7 jours.',   ref: 'L3132-2'  },
@@ -33,24 +39,6 @@ const LEGAL_RULES = [
   { label: 'Heures contractuelles', value: 'suivi',  detail: 'Alerte si les heures planifiées dépassent le contrat.',      ref: 'Contrat'  },
 ] as const
 
-// ── Toggle ──────────────────────────────────────────────────────────────────
-function Toggle({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={onToggle}
-      className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-150 focus:outline-none"
-      style={{ backgroundColor: checked ? 'var(--accent)' : 'var(--border)' }}
-    >
-      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-        checked ? 'translate-x-6' : 'translate-x-1'
-      }`} />
-    </button>
-  )
-}
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function ContratsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -89,139 +77,97 @@ export default function ContratsPage() {
   const activeCount = useMemo(() => CONTRACT_TYPES.filter(t => config[t].enabled).length, [config])
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><Loader2 className="ic20 nx-spin" style={{ color: 'var(--text-tertiary)' }} /></div>
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 md:px-8 py-10 space-y-6">
+    <div className="nx-planpage" style={{ maxWidth: 672, margin: '0 auto', padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Contrats & RH</h1>
-        <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Choisissez les types de contrats proposés à vos équipes et leurs repères horaires.
-        </p>
+        <h1 style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-.02em', color: 'var(--text-primary)' }}>Contrats &amp; RH</h1>
+        <p style={{ fontSize: 13, marginTop: 4, color: 'var(--text-secondary)' }}>Types de contrats proposés à vos équipes et repères horaires.</p>
       </div>
 
-      {/* ── Types de contrats proposés ────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-              <FileText className="h-4 w-4 text-violet-500" />
-            </div>
-            <div>
-              <CardTitle className="text-base">Types de contrats proposés</CardTitle>
-              <CardDescription>
-                Les types activés apparaissent dans le menu déroulant à la création et à l’édition d’un employé.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* En-têtes de colonnes */}
-          <div className="grid grid-cols-[1fr_5rem_3rem] items-center gap-x-4 pb-2 border-b border-border">
-            <span className="text-[10px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>Type</span>
-            <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-center" style={{ color: 'var(--text-tertiary)' }}>h/sem.</span>
-            <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-right" style={{ color: 'var(--text-tertiary)' }}>Proposé</span>
-          </div>
-
-          <div className="divide-y divide-border/60">
-            {CONTRACT_TYPES.map(type => {
+      {/* Types de contrats */}
+      <div className="nx-card">
+        <div className="nx-card-head">
+          <div className="nx-ico" style={{ background: 'var(--accent-light)' }}><FileText className="ic16" style={{ color: 'var(--accent)' }} /></div>
+          <div><div className="nx-card-title">Types de contrats proposés</div><div className="nx-card-desc">Cochez les contrats que vous utilisez vraiment : eux seuls apparaîtront quand vous ajoutez un employé.</div></div>
+        </div>
+        <div className="nx-card-body">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {CONTRACT_TYPES.map((type, i) => {
               const c = config[type]
+              const Icon = TYPE_META[type].icon
               return (
-                <div key={type} className="grid grid-cols-[1fr_5rem_3rem] items-center gap-x-4 py-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={`h-2 w-2 rounded-full shrink-0 ${c.enabled ? 'bg-emerald-400' : 'bg-gray-200 dark:bg-[#2A2D3A]'}`} />
-                    <span className={`text-sm font-medium truncate ${c.enabled ? 'text-foreground' : 'text-muted-foreground'}`}>{type}</span>
+                <div key={type} className={`nx-ctype ${c.enabled ? 'on' : ''}`} style={{ animationDelay: `${i * 0.04}s` }}>
+                  <div className="nx-ctype-ico"><Icon className="ic18" /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{type}</p>
+                    <p style={{ fontSize: 11.5, marginTop: 2, color: 'var(--text-tertiary)' }}>{TYPE_META[type].sub}</p>
                   </div>
-                  <div className="relative">
-                    <Input
-                      type="number" min="0" max="60" step="0.5"
+                  <div style={{ position: 'relative', width: 78, flexShrink: 0 }}>
+                    <input
+                      className="nx-input" type="number" min="0" max="60" step="0.5"
+                      style={{ height: 34, textAlign: 'center', paddingRight: 22 }}
                       value={c.ref_hours === 0 ? '' : c.ref_hours}
                       onChange={e => setRefHours(type, e.target.value === '' ? 0 : parseFloat(e.target.value))}
                       placeholder="—"
                       disabled={!c.enabled}
-                      className="h-8 text-sm text-center pr-5"
                     />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">h</span>
+                    <span style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--text-tertiary)' }}>h</span>
                   </div>
-                  <div className="flex justify-end">
-                    <Toggle checked={c.enabled} onToggle={() => toggle(type)} />
-                  </div>
+                  <button className={`nx-switch ${c.enabled ? 'on' : ''}`} onClick={() => toggle(type)} aria-label={`Proposer ${type}`} style={{ flexShrink: 0 }} />
                 </div>
               )
             })}
           </div>
-
-          <div className="flex items-start gap-2 pt-4 mt-1 border-t border-border">
-            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">h/sem.</span> est le volume horaire hebdomadaire de référence : il pré-remplit le champ « Volume horaire » à la création d’un employé de ce type. Toujours modifiable ensuite dans la fiche.
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', paddingTop: 16, marginTop: 4, borderTop: '0.5px solid var(--border)' }}>
+            <Info className="ic14" style={{ color: 'var(--text-tertiary)', marginTop: 2, flexShrink: 0 }} />
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>h/sem.</span> est le volume horaire hebdomadaire de référence : il pré-remplit le champ « Volume horaire » à la création d’un employé de ce type. Toujours modifiable ensuite dans la fiche.
             </p>
           </div>
-
           {activeCount === 0 && (
-            <p className="text-xs pt-2" style={{ color: 'var(--warning)' }}>
+            <p style={{ fontSize: 12, paddingTop: 8, color: 'var(--warning)' }}>
               Aucun type activé — tous les types restent proposés par défaut pour ne pas bloquer la création d’employés.
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* ── Durées maximales légales (lecture seule) ──────────────────── */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
-            </div>
-            <div>
-              <CardTitle className="text-base">Durées maximales légales</CardTitle>
-              <CardDescription>
-                Vérifiées automatiquement sur la grille de planning, quelle que soit la convention.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="divide-y divide-border/60">
+      {/* Durées légales */}
+      <div className="nx-card">
+        <div className="nx-card-head">
+          <div className="nx-ico" style={{ background: 'rgba(16,185,129,.12)' }}><ShieldCheck className="ic16" style={{ color: 'var(--emerald)' }} /></div>
+          <div><div className="nx-card-title">Durées maximales légales</div><div className="nx-card-desc">On veille dessus pour vous, en direct sur la grille — quelle que soit votre convention.</div></div>
+        </div>
+        <div className="nx-card-body">
+          <div className="nx-legalgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {LEGAL_RULES.map(rule => (
-              <div key={rule.label} className="flex items-center justify-between gap-4 py-3 first:pt-0">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">{rule.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{rule.detail}</p>
+              <div key={rule.label} className="nx-legal">
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+                  <p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{rule.label}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{rule.value}</p>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold text-foreground tabular-nums">{rule.value}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Art. {rule.ref}</p>
-                </div>
+                <p style={{ fontSize: 11, lineHeight: 1.45, marginTop: 5, color: 'var(--text-tertiary)' }}>{rule.detail}</p>
+                <p style={{ fontSize: 9.5, marginTop: 7, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>Art. {rule.ref}</p>
               </div>
             ))}
           </div>
-
-          <div className="flex items-start gap-2 pt-4 mt-1 border-t border-border">
-            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', paddingTop: 16, marginTop: 4, borderTop: '0.5px solid var(--border)' }}>
+            <Info className="ic14" style={{ color: 'var(--text-tertiary)', marginTop: 2, flexShrink: 0 }} />
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
               Ces seuils découlent du Code du travail et ne se règlent pas ici. Les durées propres à votre secteur (heures sup., équivalences, repos) se configurent dans{' '}
-              <span className="font-medium text-foreground">Réglages › Planning</span> via votre convention collective.
+              <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>Réglages › Planning</span> via votre convention collective.
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* ── Save ──────────────────────────────────────────────────────── */}
-      <div className="flex justify-end pt-2">
-        <Button onClick={handleSave} disabled={saving} className="gap-2 min-w-[140px]">
-          {saving
-            ? <><Loader2 className="h-4 w-4 animate-spin" />Enregistrement…</>
-            : saved
-            ? <><Check className="h-4 w-4" />Enregistré !</>
-            : 'Enregistrer'
-          }
-        </Button>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ minWidth: 140, justifyContent: 'center' }}>
+          {saving ? <><Loader2 className="ic14 nx-spin" />Enregistrement…</> : saved ? <><Check className="ic14" />Enregistré !</> : <><Save className="ic14" />Enregistrer</>}
+        </button>
       </div>
     </div>
   )

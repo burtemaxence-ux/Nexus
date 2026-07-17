@@ -1,10 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Check, Umbrella, CheckCircle2, Info } from 'lucide-react'
+import { Loader2, Check, Umbrella, CheckCircle2, Info, Save, Clock, Stethoscope, Wallet, Sparkles, Zap, UserCheck } from 'lucide-react'
 import {
   LEAVE_TYPES,
   LEAVE_TYPE_CODES,
@@ -15,27 +12,15 @@ import {
   type LeaveTypesConfig,
 } from '@/lib/leaves'
 
-// ── Toggle ──────────────────────────────────────────────────────────────────
-function Toggle({ checked, onToggle, small }: { checked: boolean; onToggle: () => void; small?: boolean }) {
-  const h = small ? 'h-5 w-9' : 'h-6 w-11'
-  const dot = small ? 'h-3.5 w-3.5' : 'h-4 w-4'
-  const on = small ? 'translate-x-4' : 'translate-x-6'
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={onToggle}
-      className={`relative inline-flex ${h} items-center rounded-full transition-colors duration-150 focus:outline-none`}
-      style={{ backgroundColor: checked ? 'var(--accent)' : 'var(--border)' }}
-    >
-      <span className={`inline-block ${dot} transform rounded-full bg-white shadow transition-transform ${
-        checked ? on : 'translate-x-1'
-      }`} />
-    </button>
-  )
+// Métadonnées d'affichage par code (couleur + icône).
+const LEAVE_META: Record<LeaveType, { icon: typeof Umbrella; color: string }> = {
+  CP:         { icon: Umbrella,    color: '#6C63FF' },
+  RTT:        { icon: Clock,       color: '#00A98F' },
+  maladie:    { icon: Stethoscope, color: '#fa5252' },
+  sans_solde: { icon: Wallet,      color: '#f08c00' },
+  autre:      { icon: Sparkles,    color: '#12b886' },
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function CongesPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -71,166 +56,95 @@ export default function CongesPage() {
   const enabledCodes = useMemo(() => LEAVE_TYPE_CODES.filter(c => config[c].enabled), [config])
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <div style={{ display: 'flex', justifyContent: 'center', padding: 64 }}><Loader2 className="ic20 nx-spin" style={{ color: 'var(--text-tertiary)' }} /></div>
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 md:px-8 py-10 space-y-6">
+    <div className="nx-planpage" style={{ maxWidth: 672, margin: '0 auto', padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Congés & absences</h1>
-        <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Types de congés proposés aux équipes et règle de validation de chaque type.
-        </p>
+        <h1 style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-.02em', color: 'var(--text-primary)' }}>Congés &amp; absences</h1>
+        <p style={{ fontSize: 13, marginTop: 4, color: 'var(--text-secondary)' }}>Types de congés proposés et règle de validation de chacun.</p>
       </div>
 
-      {/* ── Types de congés ───────────────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
-              <Umbrella className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-            </div>
-            <div>
-              <CardTitle className="text-base">Types de congés proposés</CardTitle>
-              <CardDescription>
-                Les types activés apparaissent dans le formulaire de demande de l’employé.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="divide-y divide-border">
-            {LEAVE_TYPES.map(({ code, label, description }) => (
-              <div key={code} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`h-2 w-2 rounded-full shrink-0 ${config[code].enabled ? 'bg-emerald-400' : 'bg-gray-200 dark:bg-[#2A2D3A]'}`} />
-                  <div className="min-w-0">
-                    <p className={`text-sm font-medium ${config[code].enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {label}
-                    </p>
-                    <p className="text-xs text-muted-foreground/70 truncate">{description}</p>
+      {/* Types de congés */}
+      <div className="nx-card">
+        <div className="nx-card-head">
+          <div className="nx-ico" style={{ background: 'var(--accent-light)' }}><Umbrella className="ic16" style={{ color: 'var(--accent)' }} /></div>
+          <div><div className="nx-card-title">Types de congés proposés</div><div className="nx-card-desc">Cochez ce que vos équipes peuvent demander : eux seuls apparaîtront dans le formulaire de demande.</div></div>
+        </div>
+        <div className="nx-card-body">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {LEAVE_TYPES.map(({ code, label, description }, i) => {
+              const meta = LEAVE_META[code]
+              const Icon = meta.icon
+              const enabled = config[code].enabled
+              return (
+                <div key={code} className={`nx-leave ${enabled ? 'on' : ''}`} style={{ animationDelay: `${i * 0.04}s` }}>
+                  <div className="nx-leave-ico" style={{ background: `${meta.color}1a` }}><Icon className="ic20" style={{ color: meta.color }} /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</p>
+                    <p style={{ fontSize: 11.5, marginTop: 2, color: 'var(--text-tertiary)' }}>{description}</p>
                   </div>
+                  <button className={`nx-switch ${enabled ? 'on' : ''}`} onClick={() => setField(code, 'enabled', !enabled)} aria-label={`Proposer ${label}`} style={{ flexShrink: 0 }} />
                 </div>
-                <Toggle
-                  checked={config[code].enabled}
-                  onToggle={() => setField(code, 'enabled', !config[code].enabled)}
-                  small
-                />
-              </div>
-            ))}
+              )
+            })}
           </div>
           {enabledCodes.length === 0 && (
-            <p className="text-xs pt-3" style={{ color: 'var(--warning)' }}>
+            <p style={{ fontSize: 12, paddingTop: 12, color: 'var(--warning)' }}>
               Aucun type activé — tous les types restent proposés par défaut pour ne pas bloquer les demandes.
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* ── Workflow & délais ─────────────────────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            </div>
-            <div>
-              <CardTitle className="text-base">Validation & délais de prévenance</CardTitle>
-              <CardDescription>
-                Comment chaque type de demande est traité une fois envoyé par l’employé.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {enabledCodes.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              Activez au moins un type de congé ci-dessus.
-            </p>
-          ) : (
-            <>
-              {/* En-têtes */}
-              <div className="grid grid-cols-[1fr_140px_96px] gap-2 pb-2 border-b border-border">
-                <span className="text-[10px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>Type</span>
-                <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-center" style={{ color: 'var(--text-tertiary)' }}>Validation</span>
-                <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-center" style={{ color: 'var(--text-tertiary)' }}>Délai</span>
-              </div>
-
-              <div className="divide-y divide-border/60">
-                {LEAVE_TYPES.filter(({ code }) => config[code].enabled).map(({ code, label }) => (
-                  <div key={code} className="grid grid-cols-[1fr_140px_96px] gap-2 items-center py-3">
-                    <span className="text-sm font-medium text-foreground truncate">{label}</span>
-
-                    {/* Validation auto / manager */}
-                    <div className="flex items-center justify-center">
-                      <div className="flex overflow-hidden" style={{ border: '0.5px solid var(--border)', borderRadius: '6px' }}>
-                        {(['auto', 'manager'] as const).map((mode, i) => (
-                          <button
-                            key={mode}
-                            onClick={() => setField(code, 'validation', mode)}
-                            className="px-3 py-1.5 text-[12px] font-medium transition-colors duration-150"
-                            style={{
-                              borderLeft: i === 1 ? '0.5px solid var(--border)' : undefined,
-                              backgroundColor: config[code].validation === mode ? 'var(--text-primary)' : 'transparent',
-                              color: config[code].validation === mode ? 'var(--bg-card)' : 'var(--text-tertiary)',
-                            }}
-                          >
-                            {mode === 'auto' ? 'Auto' : 'Manager'}
-                          </button>
-                        ))}
-                      </div>
+      {/* Validation & délais */}
+      <div className="nx-card">
+        <div className="nx-card-head">
+          <div className="nx-ico" style={{ background: 'rgba(16,185,129,.12)' }}><CheckCircle2 className="ic16" style={{ color: 'var(--emerald)' }} /></div>
+          <div><div className="nx-card-title">Validation &amp; délais de prévenance</div><div className="nx-card-desc">Ce qui se passe une fois qu’un employé envoie sa demande.</div></div>
+        </div>
+        <div className="nx-card-body">
+          {enabledCodes.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {LEAVE_TYPES.filter(({ code }) => config[code].enabled).map(({ code, label }) => {
+                const meta = LEAVE_META[code]
+                const Icon = meta.icon
+                return (
+                  <div key={code} className="nx-valrow">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <span style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${meta.color}1a` }}><Icon className="ic14" style={{ color: meta.color }} /></span>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
                     </div>
-
-                    {/* Délai de prévenance */}
-                    <div className="flex justify-center">
-                      <div className="relative w-20">
-                        <Input
-                          type="number" min="0" step="1"
-                          value={config[code].notice_days === 0 ? '' : config[code].notice_days}
-                          onChange={e => setField(code, 'notice_days', e.target.value === '' ? 0 : parseInt(e.target.value, 10))}
-                          placeholder="0"
-                          className="h-7 text-sm text-center pr-5"
-                        />
-                        <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">j</span>
-                      </div>
+                    <div className="nx-seg-wrap" style={{ justifySelf: 'stretch' }}>
+                      <button className={`nx-seg ${config[code].validation === 'auto' ? 'on' : ''}`} onClick={() => setField(code, 'validation', 'auto')} style={{ flex: 1 }}>Auto</button>
+                      <button className={`nx-seg ${config[code].validation === 'manager' ? 'on' : ''}`} onClick={() => setField(code, 'validation', 'manager')} style={{ flex: 1 }}>Manager</button>
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <input className="nx-input" type="number" min="0" step="1" style={{ height: 32, textAlign: 'center', paddingRight: 20 }}
+                        value={config[code].notice_days === 0 ? '' : config[code].notice_days}
+                        onChange={e => setField(code, 'notice_days', e.target.value === '' ? 0 : parseInt(e.target.value, 10))}
+                        placeholder="0"
+                      />
+                      <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--text-tertiary)' }}>j</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
+                )
+              })}
+            </div>
           )}
-
-          <div className="mt-4 pt-4 border-t border-border space-y-1.5">
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Auto</span> — la demande est approuvée immédiatement et les créneaux planifiés sur la période sont libérés.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Manager</span> — la demande reste en attente jusqu’à votre validation dans l’onglet Congés.
-            </p>
-            <p className="text-xs text-muted-foreground flex items-start gap-1.5">
-              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <span>
-                <span className="font-medium text-foreground">Délai</span> — affiché à l’employé à titre indicatif lors de sa demande. Non bloquant (un arrêt maladie reste toujours possible).
-              </span>
-            </p>
+          <div style={{ marginTop: 16, padding: 14, borderRadius: 12, background: 'var(--bg-page)', border: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, display: 'flex', gap: 8, alignItems: 'flex-start' }}><Zap className="ic14" style={{ color: 'var(--emerald)', marginTop: 1, flexShrink: 0 }} /><span><span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Auto</span> — approuvée sur-le-champ, les créneaux planifiés sont libérés automatiquement.</span></p>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, display: 'flex', gap: 8, alignItems: 'flex-start' }}><UserCheck className="ic14" style={{ color: 'var(--accent)', marginTop: 1, flexShrink: 0 }} /><span><span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Manager</span> — en attente jusqu’à votre validation dans l’onglet Congés.</span></p>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, display: 'flex', gap: 8, alignItems: 'flex-start' }}><Info className="ic14" style={{ color: 'var(--text-tertiary)', marginTop: 1, flexShrink: 0 }} /><span><span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Délai</span> — indicatif pour l’employé, jamais bloquant (un arrêt maladie reste toujours possible).</span></p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* ── Save ──────────────────────────────────────────────────────── */}
-      <div className="flex justify-end pt-2">
-        <Button onClick={handleSave} disabled={saving} className="gap-2 min-w-[140px]">
-          {saving
-            ? <><Loader2 className="h-4 w-4 animate-spin" />Enregistrement…</>
-            : saved
-            ? <><Check className="h-4 w-4" />Enregistré !</>
-            : 'Enregistrer'
-          }
-        </Button>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ minWidth: 140, justifyContent: 'center' }}>
+          {saving ? <><Loader2 className="ic14 nx-spin" />Enregistrement…</> : saved ? <><Check className="ic14" />Enregistré !</> : <><Save className="ic14" />Enregistrer</>}
+        </button>
       </div>
     </div>
   )
