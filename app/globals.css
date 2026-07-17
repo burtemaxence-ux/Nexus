@@ -17,6 +17,8 @@ html {
     --border:         rgba(15,23,42,0.08);
     --border-hover:   rgba(15,23,42,0.16);
     --kpi-tex:        rgba(16,24,40,0.04);
+    --bg-subtle:      #f1f3f7;
+    --emerald:        #10b981;
 
     /* ── Sidebar (rgb triplets for /opacity support) ── */
     --sidebar:                   255 255 255;
@@ -99,6 +101,8 @@ html {
     --border:         rgba(255,255,255,0.06);
     --border-hover:   rgba(255,255,255,0.12);
     --kpi-tex:        rgba(255,255,255,0.05);
+    --bg-subtle:      rgba(255,255,255,0.03);
+    --emerald:        #34d399;
 
     /* ── Sidebar (rgb triplets for /opacity support) ── */
     --sidebar:                   24 24 35;
