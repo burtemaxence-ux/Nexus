@@ -3,11 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Plus, Pencil, Trash2, Check, X, Euro, Clock, Layers,
-  ShieldCheck, UserPlus, ChevronDown, ChevronRight,
+  Plus, Pencil, Trash2, Check, X, Layers, Save, CheckCircle2,
+  ShieldCheck, UserPlus, ChevronRight, Crown, Shield, User, UserCog,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -107,6 +106,13 @@ const ROLE_LABELS: Record<string, string> = {
   employe: 'Employé',
 }
 
+function roleIcon(role: string) {
+  if (role === 'manager') return Crown
+  if (role === 'superviseur') return Shield
+  if (role === 'employe') return User
+  return UserCog
+}
+
 function buildAllTrue(): Record<string, boolean> {
   return Object.fromEntries(ALL_PERM_KEYS.map(k => [k, true]))
 }
@@ -138,33 +144,6 @@ const DEFAULT_MATRIX: Record<string, Record<string, boolean>> = {
 type PermConfig = {
   custom_roles: string[]
   matrix: Record<string, Record<string, boolean>>
-}
-
-// ── Toggle ────────────────────────────────────────────────────────────────────
-
-function PermToggle({ checked, onChange, disabled }: {
-  checked: boolean; onChange: () => void; disabled?: boolean
-}) {
-  if (disabled) {
-    return (
-      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
-        <Check className="h-3 w-3" />
-      </span>
-    )
-  }
-  return (
-    <button
-      onClick={onChange}
-      className="inline-flex items-center justify-center h-5 w-5 rounded-full transition-colors duration-150"
-      style={{
-        backgroundColor: checked ? 'var(--accent-light)' : 'var(--bg-page)',
-        color: checked ? 'var(--accent)' : 'var(--text-tertiary)',
-        border: checked ? 'none' : '0.5px solid var(--border)',
-      }}
-    >
-      {checked ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-    </button>
-  )
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -211,7 +190,7 @@ export default function PostesPage() {
   const [permsSaved, setPermsSaved] = useState(false)
   const [showAddRole, setShowAddRole] = useState(false)
   const [newRoleName, setNewRoleName] = useState('')
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set())
+  const [openCategories, setOpenCategories] = useState<Set<string>>(() => new Set(PERMISSION_CATEGORIES.map(c => c.id)))
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
@@ -359,9 +338,9 @@ export default function PostesPage() {
   }
 
   function toggleCategory(catId: string) {
-    setCollapsedCategories(prev => {
+    setOpenCategories(prev => {
       const next = new Set(prev)
-      next.has(catId) ? next.delete(catId) : next.add(catId)
+      if (next.has(catId)) next.delete(catId); else next.add(catId)
       return next
     })
   }
@@ -379,371 +358,247 @@ export default function PostesPage() {
     setTimeout(() => setPermsSaved(false), 2500)
   }
 
-  // ── All visible roles (builtin + custom) ──────────────────────────────────
+  // ── Derived ────────────────────────────────────────────────────────────────
 
   const allRoles = [...BUILTIN_ROLES, ...customRoles]
+  const roleCount = (role: string) => ALL_PERM_KEYS.filter(k => permMatrix[role]?.[k]).length
 
   const smallLabel = (text: string) => (
-    <span className="block text-[11px] font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>{text}</span>
+    <span className="nx-label" style={{ fontSize: 11, marginBottom: 6 }}>{text}</span>
   )
+
+  function posteForm(mode: 'add' | 'edit') {
+    const isAdd = mode === 'add'
+    const name = isAdd ? addName : editName
+    const color = isAdd ? addColor : editColor
+    const autoBreak = isAdd ? addAutoBreak : editAutoBreak
+    const brk = isAdd ? addBreak : editBreak
+    const cost = isAdd ? addCost : editCost
+    const maxDay = isAdd ? addMaxDay : editMaxDay
+    const maxWeek = isAdd ? addMaxWeek : editMaxWeek
+    const err = isAdd ? addError : editError
+    const busy = isAdd ? addLoading : editLoading
+    const setName = isAdd ? setAddName : setEditName
+    const setColor = isAdd ? setAddColor : setEditColor
+    const setAutoBreak = isAdd ? setAddAutoBreak : setEditAutoBreak
+    const setBrk = isAdd ? setAddBreak : setEditBreak
+    const setCost = isAdd ? setAddCost : setEditCost
+    const setMaxDay = isAdd ? setAddMaxDay : setEditMaxDay
+    const setMaxWeek = isAdd ? setAddMaxWeek : setEditMaxWeek
+    return (
+      <div className="qb-reveal" style={{ padding: 18, borderRadius: 14, background: 'var(--accent-light)', border: '0.5px solid var(--accent)' }}>
+        <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 14, color: 'var(--text-primary)' }}>{isAdd ? 'Nouveau poste' : 'Modifier le poste'}</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
+          <div>
+            {smallLabel('Nom du poste')}
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex : Serveur" className="nx-input" style={{ height: 34 }} />
+          </div>
+          <div>
+            {smallLabel('Couleur planning')}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ height: 34, width: 48, borderRadius: 8, cursor: 'pointer', padding: 2, border: '0.5px solid var(--border)' }} />
+              <span className="nx-mono" style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{color}</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 14, marginBottom: 14 }}>
+          <div>
+            {smallLabel('Pause auto')}
+            <button
+              onClick={() => setAutoBreak(v => !v)}
+              style={{
+                height: 34, padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                border: `0.5px solid ${autoBreak ? 'var(--success)' : 'var(--border)'}`,
+                background: autoBreak ? 'var(--sev-success-bg)' : 'transparent',
+                color: autoBreak ? 'var(--success)' : 'var(--text-secondary)',
+              }}
+            >{autoBreak ? 'Oui' : 'Non'}</button>
+          </div>
+          {autoBreak && (
+            <div>
+              {smallLabel('Durée')}
+              <Select value={brk} onValueChange={setBrk}>
+                <SelectTrigger className="nx-input" style={{ height: 34 }}><SelectValue /></SelectTrigger>
+                <SelectContent>{BREAK_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
+          <div>
+            {smallLabel('Coût/h (€)')}
+            <Input type="number" min="0" step="0.01" value={cost} onChange={e => setCost(e.target.value)} placeholder="0.00" className="nx-input" style={{ height: 34 }} />
+          </div>
+          <div>
+            {smallLabel('Max h/jour')}
+            <Input type="number" min="0" step="0.5" value={maxDay} onChange={e => setMaxDay(e.target.value)} placeholder="0" className="nx-input" style={{ height: 34 }} />
+          </div>
+          <div>
+            {smallLabel('Max h/sem')}
+            <Input type="number" min="0" step="0.5" value={maxWeek} onChange={e => setMaxWeek(e.target.value)} placeholder="0" className="nx-input" style={{ height: 34 }} />
+          </div>
+        </div>
+        {err && <p style={{ fontSize: 12, marginBottom: 10, color: 'var(--danger)' }}>{err}</p>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={isAdd ? handleAdd : () => editingId && handleSaveEdit(editingId)} disabled={busy} className="btn-primary" style={{ fontSize: 12, padding: '7px 14px' }}>
+            <Check className="ic14" />{busy ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+          <button onClick={isAdd ? resetAdd : cancelEdit} disabled={busy} className="btn-secondary" style={{ fontSize: 12, padding: '7px 14px' }}>
+            <X className="ic14" />Annuler
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-3xl mx-auto px-4 md:px-8 py-8">
+    <div style={{ maxWidth: 768, margin: '0 auto', padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
         <div>
-          <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
-            Postes & rôles
-          </h1>
-          <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-            Postes de travail et permissions par rôle
-          </p>
+          <h1 style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-.02em', color: 'var(--text-primary)' }}>Postes &amp; rôles</h1>
+          <p style={{ fontSize: 13, marginTop: 4, color: 'var(--text-secondary)' }}>Postes de travail et matrice de permissions par rôle.</p>
         </div>
-        <button
-          onClick={() => { resetAdd(); setShowAddForm(true) }}
-          disabled={showAddForm}
-          className="btn-primary flex items-center gap-1.5"
-        >
-          <Plus className="h-3.5 w-3.5" />Ajouter un poste
-        </button>
       </div>
 
       {error && (
-        <div className="rounded-lg p-4 mb-4 text-[13px]" style={{ backgroundColor: '#FEE2E2', border: '0.5px solid var(--danger)', color: 'var(--danger)' }}>
-          {error}
-        </div>
+        <div style={{ borderRadius: 10, padding: 14, fontSize: 13, background: 'var(--sev-critical-bg)', border: '0.5px solid var(--danger)', color: 'var(--danger)' }}>{error}</div>
       )}
 
-      {/* ── Add form ─────────────────────────────────────────────────────── */}
-      {showAddForm && (
-        <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: 'var(--accent-light)', border: '0.5px solid var(--accent)' }}>
-          <p className="text-[13px] font-medium mb-4" style={{ color: 'var(--text-primary)' }}>Nouveau poste</p>
-
-          <div className="grid grid-cols-2 gap-4 mb-4">
+      {/* ── Postes card ──────────────────────────────────────────────────── */}
+      <div className="nx-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '16px 20px', borderBottom: '0.5px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="nx-ico" style={{ background: 'var(--accent-light)' }}><Layers className="ic16" style={{ color: 'var(--accent)' }} /></div>
             <div>
-              {smallLabel('Nom du poste')}
-              <Input value={addName} onChange={e => setAddName(e.target.value)} placeholder="Ex : Serveur" className="dp-input h-8 text-[13px]" />
-            </div>
-            <div>
-              {smallLabel('Couleur planning')}
-              <div className="flex items-center gap-2">
-                <input type="color" value={addColor} onChange={e => setAddColor(e.target.value)} className="h-8 w-12 rounded-lg cursor-pointer p-0.5" style={{ border: '0.5px solid var(--border)' }} />
-                <span className="text-[11px] font-mono" style={{ color: 'var(--text-tertiary)' }}>{addColor}</span>
-              </div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Postes de travail</p>
+              <p style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{postes.length} poste{postes.length > 1 ? 's' : ''}</p>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div>
-              {smallLabel('Pause auto')}
-              <button
-                onClick={() => setAddAutoBreak(v => !v)}
-                className="h-8 px-3 rounded-lg text-[12px] font-medium transition-colors duration-150"
-                style={{
-                  border: `0.5px solid ${addAutoBreak ? 'var(--success)' : 'var(--border)'}`,
-                  backgroundColor: addAutoBreak ? '#DCFCE7' : 'transparent',
-                  color: addAutoBreak ? 'var(--success)' : 'var(--text-secondary)',
-                }}
-              >
-                {addAutoBreak ? 'Oui' : 'Non'}
-              </button>
-            </div>
-            {addAutoBreak && (
-              <div>
-                {smallLabel('Durée')}
-                <Select value={addBreak} onValueChange={setAddBreak}>
-                  <SelectTrigger className="dp-input h-8 text-[13px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>{BREAK_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            )}
-            <div>
-              {smallLabel('Coût/h (€)')}
-              <Input type="number" min="0" step="0.01" value={addCost} onChange={e => setAddCost(e.target.value)} placeholder="0.00" className="dp-input h-8 text-[13px]" />
-            </div>
-            <div>
-              {smallLabel('Max h/jour')}
-              <Input type="number" min="0" step="0.5" value={addMaxDay} onChange={e => setAddMaxDay(e.target.value)} placeholder="0" className="dp-input h-8 text-[13px]" />
-            </div>
-            <div>
-              {smallLabel('Max h/sem')}
-              <Input type="number" min="0" step="0.5" value={addMaxWeek} onChange={e => setAddMaxWeek(e.target.value)} placeholder="0" className="dp-input h-8 text-[13px]" />
-            </div>
-          </div>
-
-          {addError && <p className="text-[12px] mb-3" style={{ color: 'var(--danger)' }}>{addError}</p>}
-          <div className="flex gap-2">
-            <button onClick={handleAdd} disabled={addLoading} className="btn-primary text-[12px] py-1.5 px-3">
-              {addLoading ? 'Enregistrement...' : 'Enregistrer'}
-            </button>
-            <button onClick={resetAdd} disabled={addLoading} className="btn-secondary text-[12px] py-1.5 px-3">
-              Annuler
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Postes table ─────────────────────────────────────────────────── */}
-      <div className="overflow-hidden mb-6" style={{ backgroundColor: 'var(--bg-card)', border: '0.5px solid var(--border)', borderRadius: '12px' }}>
-        <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '0.5px solid var(--border)' }}>
-          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
-            <Layers className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-          </div>
-          <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>Postes de travail</p>
-        </div>
-
-        {loading ? (
-          <div className="p-8 text-center text-[13px]" style={{ color: 'var(--text-secondary)' }}>Chargement…</div>
-        ) : postes.length === 0 ? (
-          <div className="p-8 text-center text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-            Aucun poste. Cliquez sur &ldquo;Ajouter un poste&rdquo; pour commencer.
-          </div>
-        ) : (
-          <table className="w-full border-collapse text-[13px]">
-            <thead>
-              <tr style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
-                {['Poste', 'Pause', 'Coût/h', 'Max/j', 'Max/sem', ''].map(h => (
-                  <th
-                    key={h}
-                    className={`px-5 py-3 text-[11px] font-medium uppercase tracking-[0.06em] ${h === '' ? 'text-right' : 'text-left'}`}
-                    style={{ color: 'var(--text-tertiary)' }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {postes.map(poste => (
-                editingId === poste.id ? (
-                  <tr key={poste.id} style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--accent-light)' }}>
-                    <td colSpan={6} className="px-5 py-4">
-                      <div className="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                          {smallLabel('Nom')}
-                          <Input value={editName} onChange={e => setEditName(e.target.value)} className="dp-input h-8 text-[13px]" />
-                          {editError && <p className="text-[11px] mt-1" style={{ color: 'var(--danger)' }}>{editError}</p>}
-                        </div>
-                        <div>
-                          {smallLabel('Couleur')}
-                          <div className="flex items-center gap-2">
-                            <input type="color" value={editColor} onChange={e => setEditColor(e.target.value)} className="h-8 w-12 rounded-lg cursor-pointer p-0.5" style={{ border: '0.5px solid var(--border)' }} />
-                            <span className="text-[11px] font-mono" style={{ color: 'var(--text-tertiary)' }}>{editColor}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                        <div>
-                          {smallLabel('Pause auto')}
-                          <button
-                            onClick={() => setEditAutoBreak(v => !v)}
-                            className="h-8 px-3 rounded-lg text-[12px] font-medium transition-colors duration-150"
-                            style={{
-                              border: `0.5px solid ${editAutoBreak ? 'var(--success)' : 'var(--border)'}`,
-                              backgroundColor: editAutoBreak ? '#DCFCE7' : 'transparent',
-                              color: editAutoBreak ? 'var(--success)' : 'var(--text-secondary)',
-                            }}
-                          >
-                            {editAutoBreak ? 'Oui' : 'Non'}
-                          </button>
-                        </div>
-                        {editAutoBreak && (
-                          <div>
-                            {smallLabel('Durée')}
-                            <Select value={editBreak} onValueChange={setEditBreak}>
-                              <SelectTrigger className="dp-input h-8 text-[13px] w-28"><SelectValue /></SelectTrigger>
-                              <SelectContent>{BREAK_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                        <div>
-                          {smallLabel('Coût/h (€)')}
-                          <Input type="number" min="0" step="0.01" value={editCost} onChange={e => setEditCost(e.target.value)} placeholder="0.00" className="dp-input h-8 text-[13px]" />
-                        </div>
-                        <div>
-                          {smallLabel('Max h/jour')}
-                          <Input type="number" min="0" step="0.5" value={editMaxDay} onChange={e => setEditMaxDay(e.target.value)} placeholder="0" className="dp-input h-8 text-[13px]" />
-                        </div>
-                        <div>
-                          {smallLabel('Max h/sem')}
-                          <Input type="number" min="0" step="0.5" value={editMaxWeek} onChange={e => setEditMaxWeek(e.target.value)} placeholder="0" className="dp-input h-8 text-[13px]" />
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="btn-primary flex items-center gap-1.5 text-[12px] py-1.5 px-3" onClick={() => handleSaveEdit(poste.id)} disabled={editLoading}>
-                          <Check className="h-3.5 w-3.5" />{editLoading ? 'Enregistrement…' : 'Enregistrer'}
-                        </button>
-                        <button className="btn-secondary flex items-center gap-1.5 text-[12px] py-1.5 px-3" onClick={cancelEdit} disabled={editLoading}>
-                          <X className="h-3.5 w-3.5" />Annuler
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  <tr key={poste.id} className="transition-colors duration-150" style={{ borderBottom: '0.5px solid var(--border)' }}>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: poste.color }} />
-                        <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{poste.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-                        {poste.break_minutes > 0 && <Clock className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />}
-                        <span>{breakLabel(poste.break_minutes)}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
-                        {poste.hourly_cost > 0 && <Euro className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />}
-                        <span>{numLabel(poste.hourly_cost, '€')}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3" style={{ color: 'var(--text-secondary)' }}>{numLabel(poste.max_hours_per_day, 'h')}</td>
-                    <td className="px-5 py-3" style={{ color: 'var(--text-secondary)' }}>{numLabel(poste.max_hours_per_week, 'h')}</td>
-                    <td className="px-5 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors duration-150"
-                          style={{ color: 'var(--text-tertiary)' }}
-                          onClick={() => startEdit(poste)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          className="h-8 w-8 rounded-lg flex items-center justify-center transition-colors duration-150"
-                          style={{ color: 'var(--danger)' }}
-                          onClick={() => { setDeleteId(poste.id); setDeleteError(null) }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* ── Permissions matrix ───────────────────────────────────────────── */}
-      <div className="overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', border: '0.5px solid var(--border)', borderRadius: '12px' }}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '0.5px solid var(--border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
-              <ShieldCheck className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-            </div>
-            <div>
-              <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>Permissions par rôle</p>
-              <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>Définissez les accès de chaque rôle dans l&apos;application</p>
-            </div>
-          </div>
-          <button
-            className="btn-secondary flex items-center gap-1.5 text-[12px]"
-            onClick={() => { setShowAddRole(true); setNewRoleName('') }}
-            disabled={showAddRole}
-          >
-            <UserPlus className="h-3.5 w-3.5" />
-            Nouveau rôle
+          <button onClick={() => { resetAdd(); setShowAddForm(true) }} disabled={showAddForm} className="btn-secondary" style={{ fontSize: 12, flexShrink: 0 }}>
+            <Plus className="ic14" />Ajouter
           </button>
         </div>
 
-        {/* Add custom role input */}
+        <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {showAddForm && posteForm('add')}
+          {loading ? (
+            <div style={{ padding: 32, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>Chargement…</div>
+          ) : postes.length === 0 && !showAddForm ? (
+            <div style={{ padding: 32, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>Aucun poste. Cliquez sur « Ajouter » pour commencer.</div>
+          ) : (
+            postes.map((poste, i) => (
+              editingId === poste.id ? (
+                <div key={poste.id}>{posteForm('edit')}</div>
+              ) : (
+                <div key={poste.id} className="nx-poste" style={{ ['--poste-c' as string]: poste.color, animationDelay: `${i * 0.04}s` }}>
+                  <div className="nx-poste-ico" style={{ background: `${poste.color}1A`, color: poste.color, fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16 }}>
+                    {poste.name.trim().slice(0, 1).toUpperCase()}
+                  </div>
+                  <div style={{ minWidth: 130, flex: 1 }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-.01em' }}>{poste.name}</p>
+                  </div>
+                  <div className="nx-poste-metrics">
+                    {[
+                      { label: 'Pause', value: breakLabel(poste.break_minutes) },
+                      { label: 'Coût/h', value: numLabel(poste.hourly_cost, '€') },
+                      { label: 'Max/j', value: numLabel(poste.max_hours_per_day, 'h') },
+                      { label: 'Max/sem', value: numLabel(poste.max_hours_per_week, 'h') },
+                    ].map(m => (
+                      <div key={m.label} style={{ textAlign: 'left' }}>
+                        <p style={{ fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-tertiary)' }}>{m.label}</p>
+                        <p style={{ fontSize: 13, fontWeight: 600, marginTop: 3, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{m.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="nx-poste-act">
+                    <button className="nx-iconbtn" style={{ color: 'var(--text-secondary)' }} onClick={() => startEdit(poste)} aria-label="Modifier"><Pencil className="ic14" /></button>
+                    <button className="nx-iconbtn" style={{ color: 'var(--danger)' }} onClick={() => { setDeleteId(poste.id); setDeleteError(null) }} aria-label="Supprimer"><Trash2 className="ic14" /></button>
+                  </div>
+                </div>
+              )
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* ── Permissions matrix ───────────────────────────────────────────── */}
+      <div className="nx-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '16px 20px', borderBottom: '0.5px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="nx-ico" style={{ background: 'var(--accent-light)' }}><ShieldCheck className="ic16" style={{ color: 'var(--accent)' }} /></div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Permissions par rôle</p>
+              <p style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Définissez les accès de chaque rôle dans l&apos;application</p>
+            </div>
+          </div>
+          <button className="btn-secondary" style={{ fontSize: 12, flexShrink: 0 }} onClick={() => { setShowAddRole(true); setNewRoleName('') }} disabled={showAddRole}>
+            <UserPlus className="ic14" />Nouveau rôle
+          </button>
+        </div>
+
         {showAddRole && (
-          <div className="px-5 py-3 flex items-center gap-2" style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
-            <Input
-              autoFocus
-              placeholder="Nom du rôle (ex: Chef de rang)"
-              value={newRoleName}
-              onChange={e => setNewRoleName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') addCustomRole(); if (e.key === 'Escape') setShowAddRole(false) }}
-              className="dp-input h-7 text-[13px] max-w-xs"
-            />
-            <button className="btn-primary text-[12px] py-1 px-3" onClick={addCustomRole} disabled={!newRoleName.trim()}>
-              Créer
-            </button>
-            <button className="btn-secondary text-[12px] py-1 px-3" onClick={() => setShowAddRole(false)}>
-              Annuler
-            </button>
+          <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '0.5px solid var(--border)', background: 'var(--bg-page)' }}>
+            <Input autoFocus placeholder="Nom du rôle (ex : Chef de rang)" value={newRoleName} onChange={e => setNewRoleName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addCustomRole(); if (e.key === 'Escape') setShowAddRole(false) }} className="nx-input" style={{ maxWidth: 280, height: 32 }} />
+            <button className="btn-primary" style={{ fontSize: 12, padding: '5px 12px' }} onClick={addCustomRole} disabled={!newRoleName.trim()}>Créer</button>
+            <button className="btn-secondary" style={{ fontSize: 12, padding: '5px 12px' }} onClick={() => setShowAddRole(false)}>Annuler</button>
           </div>
         )}
 
-        {/* Scrollable matrix */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-[13px]">
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
-                <th className="text-left px-5 py-3 text-[11px] font-medium uppercase tracking-[0.06em] min-w-[220px]" style={{ color: 'var(--text-tertiary)' }}>
-                  Permission
-                </th>
-                {allRoles.map(role => (
-                  <th key={role} className="text-center px-4 py-3 text-[11px] font-medium uppercase tracking-[0.06em] min-w-[100px]" style={{ color: 'var(--text-tertiary)' }}>
-                    <div className="flex flex-col items-center gap-1">
-                      <span style={{ color: role === 'manager' ? 'var(--success)' : 'var(--accent)' }}>
-                        {ROLE_LABELS[role] ?? role}
-                      </span>
-                      {customRoles.includes(role) && (
-                        <button
-                          onClick={() => removeCustomRole(role)}
-                          style={{ color: 'var(--text-tertiary)' }}
-                          title="Supprimer ce rôle"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                      {role === 'manager' && (
-                        <span className="text-[9px] font-normal normal-case tracking-normal" style={{ color: 'var(--success)' }}>Accès total</span>
-                      )}
-                    </div>
-                  </th>
-                ))}
+              <tr style={{ background: 'var(--bg-page)', borderBottom: '0.5px solid var(--border)' }}>
+                <th style={{ textAlign: 'left', padding: '14px 20px', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-tertiary)', minWidth: 220 }}>Permission</th>
+                {allRoles.map(role => {
+                  const Icon = roleIcon(role)
+                  const isManager = role === 'manager'
+                  return (
+                    <th key={role} style={{ padding: '12px 16px', minWidth: 112 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                        <span className="nx-rolechip" style={{ background: isManager ? 'rgba(0,169,143,.14)' : 'var(--accent-light)', color: isManager ? '#0f9e82' : 'var(--accent)' }}><Icon className="ic14" /></span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {ROLE_LABELS[role] ?? role.replace(/_/g, ' ')}
+                          {customRoles.includes(role) && (
+                            <button onClick={() => removeCustomRole(role)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, display: 'inline-flex' }} title="Supprimer ce rôle"><X className="ic12" /></button>
+                          )}
+                        </span>
+                        <span style={{ fontSize: 10, fontVariantNumeric: 'tabular-nums', color: 'var(--text-tertiary)' }}>{isManager ? ALL_PERM_KEYS.length : roleCount(role)}/{ALL_PERM_KEYS.length} droits</span>
+                      </div>
+                    </th>
+                  )
+                })}
               </tr>
             </thead>
             <tbody>
-              {PERMISSION_CATEGORIES.map(category => {
-                const isCollapsed = collapsedCategories.has(category.id)
+              {PERMISSION_CATEGORIES.map((category, ci) => {
+                const open = openCategories.has(category.id)
                 return [
-                  <tr
-                    key={`cat-${category.id}`}
-                    className="cursor-pointer transition-colors duration-150"
-                    style={{ borderTop: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}
-                    onClick={() => toggleCategory(category.id)}
-                  >
-                    <td colSpan={allRoles.length + 1} className="px-5 py-2">
-                      <div className="flex items-center gap-2">
-                        {isCollapsed
-                          ? <ChevronRight className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
-                          : <ChevronDown className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
-                        }
-                        <span className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-secondary)' }}>
-                          {category.label}
-                        </span>
-                        <span className="text-[10px] font-normal normal-case tracking-normal" style={{ color: 'var(--text-tertiary)' }}>
-                          {category.permissions.length} permission{category.permissions.length > 1 ? 's' : ''}
-                        </span>
+                  <tr key={`cat-${category.id}`} className="nx-catrow" onClick={() => toggleCategory(category.id)} style={{ animationDelay: `${ci * 0.03}s` }}>
+                    <td colSpan={allRoles.length + 1} style={{ padding: '10px 20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                        <ChevronRight className={`ic14 nx-catchev ${open ? 'open' : ''}`} style={{ color: 'var(--accent)' }} />
+                        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-primary)' }}>{category.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 500, padding: '2px 8px', borderRadius: 999, background: 'var(--bg-card)', border: '0.5px solid var(--border)', color: 'var(--text-tertiary)' }}>{category.permissions.length}</span>
                       </div>
                     </td>
                   </tr>,
-                  ...(!isCollapsed ? category.permissions.map(perm => (
-                    <tr key={perm.key} className="transition-colors duration-150" style={{ borderTop: '0.5px solid var(--border)' }}>
-                      <td className="px-5 py-2.5 pl-10">
-                        <span style={{ color: 'var(--text-secondary)' }}>{perm.label}</span>
-                      </td>
-                      {allRoles.map(role => (
-                        <td key={role} className="px-4 py-2.5 text-center">
-                          <PermToggle
-                            checked={permMatrix[role]?.[perm.key] ?? false}
-                            onChange={() => togglePerm(role, perm.key)}
-                            disabled={role === 'manager'}
-                          />
-                        </td>
-                      ))}
+                  ...(open ? category.permissions.map((perm, ri) => (
+                    <tr key={perm.key} className="nx-permrow" style={{ borderTop: '0.5px solid var(--border)', animationDelay: `${ri * 0.02}s` }}>
+                      <td style={{ padding: '11px 20px 11px 43px', color: 'var(--text-secondary)' }}>{perm.label}</td>
+                      {allRoles.map(role => {
+                        const isManager = role === 'manager'
+                        const checked = isManager || (permMatrix[role]?.[perm.key] ?? false)
+                        const cls = isManager ? 'nx-perm locked' : checked ? 'nx-perm on' : 'nx-perm off'
+                        return (
+                          <td key={role} style={{ padding: '9px 16px', textAlign: 'center' }}>
+                            <button className={cls} onClick={isManager ? undefined : () => togglePerm(role, perm.key)} disabled={isManager} aria-label={perm.label}>
+                              {checked ? <Check className="ic14" /> : <X className="ic14" />}
+                            </button>
+                          </td>
+                        )
+                      })}
                     </tr>
                   )) : []),
                 ]
@@ -752,20 +607,16 @@ export default function PostesPage() {
           </table>
         </div>
 
-        {/* Footer note + save */}
-        <div className="px-5 py-4 flex items-center justify-between gap-4" style={{ borderTop: '0.5px solid var(--border)', backgroundColor: 'var(--bg-page)' }}>
-          <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-            <span style={{ color: 'var(--success)' }}>✓ Manager</span> — accès total non modifiable.
-            Les rôles personnalisés s&apos;assignent depuis le profil employé.
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 20px', borderTop: '0.5px solid var(--border)', background: 'var(--bg-page)' }}>
+          <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-tertiary)' }}>
+            <Crown className="ic12" style={{ color: '#0f9e82' }} />Manager — accès total non modifiable.
           </p>
-          <button onClick={savePerms} disabled={permsSaving} className="btn-primary flex items-center gap-1.5 shrink-0">
-            {permsSaving
-              ? <><span className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Enregistrement…</>
-              : permsSaved
-              ? <><Check className="h-3.5 w-3.5" />Enregistré</>
-              : 'Enregistrer les permissions'
-            }
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+            {permsSaved && <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--success)' }}><CheckCircle2 className="ic14" />Enregistré</span>}
+            <button onClick={savePerms} disabled={permsSaving} className="btn-primary">
+              <Save className="ic14" />{permsSaving ? 'Enregistrement…' : 'Enregistrer'}
+            </button>
+          </div>
         </div>
       </div>
 
