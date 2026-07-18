@@ -41,6 +41,8 @@ export default function RgpdPage() {
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
   const [auditLoading, setAuditLoading] = useState(true)
   const [deleteStep, setDeleteStep] = useState<'idle' | 'confirm' | 'requested'>('idle')
+  const [submitting, setSubmitting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/rgpd/audit-log')
@@ -48,6 +50,14 @@ export default function RgpdPage() {
       .then((data: AuditEntry[]) => setAuditLog(data))
       .catch(() => setAuditLog([]))
       .finally(() => setAuditLoading(false))
+  }, [])
+
+  // Reflète une demande de suppression déjà enregistrée côté serveur.
+  useEffect(() => {
+    fetch('/api/rgpd/deletion-request')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.request) setDeleteStep('requested') })
+      .catch(() => {})
   }, [])
 
   async function handleExport() {
@@ -70,13 +80,19 @@ export default function RgpdPage() {
     setExporting(false)
   }
 
-  // Faute d'endpoint de suppression côté serveur, la demande part réellement par
-  // email au DPO (client mail de l'utilisateur) — pas de faux enregistrement.
-  function confirmDeletion() {
-    const subject = encodeURIComponent('Demande de suppression de mon établissement (Art. 17 RGPD)')
-    const body = encodeURIComponent("Bonjour,\n\nJe demande la suppression définitive de toutes les données de mon établissement conformément à l'article 17 du RGPD.\n\nMerci de me confirmer la prise en compte de cette demande.")
-    window.location.href = `mailto:${DPO_EMAIL}?subject=${subject}&body=${body}`
-    setDeleteStep('requested')
+  // Enregistre la demande côté serveur (table deletion_requests) et alerte l'ops.
+  async function confirmDeletion() {
+    setSubmitting(true)
+    setDeleteError(null)
+    try {
+      const res = await fetch('/api/rgpd/deletion-request', { method: 'POST' })
+      if (!res.ok) throw new Error()
+      setDeleteStep('requested')
+    } catch {
+      setDeleteError("La demande n'a pas pu être enregistrée. Réessayez ou contactez le DPO.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -140,17 +156,18 @@ export default function RgpdPage() {
           {deleteStep === 'confirm' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Confirmez-vous la suppression définitive de toutes vos données ?</p>
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Votre demande sera transmise par email au DPO et traitée sous 30 jours.</p>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Votre demande sera enregistrée et traitée sous 30 jours. Vous recevrez une confirmation par email.</p>
+              {deleteError && <p style={{ fontSize: 12, color: 'var(--danger)' }}>{deleteError}</p>}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={confirmDeletion} style={{ padding: '9px 16px', borderRadius: 9, fontSize: 13, fontWeight: 600, color: '#fff', background: '#DC2626', border: 'none', cursor: 'pointer' }}>Oui, confirmer</button>
-                <button onClick={() => setDeleteStep('idle')} style={{ padding: '9px 16px', borderRadius: 9, fontSize: 13, border: '0.5px solid var(--border)', color: 'var(--text-secondary)', background: 'transparent', cursor: 'pointer' }}>Annuler</button>
+                <button onClick={confirmDeletion} disabled={submitting} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 9, fontSize: 13, fontWeight: 600, color: '#fff', background: '#DC2626', border: 'none', cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}>{submitting && <Loader2 className="ic14 nx-spin" />}Oui, confirmer</button>
+                <button onClick={() => { setDeleteStep('idle'); setDeleteError(null) }} disabled={submitting} style={{ padding: '9px 16px', borderRadius: 9, fontSize: 13, border: '0.5px solid var(--border)', color: 'var(--text-secondary)', background: 'transparent', cursor: 'pointer' }}>Annuler</button>
               </div>
             </div>
           )}
           {deleteStep === 'requested' && (
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', borderRadius: 10, padding: '12px 14px', fontSize: 13, background: 'rgba(16,185,129,.1)', border: '0.5px solid rgba(16,185,129,.3)' }}>
               <CheckCircle2 className="ic16" style={{ flexShrink: 0, color: 'var(--emerald)' }} />
-              <div><p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Demande initiée</p><p style={{ fontSize: 12, marginTop: 2, color: 'var(--text-secondary)' }}>Un email prérempli à <a href={`mailto:${DPO_EMAIL}`}>{DPO_EMAIL}</a> a été ouvert · traitement sous 30 jours.</p></div>
+              <div><p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Demande enregistrée</p><p style={{ fontSize: 12, marginTop: 2, color: 'var(--text-secondary)' }}>Elle a été transmise à notre équipe · traitement sous 30 jours. Une question ? <a href={`mailto:${DPO_EMAIL}`}>{DPO_EMAIL}</a></p></div>
             </div>
           )}
           <p style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Droit à l’effacement — Art. 17 RGPD · Contact DPO : <a href={`mailto:${DPO_EMAIL}`} style={{ color: 'var(--accent)' }}>{DPO_EMAIL}</a></p>
