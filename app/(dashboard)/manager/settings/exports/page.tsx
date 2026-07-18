@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 
 type Period = 'week' | 'month' | 'custom'
+type Summary = { plannedHours: number; overtimeHours: number; lateCount: number; absenceCount: number }
 
 const REPORTS = [
   { id: 'hours_per_employee', label: 'Heures travaillées', color: '#6C63FF', icon: Clock,        description: 'Total des heures pointées sur la période, par employé.' },
@@ -52,6 +53,7 @@ export default function ExportsPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
   const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [summary, setSummary] = useState<Summary | null>(null)
 
   useEffect(() => { const { from, to } = getCurrentWeek(); setCustomFrom(from); setCustomTo(to) }, [])
 
@@ -59,6 +61,18 @@ export default function ExportsPage() {
     if (period === 'week') { const { from, to } = getCurrentWeek(); setCustomFrom(from); setCustomTo(to) }
     else if (period === 'month') { const { from, to } = getCurrentMonth(); setCustomFrom(from); setCustomTo(to) }
   }, [period])
+
+  // Synthèse de la période (KPIs du hero).
+  useEffect(() => {
+    if (!customFrom || !customTo) return
+    setSummary(null)
+    const ctrl = new AbortController()
+    fetch(`/api/exports/summary?${new URLSearchParams({ from: customFrom, to: customTo })}`, { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: Summary | null) => { if (d) setSummary(d) })
+      .catch(() => {})
+    return () => ctrl.abort()
+  }, [customFrom, customTo])
 
   async function runExport(busyKey: string, params: Record<string, string>, label: string, fmt: string, fallbackName: string) {
     setBusyKey(busyKey)
@@ -127,6 +141,27 @@ export default function ExportsPage() {
             <input className="nx-input" type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={{ height: 34, width: 160, background: 'rgba(255,255,255,.14)', borderColor: 'rgba(255,255,255,.24)', color: '#fff' }} />
           </div>
         )}
+
+        <div className="nx-expkgrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginTop: 18 }}>
+          {[
+            { icon: Clock, label: 'Heures planifiées', value: summary?.plannedHours, unit: 'h' },
+            { icon: AlertTriangle, label: 'Heures sup.', value: summary?.overtimeHours, unit: 'h' },
+            { icon: Timer, label: 'Retards', value: summary?.lateCount, unit: '' },
+            { icon: CalendarOff, label: 'Absences', value: summary?.absenceCount, unit: '' },
+          ].map(k => {
+            const Icon = k.icon
+            return (
+              <div key={k.label} className="nx-exp-kpi">
+                <Icon className="ic14" style={{ opacity: .8 }} />
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginTop: 8 }}>
+                  <span style={{ fontSize: 22, fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{summary ? k.value : '—'}</span>
+                  {k.unit && <span style={{ fontSize: 12, opacity: .8 }}>{k.unit}</span>}
+                </div>
+                <p style={{ fontSize: 10.5, opacity: .82, marginTop: 5 }}>{k.label}</p>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {exportError && (
