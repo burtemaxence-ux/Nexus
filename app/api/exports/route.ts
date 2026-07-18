@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { leaveTypeLabel } from '@/lib/leaves'
+import { renderReportPdf } from '@/lib/exports/pdf'
 
 // Vercel Pro : 30s max. Vercel Hobby : 10s (exports larges peuvent dépasser).
 export const maxDuration = 30
@@ -27,6 +28,27 @@ function csvResponse(csv: string, filename: string) {
       'Content-Disposition': `attachment; filename="${filename}"`,
     },
   })
+}
+
+// Renvoie le récapitulatif en CSV (défaut) ou en PDF selon le format demandé.
+async function deliver(
+  format: string,
+  headers: string[],
+  rows: (string | number | boolean | null)[][],
+  title: string,
+  subtitle: string,
+  baseName: string,
+) {
+  if (format === 'pdf') {
+    const buf = await renderReportPdf(title, subtitle, headers, rows)
+    return new NextResponse(buf as unknown as BodyInit, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${baseName}.pdf"`,
+      },
+    })
+  }
+  return csvResponse(toCsv(headers, rows), `${baseName}.csv`)
 }
 
 // ── Calculation helpers ───────────────────────────────────────────────────────
@@ -76,6 +98,9 @@ export async function GET(request: NextRequest) {
   if (!from || !to) return NextResponse.json({ error: 'Paramètres from/to requis' }, { status: 400 })
 
   const slug = `${from}_${to}`
+  // Format de sortie des récapitulatifs : 'csv' (défaut) ou 'pdf'.
+  const outFormat = searchParams.get('format') === 'pdf' ? 'pdf' : 'csv'
+  const periodSub = `Période : ${new Date(from).toLocaleDateString('fr-FR')} → ${new Date(to).toLocaleDateString('fr-FR')}`
 
   // ── heures travaillées par employé ──────────────────────────────────────────
   if (type === 'hours_per_employee' || type === 'overtime') {
@@ -111,7 +136,7 @@ export async function GET(request: NextRequest) {
           refH > 0 ? fh(planned - refH) : '',
         ]
       })
-      return csvResponse(toCsv(headers, rows), `heures_employes_${slug}.csv`)
+      return await deliver(outFormat, headers, rows, 'Heures travaillées par employé', periodSub, `heures_employes_${slug}`)
     }
 
     // overtime
@@ -133,7 +158,7 @@ export async function GET(request: NextRequest) {
           diff > 0.1 ? 'Surplus' : diff < -0.1 ? 'Déficit' : 'Équilibré',
         ]
       })
-    return csvResponse(toCsv(headers, rows), `heures_supplementaires_${slug}.csv`)
+    return await deliver(outFormat, headers, rows, 'Heures supplémentaires', periodSub, `heures_supplementaires_${slug}`)
   }
 
   // ── retards ─────────────────────────────────────────────────────────────────
@@ -160,7 +185,7 @@ export async function GET(request: NextRequest) {
         r.notes ?? '',
       ]
     })
-    return csvResponse(toCsv(headers, rows), `retards_${slug}.csv`)
+    return await deliver(outFormat, headers, rows, 'Retards', periodSub, `retards_${slug}`)
   }
 
   // ── absences (congés approuvés) ──────────────────────────────────────────────
@@ -185,7 +210,7 @@ export async function GET(request: NextRequest) {
         statusLabel[r.status] ?? r.status,
       ]
     })
-    return csvResponse(toCsv(headers, rows), `absences_${slug}.csv`)
+    return await deliver(outFormat, headers, rows, 'Absences', periodSub, `absences_${slug}`)
   }
 
   // ── variables de paie ────────────────────────────────────────────────────────

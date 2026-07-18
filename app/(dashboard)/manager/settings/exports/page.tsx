@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import {
-  Loader2, Download, Clock, AlertTriangle, Timer, CalendarOff, FileText,
+  Loader2, Download, Clock, AlertTriangle, Timer, CalendarOff, FileText, File,
   History, FileDown, Info, ArrowUpRight, FileSpreadsheet, Building,
 } from 'lucide-react'
 
@@ -187,8 +187,11 @@ export default function ExportsPage() {
                   <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{rep.label}</p>
                   <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>{rep.description}</p>
                   <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                    <button className="nx-fmtbtn" onClick={() => runExport(rep.id, { type: rep.id, from: customFrom, to: customTo }, rep.label, 'CSV', `export_${rep.id}.csv`)} disabled={busy}>
-                      {busy ? <Loader2 className="ic12 nx-spin" /> : <FileText className="ic12" />}CSV
+                    <button className="nx-fmtbtn" onClick={() => runExport(rep.id, { type: rep.id, from: customFrom, to: customTo }, rep.label, 'CSV', `export_${rep.id}.csv`)} disabled={!!busyKey}>
+                      {busy && busyKey === rep.id ? <Loader2 className="ic12 nx-spin" /> : <FileText className="ic12" />}CSV
+                    </button>
+                    <button className="nx-fmtbtn" onClick={() => runExport(`${rep.id}-pdf`, { type: rep.id, format: 'pdf', from: customFrom, to: customTo }, rep.label, 'PDF', `export_${rep.id}.pdf`)} disabled={!!busyKey}>
+                      {busyKey === `${rep.id}-pdf` ? <Loader2 className="ic12 nx-spin" /> : <File className="ic12" />}PDF
                     </button>
                   </div>
                 </div>
