@@ -1,58 +1,36 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Check, Download, Clock, AlertTriangle, CalendarOff } from 'lucide-react'
+import {
+  Loader2, Download, Clock, AlertTriangle, Timer, CalendarOff, FileText,
+  History, FileDown, Info, ArrowUpRight, FileSpreadsheet, Building,
+} from 'lucide-react'
 
 type Period = 'week' | 'month' | 'custom'
 
-type ExportReport = {
-  id: string
-  label: string
-  description: string
-  icon: React.ReactNode
-}
+const REPORTS = [
+  { id: 'hours_per_employee', label: 'Heures travaillées', color: '#6C63FF', icon: Clock,        description: 'Total des heures pointées sur la période, par employé.' },
+  { id: 'overtime',           label: 'Heures supplémentaires', color: '#f08c00', icon: AlertTriangle, description: 'Récapitulatif des heures au-delà du contrat, par employé.' },
+  { id: 'late',               label: 'Retards',          color: '#fa5252', icon: Timer,       description: 'Liste des arrivées tardives avec durée de retard.' },
+  { id: 'absences',           label: 'Absences',         color: '#12b886', icon: CalendarOff, description: 'Absences justifiées et non justifiées sur la période.' },
+] as const
 
-const REPORTS: ExportReport[] = [
-  {
-    id: 'hours_per_employee',
-    label: 'Heures travaillées par employé',
-    description: 'Total des heures pointées sur la période, par employé.',
-    icon: <Clock className="h-4 w-4" style={{ color: 'var(--accent)' }} />,
-  },
-  {
-    id: 'overtime',
-    label: 'Heures supplémentaires',
-    description: 'Récapitulatif des heures au-delà du contrat, par employé.',
-    icon: <AlertTriangle className="h-4 w-4" style={{ color: 'var(--warning)' }} />,
-  },
-  {
-    id: 'late',
-    label: 'Retards',
-    description: 'Liste des arrivées tardives avec durée de retard.',
-    icon: <Clock className="h-4 w-4" style={{ color: 'var(--danger)' }} />,
-  },
-  {
-    id: 'absences',
-    label: 'Absences',
-    description: 'Absences justifiées et non justifiées sur la période.',
-    icon: <CalendarOff className="h-4 w-4" style={{ color: 'var(--accent)' }} />,
-  },
-]
+const PAYROLL_SOFTWARE = [
+  { format: 'payfit',    name: 'PayFit',    emoji: '💜', tag: 'Variables de paie' },
+  { format: 'adp',       name: 'ADP',       emoji: '🔵', tag: 'Variables de paie' },
+  { format: 'silae',     name: 'Silae',     emoji: '🟢', tag: 'Variables de paie' },
+  { format: 'generique', name: 'Générique', emoji: '📄', tag: 'CSV standard' },
+] as const
+
+type HistoryEntry = { key: string; label: string; dt: string; size: string; fmt: string }
 
 function getCurrentWeek() {
   const now = new Date()
   const day = now.getDay()
   const diffToMon = (day === 0 ? -6 : 1 - day)
-  const mon = new Date(now)
-  mon.setDate(now.getDate() + diffToMon)
-  const sun = new Date(mon)
-  sun.setDate(mon.getDate() + 6)
-  return {
-    from: mon.toISOString().slice(0, 10),
-    to:   sun.toISOString().slice(0, 10),
-  }
+  const mon = new Date(now); mon.setDate(now.getDate() + diffToMon)
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
+  return { from: mon.toISOString().slice(0, 10), to: sun.toISOString().slice(0, 10) }
 }
 
 function getCurrentMonth() {
@@ -62,183 +40,173 @@ function getCurrentMonth() {
   return { from, to }
 }
 
+function humanSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} o`
+  return `${(bytes / 1024).toFixed(1)} Ko`
+}
+
 export default function ExportsPage() {
   const [period, setPeriod] = useState<Period>('week')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
-  const [exportingId, setExportingId] = useState<string | null>(null)
-  const [exportedId, setExportedId] = useState<string | null>(null)
+  const [busyKey, setBusyKey] = useState<string | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [history, setHistory] = useState<HistoryEntry[]>([])
+
+  useEffect(() => { const { from, to } = getCurrentWeek(); setCustomFrom(from); setCustomTo(to) }, [])
 
   useEffect(() => {
-    const { from, to } = getCurrentWeek()
-    setCustomFrom(from)
-    setCustomTo(to)
-  }, [])
-
-  useEffect(() => {
-    if (period === 'week') {
-      const { from, to } = getCurrentWeek()
-      setCustomFrom(from); setCustomTo(to)
-    } else if (period === 'month') {
-      const { from, to } = getCurrentMonth()
-      setCustomFrom(from); setCustomTo(to)
-    }
+    if (period === 'week') { const { from, to } = getCurrentWeek(); setCustomFrom(from); setCustomTo(to) }
+    else if (period === 'month') { const { from, to } = getCurrentMonth(); setCustomFrom(from); setCustomTo(to) }
   }, [period])
 
-  async function handleExport(reportId: string) {
-    setExportingId(reportId)
+  async function runExport(busyKey: string, params: Record<string, string>, label: string, fmt: string, fallbackName: string) {
+    setBusyKey(busyKey)
     setExportError(null)
     try {
-      const params = new URLSearchParams({ type: reportId, from: customFrom, to: customTo })
-      const res = await fetch(`/api/exports?${params}`)
+      const res = await fetch(`/api/exports?${new URLSearchParams(params)}`)
       if (!res.ok) throw new Error('Export échoué')
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       const disposition = res.headers.get('content-disposition') ?? ''
       const match = disposition.match(/filename="?([^"]+)"?/)
-      a.download = match ? match[1] : `export_${reportId}.csv`
+      a.download = match ? match[1] : fallbackName
       a.href = url
       a.click()
       URL.revokeObjectURL(url)
-      setExportedId(reportId)
-      setTimeout(() => setExportedId(null), 3000)
+      setHistory(prev => [{
+        key: `${busyKey}-${Date.now()}`,
+        label,
+        dt: new Date().toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
+        size: humanSize(blob.size),
+        fmt,
+      }, ...prev].slice(0, 8))
     } catch {
       setExportError("Une erreur est survenue lors de l'export.")
     } finally {
-      setExportingId(null)
+      setBusyKey(null)
     }
   }
 
   function periodLabel() {
+    if (!customFrom || !customTo) return 'Période personnalisée'
     if (period === 'week') return `Semaine du ${new Date(customFrom).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} au ${new Date(customTo).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
     if (period === 'month') return new Date(customFrom).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
-    if (!customFrom || !customTo) return 'Période personnalisée'
     return `${new Date(customFrom).toLocaleDateString('fr-FR')} → ${new Date(customTo).toLocaleDateString('fr-FR')}`
   }
 
+  async function exportAll() {
+    for (const r of REPORTS) {
+      await runExport(`all-${r.id}`, { type: r.id, from: customFrom, to: customTo }, r.label, 'CSV', `export_${r.id}.csv`)
+    }
+  }
+
   return (
-    <div className="max-w-2xl mx-auto px-4 md:px-8 py-10 space-y-6">
-      <div>
-        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>Exports & paie</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Exportez vos récapitulatifs au format CSV.
-        </p>
+    <div className="nx-planpage" style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* Hero + période */}
+      <div className="nx-exp-hero">
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 500, opacity: .85 }}>Exports de la période</p>
+            <p style={{ fontSize: 17, fontWeight: 700, fontFamily: "'Syne',sans-serif", letterSpacing: '-.01em', marginTop: 2 }}>{periodLabel()}</p>
+          </div>
+          <div className="nx-seg-wrap" style={{ width: 'fit-content', background: 'rgba(255,255,255,.14)', borderColor: 'rgba(255,255,255,.2)' }}>
+            {(['week', 'month', 'custom'] as Period[]).map(p => (
+              <button key={p} className={`nx-seg ${period === p ? 'on' : ''}`} onClick={() => setPeriod(p)} style={period === p ? { background: '#fff', color: 'var(--accent)' } : { color: '#fff' }}>
+                {p === 'week' ? 'Semaine' : p === 'month' ? 'Mois' : 'Perso.'}
+              </button>
+            ))}
+          </div>
+        </div>
+        {period === 'custom' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16 }}>
+            <input className="nx-input" type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={{ height: 34, width: 160, background: 'rgba(255,255,255,.14)', borderColor: 'rgba(255,255,255,.24)', color: '#fff' }} />
+            <span style={{ opacity: .7 }}>→</span>
+            <input className="nx-input" type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={{ height: 34, width: 160, background: 'rgba(255,255,255,.14)', borderColor: 'rgba(255,255,255,.24)', color: '#fff' }} />
+          </div>
+        )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
-              <Download className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-            </div>
-            <div>
-              <CardTitle className="text-base">Exporter un récapitulatif</CardTitle>
-              <CardDescription>Sélectionnez la période et lancez l&apos;export (format CSV).</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
+      {exportError && (
+        <div style={{ borderRadius: 10, padding: '10px 14px', fontSize: 12, background: 'var(--sev-critical-bg)', border: '0.5px solid var(--danger)', color: 'var(--danger)' }}>{exportError}</div>
+      )}
 
-          {/* Period selector */}
-          <div className="space-y-3">
-            <p className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-secondary)' }}>Période</p>
-            <div className="flex overflow-hidden w-fit" style={{ border: '0.5px solid var(--border)', borderRadius: '8px' }}>
-              {(['week', 'month', 'custom'] as Period[]).map((p, i) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className="px-4 py-1.5 text-[13px] font-medium transition-colors duration-150"
-                  style={{
-                    backgroundColor: period === p ? 'var(--text-primary)' : 'transparent',
-                    color: period === p ? 'var(--bg-card)' : 'var(--text-tertiary)',
-                    borderLeft: i > 0 ? '0.5px solid var(--border)' : undefined,
-                  }}
-                >
-                  {p === 'week' ? 'Semaine' : p === 'month' ? 'Mois' : 'Personnalisé'}
-                </button>
-              ))}
-            </div>
-
-            {period === 'custom' && (
-              <div className="flex items-center gap-3">
-                <div className="space-y-1">
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Du</p>
-                  <Input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} className="h-8 text-sm w-36" />
-                </div>
-                <div className="pt-5" style={{ color: 'var(--text-secondary)' }}>→</div>
-                <div className="space-y-1">
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Au</p>
-                  <Input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} className="h-8 text-sm w-36" />
-                </div>
-              </div>
-            )}
-
-            {period !== 'custom' && (
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{periodLabel()}</p>
-            )}
-          </div>
-
-          {/* Error */}
-          {exportError && (
-            <div
-              className="rounded-lg px-3 py-2 text-xs"
-              style={{ backgroundColor: '#FEE2E2', border: '0.5px solid var(--danger)', color: 'var(--danger)' }}
-            >
-              {exportError}
-            </div>
-          )}
-
-          {/* Reports */}
-          <div className="space-y-2 pt-1">
-            <p className="text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-secondary)' }}>Récapitulatifs</p>
-            <div className="rounded-xl overflow-hidden" style={{ border: '0.5px solid var(--border)' }}>
-              {REPORTS.map((report, i) => {
-                const isExporting = exportingId === report.id
-                const isDone = exportedId === report.id
-                return (
-                  <div
-                    key={report.id}
-                    className="flex items-center justify-between px-4 py-3.5"
-                    style={{
-                      borderTop: i > 0 ? '0.5px solid var(--border)' : undefined,
-                      backgroundColor: 'var(--bg-card)',
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--bg-page)' }}>
-                        {report.icon}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{report.label}</p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{report.description}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleExport(report.id)}
-                      disabled={isExporting}
-                      className="flex items-center gap-1.5 shrink-0 ml-4 min-w-[90px] justify-center h-8 px-3 rounded-lg text-[13px] font-medium transition-colors duration-150 disabled:opacity-50"
-                      style={isDone
-                        ? { backgroundColor: '#F0FDF4', border: '0.5px solid #BBF7D0', color: '#15803D' }
-                        : { backgroundColor: 'var(--accent-light)', border: '0.5px solid var(--accent)', color: 'var(--accent)' }
-                      }
-                    >
-                      {isExporting
-                        ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Export…</>
-                        : isDone
-                        ? <><Check className="h-3.5 w-3.5" />Prêt</>
-                        : <><Download className="h-3.5 w-3.5" />CSV</>
-                      }
+      {/* Récapitulatifs */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><span className="nx-step"><FileSpreadsheet className="ic12" /></span><p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Récapitulatifs à exporter</p></div>
+          <button className="nx-fmtbtn" style={{ borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--accent-light)' }} onClick={exportAll} disabled={!!busyKey}>
+            {busyKey?.startsWith('all-') ? <Loader2 className="ic14 nx-spin" /> : <Download className="ic14" />}Tout exporter
+          </button>
+        </div>
+        <div className="nx-reportgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {REPORTS.map(rep => {
+            const Icon = rep.icon
+            const busy = busyKey === rep.id
+            return (
+              <div key={rep.id} className="nx-report">
+                <div className="nx-report-ico" style={{ background: `${rep.color}1a` }}><Icon className="ic20" style={{ color: rep.color }} /></div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{rep.label}</p>
+                  <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>{rep.description}</p>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                    <button className="nx-fmtbtn" onClick={() => runExport(rep.id, { type: rep.id, from: customFrom, to: customTo }, rep.label, 'CSV', `export_${rep.id}.csv`)} disabled={busy}>
+                      {busy ? <Loader2 className="ic12 nx-spin" /> : <FileText className="ic12" />}CSV
                     </button>
                   </div>
-                )
-              })}
-            </div>
-          </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
 
-        </CardContent>
-      </Card>
+      {/* Export paie */}
+      <div className="nx-card" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <div className="nx-ico" style={{ background: 'rgba(0,169,143,.12)' }}><Building className="ic16" style={{ color: 'var(--emerald)' }} /></div>
+          <div><p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Transmettre à votre logiciel de paie</p><p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 1 }}>Variables de paie prêtes à l’import</p></div>
+        </div>
+        <div className="nx-paygrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
+          {PAYROLL_SOFTWARE.map(soft => {
+            const busy = busyKey === `paie-${soft.format}`
+            return (
+              <button key={soft.format} className="nx-payroll" onClick={() => runExport(`paie-${soft.format}`, { type: 'paie', format: soft.format, from: customFrom, to: customTo }, `Variables de paie — ${soft.name}`, soft.name, `variables_paie_${soft.format}.csv`)} disabled={!!busyKey} style={{ textAlign: 'left' }}>
+                <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{soft.emoji}</span>
+                <div style={{ flex: 1, minWidth: 0 }}><p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{soft.name}</p><p style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{soft.tag}</p></div>
+                {busy ? <Loader2 className="ic16 nx-spin" style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} /> : <ArrowUpRight className="ic16" style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />}
+              </button>
+            )
+          })}
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 14, padding: '12px 14px', borderRadius: 10, background: 'var(--accent-light)' }}>
+          <Info className="ic14" style={{ color: 'var(--accent)', marginTop: 1, flexShrink: 0 }} />
+          <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>L’export paie compile heures, heures sup., primes repas et absences de la période dans un fichier CSV de variables (codes rubriques) prêt à importer dans votre logiciel.</p>
+        </div>
+      </div>
+
+      {/* Historique (session) */}
+      <div className="nx-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px', borderBottom: '0.5px solid var(--border)' }}>
+          <div className="nx-ico" style={{ background: 'var(--accent-light)' }}><History className="ic16" style={{ color: 'var(--accent)' }} /></div>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Exports récents</p>
+        </div>
+        {history.length === 0 ? (
+          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '20px', textAlign: 'center' }}>Vos exports de cette session apparaîtront ici.</p>
+        ) : (
+          <div className="nx-divide">
+            {history.map(h => (
+              <div key={h.key} className="nx-histrow">
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: 'var(--bg-page)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><FileDown className="ic14" style={{ color: 'var(--text-tertiary)' }} /></div>
+                <div style={{ flex: 1, minWidth: 0 }}><p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.label}</p><p style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{h.dt} · {h.size}</p></div>
+                <span className="nx-badge" style={{ background: 'var(--bg-page)', color: 'var(--text-tertiary)', flexShrink: 0 }}>{h.fmt}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

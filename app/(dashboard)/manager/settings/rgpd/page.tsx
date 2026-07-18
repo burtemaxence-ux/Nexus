@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ShieldCheck, Download, Trash2, Clock, Loader2, Check, AlertTriangle, FileText, Users, Calendar, Activity } from 'lucide-react'
+import {
+  ShieldCheck, Download, Trash2, Loader2, Check, AlertTriangle, FileText, Users,
+  Calendar, Activity, History, Lock, MapPin, BadgeCheck, Plus, Pencil, CheckCircle2,
+} from 'lucide-react'
 
 type AuditEntry = {
   id: string
@@ -11,33 +14,25 @@ type AuditEntry = {
   created_at: string
 }
 
-const ACTION_LABELS: Record<string, string> = {
-  INSERT: 'Création',
-  UPDATE: 'Modification',
-  DELETE: 'Suppression',
-}
+const DPO_EMAIL = 'assistance.quartzbase@mail.fr'
 
+const ACTION_LABELS: Record<string, string> = { INSERT: 'Création', UPDATE: 'Modification', DELETE: 'Suppression' }
 const TABLE_LABELS: Record<string, string> = {
-  profiles:          'Profil employé',
-  shifts:            'Planning',
-  leave_requests:    'Demande de congé',
-  presences:         'Pointage',
-  contracts:         'Contrat',
-  lateness_records:  'Retard',
-  audit_log:         'Journal',
+  profiles: 'Profil employé', shifts: 'Planning', leave_requests: 'Demande de congé',
+  presences: 'Pointage', contracts: 'Contrat', lateness_records: 'Retard', audit_log: 'Journal',
 }
+const ACTION_COLORS: Record<string, string> = { INSERT: '#059669', UPDATE: '#D97706', DELETE: '#DC2626' }
+const ACTION_ICONS = { INSERT: Plus, UPDATE: Pencil, DELETE: Trash2 } as const
 
-const ACTION_COLORS: Record<string, string> = {
-  INSERT: '#059669',
-  UPDATE: '#D97706',
-  DELETE: '#DC2626',
-}
+const DATA_TYPES = [
+  { icon: Users,    label: 'Employés & profils' },
+  { icon: Calendar, label: 'Planning (12 mois)' },
+  { icon: FileText, label: 'Congés & absences' },
+  { icon: Activity, label: 'Présences & pointages' },
+]
 
 function formatDt(iso: string) {
-  return new Date(iso).toLocaleString('fr-FR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
+  return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 export default function RgpdPage() {
@@ -75,216 +70,125 @@ export default function RgpdPage() {
     setExporting(false)
   }
 
+  // Faute d'endpoint de suppression côté serveur, la demande part réellement par
+  // email au DPO (client mail de l'utilisateur) — pas de faux enregistrement.
+  function confirmDeletion() {
+    const subject = encodeURIComponent('Demande de suppression de mon établissement (Art. 17 RGPD)')
+    const body = encodeURIComponent("Bonjour,\n\nJe demande la suppression définitive de toutes les données de mon établissement conformément à l'article 17 du RGPD.\n\nMerci de me confirmer la prise en compte de cette demande.")
+    window.location.href = `mailto:${DPO_EMAIL}?subject=${subject}&body=${body}`
+    setDeleteStep('requested')
+  }
+
   return (
-    <div className="max-w-2xl mx-auto px-4 md:px-8 py-10 space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-[20px] font-medium tracking-[-0.02em]" style={{ color: 'var(--text-primary)' }}>
-          Données &amp; RGPD
-        </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Gérez vos données personnelles conformément au Règlement Général sur la Protection des Données.
-        </p>
+    <div className="nx-planpage" style={{ maxWidth: 672, margin: '0 auto', padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* Trust hero */}
+      <div className="nx-rgpd-hero">
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 13, background: 'rgba(0,212,170,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><ShieldCheck className="ic20" style={{ color: '#8AF5DC' }} /></div>
+          <div>
+            <p style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Syne',sans-serif", letterSpacing: '-.01em' }}>Vos données vous appartiennent</p>
+            <p style={{ fontSize: 12.5, opacity: .82, marginTop: 4, lineHeight: 1.5, maxWidth: 440 }}>Hébergées en France, chiffrées de bout en bout et conformes au RGPD. Exportez-les ou effacez-les quand vous le souhaitez — sans conditions.</p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+          {[{ icon: Lock, label: 'Chiffrement TLS' }, { icon: MapPin, label: 'Serveurs en France' }, { icon: BadgeCheck, label: 'Conforme RGPD' }].map(({ icon: Icon, label }) => (
+            <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999, fontSize: 11, fontWeight: 500, background: 'rgba(255,255,255,.1)' }}><Icon className="ic12" style={{ color: '#8AF5DC' }} />{label}</span>
+          ))}
+        </div>
       </div>
 
-      {/* Export section */}
-      <section
-        className="rounded-xl overflow-hidden"
-        style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
-      >
-        <div className="px-5 py-4" style={{ borderBottom: '0.5px solid var(--border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
-              <Download className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-            </div>
-            <div>
-              <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>Exporter vos données personnelles</p>
-              <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                Téléchargez l&apos;ensemble des données de votre établissement (employés, planning, congés, présences) au format CSV.
-              </p>
-            </div>
-          </div>
+      {/* Export */}
+      <div className="nx-card" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <div className="nx-ico" style={{ background: 'var(--accent-light)' }}><Download className="ic16" style={{ color: 'var(--accent)' }} /></div>
+          <div><p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Exporter vos données</p><p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 1 }}>Tout votre établissement, au format CSV</p></div>
         </div>
-        <div className="px-5 py-4">
-          <div className="flex flex-wrap gap-3 mb-4">
-            {[
-              { icon: Users, label: 'Employés & profils' },
-              { icon: Calendar, label: 'Planning (12 mois)' },
-              { icon: FileText, label: 'Congés & absences' },
-              { icon: Activity, label: 'Présences & pointages' },
-            ].map(({ icon: Icon, label }) => (
-              <div
-                key={label}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium"
-                style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}
-              >
-                <Icon className="h-3 w-3" />
-                {label}
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium transition-all disabled:opacity-50"
-            style={{
-              backgroundColor: exported ? '#F0FDF4' : 'var(--accent)',
-              color: exported ? '#15803D' : '#fff',
-              border: exported ? '0.5px solid #BBF7D0' : 'none',
-            }}
-          >
-            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : exported ? <Check className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
-            {exporting ? 'Export en cours…' : exported ? 'Téléchargement prêt' : 'Télécharger mes données (CSV)'}
-          </button>
-          <p className="text-[11px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
-            Droit à la portabilité — Art. 20 RGPD · Données chiffrées en transit (TLS)
-          </p>
+        <div className="nx-datagrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+          {DATA_TYPES.map(({ icon: Icon, label }) => (
+            <div key={label} className="nx-datatile">
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon className="ic16" style={{ color: 'var(--accent)' }} /></div>
+              <div style={{ minWidth: 0 }}><p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</p></div>
+            </div>
+          ))}
         </div>
-      </section>
+        <button onClick={handleExport} disabled={exporting} className="btn-primary" style={exported ? { background: 'var(--emerald)' } : undefined}>
+          {exporting ? <Loader2 className="ic14 nx-spin" /> : exported ? <Check className="ic14" /> : <Download className="ic14" />}
+          {exporting ? 'Export en cours…' : exported ? 'Téléchargement prêt' : 'Télécharger mes données (CSV)'}
+        </button>
+        <p style={{ fontSize: 11, marginTop: 10, color: 'var(--text-tertiary)' }}>Droit à la portabilité — Art. 20 RGPD · chiffré en transit (TLS)</p>
+      </div>
 
-      {/* Deletion request */}
-      <section
-        className="rounded-xl overflow-hidden"
-        style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
-      >
-        <div className="px-5 py-4" style={{ borderBottom: '0.5px solid var(--border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: '#FEF2F2' }}>
-              <Trash2 className="h-4 w-4" style={{ color: '#DC2626' }} />
-            </div>
-            <div>
-              <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>Demande de suppression</p>
-              <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                Demandez la suppression de vos données et de votre établissement de la Plateforme.
-              </p>
-            </div>
-          </div>
+      {/* Danger zone */}
+      <div className="nx-card" style={{ padding: 0, overflow: 'hidden', borderColor: 'rgba(220,38,38,.28)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px', background: 'rgba(220,38,38,.06)', borderBottom: '0.5px solid rgba(220,38,38,.2)' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(220,38,38,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Trash2 className="ic16" style={{ color: '#DC2626' }} /></div>
+          <div><p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Supprimer mon établissement</p><p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 1 }}>Action définitive · droit à l’effacement (Art. 17)</p></div>
         </div>
-        <div className="px-5 py-4 space-y-3">
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {deleteStep === 'idle' && (
             <>
-              <div
-                className="flex items-start gap-2.5 rounded-lg p-3 text-[12px]"
-                style={{ backgroundColor: '#FEF3C7', border: '0.5px solid #FDE68A', color: '#92400E' }}
-              >
-                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                <p>
-                  Cette action supprime définitivement toutes les données de votre établissement (employés, plannings, présences, documents).
-                  Un délai de traitement de 30 jours s&apos;applique.
-                </p>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', borderRadius: 10, padding: '12px 14px', fontSize: 12, background: 'rgba(240,140,0,.09)', border: '0.5px solid rgba(240,140,0,.28)' }}>
+                <AlertTriangle className="ic14" style={{ marginTop: 1, flexShrink: 0, color: 'var(--warning)' }} />
+                <p style={{ lineHeight: 1.5, color: 'var(--text-secondary)' }}>Toutes les données de votre établissement (employés, plannings, présences, documents) seront <strong style={{ color: 'var(--text-primary)' }}>définitivement supprimées</strong>. Un délai de traitement de 30 jours s’applique.</p>
               </div>
-              <button
-                onClick={() => setDeleteStep('confirm')}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium transition-colors"
-                style={{ border: '0.5px solid #FCA5A5', backgroundColor: '#FEF2F2', color: '#DC2626' }}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Demander la suppression de mon compte
+              <button onClick={() => setDeleteStep('confirm')} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, width: 'fit-content', padding: '9px 16px', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '0.5px solid #FCA5A5', background: 'rgba(220,38,38,.06)', color: '#DC2626' }}>
+                <Trash2 className="ic14" />Demander la suppression
               </button>
             </>
           )}
-
           {deleteStep === 'confirm' && (
-            <div className="space-y-3">
-              <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
-                Confirmez-vous vouloir supprimer définitivement toutes vos données ?
-              </p>
-              <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                Cette demande sera traitée sous 30 jours. Vous recevrez une confirmation à votre adresse email.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setDeleteStep('requested')}
-                  className="px-4 py-2 rounded-lg text-[13px] font-medium text-white"
-                  style={{ backgroundColor: '#DC2626' }}
-                >
-                  Oui, confirmer la demande
-                </button>
-                <button
-                  onClick={() => setDeleteStep('idle')}
-                  className="px-4 py-2 rounded-lg text-[13px]"
-                  style={{ border: '0.5px solid var(--border)', color: 'var(--text-secondary)' }}
-                >
-                  Annuler
-                </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Confirmez-vous la suppression définitive de toutes vos données ?</p>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Votre demande sera transmise par email au DPO et traitée sous 30 jours.</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={confirmDeletion} style={{ padding: '9px 16px', borderRadius: 9, fontSize: 13, fontWeight: 600, color: '#fff', background: '#DC2626', border: 'none', cursor: 'pointer' }}>Oui, confirmer</button>
+                <button onClick={() => setDeleteStep('idle')} style={{ padding: '9px 16px', borderRadius: 9, fontSize: 13, border: '0.5px solid var(--border)', color: 'var(--text-secondary)', background: 'transparent', cursor: 'pointer' }}>Annuler</button>
               </div>
             </div>
           )}
-
           {deleteStep === 'requested' && (
-            <div
-              className="flex items-center gap-2.5 rounded-lg p-3 text-[13px]"
-              style={{ backgroundColor: '#F0FDF4', border: '0.5px solid #BBF7D0', color: '#15803D' }}
-            >
-              <Check className="h-4 w-4 shrink-0" />
-              <div>
-                <p className="font-medium">Demande enregistrée</p>
-                <p className="text-[12px] mt-0.5">
-                  Votre demande a été transmise à <a href="mailto:assistance.quartzbase@mail.fr" className="underline">assistance.quartzbase@mail.fr</a>.
-                  Traitement sous 30 jours.
-                </p>
-              </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', borderRadius: 10, padding: '12px 14px', fontSize: 13, background: 'rgba(16,185,129,.1)', border: '0.5px solid rgba(16,185,129,.3)' }}>
+              <CheckCircle2 className="ic16" style={{ flexShrink: 0, color: 'var(--emerald)' }} />
+              <div><p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Demande initiée</p><p style={{ fontSize: 12, marginTop: 2, color: 'var(--text-secondary)' }}>Un email prérempli à <a href={`mailto:${DPO_EMAIL}`}>{DPO_EMAIL}</a> a été ouvert · traitement sous 30 jours.</p></div>
             </div>
           )}
-
-          <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
-            Droit à l&apos;effacement — Art. 17 RGPD · Contact DPO : <a href="mailto:assistance.quartzbase@mail.fr" style={{ color: 'var(--accent)' }}>assistance.quartzbase@mail.fr</a>
-          </p>
+          <p style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Droit à l’effacement — Art. 17 RGPD · Contact DPO : <a href={`mailto:${DPO_EMAIL}`} style={{ color: 'var(--accent)' }}>{DPO_EMAIL}</a></p>
         </div>
-      </section>
+      </div>
 
       {/* Audit log */}
-      <section
-        className="rounded-xl overflow-hidden"
-        style={{ border: '0.5px solid var(--border)', backgroundColor: 'var(--bg-card)' }}
-      >
-        <div className="px-5 py-4" style={{ borderBottom: '0.5px solid var(--border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
-              <Clock className="h-4 w-4" style={{ color: 'var(--accent)' }} />
-            </div>
-            <div>
-              <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>Journal d&apos;audit</p>
-              <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                Historique des 50 dernières actions effectuées sur votre établissement. Conservé 12 mois.
-              </p>
-            </div>
-          </div>
+      <div className="nx-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px', borderBottom: '0.5px solid var(--border)' }}>
+          <div className="nx-ico" style={{ background: 'var(--accent-light)' }}><History className="ic16" style={{ color: 'var(--accent)' }} /></div>
+          <div><p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Journal d’audit</p><p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 1 }}>50 dernières actions · conservé 12 mois</p></div>
         </div>
-
         {auditLoading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--text-tertiary)' }} />
-          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Loader2 className="ic20 nx-spin" style={{ color: 'var(--text-tertiary)' }} /></div>
         ) : auditLog.length === 0 ? (
-          <div className="px-5 py-10 text-center">
-            <ShieldCheck className="h-8 w-8 mx-auto mb-3 opacity-30" style={{ color: 'var(--text-tertiary)' }} />
-            <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>Aucune entrée dans le journal pour le moment.</p>
+          <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+            <ShieldCheck className="ic28" style={{ margin: '0 auto 12px', opacity: .3, color: 'var(--text-tertiary)' }} />
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Aucune entrée dans le journal pour le moment.</p>
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {auditLog.map(entry => (
-              <div key={entry.id} className="flex items-center gap-3 px-5 py-3">
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                  style={{
-                    backgroundColor: `${ACTION_COLORS[entry.action]}18`,
-                    color: ACTION_COLORS[entry.action],
-                  }}
-                >
-                  {ACTION_LABELS[entry.action] ?? entry.action}
-                </span>
-                <span className="text-[13px] flex-1" style={{ color: 'var(--text-primary)' }}>
-                  {TABLE_LABELS[entry.table_name] ?? entry.table_name}
-                </span>
-                <span className="text-[11px] shrink-0" style={{ color: 'var(--text-tertiary)' }}>
-                  {formatDt(entry.created_at)}
-                </span>
-              </div>
-            ))}
+          <div className="nx-divide">
+            {auditLog.map(entry => {
+              const Icon = ACTION_ICONS[entry.action] ?? Activity
+              const color = ACTION_COLORS[entry.action] ?? 'var(--text-tertiary)'
+              return (
+                <div key={entry.id} className="nx-audit">
+                  <div className="nx-audit-ico" style={{ background: `${color}18` }}><Icon className="ic14" style={{ color }} /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{TABLE_LABELS[entry.table_name] ?? entry.table_name}</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{ACTION_LABELS[entry.action] ?? entry.action}</p>
+                  </div>
+                  <span style={{ fontSize: 11, flexShrink: 0, color: 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>{formatDt(entry.created_at)}</span>
+                </div>
+              )
+            })}
           </div>
         )}
-      </section>
+      </div>
     </div>
   )
 }

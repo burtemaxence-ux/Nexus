@@ -1,17 +1,27 @@
 import { createClient } from '@/lib/supabase/server'
 import { generateReferralCode, getReferralStats, REFERRAL_MAX_ACTIVE, REFERRAL_MAX_DISCOUNT, REFERRAL_DISCOUNT_PER_ACTIVE } from '@/lib/referral'
 import { redirect } from 'next/navigation'
-import { Gift, Users, TrendingDown, Clock, CheckCircle2 } from 'lucide-react'
+import { Gift, Users, Ticket, Link2, Send, Route, User, Info, Share2, CalendarClock, TrendingDown } from 'lucide-react'
 import { CopyButton } from './copy-button'
 
 const BASE_URL = process.env.NEXT_PUBLIC_URL ?? 'https://quartzbase.fr'
 
+const STEP_ICONS = [Share2, Gift, CalendarClock, TrendingDown]
 const STEPS = [
   { label: 'Partagez votre lien unique', desc: 'Envoyez-le à vos collègues restaurateurs.' },
   { label: 'Ils essaient Quartzbase', desc: 'Leur 1er mois est offert dès leur inscription avec votre code.' },
   { label: 'Ils restent abonnés', desc: 'Leur parrainage passe en actif après 30 jours d\'abonnement payé.' },
   { label: 'Vous touchez la réduction', desc: `-${REFERRAL_DISCOUNT_PER_ACTIVE}% par filleul actif, jusqu'à -${REFERRAL_MAX_DISCOUNT}%.` },
 ]
+
+function statusBadge(status: string): React.CSSProperties {
+  if (status === 'active') return { background: 'var(--sev-success-chip)', color: 'var(--sev-success-fg)' }
+  if (status === 'churned') return { background: 'var(--sev-critical-chip)', color: 'var(--sev-critical-fg)' }
+  return { background: 'var(--sev-warning-chip)', color: 'var(--sev-warning-fg)' }
+}
+function statusLabel(status: string) {
+  return status === 'active' ? 'Actif' : status === 'churned' ? 'Résilié' : 'En attente'
+}
 
 export default async function ParrainagePage() {
   const supabase = await createClient()
@@ -21,179 +31,104 @@ export default async function ParrainagePage() {
   const code = generateReferralCode(user.id)
   const stats = await getReferralStats(supabase, user.id)
   const link = `${BASE_URL}/register?ref=${code}`
-
   const maxActive = REFERRAL_MAX_ACTIVE
   const progressPct = Math.min((stats.active / maxActive) * 100, 100)
 
+  const mailSubject = encodeURIComponent('Je te recommande Quartzbase')
+  const mailBody = encodeURIComponent(`Bonjour,\n\nJe pense que Quartzbase pourrait t'intéresser pour gérer tes plannings et ta paie.\n\nAvec mon code ${code}, ton 1er mois est offert : ${link}\n\nÀ bientôt !`)
+
   return (
-    <div className="px-4 md:px-6 py-6 max-w-2xl mx-auto space-y-6">
+    <div className="nx-planpage" style={{ maxWidth: 672, margin: '0 auto', padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[var(--accent-light)] flex items-center justify-center">
-          <Gift className="h-5 w-5 text-[var(--accent)]" />
+      {/* Reward hero */}
+      <div className="nx-ref-hero">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 11, background: 'rgba(255,255,255,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Gift className="ic20" style={{ color: '#fff' }} /></div>
+          <div><p style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Syne',sans-serif", letterSpacing: '-.01em' }}>Parrainez, économisez</p><p style={{ fontSize: 12, opacity: .85 }}>-{REFERRAL_DISCOUNT_PER_ACTIVE}% par restaurateur parrainé, jusqu’à -{REFERRAL_MAX_DISCOUNT}%</p></div>
         </div>
-        <div>
-          <h1 className="text-[20px] font-medium text-[var(--text-primary)] tracking-[-0.02em]">
-            Programme parrainage
-          </h1>
-          <p className="text-[13px] text-[var(--text-secondary)]">
-            Invitez vos contacts et réduisez votre abonnement
-          </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+          <div className="nx-ref-stat"><p style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{stats.active}</p><p style={{ fontSize: 10.5, opacity: .85, marginTop: 5 }}>Filleuls actifs</p></div>
+          <div className="nx-ref-stat"><p style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{stats.pending}</p><p style={{ fontSize: 10.5, opacity: .85, marginTop: 5 }}>En attente</p></div>
+          <div className="nx-ref-stat"><p style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: '#8AF5DC' }}>-{stats.discount}%</p><p style={{ fontSize: 10.5, opacity: .85, marginTop: 5 }}>Réduction active</p></div>
         </div>
-      </div>
-
-      {/* Stats bar */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
-          <p className="text-[26px] font-bold text-[var(--accent)] leading-none">{stats.active}</p>
-          <p className="text-[11px] text-[var(--text-secondary)] mt-1.5">Filleuls actifs</p>
-        </div>
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
-          <p className="text-[26px] font-bold text-[var(--text-primary)] leading-none">{stats.pending}</p>
-          <p className="text-[11px] text-[var(--text-secondary)] mt-1.5">En attente</p>
-        </div>
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-4 text-center">
-          <p className="text-[26px] font-bold leading-none" style={{ color: stats.discount > 0 ? '#00D4AA' : 'var(--text-primary)' }}>
-            -{stats.discount}%
-          </p>
-          <p className="text-[11px] text-[var(--text-secondary)] mt-1.5">Réduction active</p>
-        </div>
-      </div>
-
-      {/* Progress toward max discount */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingDown className="h-4 w-4 text-[var(--accent)]" />
-            <p className="text-[14px] font-medium text-[var(--text-primary)]">Progression vers -{REFERRAL_MAX_DISCOUNT}%</p>
+        <div style={{ marginTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}><span style={{ fontSize: 12, fontWeight: 600, opacity: .92 }}>Progression vers -{REFERRAL_MAX_DISCOUNT}%</span><span style={{ fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{stats.active}/{maxActive}</span></div>
+          <div style={{ height: 9, background: 'rgba(255,255,255,.22)', borderRadius: 999, overflow: 'hidden' }}><div className="nx-usage-fill" style={{ width: `${progressPct}%`, background: '#8AF5DC' }} /></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, opacity: .8, marginTop: 6 }}>
+            {Array.from({ length: maxActive }, (_, i) => i + 1).map(n => (
+              <span key={n} style={stats.active >= n ? { fontWeight: 700, opacity: 1 } : undefined}>-{n * REFERRAL_DISCOUNT_PER_ACTIVE}%</span>
+            ))}
           </div>
-          <p className="text-[13px] font-semibold text-[var(--text-secondary)]">
-            {stats.active}/{maxActive} filleuls actifs
-          </p>
-        </div>
-        <div className="h-2.5 bg-[var(--bg-subtle)] rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-700"
-            style={{
-              width: `${progressPct}%`,
-              background: 'linear-gradient(90deg, var(--accent) 0%, #00D4AA 100%)',
-            }}
-          />
-        </div>
-        <div className="flex justify-between text-[10px] text-[var(--text-tertiary)]">
-          {Array.from({ length: REFERRAL_MAX_ACTIVE }, (_, i) => i + 1).map(n => (
-            <span key={n} className={stats.active >= n ? 'text-[var(--accent)] font-semibold' : ''}>
-              -{n * REFERRAL_DISCOUNT_PER_ACTIVE}%
-            </span>
-          ))}
         </div>
       </div>
 
       {/* Code + link */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5 space-y-4">
-        <p className="text-[13px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">
-          Votre code parrainage
-        </p>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 px-4 py-3 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border)]">
-            <p className="text-[22px] font-bold tracking-widest text-[var(--text-primary)]">{code}</p>
-          </div>
-          <CopyButton text={code} label="Copier le code" />
+      <div className="nx-card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div className="nx-ico" style={{ background: 'var(--accent-light)' }}><Ticket className="ic16" style={{ color: 'var(--accent)' }} /></div><p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Votre code parrainage</p></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0, padding: '14px 18px', borderRadius: 12, background: 'var(--accent-light)', border: '1px dashed var(--accent)' }}><p style={{ fontSize: 22, fontWeight: 800, letterSpacing: '.14em', color: 'var(--accent)' }}>{code}</p></div>
+          <CopyButton text={code} label="Copier" />
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 px-4 py-2.5 bg-[var(--bg-subtle)] rounded-xl border border-[var(--border)] overflow-hidden">
-            <p className="text-[12px] text-[var(--text-secondary)] truncate">{link}</p>
-          </div>
-          <CopyButton text={link} label="Copier le lien" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0, padding: '11px 16px', borderRadius: 12, background: 'var(--bg-page)', border: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}><Link2 className="ic14" style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} /><p style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link}</p></div>
+          <CopyButton text={link} label="Copier" />
         </div>
+        <a className="btn-primary qb-shine" href={`mailto:?subject=${mailSubject}&body=${mailBody}`} style={{ alignSelf: 'flex-start', textDecoration: 'none' }}><Send className="ic14" />Partager par email</a>
       </div>
 
       {/* How it works */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5">
-        <p className="text-[13px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-4">
-          Comment ça marche
-        </p>
-        <ol className="space-y-3">
-          {STEPS.map((step, i) => (
-            <li key={i} className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-[var(--accent-light)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-[11px] font-bold text-[var(--accent)]">{i + 1}</span>
+      <div className="nx-card" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}><div className="nx-ico" style={{ background: 'rgba(0,169,143,.12)' }}><Route className="ic16" style={{ color: 'var(--emerald)' }} /></div><p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Comment ça marche</p></div>
+        <div>
+          {STEPS.map((step, i) => {
+            const Icon = STEP_ICONS[i] ?? Gift
+            return (
+              <div key={i} className="nx-refstep">
+                <div className="nx-refstep-ico"><Icon className="ic16" style={{ color: 'var(--accent)' }} /></div>
+                <div style={{ paddingTop: 2 }}><p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{step.label}</p><p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, lineHeight: 1.45 }}>{step.desc}</p></div>
               </div>
-              <div>
-                <p className="text-[13px] font-medium text-[var(--text-primary)]">{step.label}</p>
-                <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{step.desc}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+            )
+          })}
+        </div>
       </div>
 
       {/* Conditions */}
-      <div className="px-4 py-3 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border)]">
-        <div className="flex items-start gap-2.5">
-          <CheckCircle2 className="h-4 w-4 text-[var(--accent)] mt-0.5 flex-shrink-0" />
-          <div className="space-y-1">
-            <p className="text-[12px] font-medium text-[var(--text-primary)]">Conditions du programme</p>
-            <ul className="text-[11px] text-[var(--text-secondary)] space-y-0.5 list-disc list-inside">
-              <li>La réduction s&apos;active après 30 jours de paiement actif du filleul</li>
-              <li>La réduction est liée aux filleuls actifs — elle diminue si un filleul résilie</li>
-              <li>Le filleul bénéficie de son 1er mois offert dès son inscription avec votre code</li>
+      <div style={{ borderRadius: 14, padding: 16, background: 'var(--bg-subtle)', border: '0.5px solid var(--border)' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <Info className="ic16" style={{ color: 'var(--accent)', marginTop: 1, flexShrink: 0 }} />
+          <div>
+            <p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>Bon à savoir</p>
+            <ul style={{ fontSize: 11.5, color: 'var(--text-secondary)', paddingLeft: 15, listStyle: 'disc', display: 'flex', flexDirection: 'column', gap: 3, lineHeight: 1.45 }}>
+              <li>La réduction s’active après 30 jours de paiement actif du filleul</li>
+              <li>Elle est liée aux filleuls actifs — elle diminue si un filleul résilie</li>
+              <li>Votre filleul profite de son 1er mois offert dès son inscription</li>
               <li>Maximum {REFERRAL_MAX_ACTIVE} filleuls actifs (-{REFERRAL_MAX_DISCOUNT}% max)</li>
             </ul>
           </div>
         </div>
       </div>
 
-      {/* Filleuls list */}
-      {stats.filleuls.length > 0 && (
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="h-4 w-4 text-[var(--text-secondary)]" />
-            <p className="text-[13px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">
-              Vos filleuls ({stats.filleuls.length})
-            </p>
-          </div>
-          <div className="space-y-2">
+      {/* Filleuls */}
+      {stats.filleuls.length > 0 ? (
+        <div className="nx-card" style={{ padding: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}><div className="nx-ico" style={{ background: 'var(--accent-light)' }}><Users className="ic16" style={{ color: 'var(--accent)' }} /></div><p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Vos filleuls ({stats.filleuls.length})</p></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {stats.filleuls.map(f => (
-              <div
-                key={f.id}
-                className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-[var(--bg-subtle)]"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-[var(--accent-light)] flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-[var(--accent)]">F</span>
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-medium text-[var(--text-primary)]">Filleul #{f.id.slice(0, 8)}</p>
-                    <p className="text-[11px] text-[var(--text-tertiary)]">
-                      Inscrit le {new Date(f.created_at).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
+              <div key={f.id} className="nx-filleul">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 11, background: 'linear-gradient(135deg,#6C63FF,#00D4AA)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><User className="ic16" style={{ color: '#fff' }} /></div>
+                  <div><p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Filleul #{f.id.slice(0, 8)}</p><p style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Inscrit le {new Date(f.created_at).toLocaleDateString('fr-FR')}</p></div>
                 </div>
-                <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${
-                  f.status === 'active'
-                    ? 'bg-green-100 text-green-700'
-                    : f.status === 'churned'
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-orange-100 text-orange-700'
-                }`}>
-                  {f.status === 'active' ? 'Actif' : f.status === 'churned' ? 'Résilié' : 'En attente'}
-                </span>
+                <span style={{ fontSize: 10.5, fontWeight: 700, padding: '5px 11px', borderRadius: 999, ...statusBadge(f.status) }}>{statusLabel(f.status)}</span>
               </div>
             ))}
           </div>
         </div>
-      )}
-
-      {/* Empty state */}
-      {stats.filleuls.length === 0 && (
-        <div className="text-center py-8 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl">
-          <Clock className="h-8 w-8 text-[var(--text-tertiary)] mx-auto mb-3" />
-          <p className="text-[13px] font-medium text-[var(--text-primary)]">Aucun filleul pour l&apos;instant</p>
-          <p className="text-[12px] text-[var(--text-secondary)] mt-1">
-            Partagez votre lien pour commencer à gagner des réductions.
-          </p>
+      ) : (
+        <div className="nx-card" style={{ padding: '32px 20px', textAlign: 'center' }}>
+          <CalendarClock className="ic28" style={{ color: 'var(--text-tertiary)', margin: '0 auto 12px' }} />
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Aucun filleul pour l’instant</p>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>Partagez votre lien pour commencer à gagner des réductions.</p>
         </div>
       )}
     </div>

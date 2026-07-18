@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CreditCard, Check, Zap, Building2, Loader2, AlertTriangle, Users, Sparkles, ArrowUpRight } from 'lucide-react'
+import { CreditCard, Check, Zap, Loader2, AlertTriangle, Users, Sparkles, ArrowUpRight, Gem, RefreshCw, PackageCheck, Rocket, TrendingUp } from 'lucide-react'
 import { isEntitledStatus, type SubscriptionRow } from '@/lib/subscription'
 import { type BillingInterval, type PlanId, PLAN_META } from '@/lib/stripe'
 import { cn } from '@/lib/utils'
@@ -44,85 +44,44 @@ const PLAN_FEATURES: Record<PlanId, string[]> = {
   ],
 }
 
-const PLAN_LABELS: Record<string, string> = {
-  essential: 'Essentiel',
-  pro: 'Pro',
-  multisite: 'Multi-site',
-}
-
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  active:     { label: 'Actif',                color: 'text-green-600 bg-green-50 border-green-200' },
-  trialing:   { label: 'Essai gratuit',        color: 'text-blue-600 bg-blue-50 border-blue-200' },
-  past_due:   { label: 'Paiement en retard',   color: 'text-red-600 bg-red-50 border-red-200' },
-  canceled:   { label: 'Annulé',               color: 'text-gray-600 bg-gray-50 border-gray-200' },
-  incomplete: { label: 'Incomplet',            color: 'text-orange-600 bg-orange-50 border-orange-200' },
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const { label, color } = STATUS_LABELS[status] ?? { label: status, color: 'text-gray-600 bg-gray-50 border-gray-200' }
-  return (
-    <span className={cn('inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border', color)}>
-      {label}
-    </span>
-  )
+const PLAN_LABELS: Record<string, string> = { essential: 'Essentiel', pro: 'Pro', multisite: 'Multi-site' }
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Actif', trialing: 'Essai gratuit', past_due: 'Paiement en retard', canceled: 'Annulé', incomplete: 'Incomplet',
 }
 
 const PLANS: PlanId[] = ['essential', 'pro', 'multisite']
 
 function FeatureItem({ feature }: { feature: string }) {
-  // Ligne d'en-tête « Tout l'Essentiel, et en plus : »
   if (feature.endsWith(':')) {
-    return (
-      <li className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)] pt-1">
-        {feature}
-      </li>
-    )
+    return <p className="nx-eyebrow" style={{ gridColumn: '1/-1', paddingTop: 2 }}>{feature}</p>
   }
-  // ★ = nouveauté premium mise en avant
   const premium = feature.startsWith('★')
   return (
-    <li className={cn('flex items-start gap-2 text-[12px]', premium ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]')}>
-      {premium
-        ? <Zap className="h-3.5 w-3.5 text-[var(--accent)] mt-0.5 flex-shrink-0" />
-        : <Check className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
-      }
-      {premium ? feature.replace(/^★\s*/, '') : feature}
-    </li>
+    <div className="nx-feat" style={premium ? { borderColor: 'var(--accent)' } : undefined}>
+      {premium ? <Zap className="ic16" style={{ color: 'var(--accent)', flexShrink: 0 }} /> : <Check className="ic16" style={{ color: 'var(--emerald)', flexShrink: 0 }} />}
+      <span style={{ fontSize: 12.5, fontWeight: premium ? 600 : 400, color: premium ? 'var(--text-primary)' : 'var(--text-secondary)', lineHeight: 1.4 }}>
+        {premium ? feature.replace(/^★\s*/, '') : feature}
+      </span>
+    </div>
   )
 }
 
-function UsageRow({
-  icon: Icon, label, used, limit, loading,
-}: { icon: typeof Users; label: string; used: number; limit: number | null; loading?: boolean }) {
+function UsageTile({ icon: Icon, label, used, limit, loading }: { icon: typeof Users; label: string; used: number; limit: number | null; loading?: boolean }) {
   const unlimited = limit === null
-  const pct = unlimited || limit === 0 ? 0 : Math.min((used / limit) * 100, 100)
+  const pct = unlimited || limit === 0 ? 100 : Math.min((used / limit) * 100, 100)
   const near = !unlimited && pct >= 80
+  const color = near ? 'var(--danger)' : 'var(--accent)'
   return (
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
-          <Icon className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
-          {label}
-        </span>
-        <span className="text-[13px] font-medium text-[var(--text-primary)]">
-          {loading ? '—' : unlimited ? `${used} · illimité` : `${used} / ${limit}`}
-        </span>
+    <div className="nx-usage">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)' }}>
+        <Icon className="ic14" /><span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>{label}</span>
       </div>
-      {unlimited
-        ? !loading && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-green-600">
-              <Check className="h-3 w-3" /> Illimité avec votre plan
-            </span>
-          )
-        : (
-          <div className="w-full h-1.5 bg-[var(--bg-subtle)] rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${pct}%`, background: near ? '#FF6B6B' : 'var(--accent)' }}
-            />
-          </div>
-        )
-      }
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 10 }}>
+        <span style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{loading ? '—' : used}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{unlimited ? 'illimité' : `/ ${limit}`}</span>
+      </div>
+      <div className="nx-usage-bar"><div className="nx-usage-fill" style={{ width: `${loading ? 0 : pct}%`, background: unlimited ? 'var(--emerald)' : color }} /></div>
+      <p style={{ fontSize: 11, marginTop: 9, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{unlimited ? 'Illimité avec votre plan' : near ? 'Vous approchez de la limite' : 'Compris dans votre plan'}</p>
     </div>
   )
 }
@@ -139,6 +98,7 @@ export function BillingClient({ subscription, trialDaysLeft, employeeCount, empl
 
   const currentPlanId = (subscription?.plan ?? '') as PlanId
   const planFeatures = PLAN_FEATURES[currentPlanId] ?? []
+  const currentMeta = PLAN_META[currentPlanId]
   const nextPlanId = (() => {
     const i = PLANS.indexOf(currentPlanId)
     return i >= 0 && i < PLANS.length - 1 ? PLANS[i + 1] : null
@@ -146,262 +106,170 @@ export function BillingClient({ subscription, trialDaysLeft, employeeCount, empl
 
   useEffect(() => {
     if (!isActive) return
-    fetch('/api/ai/quota')
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (d) setQuota(d) })
-      .catch(() => {})
+    fetch('/api/ai/quota').then(r => (r.ok ? r.json() : null)).then(d => { if (d) setQuota(d) }).catch(() => {})
   }, [isActive])
 
   async function handleCheckout(planId: PlanId) {
-    const key = `${planId}_${interval}`
-    setLoading(key)
+    setLoading(`${planId}_${interval}`)
     try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, interval }),
-      })
+      const res = await fetch('/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planId, interval }) })
       const data = await res.json()
-      if (!data.url) {
-        toast.error('Une erreur est survenue. Veuillez réessayer.')
-        return
-      }
+      if (!data.url) { toast.error('Une erreur est survenue. Veuillez réessayer.'); return }
       window.location.href = data.url
-    } finally {
-      setLoading(null)
-    }
+    } finally { setLoading(null) }
   }
 
   async function handlePortal() {
     setLoading('portal')
     try {
-      const res = await fetch('/api/stripe/portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
+      const res = await fetch('/api/stripe/portal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
       const data = await res.json()
       if (data.url) window.location.href = data.url
-    } finally {
-      setLoading(null)
-    }
+    } finally { setLoading(null) }
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
+    <div className="nx-planpage" style={{ maxWidth: 768, margin: '0 auto', padding: '32px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <h1 className="text-[20px] font-medium text-[var(--text-primary)] tracking-tight">Abonnement</h1>
-        <p className="text-[14px] text-[var(--text-secondary)] mt-1">
-          Gérez votre plan et vos informations de facturation.
-        </p>
+        <h1 style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-.02em', color: 'var(--text-primary)' }}>Abonnement</h1>
+        <p style={{ fontSize: 13, marginTop: 4, color: 'var(--text-secondary)' }}>Gérez votre plan et vos informations de facturation.</p>
       </div>
 
       {!isActive && trialDaysLeft > 0 && (
-        <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl bg-blue-50 border border-blue-200">
-          <Zap className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', borderRadius: 12, background: 'var(--sev-info-bg)', border: '0.5px solid var(--sev-info-border)' }}>
+          <Zap className="ic16" style={{ color: 'var(--sev-info-fg)', marginTop: 1, flexShrink: 0 }} />
           <div>
-            <p className="text-[13px] font-medium text-blue-700">
-              {trialDaysLeft} jour{trialDaysLeft > 1 ? 's' : ''} d&apos;essai restant{trialDaysLeft > 1 ? 's' : ''}
-            </p>
-            <p className="text-[12px] text-blue-600 mt-0.5">
-              Souscrivez avant la fin pour continuer à utiliser Quartzbase sans interruption.
-            </p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--sev-info-fg)' }}>{trialDaysLeft} jour{trialDaysLeft > 1 ? 's' : ''} d’essai restant{trialDaysLeft > 1 ? 's' : ''}</p>
+            <p style={{ fontSize: 12, color: 'var(--sev-info-fg)', opacity: .85, marginTop: 2 }}>Souscrivez avant la fin pour continuer sans interruption.</p>
           </div>
         </div>
       )}
 
+      {/* Current plan hero */}
       {subscription && (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-[var(--accent-light)] flex items-center justify-center flex-shrink-0">
-                <Building2 className="h-4 w-4 text-[var(--accent)]" />
+        <div className="nx-bill-hero">
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 11px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: 'rgba(255,255,255,.18)' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#8AF5DC', boxShadow: '0 0 0 3px rgba(138,245,220,.3)' }} />{STATUS_LABELS[subscription.status] ?? subscription.status}
+                </span>
               </div>
-              <div>
-                <p className="text-[14px] font-medium text-[var(--text-primary)]">
-                  Plan {PLAN_LABELS[subscription.plan] ?? subscription.plan}
-                </p>
-                {periodEnd && (
-                  <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
-                    {subscription.cancel_at_period_end ? 'Annulation le' : 'Renouvellement le'} {periodEnd}
-                  </p>
-                )}
-              </div>
+              <p style={{ fontSize: 13, fontWeight: 500, opacity: .85 }}>Votre formule</p>
+              <h2 style={{ fontSize: 32, fontWeight: 800, lineHeight: 1, letterSpacing: '-.02em', marginTop: 4 }}>Plan {PLAN_LABELS[subscription.plan] ?? subscription.plan}</h2>
+              {currentMeta && (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 12 }}>
+                  <span style={{ fontSize: 26, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{currentMeta.monthly} €</span>
+                  <span style={{ fontSize: 13, opacity: .8 }}>/ mois</span>
+                </div>
+              )}
             </div>
-            <StatusBadge status={subscription.status} />
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: 'rgba(255,255,255,.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Gem className="ic28" style={{ color: '#fff' }} /></div>
           </div>
-
-          {subscription.cancel_at_period_end && (
-            <div className="mt-4 flex items-start gap-2.5 px-3 py-2.5 rounded-lg bg-orange-50 border border-orange-200">
-              <AlertTriangle className="h-3.5 w-3.5 text-orange-500 mt-0.5 flex-shrink-0" />
-              <p className="text-[12px] text-orange-700">
-                Votre abonnement sera annulé à la fin de la période. Réactivez-le depuis le portail de facturation.
-              </p>
-            </div>
-          )}
-
-          {isActive && (
-            <div className="mt-4 pt-4 border-t border-[var(--border)]">
-              <button
-                onClick={handlePortal}
-                disabled={loading === 'portal'}
-                className="flex items-center gap-2 text-[13px] font-medium text-[var(--accent)] hover:underline disabled:opacity-60"
-              >
-                {loading === 'portal'
-                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  : <CreditCard className="h-3.5 w-3.5" />
-                }
-                Gérer l&apos;abonnement, factures &amp; moyen de paiement
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,.18)' }}>
+            {periodEnd && <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, opacity: .92 }}><RefreshCw className="ic14" />{subscription.cancel_at_period_end ? 'Se termine le' : 'Se renouvelle le'} {periodEnd}</div>}
+            {isActive && (
+              <button className="qb-shine" onClick={handlePortal} disabled={loading === 'portal'} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', background: '#fff', color: '#5B52E8' }}>
+                {loading === 'portal' ? <Loader2 className="ic14 nx-spin" /> : <CreditCard className="ic14" />}Gérer l’abonnement
               </button>
+            )}
+          </div>
+          {subscription.cancel_at_period_end && (
+            <div style={{ marginTop: 14, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 10, background: 'rgba(0,0,0,.16)' }}>
+              <AlertTriangle className="ic14" style={{ marginTop: 1, flexShrink: 0 }} />
+              <p style={{ fontSize: 12, opacity: .92 }}>Votre abonnement sera annulé à la fin de la période. Réactivez-le depuis le portail de facturation.</p>
             </div>
           )}
         </div>
       )}
 
-      {/* ── Plan actif : usage, avantages, upsell ─────────────────────── */}
       {isActive && (
         <>
-          {/* Utilisation */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 space-y-4">
-            <p className="text-[14px] font-medium text-[var(--text-primary)]">Utilisation</p>
-            <UsageRow
-              icon={Users}
-              label="Employés actifs"
-              used={employeeCount}
-              limit={employeeLimit}
-            />
-            <UsageRow
-              icon={Sparkles}
-              label="Générations IA ce mois-ci"
-              used={quota?.used ?? 0}
-              limit={quota && quota.limit !== -1 ? quota.limit : null}
-              loading={quota === null}
-            />
+          {/* Usage */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}><span className="nx-step"><TrendingUp className="ic12" /></span><p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Votre consommation ce mois-ci</p></div>
+            <div className="nx-billgrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+              <UsageTile icon={Users} label="Employés actifs" used={employeeCount} limit={employeeLimit} />
+              <UsageTile icon={Sparkles} label="Générations IA" used={quota?.used ?? 0} limit={quota && quota.limit !== -1 ? quota.limit : null} loading={quota === null} />
+            </div>
           </div>
 
-          {/* Votre plan inclut */}
+          {/* Plan includes */}
           {planFeatures.length > 0 && (
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-              <p className="text-[14px] font-medium text-[var(--text-primary)] mb-3">Votre plan inclut</p>
-              <ul className="space-y-2">
+            <div className="nx-card" style={{ padding: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                <div className="nx-ico" style={{ background: 'var(--accent-light)' }}><PackageCheck className="ic16" style={{ color: 'var(--accent)' }} /></div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Tout ce que comprend votre Plan {PLAN_LABELS[subscription?.plan ?? ''] ?? ''}</p>
+              </div>
+              <div className="nx-featgrid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {planFeatures.map(f => <FeatureItem key={f} feature={f} />)}
-              </ul>
+              </div>
             </div>
           )}
 
-          {/* Upsell vers le plan supérieur */}
+          {/* Upsell */}
           {nextPlanId && (
-            <div className="rounded-xl border-2 border-[var(--accent)] bg-[var(--accent-light)] p-5">
-              <p className="text-[14px] font-medium text-[var(--text-primary)]">
-                Passez au plan {PLAN_LABELS[nextPlanId]}
-              </p>
-              <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
-                À partir de {PLAN_META[nextPlanId].monthly}€/mois — débloquez :
-              </p>
-              <ul className="space-y-2 mt-3">
-                {PLAN_FEATURES[nextPlanId].filter(f => !f.endsWith(':')).map(f => <FeatureItem key={f} feature={f} />)}
-              </ul>
-              <button
-                onClick={handlePortal}
-                disabled={loading === 'portal'}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent)] text-white text-[13px] font-medium hover:opacity-90 disabled:opacity-60"
-              >
-                {loading === 'portal'
-                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  : <ArrowUpRight className="h-3.5 w-3.5" />
-                }
-                Faire évoluer mon plan
-              </button>
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 16, padding: 22, border: '1.5px solid var(--accent)', background: 'var(--accent-light)' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 13, background: 'linear-gradient(135deg,#6C63FF,#00D4AA)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 8px 20px rgba(108,99,255,.35)' }}><Rocket className="ic20" style={{ color: '#fff' }} /></div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 8 }}>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Passez au {PLAN_LABELS[nextPlanId]}</p>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>dès {PLAN_META[nextPlanId].monthly} €/mois</span>
+                  </div>
+                  <p style={{ fontSize: 12.5, marginTop: 3, color: 'var(--text-secondary)' }}>Débloquez encore plus de fonctionnalités pour votre établissement.</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+                    {PLAN_FEATURES[nextPlanId].filter(f => !f.endsWith(':')).slice(0, 5).map(f => {
+                      const premium = f.startsWith('★')
+                      return (
+                        <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 999, fontSize: 11.5, fontWeight: premium ? 600 : 500, background: 'var(--bg-card)', border: `0.5px solid ${premium ? 'var(--accent)' : 'var(--border)'}`, color: premium ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                          {premium ? <Zap className="ic12" /> : <Check className="ic12" style={{ color: 'var(--emerald)' }} />}{f.replace(/^★\s*/, '')}
+                        </span>
+                      )
+                    })}
+                  </div>
+                  <button className="btn-primary qb-shine" style={{ marginTop: 16 }} onClick={handlePortal} disabled={loading === 'portal'}>
+                    {loading === 'portal' ? <Loader2 className="ic14 nx-spin" /> : <ArrowUpRight className="ic14" />}Faire évoluer mon plan
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </>
       )}
 
+      {/* Checkout (no active plan) */}
       {!isActive && (
-        <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-medium text-[var(--text-primary)]">Choisir un plan</h2>
-            <div className="flex items-center gap-1 p-1 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)]">
-              <button
-                onClick={() => setInterval('monthly')}
-                className={cn(
-                  'px-3 py-1.5 rounded-md text-[12px] font-medium transition-all',
-                  interval === 'monthly'
-                    ? 'bg-white shadow-sm text-[var(--text-primary)]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                )}
-              >
-                Mensuel
-              </button>
-              <button
-                onClick={() => setInterval('yearly')}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all',
-                  interval === 'yearly'
-                    ? 'bg-white shadow-sm text-[var(--text-primary)]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                )}
-              >
-                Annuel
-                <span className="px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-semibold">
-                  -17%
-                </span>
-              </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Choisir un plan</h2>
+            <div className="nx-seg-wrap">
+              <button className={`nx-seg ${interval === 'monthly' ? 'on' : ''}`} onClick={() => setInterval('monthly')}>Mensuel</button>
+              <button className={`nx-seg ${interval === 'yearly' ? 'on' : ''}`} onClick={() => setInterval('yearly')}>Annuel −17%</button>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {PLANS.map((planId) => {
+          <div className="nx-billgrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+            {PLANS.map(planId => {
               const meta = PLAN_META[planId]
               const price = interval === 'monthly' ? meta.monthly : meta.yearly
               const monthlyEquiv = interval === 'yearly' ? (meta.yearly / 12).toFixed(0) : null
-              const loadingKey = `${planId}_${interval}`
               const isPopular = planId === 'pro'
-
               return (
-                <div
-                  key={planId}
-                  className={cn(
-                    'rounded-xl border bg-[var(--bg-card)] p-5 flex flex-col gap-4 relative',
-                    isPopular ? 'border-2 border-[var(--accent)]' : 'border-[var(--border)]'
-                  )}
-                >
-                  {isPopular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="px-2.5 py-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap">
-                        Populaire
-                      </span>
-                    </div>
-                  )}
+                <div key={planId} className="nx-card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, position: 'relative', border: isPopular ? '1.5px solid var(--accent)' : undefined }}>
+                  {isPopular && <div style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)' }}><span style={{ padding: '3px 10px', borderRadius: 999, background: 'var(--accent)', color: '#fff', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>Populaire</span></div>}
                   <div>
-                    <p className="text-[13px] font-medium text-[var(--text-primary)]">{meta.label}</p>
-                    <div className="flex items-baseline gap-1 mt-1">
-                      <span className="text-[28px] font-bold text-[var(--text-primary)] tracking-tight">{price}€</span>
-                      <span className="text-[13px] text-[var(--text-secondary)]">
-                        /{interval === 'monthly' ? 'mois' : 'an'}
-                      </span>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{meta.label}</p>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
+                      <span style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-.02em' }}>{price}€</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>/{interval === 'monthly' ? 'mois' : 'an'}</span>
                     </div>
-                    {monthlyEquiv && (
-                      <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
-                        soit {monthlyEquiv}€/mois — 2 mois offerts
-                      </p>
-                    )}
+                    {monthlyEquiv && <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>soit {monthlyEquiv}€/mois — 2 mois offerts</p>}
                   </div>
-                  <ul className="space-y-2 flex-1">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                     {PLAN_FEATURES[planId].map(f => <FeatureItem key={f} feature={f} />)}
-                  </ul>
-                  <button
-                    onClick={() => handleCheckout(planId)}
-                    disabled={loading !== null}
-                    className={cn(
-                      'w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-medium transition-opacity disabled:opacity-60',
-                      isPopular
-                        ? 'bg-[var(--accent)] text-white hover:opacity-90'
-                        : 'bg-[var(--bg-subtle)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--bg-hover)]'
-                    )}
-                  >
-                    {loading === loadingKey && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                    Choisir ce plan
+                  </div>
+                  <button onClick={() => handleCheckout(planId)} disabled={loading !== null} className={isPopular ? 'btn-primary' : 'btn-secondary'} style={{ width: '100%', justifyContent: 'center' }}>
+                    {loading === `${planId}_${interval}` && <Loader2 className="ic14 nx-spin" />}Choisir ce plan
                   </button>
                 </div>
               )
