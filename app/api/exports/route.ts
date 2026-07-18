@@ -3,6 +3,7 @@ import { requireManager } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { leaveTypeLabel } from '@/lib/leaves'
 import { renderReportPdf } from '@/lib/exports/pdf'
+import { buildDsnMensuelle, dsnContractNature, type DsnEmployee } from '@/lib/exports/dsn'
 
 // Vercel Pro : 30s max. Vercel Hobby : 10s (exports larges peuvent dépasser).
 export const maxDuration = 30
@@ -88,7 +89,7 @@ function contractRefHours(weeklyH: number, from: Date, to: Date): number {
 export async function GET(request: NextRequest) {
   try {
   const supabase = await createClient()
-  await requireManager(supabase)
+  const { profile } = await requireManager(supabase)
 
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type') ?? 'hours_per_employee'
@@ -301,6 +302,104 @@ export async function GET(request: NextRequest) {
 
     const headers = ['Matricule', 'Nom', 'Prénom', 'Période', 'Code_Rubrique', 'Libellé', 'Valeur', 'Unité']
     return csvResponse(toCsv(headers, csvRows), `variables_paie_${slug}.csv`)
+  }
+
+  // ── DSN mensuelle (NEODeS) — pré-remplie ──────────────────────────────────────
+  if (type === 'dsn') {
+    const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
+
+    const [setRes, empRes, shiftRes, leaveRes] = await Promise.all([
+      estId
+        ? supabase.from('settings').select('key, value').eq('establishment_id', estId)
+        : supabase.from('settings').select('key, value'),
+      supabase.from('profiles').select('id, full_name, weekly_hours').eq('role', 'employee').eq('archived', false).order('full_name'),
+      supabase.from('shifts').select('employee_id, start_time, end_time, break_minutes').gte('date', from).lte('date', to).is('deleted_at', null),
+      supabase.from('leave_requests').select('employee_id, type, start_date, end_date').eq('status', 'approved').lte('start_date', to).gte('end_date', from),
+    ])
+
+    const settings: Record<string, string> = {}
+    for (const r of setRes.data ?? []) settings[r.key] = r.value
+
+    const employees = empRes.data ?? []
+    const shifts = shiftRes.data ?? []
+    const leaves = leaveRes.data ?? []
+    const empIds = employees.map(e => e.id)
+
+    const contractRes = empIds.length
+      ? await supabase.from('contracts').select('employee_id, type, start_date, end_date, weekly_hours, hourly_rate').in('employee_id', empIds).order('start_date', { ascending: false })
+      : { data: [] as { employee_id: string; type: string; start_date: string; end_date: string | null; weekly_hours: number; hourly_rate: number | null }[] }
+    // Contrat le plus récent par salarié.
+    const latestContract = new Map<string, { type: string; start_date: string; end_date: string | null; weekly_hours: number; hourly_rate: number | null }>()
+    for (const c of contractRes.data ?? []) {
+      if (!latestContract.has(c.employee_id)) latestContract.set(c.employee_id, c)
+    }
+
+    const fromDate = new Date(from)
+    const toDate = new Date(to)
+    const overlapDays = (s1: Date, e1: Date, s2: Date, e2: Date): number => {
+      const s = Math.max(s1.getTime(), s2.getTime())
+      const e = Math.min(e1.getTime(), e2.getTime())
+      return e < s ? 0 : Math.round((e - s) / 86400000) + 1
+    }
+    const ymd = (iso: string) => iso.replace(/-/g, '') // AAAAMMJJ
+    const digits = (s: string) => (s || '').replace(/\D/g, '')
+    const siret = digits(settings.org_siret ?? '')
+
+    const dsnEmployees: DsnEmployee[] = employees.map(emp => {
+      const c = latestContract.get(emp.id)
+      const worked = shifts.filter(s => s.employee_id === emp.id).reduce((sum, sh) => sum + shiftHours(sh.start_time, sh.end_time, sh.break_minutes), 0)
+      const weekly = c?.weekly_hours ?? emp.weekly_hours ?? 35
+      const monthlyRef = Math.round(weekly * 52 / 12 * 100) / 100
+      const rate = c?.hourly_rate ?? null
+      const empLeaves = leaves.filter(l => l.employee_id === emp.id)
+      const maladieDays = empLeaves.filter(l => l.type === 'maladie').reduce((s, l) => s + overlapDays(fromDate, toDate, new Date(l.start_date), new Date(l.end_date)), 0)
+      const parts = (emp.full_name ?? '').trim().split(/\s+/)
+      const firstName = parts[0] ?? ''
+      const lastName = parts.slice(1).join(' ') || firstName
+      return {
+        lastName, firstName,
+        nir: null, birthDate: null, sex: null,
+        contractStart: c?.start_date ? ymd(c.start_date) : null,
+        contractEnd: c?.end_date ? ymd(c.end_date) : null,
+        contractNature: dsnContractNature(c?.type ?? 'CDI'),
+        monthlyRefHours: monthlyRef,
+        workedHours: Math.round(worked * 100) / 100,
+        grossEstimate: rate != null ? Math.round(rate * worked * 100) / 100 : null,
+        absenceDays: [{ code: '01', label: 'Maladie', days: maladieDays }],
+      }
+    })
+
+    const dsn = buildDsnMensuelle({
+      periodMonth: from.slice(0, 7).replace('-', ''),
+      periodStart: ymd(from),
+      periodEnd: ymd(to),
+      emitter: {
+        siret,
+        softwareName: 'QUARTZBASE',
+        softwareVersion: '1.0',
+        contactName: settings.establishment_name ?? 'Nexus',
+        contactEmail: settings.org_email ?? '',
+      },
+      company: {
+        siren: siret.slice(0, 9),
+        nic: siret.slice(9, 14),
+        ape: (settings.org_ape_code ?? '').replace(/\s/g, ''),
+        address: settings.org_address ?? '',
+        postalCode: settings.org_postal_code ?? '',
+        city: settings.org_city ?? '',
+        name: settings.establishment_name ?? '',
+      },
+      headcount: employees.length,
+      employees: dsnEmployees,
+    })
+
+    const mois = from.slice(0, 7).replace('-', '')
+    return new NextResponse(dsn, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Disposition': `attachment; filename="dsn_mensuelle_${mois}_PRE-REMPLIE.dsn"`,
+      },
+    })
   }
 
   return NextResponse.json({ error: 'Type de rapport inconnu' }, { status: 400 })

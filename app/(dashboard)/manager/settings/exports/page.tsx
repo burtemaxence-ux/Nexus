@@ -223,6 +223,30 @@ export default function ExportsPage() {
           <Info className="ic14" style={{ color: 'var(--accent)', marginTop: 1, flexShrink: 0 }} />
           <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>L’export paie compile heures, heures sup., primes repas et absences de la période dans un fichier CSV de variables (codes rubriques) prêt à importer dans votre logiciel.</p>
         </div>
+
+        {/* DSN mensuelle (pré-remplie) */}
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '0.5px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>DSN mensuelle (format NEODeS)</p>
+              <p style={{ fontSize: 11.5, color: 'var(--text-tertiary)', marginTop: 1 }}>Fichier de déclaration sociale nominative pré-rempli avec vos données.</p>
+            </div>
+            <button
+              className="btn-primary"
+              style={{ flexShrink: 0 }}
+              onClick={() => runExport('dsn', { type: 'dsn', from: customFrom, to: customTo }, 'DSN mensuelle', 'DSN', `dsn_${customFrom}.dsn`)}
+              disabled={!!busyKey}
+            >
+              {busyKey === 'dsn' ? <Loader2 className="ic14 nx-spin" /> : <Download className="ic14" />}Télécharger la DSN
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 12, padding: '12px 14px', borderRadius: 10, background: 'rgba(240,140,0,.09)', border: '0.5px solid rgba(240,140,0,.28)' }}>
+            <AlertTriangle className="ic14" style={{ color: 'var(--warning)', marginTop: 1, flexShrink: 0 }} />
+            <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Pré-remplie, non déposable en l’état.</strong> Le fichier reprend établissement, salariés, contrats, heures et absences. Les rubriques réglementaires que Nexus ne détient pas (NIR, date de naissance, adresse salarié, montants de cotisations, taux de prélèvement à la source…) restent à compléter — faites-le valider par votre gestionnaire de paie avant tout dépôt sur net-entreprises.fr.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Historique (session) */}
