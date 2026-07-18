@@ -15,7 +15,19 @@ import {
   ShieldCheck,
   CreditCard,
   Gift,
+  Sparkles,
+  LifeBuoy,
 } from 'lucide-react'
+
+export type BillingSummary = {
+  planLabel: string
+  isActive: boolean
+  employeeCount: number
+  employeeLimit: number | null
+  renewalText: string | null
+}
+
+const SUPPORT_EMAIL = 'assistance.quartzbase@mail.fr'
 
 // Les ~12 écrans regroupés en 5 catégories pour réduire la charge cognitive.
 const NAV_GROUPS = [
@@ -60,9 +72,15 @@ const NAV_GROUPS = [
 
 const NAV_FLAT = NAV_GROUPS.flatMap(g => g.items)
 
-export default function SettingsSidebar() {
+export default function SettingsSidebar({ billing }: { billing?: BillingSummary | null }) {
   const pathname = usePathname()
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
+
+  const usageText = billing
+    ? billing.employeeLimit != null
+      ? `${billing.employeeCount}/${billing.employeeLimit} employés`
+      : `${billing.employeeCount} employés · illimité`
+    : null
 
   return (
     <>
@@ -143,6 +161,47 @@ export default function SettingsSidebar() {
             </div>
           ))}
         </nav>
+
+        {/* Carte plan + aide, épinglées en bas */}
+        <div className="mt-auto px-3 pt-4">
+          <div
+            className="relative overflow-hidden rounded-2xl p-4 text-white"
+            style={{ background: 'linear-gradient(140deg,#5B52E8,#00A98F)' }}
+          >
+            <div
+              className="absolute pointer-events-none"
+              style={{ top: -30, right: -24, width: 96, height: 96, borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,255,255,.18),transparent 70%)' }}
+            />
+            <div className="relative">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5" style={{ color: '#8AF5DC' }} />
+                <span className="text-[11px] font-bold uppercase tracking-[0.05em]">
+                  {billing ? `Plan ${billing.planLabel}` : 'Abonnement'}
+                </span>
+              </div>
+              {(usageText || billing?.renewalText) && (
+                <p className="text-[11.5px] leading-snug mt-2" style={{ opacity: 0.9 }}>
+                  {[usageText, billing?.renewalText].filter(Boolean).join(' · ')}
+                </p>
+              )}
+              <Link
+                href="/manager/settings/billing"
+                className="flex items-center justify-center mt-3 rounded-lg py-1.5 text-[12px] font-semibold"
+                style={{ backgroundColor: 'rgba(255,255,255,.16)', color: '#fff' }}
+              >
+                Gérer l&apos;abonnement
+              </Link>
+            </div>
+          </div>
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="flex items-center gap-2.5 px-3 py-2.5 mt-1.5 rounded-lg text-[12.5px]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <LifeBuoy className="h-[14px] w-[14px]" style={{ color: 'var(--text-tertiary)' }} />
+            Aide &amp; support
+          </a>
+        </div>
       </aside>
     </>
   )
