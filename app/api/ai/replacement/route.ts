@@ -136,6 +136,7 @@ export async function POST(req: NextRequest) {
     { data: prevDayShifts },
     { data: dayShiftsForCompliance },
     { data: recentReplacements },
+    { data: availRows },
   ] = await Promise.all([
     // Experience : shifts sur même poste, 90 jours
     supabaseAdmin
@@ -195,6 +196,13 @@ export async function POST(req: NextRequest) {
       .eq('status', 'confirmed')
       .in('confirmed_employee_id', candidateIds)
       .gte('confirmed_at', rotationFrom),
+
+    // Disponibilités déclarées (0=lundi…6=dimanche) : un candidat hors de sa
+    // fenêtre déclarée reste listé mais est signalé et rétrogradé.
+    supabaseAdmin
+      .from('availabilities')
+      .select('employee_id, day_of_week, start_time, end_time')
+      .in('employee_id', candidateIds),
   ])
 
   // ── 4. Agréger les signaux par candidat ────────────────────────────────────
@@ -247,6 +255,25 @@ export async function POST(req: NextRequest) {
     rotationMap.set(r.confirmed_employee_id, (rotationMap.get(r.confirmed_employee_id) ?? 0) + 1)
   }
 
+  // Disponibilités déclarées par candidat. Sans ligne = disponible partout ;
+  // avec des lignes = disponible uniquement ces jours-là, dans la fenêtre.
+  type AvailRow = { employee_id: string; day_of_week: number; start_time: string; end_time: string }
+  const availMap = new Map<string, AvailRow[]>()
+  for (const a of (availRows ?? []) as AvailRow[]) {
+    if (!availMap.has(a.employee_id)) availMap.set(a.employee_id, [])
+    availMap.get(a.employee_id)!.push(a)
+  }
+  const shiftDow = (new Date(shift.date + 'T00:00:00').getDay() + 6) % 7
+  const shiftStartHM = shift.start_time.slice(0, 5)
+  const shiftEndHM = shift.end_time.slice(0, 5)
+  function availabilityMismatch(empId: string): boolean {
+    const rows = availMap.get(empId)
+    if (!rows || rows.length === 0) return false
+    const row = rows.find(r => r.day_of_week === shiftDow)
+    if (!row) return true
+    return shiftStartHM < row.start_time.slice(0, 5) || shiftEndHM > row.end_time.slice(0, 5)
+  }
+
   // ── 5. Compliance préventive + scoring déterministe ───────────────────────
 
   type CandidateProfile = { id: string; full_name: string | null; position: string | null; contract_type: string | null }
@@ -290,6 +317,7 @@ export async function POST(req: NextRequest) {
         marketplaceTotal: appMap.get(emp.id)?.total ?? 0,
         recentReplacementsConfirmed: rotationMap.get(emp.id) ?? 0,
         complianceDetails,
+        declaredAvailabilityMismatch: availabilityMismatch(emp.id),
       },
       { hasPosteId: Boolean(shift.poste_id) },
     )

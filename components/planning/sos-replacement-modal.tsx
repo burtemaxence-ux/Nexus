@@ -21,6 +21,7 @@ type CandidateScore = {
   contract_weekly_hours: number | null
   compliance_warning: boolean
   compliance_details: string[]
+  availability_mismatch?: boolean
   explanation: string
 }
 
@@ -167,6 +168,23 @@ function CandidateCard({
             {candidate.weekly_hours_planned > 0
               ? `${candidate.weekly_hours_planned}h cette sem.`
               : 'Alerte compliance'}
+          </span>
+        )}
+        {candidate.availability_mismatch && (
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+            backgroundColor: '#FEE2E2',
+            color: '#991B1B',
+            fontSize: '11px',
+            fontWeight: 500,
+            padding: '2px 7px',
+            borderRadius: '6px',
+            border: '0.5px solid #EF4444',
+          }}>
+            <AlertTriangle size={10} />
+            Hors dispos déclarées
           </span>
         )}
         {candidate.contract_type === 'Extra' && (

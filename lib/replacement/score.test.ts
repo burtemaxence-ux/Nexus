@@ -22,6 +22,7 @@ function withDefaults(overrides: Partial<CandidateSignals> = {}): CandidateSigna
     marketplaceTotal: 0,
     recentReplacementsConfirmed: 1,
     complianceDetails: [],
+    declaredAvailabilityMismatch: false,
     ...overrides,
   }
 }
@@ -96,6 +97,28 @@ describe('scoreCandidate — pénalité de conformité', () => {
   })
 })
 
+// ── Disponibilités déclarées ─────────────────────────────────────────────────
+
+describe('scoreCandidate — disponibilités déclarées', () => {
+  it('pénalise un candidat dont le shift tombe hors de ses dispos déclarées', () => {
+    // exp=8, avail=10, resp=5 → base = 3.2+3+1.5 = 7.7 ; pénalité dispo 2 → 5.7
+    const c = scoreCandidate(
+      EMP,
+      withDefaults({ experienceCount: 8, declaredAvailabilityMismatch: true }),
+      { hasPosteId: true },
+    )
+    expect(c.availability_mismatch).toBe(true)
+    expect(c.score_final).toBeCloseTo(5.7, 1)
+    expect(c.explanation).toContain('Hors dispos déclarées')
+  })
+
+  it('reste neutre quand aucune dispo n’est déclarée (mismatch=false)', () => {
+    const c = scoreCandidate(EMP, withDefaults({ experienceCount: 8 }), { hasPosteId: true })
+    expect(c.availability_mismatch).toBe(false)
+    expect(c.explanation).not.toContain('Hors dispos')
+  })
+})
+
 // ── Rotation ─────────────────────────────────────────────────────────────────
 
 describe('scoreCandidate — rotation', () => {
@@ -152,6 +175,16 @@ describe('rankCandidates', () => {
     const b = scoreCandidate({ ...EMP, id: 'B' }, withDefaults({ experienceCount: 8 }), { hasPosteId: true })
     expect(rankCandidates([a, b]).map(c => c.employee_id)).toEqual(['B', 'A'])
   })
+
+  it('place les candidats dans leurs dispos avant ceux hors dispos, à conformité égale', () => {
+    const inWindow = scoreCandidate({ ...EMP, id: 'IN' }, withDefaults({ experienceCount: 1 }), { hasPosteId: true })
+    const outWindow = scoreCandidate(
+      { ...EMP, id: 'OUT' },
+      withDefaults({ experienceCount: 10, declaredAvailabilityMismatch: true }),
+      { hasPosteId: true },
+    )
+    expect(rankCandidates([outWindow, inWindow]).map(c => c.employee_id)).toEqual(['IN', 'OUT'])
+  })
 })
 
 // ── Deterministic explanation ────────────────────────────────────────────────
@@ -161,6 +194,7 @@ describe('explainCandidate', () => {
     const s = explainCandidate({
       experience_score: 5, availability_score: 5, response_score: 5,
       contract_type: 'CDI 35h', hasPosteId: true, hasComplianceWarning: true,
+      availabilityMismatch: false,
       recentReplacementsConfirmed: 1,
     })
     expect(s.startsWith('Conformité')).toBe(true)
@@ -170,6 +204,7 @@ describe('explainCandidate', () => {
     const s = explainCandidate({
       experience_score: 0, availability_score: 8, response_score: 5,
       contract_type: null, hasPosteId: true, hasComplianceWarning: false,
+      availabilityMismatch: false,
       recentReplacementsConfirmed: 1,
     })
     expect(s).toContain('Jamais fait ce poste')
@@ -179,6 +214,7 @@ describe('explainCandidate', () => {
     const s = explainCandidate({
       experience_score: 8, availability_score: 8, response_score: 5,
       contract_type: 'Extra', hasPosteId: true, hasComplianceWarning: false,
+      availabilityMismatch: false,
       recentReplacementsConfirmed: 1,
     })
     expect(s).toContain('Extra')

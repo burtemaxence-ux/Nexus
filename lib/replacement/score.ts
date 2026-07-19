@@ -19,6 +19,7 @@ export type CandidateSignals = {
   marketplaceTotal: number             // candidatures marketplace totales, 60j
   recentReplacementsConfirmed: number  // remplacements pris au cours des 30 derniers jours
   complianceDetails: string[]          // violations identifiées si ce shift lui est attribué
+  declaredAvailabilityMismatch: boolean // le shift tombe hors des disponibilités déclarées (false si aucune dispo déclarée)
 }
 
 export type CandidateScore = {
@@ -34,6 +35,7 @@ export type CandidateScore = {
   contract_weekly_hours: number | null
   compliance_warning: boolean
   compliance_details: string[]
+  availability_mismatch: boolean
   explanation: string
 }
 
@@ -49,6 +51,11 @@ const W_RESP = 0.3
 // Pénalité de score par violation de conformité (le candidat reste listé,
 // mais descend en bas du classement — voir rankCandidates).
 const COMPLIANCE_PENALTY = 2
+
+// Pénalité quand le shift tombe hors des disponibilités déclarées du candidat
+// (il reste listé — le manager peut toujours lui demander — mais après les
+// candidats disponibles, cf. rankCandidates).
+const AVAILABILITY_PENALTY = 2
 
 // Rotation : on borne le bonus/malus à ±1 point sur 10.
 function rotationAdjustment(recent: number): number {
@@ -99,8 +106,9 @@ export function scoreCandidate(
              + safe(response_score) * W_RESP
 
   const compliancePenalty = signals.complianceDetails.length * COMPLIANCE_PENALTY
+  const availabilityPenalty = signals.declaredAvailabilityMismatch ? AVAILABILITY_PENALTY : 0
   const rotationDelta = rotationAdjustment(signals.recentReplacementsConfirmed)
-  const score_final = clamp(base - compliancePenalty + rotationDelta, 0, 10)
+  const score_final = clamp(base - compliancePenalty - availabilityPenalty + rotationDelta, 0, 10)
 
   const round1 = (n: number) => Math.round(n * 10) / 10
 
@@ -117,22 +125,28 @@ export function scoreCandidate(
     contract_weekly_hours: signals.contractWeeklyHours,
     compliance_warning: signals.complianceDetails.length > 0,
     compliance_details: signals.complianceDetails,
+    availability_mismatch: signals.declaredAvailabilityMismatch,
     explanation: explainCandidate({
       experience_score, availability_score, response_score,
       contract_type: emp.contract_type,
       hasPosteId: ctx.hasPosteId,
       hasComplianceWarning: signals.complianceDetails.length > 0,
+      availabilityMismatch: signals.declaredAvailabilityMismatch,
       recentReplacementsConfirmed: signals.recentReplacementsConfirmed,
     }),
   }
 }
 
-// ── Ranking — composite sort: compliance OK first, then score desc ───────────
+// ── Ranking — composite sort: compliance OK first, then declared availability,
+// then score desc ────────────────────────────────────────────────────────────
 
 export function rankCandidates(scored: CandidateScore[]): CandidateScore[] {
   return [...scored].sort((a, b) => {
     if (a.compliance_warning !== b.compliance_warning) {
       return a.compliance_warning ? 1 : -1
+    }
+    if (a.availability_mismatch !== b.availability_mismatch) {
+      return a.availability_mismatch ? 1 : -1
     }
     return b.score_final - a.score_final
   })
@@ -147,6 +161,7 @@ type ExplainInput = {
   contract_type: string | null
   hasPosteId: boolean
   hasComplianceWarning: boolean
+  availabilityMismatch: boolean
   recentReplacementsConfirmed: number
 }
 
@@ -155,6 +170,10 @@ export function explainCandidate(c: ExplainInput): string {
 
   // Conformité d'abord, c'est le signal prioritaire pour le manager.
   if (c.hasComplianceWarning) parts.push('Conformité à vérifier')
+
+  // Puis les disponibilités déclarées : proposer quelqu'un hors de ses dispos
+  // reste possible, mais le manager doit le voir immédiatement.
+  if (c.availabilityMismatch) parts.push('Hors dispos déclarées')
 
   // Expérience.
   if (c.hasPosteId) {
