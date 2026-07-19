@@ -42,10 +42,9 @@ function generate(closingTime = '23:00') {
     closedDaysIdx: [],
     employees: EMPLOYEES,
     leaveByEmployee: {},
+    availabilityByEmployee: {},
     existingShifts: [],
     forecast: null,
-    targetPct: null,
-    rateMap: {},
     breakTriggerMinutes: 360,
   })
   return repairPlan(shifts).shifts
