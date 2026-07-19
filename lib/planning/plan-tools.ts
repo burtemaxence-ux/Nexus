@@ -1,7 +1,30 @@
 import type Anthropic from '@anthropic-ai/sdk'
-import type { ProposedShift } from './solver'
+import type { ProposedShift, SolverAvailability } from './solver'
 import { checkCompliance, RULES, type EmployeeMeta } from '@/lib/compliance/rules'
 import { ACTIONABLE, toRecords } from './repair'
+
+const FR_DAYS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
+
+// Vérifie qu'un créneau proposé tombe dans les disponibilités DÉCLARÉES de
+// l'employé (table availabilities). Un employé sans ligne est réputé
+// disponible partout ; avec des lignes, il n'est disponible QUE ces jours-là,
+// dans la fenêtre [start_time, end_time]. Retourne le motif du refus, ou null.
+export function availabilityIssue(
+  availability: Record<string, SolverAvailability[]> | undefined,
+  candidate: Pick<ProposedShift, 'employee_id' | 'date' | 'start_time' | 'end_time'>,
+): string | null {
+  const rows = availability?.[candidate.employee_id]
+  if (!rows || rows.length === 0) return null
+  const dayIdx = (new Date(candidate.date + 'T00:00:00').getDay() + 6) % 7
+  const row = rows.find(r => r.day_of_week === dayIdx)
+  if (!row) return `n'est pas disponible le ${FR_DAYS[dayIdx]} (jour hors de ses disponibilités déclarées)`
+  const ws = row.start_time.slice(0, 5)
+  const we = row.end_time.slice(0, 5)
+  if (candidate.start_time.slice(0, 5) < ws || candidate.end_time.slice(0, 5) > we) {
+    return `n'est disponible le ${FR_DAYS[dayIdx]} que de ${ws} à ${we}`
+  }
+  return null
+}
 
 // Correspondances pour enrichir un shift proposé par le LLM.
 export type ShiftLookups = {
@@ -69,6 +92,10 @@ const MAX_REJECTIONS_PER_SLOT = 2
 // `targetDate` (génération jour par jour) : tout créneau proposé pour une
 // AUTRE date est ignoré — le modèle ne doit produire que le jour demandé,
 // les autres jours étant générés par des appels séparés (cf. route.ts).
+//
+// `availability` : disponibilités déclarées par employé — un créneau hors
+// dispo est REJETÉ (is_error) comme une non-conformité, avec le même plafond
+// de rejets (rejectionCounts) pour ne pas boucler.
 export function collectProposedShifts(
   content: Anthropic.ContentBlock[],
   lookups: ShiftLookups,
@@ -76,6 +103,7 @@ export function collectProposedShifts(
   employees?: EmployeeMeta[],
   rejectionCounts: Map<string, number> = new Map(),
   targetDate?: string,
+  availability?: Record<string, SolverAvailability[]>,
 ): { shifts: ProposedShift[]; toolResults: Anthropic.ToolResultBlockParam[]; hasToolUse: boolean } {
   const { employeeNameMap, employeePositionMap, posteMap } = lookups
   const shifts: ProposedShift[] = []
@@ -123,8 +151,9 @@ export function collectProposedShifts(
       notes: input.notes ?? null,
     }
 
+    const availIssue = availabilityIssue(availability, candidate)
     const violations = newViolations(accepted, candidate, employees)
-    if (violations.length > 0) {
+    if (availIssue || violations.length > 0) {
       const slotKey = `${candidate.employee_id}__${candidate.date}`
       const rejections = (rejectionCounts.get(slotKey) ?? 0) + 1
       rejectionCounts.set(slotKey, rejections)
@@ -143,13 +172,18 @@ export function collectProposedShifts(
         continue
       }
 
-      const detail = violations
-        .map(v => `${RULES[v.ruleId].name} (${v.description})${v.suggestedFix ? ` → ${v.suggestedFix}` : ''}`)
-        .join(' ; ')
+      const parts: string[] = []
+      if (availIssue) parts.push(`hors disponibilités déclarées : ${candidate.employee_name} ${availIssue}`)
+      if (violations.length > 0) {
+        const detail = violations
+          .map(v => `${RULES[v.ruleId].name} (${v.description})${v.suggestedFix ? ` → ${v.suggestedFix}` : ''}`)
+          .join(' ; ')
+        parts.push(`non conforme au Code du travail : ${detail}`)
+      }
       toolResults.push({
         type: 'tool_result',
         tool_use_id: block.id,
-        content: `REJETÉ, non conforme au Code du travail : ${detail}. Corrige les horaires de ce créneau (${candidate.employee_name}, ${candidate.date}) et propose-le à nouveau, ou renonce à ce créneau.`,
+        content: `REJETÉ, ${parts.join(' ; ')}. Corrige les horaires de ce créneau (${candidate.employee_name}, ${candidate.date}) et propose-le à nouveau, ou renonce à ce créneau.`,
         is_error: true,
       })
       continue

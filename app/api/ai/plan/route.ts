@@ -38,6 +38,8 @@ const AI_LOOP_ITERATIONS_LIMIT_PER_DAY = 12
 const client = new Anthropic()
 
 const FR_DOW = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
+// Abréviations indexées comme la table availabilities (0=lundi … 6=dimanche).
+const FR_DOW_SHORT = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 
 // 0 = lundi … 6 = dimanche (aligné sur closed_days, cf. lib/planning/solver.ts).
 function isoDayIdx(date: string): number {
@@ -269,6 +271,7 @@ export async function POST(req: Request) {
     { data: existingShifts },
     { data: postes },
     { data: settings },
+    { data: availRows },
   ] = await Promise.all([
     supabase.from('profiles').select('id, full_name, position, contract_type, weekly_hours, birth_date').eq('role', 'employee').eq('archived', false).limit(200),
     supabase.from('leave_requests')
@@ -279,6 +282,7 @@ export async function POST(req: Request) {
     supabase.from('shifts').select('employee_id, date, start_time, end_time, position, break_minutes').gte('date', week_monday).lte('date', weekEndStr).is('deleted_at', null),
     supabase.from('postes').select('id, name, break_minutes'),
     supabase.from('settings').select('key, value').in('key', ['collective_agreement', 'opening_time', 'closing_time', 'establishment_name', 'closed_days', 'break_trigger_minutes']),
+    supabase.from('availabilities').select('employee_id, day_of_week, start_time, end_time').limit(2000),
   ])
 
   const settingsMap = Object.fromEntries((settings ?? []).map(s => [s.key, s.value]))
@@ -333,6 +337,17 @@ export async function POST(req: Request) {
     }
   }
 
+  // Disponibilités déclarées (table availabilities, 0=lundi…6=dimanche) :
+  // respectées par les DEUX moteurs — le solveur par construction, le LLM via
+  // le prompt + le rejet en temps réel (cf. plan-tools.availabilityIssue).
+  const availabilityByEmployee: Record<string, { day_of_week: number; start_time: string; end_time: string }[]> = {}
+  const knownEmployeeIds = new Set((employees ?? []).map(e => e.id))
+  for (const a of (availRows ?? []) as { employee_id: string; day_of_week: number; start_time: string; end_time: string }[]) {
+    if (!knownEmployeeIds.has(a.employee_id)) continue
+    if (!availabilityByEmployee[a.employee_id]) availabilityByEmployee[a.employee_id] = []
+    availabilityByEmployee[a.employee_id].push({ day_of_week: a.day_of_week, start_time: a.start_time, end_time: a.end_time })
+  }
+
   // Copilote de productivité : prévision de CA + cible coût/CA.
   // Premium (Pro/Multi-site) — les autres plans n'ont pas le forecast.
   const eco = isPro(tier) ? await loadEconomics(supabase, week_monday, weekDays, weekEndStr) : null
@@ -354,16 +369,15 @@ export async function POST(req: Request) {
         weekly_hours: e.weekly_hours ?? null,
       })),
       leaveByEmployee,
+      availabilityByEmployee,
       existingShifts: (existingShifts ?? []).map(s => ({
         employee_id: s.employee_id,
         date: s.date,
         start_time: s.start_time,
         end_time: s.end_time,
-        break_minutes: 0,
+        break_minutes: s.break_minutes ?? 0,
       })),
       forecast: eco?.forecast ?? null,
-      targetPct: eco ? targetPct : null,
-      rateMap: eco?.rateMap ?? {},
       breakTriggerMinutes: breakTrigger,
     })
 
@@ -476,7 +490,11 @@ Tu génères UNIQUEMENT les créneaux du ${target_date} (${FR_DOW[new Date(targe
 ## Employés actifs (${employees?.length ?? 0})
 ${employees?.map(e => {
   const offDays = leaveByEmployee[e.id]
-  return `- ID: ${e.id} | ${e.full_name ?? 'Sans nom'} | Poste: ${e.position ?? '—'} | ${e.contract_type ?? '—'} | ${e.weekly_hours ?? '?'}h/sem${offDays ? ` | ABSENT: ${offDays.join(', ')}` : ''}`
+  const avail = availabilityByEmployee[e.id]
+  const availStr = avail
+    ? ` | Dispos: ${[...avail].sort((a, b) => a.day_of_week - b.day_of_week).map(a => `${FR_DOW_SHORT[a.day_of_week]} ${a.start_time.slice(0, 5)}-${a.end_time.slice(0, 5)}`).join(', ')}`
+    : ''
+  return `- ID: ${e.id} | ${e.full_name ?? 'Sans nom'} | Poste: ${e.position ?? '—'} | ${e.contract_type ?? '—'} | ${e.weekly_hours ?? '?'}h/sem${availStr}${offDays ? ` | ABSENT: ${offDays.join(', ')}` : ''}`
 }).join('\n') ?? 'Aucun employé'}
 
 ## Postes disponibles
@@ -493,6 +511,7 @@ ${economicsSection}
 - Maximum 48h par semaine.
 - Amplitude d'une journée ≤ 13h (début → fin).
 - Ne JAMAIS planifier un employé marqué ABSENT.
+- Respecte STRICTEMENT les disponibilités déclarées (« Dispos » ci-dessus) : jamais de créneau un jour absent de la liste, ni en dehors de la fenêtre horaire indiquée. Un employé sans « Dispos » est disponible sur toute l'amplitude d'ouverture.
 - Dès qu'un service (ou le total d'une journée pour un même employé) dépasse 6h de travail effectif, renseigne break_minutes ≥ 20 sur le créneau — sinon la pause légale est considérée manquante. Exemple : un service de 09:00 à 17:00 (8h) doit avoir break_minutes ≥ 20, jamais 0.
 - Chaque appel à propose_shift est vérifié automatiquement. Si le résultat commence par « REJETÉ », le créneau N'A PAS été ajouté : corrige immédiatement les horaires ou la pause selon le motif indiqué et rappelle propose_shift pour ce même employé/jour — ne renvoie jamais deux fois un créneau rejeté à l'identique.
 
@@ -552,8 +571,12 @@ ${dayScoped
       }
 
       const response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-5',
         max_tokens: 8192,
+        // Sonnet 5 active le thinking adaptatif par défaut quand le champ est
+        // omis : on le désactive explicitement pour garder la latence stable
+        // dans cette boucle d'outils bornée par ANTHROPIC_CALL_TIMEOUT_MS.
+        thinking: { type: 'disabled' },
         system: [
           {
             type: 'text',
@@ -581,6 +604,7 @@ ${dayScoped
         repairMeta,
         rejectionCounts,
         dayScoped ? target_date : undefined,
+        availabilityByEmployee,
       )
       proposedShifts.push(...newShifts)
 

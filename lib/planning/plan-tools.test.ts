@@ -136,6 +136,46 @@ describe('collectProposedShifts — rejette en temps réel les créneaux non con
   })
 })
 
+describe('collectProposedShifts — disponibilités déclarées', () => {
+  // 2026-06-22 est un lundi (day_of_week 0), 2026-06-23 un mardi (1).
+  const availability = {
+    e1: [
+      { day_of_week: 0, start_time: '09:00:00', end_time: '17:00:00' },
+      { day_of_week: 1, start_time: '12:00:00', end_time: '22:00:00' },
+    ],
+  }
+
+  it('rejette un créneau un jour où l\'employé n\'a aucune disponibilité', () => {
+    const { shifts, toolResults } = collectProposedShifts(
+      [toolUse('a', { employee_id: 'e1', date: '2026-06-24', start_time: '09:00', end_time: '17:00', break_minutes: 30 })],
+      lookups, [], undefined, new Map(), undefined, availability,
+    )
+    expect(shifts).toHaveLength(0)
+    expect(toolResults[0].is_error).toBe(true)
+    expect(String(toolResults[0].content)).toContain('hors disponibilités déclarées')
+  })
+
+  it('rejette un créneau hors de la fenêtre horaire déclarée', () => {
+    const { shifts, toolResults } = collectProposedShifts(
+      [toolUse('a', { employee_id: 'e1', date: '2026-06-23', start_time: '09:00', end_time: '17:00', break_minutes: 30 })],
+      lookups, [], undefined, new Map(), undefined, availability,
+    )
+    expect(shifts).toHaveLength(0)
+    expect(String(toolResults[0].content)).toContain('que de 12:00 à 22:00')
+  })
+
+  it('accepte un créneau dans la fenêtre déclarée, et tout créneau d\'un employé sans dispo déclarée', () => {
+    const { shifts } = collectProposedShifts(
+      [
+        toolUse('a', { employee_id: 'e1', date: '2026-06-22', start_time: '09:00', end_time: '17:00', break_minutes: 30 }),
+        toolUse('b', { employee_id: 'e2', date: '2026-06-24', start_time: '07:00', end_time: '15:00', break_minutes: 30 }),
+      ],
+      lookups, [], undefined, new Map(), undefined, availability,
+    )
+    expect(shifts).toHaveLength(2)
+  })
+})
+
 describe('collectProposedShifts — génération jour par jour (targetDate)', () => {
   it('ignore un créneau proposé pour une autre date que celle demandée', () => {
     const { shifts, toolResults } = collectProposedShifts(
