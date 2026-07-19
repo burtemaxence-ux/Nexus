@@ -75,6 +75,7 @@ export async function POST(req: Request) {
     { data: latenessRecords },
     { data: marketplaceSlots },
     { data: shiftExchanges },
+    { data: availRows },
   ] = await Promise.all([
     supabase.from('profiles').select('id, full_name, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false).limit(200),
     supabase.from('leave_requests').select('id, type, start_date, end_date, status, profiles(full_name)').order('created_at', { ascending: false }).limit(20),
@@ -84,9 +85,29 @@ export async function POST(req: Request) {
     supabase.from('lateness_records').select('id, date, late_minutes, justified, profiles(full_name)').gte('date', day30ago).order('date', { ascending: false }).limit(30),
     supabase.from('marketplace_slots').select('id, status, reason, expires_at, shifts(date, start_time, end_time, position), profiles!marketplace_slots_created_by_fkey(full_name)').eq('status', 'open').limit(5),
     supabase.from('shift_exchanges').select('id, status, proposer_note, shifts(date, start_time, position), profiles!shift_exchanges_proposer_id_fkey(full_name)').in('status', ['open', 'pending_approval']).limit(5),
+    supabase.from('availabilities').select('employee_id, day_of_week, start_time, end_time').limit(2000),
   ])
 
   const settingsMap = Object.fromEntries((settings ?? []).map(s => [s.key, s.value]))
+
+  // Disponibilités déclarées par employé (0=lundi…6=dimanche), pour répondre
+  // aux questions du type « qui peut travailler lundi soir ? ».
+  const FR_DOW_SHORT = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
+  const availByEmployee = new Map<string, string>()
+  {
+    const grouped = new Map<string, { day_of_week: number; start_time: string; end_time: string }[]>()
+    for (const a of (availRows ?? []) as { employee_id: string; day_of_week: number; start_time: string; end_time: string }[]) {
+      if (!grouped.has(a.employee_id)) grouped.set(a.employee_id, [])
+      grouped.get(a.employee_id)!.push(a)
+    }
+    for (const [empId, rows] of Array.from(grouped.entries())) {
+      const label = rows
+        .sort((a, b) => a.day_of_week - b.day_of_week)
+        .map(r => `${FR_DOW_SHORT[r.day_of_week]} ${r.start_time.slice(0, 5)}-${r.end_time.slice(0, 5)}`)
+        .join(', ')
+      availByEmployee.set(empId, label)
+    }
+  }
 
   // Agréger les retards par employé pour détecter les patterns
   const latenessMap: Record<string, { name: string; count: number; totalMin: number; unjustified: number }> = {}
@@ -130,7 +151,7 @@ La date d'aujourd'hui est le ${today}.
 ## Données actuelles de l'établissement
 
 ### Employés actifs (${employees?.length ?? 0})
-${employees?.map(e => `- [ref:${e.id}] ${e.full_name ?? 'Sans nom'} | ${e.position ?? 'Sans poste'} | ${e.contract_type ?? 'Sans contrat'} | ${e.weekly_hours ?? '?'}h/sem`).join('\n') ?? 'Aucun employé'}
+${employees?.map(e => `- [ref:${e.id}] ${e.full_name ?? 'Sans nom'} | ${e.position ?? 'Sans poste'} | ${e.contract_type ?? 'Sans contrat'} | ${e.weekly_hours ?? '?'}h/sem | Dispos: ${availByEmployee.get(e.id) ?? 'non renseignées (disponible par défaut)'}`).join('\n') ?? 'Aucun employé'}
 
 ### Paramètres établissement
 - Convention collective : ${settingsMap.collective_agreement ?? 'Non définie'}
