@@ -10,8 +10,8 @@ import { createClient } from '@/lib/supabase/client'
 import { getInitials, getEstablishmentInitials } from '@/lib/planning-utils'
 import {
   Home, Calendar, Users, BarChart3, Clock, LineChart, Scale, Zap, BookOpen,
-  Palmtree, AlertTriangle, Upload, CreditCard,
-  Settings, ChevronLeft, ChevronRight, ChevronDown, LogOut,
+  Palmtree, AlertTriangle,
+  ChevronLeft, ChevronRight, ChevronDown, LogOut,
   ShieldCheck, ChevronsUpDown, Plus, Check, ArrowLeftRight, Moon, Sun,
 } from 'lucide-react'
 
@@ -74,12 +74,9 @@ function buildManagerNav(pendingLeavesCount: number): NavGroup[] {
       ],
     },
     {
-      group: 'Paramètres',
+      group: 'Support',
       items: [
-        { label: 'Paramètres', icon: Settings,   href: '/manager/settings' },
-        { label: 'Exports',    icon: Upload,     href: '/manager/settings/exports' },
-        { label: 'Abonnement', icon: CreditCard, href: '/manager/settings/billing' },
-        { label: 'Aide',       icon: BookOpen,   href: '/manager/help' },
+        { label: 'Aide', icon: BookOpen, href: '/manager/help' },
       ],
     },
   ]
