@@ -12,6 +12,8 @@ export interface Report {
   user_name: string | null
   role: string | null
   url: string | null
+  category: string | null
+  subject: string | null
   message: string
   status: 'new' | 'resolved'
 }
@@ -67,6 +69,21 @@ export function ReportsList({ initialReports }: { initialReports: Report[] }) {
                   · {r.role ?? '—'} · {new Date(r.created_at).toLocaleString('fr-FR')}
                 </span>
               </p>
+              {(r.category || r.subject) && (
+                <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                  {r.category && (
+                    <span
+                      className="inline-block rounded-md px-2 py-0.5 text-xs font-medium"
+                      style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}
+                    >
+                      {r.category}
+                    </span>
+                  )}
+                  {r.subject && (
+                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{r.subject}</span>
+                  )}
+                </div>
+              )}
               <p className="mt-1 whitespace-pre-wrap text-sm" style={{ color: 'var(--text-secondary)' }}>{r.message}</p>
               {r.url && (
                 <p className="mt-1 truncate text-xs" style={{ color: 'var(--text-tertiary)' }}>Page : {r.url}</p>

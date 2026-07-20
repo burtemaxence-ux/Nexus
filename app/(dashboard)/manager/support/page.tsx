@@ -45,20 +45,15 @@ export default function SupportPage() {
     }
     setSending(true)
     try {
-      // On compose un message unique (l'API /api/feedback n'a qu'un champ
-      // `message`) avec la catégorie et le sujet en en-tête.
-      const composed = [
-        `Catégorie : ${category}`,
-        `Sujet : ${subject.trim() || '—'}`,
-        '',
-        message.trim(),
-      ].join('\n')
-
+      // Motif et sujet sont envoyés en champs dédiés (colonnes support_reports),
+      // ce qui permet à l'opérateur de trier les signalements côté back-office.
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: composed,
+          message: message.trim(),
+          category,
+          subject: subject.trim() || undefined,
           url: typeof window !== 'undefined' ? window.location.href : '',
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
         }),

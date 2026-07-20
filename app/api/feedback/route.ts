@@ -6,6 +6,10 @@ import { notifyOps } from '@/lib/ops-alert'
 
 const schema = z.object({
   message: z.string().trim().min(5, 'Merci de décrire un peu plus le problème.').max(2000),
+  // Motif + sujet : envoyés par la page /manager/support (facultatifs — le
+  // bouton flottant « Signaler un problème » n'envoie que `message`).
+  category: z.string().trim().max(80).optional(),
+  subject: z.string().trim().max(120).optional(),
   url: z.string().max(500).optional(),
   userAgent: z.string().max(500).optional(),
 })
@@ -21,7 +25,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Requête invalide' }, { status: 400 })
     }
-    const { message, url, userAgent } = parsed.data
+    const { message, category, subject, url, userAgent } = parsed.data
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -39,6 +43,8 @@ export async function POST(request: NextRequest) {
       establishment_id: establishmentId,
       url: url ?? null,
       user_agent: userAgent ?? null,
+      category: category || null,
+      subject: subject || null,
       message,
     })
     if (error) {
@@ -48,13 +54,15 @@ export async function POST(request: NextRequest) {
 
     // Alerte opérateur (non bloquant : notifyOps ne lève jamais d'erreur).
     await notifyOps({
-      subject: `Nouveau signalement — ${profile?.full_name ?? user.email}`,
+      subject: `Nouveau signalement${subject ? ` — ${subject}` : ''} — ${profile?.full_name ?? user.email}`,
       body: [
         `De : ${user.email ?? '—'} (${profile?.role ?? 'rôle inconnu'})`,
+        category ? `Motif : ${category}` : null,
+        subject ? `Sujet : ${subject}` : null,
         `Page : ${url ?? '—'}`,
         '',
         message,
-      ].join('\n'),
+      ].filter(Boolean).join('\n'),
     })
 
     return NextResponse.json({ ok: true })

@@ -53,6 +53,33 @@ describe('POST /api/feedback', () => {
     expect(vi.mocked(notifyOps)).toHaveBeenCalledTimes(1)
   })
 
+  it('persiste motif + sujet et les inclut dans l\'alerte opérateur', async () => {
+    vi.mocked(createClient).mockResolvedValue(fakeSupabase({ id: 'u1', email: 'a@b.fr' }) as never)
+    const res = await POST(req({
+      message: 'Le bouton publier ne répond pas',
+      category: 'Problème technique',
+      subject: 'Publication planning',
+      url: 'https://x/manager/planning',
+    }))
+    expect(res.status).toBe(200)
+    expect(insertMock).toHaveBeenCalledTimes(1)
+    const payload = insertMock.mock.calls[0][0] as { category: string; subject: string }
+    expect(payload.category).toBe('Problème technique')
+    expect(payload.subject).toBe('Publication planning')
+    const opsArg = vi.mocked(notifyOps).mock.calls[0][0] as { subject: string; body: string }
+    expect(opsArg.subject).toContain('Publication planning')
+    expect(opsArg.body).toContain('Motif : Problème technique')
+  })
+
+  it('reste rétro-compatible : message seul (motif/sujet NULL)', async () => {
+    vi.mocked(createClient).mockResolvedValue(fakeSupabase({ id: 'u1', email: 'a@b.fr' }) as never)
+    const res = await POST(req({ message: 'Signalement simple sans motif' }))
+    expect(res.status).toBe(200)
+    const payload = insertMock.mock.calls[0][0] as { category: string | null; subject: string | null }
+    expect(payload.category).toBeNull()
+    expect(payload.subject).toBeNull()
+  })
+
   it('renvoie 500 si l\'insertion échoue (et n\'alerte pas)', async () => {
     vi.mocked(createClient).mockResolvedValue(fakeSupabase({ id: 'u1', email: 'a@b.fr' }) as never)
     insertMock.mockResolvedValue({ error: { message: 'db down' } })
