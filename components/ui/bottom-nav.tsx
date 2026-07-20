@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Calendar, Users, Palmtree, MoreHorizontal,
   Clock, Home, X, BarChart3, Settings, LogOut, Sun, Moon,
-  AlertTriangle,
+  AlertTriangle, LifeBuoy,
 } from 'lucide-react'
 import { NotificationsBell } from './notifications-bell'
 import { createClient } from '@/lib/supabase/client'
@@ -112,6 +112,7 @@ function ManagerMoreDrawer({
     { href: '/manager/alertes', icon: AlertTriangle, label: 'Alertes', badge: alertsCount },
     { href: '/manager/rapport', icon: BarChart3, label: 'Rapport' },
     { href: '/manager/settings', icon: Settings, label: 'Paramètres' },
+    { href: '/manager/support', icon: LifeBuoy, label: 'Contact' },
   ]
 
   return (
@@ -361,7 +362,7 @@ export function BottomNav({ role, pendingLeavesCount = 0, alertsCount = 0, compl
   }
 
   if (role === 'manager' || role === 'supervisor') {
-    const moreRoutes = ['/manager/presences', '/manager/alertes', '/manager/rapport', '/manager/settings']
+    const moreRoutes = ['/manager/presences', '/manager/alertes', '/manager/rapport', '/manager/settings', '/manager/support']
     const moreActive = moreRoutes.some(h => isActive(h, pathname))
 
     return (
