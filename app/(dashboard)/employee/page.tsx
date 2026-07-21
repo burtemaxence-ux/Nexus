@@ -124,7 +124,7 @@ export default async function EmployeeDashboard() {
           <div>
             <h1
               className="text-[22px] font-bold tracking-[-0.02em]"
-              style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+              style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
             >
               Bonjour {firstName} 👋
             </h1>
@@ -174,7 +174,7 @@ export default async function EmployeeDashboard() {
             <>
               <p
                 className="text-[24px] font-bold tracking-[-0.02em] mb-1"
-                style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+                style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
               >
                 {shift.start_time.slice(0, 5)}
                 <span className="text-[16px] font-normal mx-1.5" style={{ color: 'var(--text-tertiary)' }}>→</span>
@@ -198,7 +198,7 @@ export default async function EmployeeDashboard() {
               <p className="text-[13px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
                 Repos aujourd&apos;hui · prochain service
               </p>
-              <p className="text-[18px] font-bold tracking-[-0.02em] mt-1" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+              <p className="text-[18px] font-bold tracking-[-0.02em] mt-1" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
                 <span className="capitalize">{formatDateShort(nextShift.date)}</span>
                 <span className="text-[14px] font-normal mx-1.5" style={{ color: 'var(--text-tertiary)' }}>·</span>
                 {nextShift.start_time.slice(0, 5)} → {nextShift.end_time.slice(0, 5)}
@@ -227,7 +227,7 @@ export default async function EmployeeDashboard() {
                   <Clock className="h-4 w-4" style={{ color: badgeuseAccent ? 'rgba(255,255,255,0.8)' : 'var(--accent)' }} />
                   <span
                     className="text-[15px] font-semibold"
-                    style={{ fontFamily: 'var(--font-syne)', color: badgeuseAccent ? '#ffffff' : 'var(--text-primary)' }}
+                    style={{ fontFamily: 'var(--font-manrope)', color: badgeuseAccent ? '#ffffff' : 'var(--text-primary)' }}
                   >
                     {badgeuseLabel}
                   </span>
@@ -261,7 +261,7 @@ export default async function EmployeeDashboard() {
               className="dashboard-card rounded-[14px] p-3.5"
               style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
-              <p className="text-[20px] font-bold tracking-[-0.02em]" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+              <p className="text-[20px] font-bold tracking-[-0.02em]" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
                 {s.value}
               </p>
               <p className="text-[10px] uppercase tracking-[0.05em] mt-0.5" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
@@ -285,7 +285,7 @@ export default async function EmployeeDashboard() {
               >
                 <Calendar className="h-4 w-4" style={{ color: 'var(--accent)' }} />
               </div>
-              <p className="text-[13px] font-semibold mb-0.5" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+              <p className="text-[13px] font-semibold mb-0.5" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
                 Mon planning
               </p>
               <p className="text-[11px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>
@@ -316,7 +316,7 @@ export default async function EmployeeDashboard() {
                   </span>
                 )}
               </div>
-              <p className="text-[13px] font-semibold mb-0.5" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+              <p className="text-[13px] font-semibold mb-0.5" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
                 Mes congés
               </p>
               <p className="text-[11px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>
@@ -337,7 +337,7 @@ export default async function EmployeeDashboard() {
               >
                 <ArrowLeftRight className="h-4 w-4" style={{ color: 'var(--success)' }} />
               </div>
-              <p className="text-[13px] font-semibold mb-0.5" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+              <p className="text-[13px] font-semibold mb-0.5" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
                 Mes échanges
               </p>
               <p className="text-[11px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>
@@ -368,7 +368,7 @@ export default async function EmployeeDashboard() {
                   </span>
                 )}
               </div>
-              <p className="text-[13px] font-semibold mb-0.5" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+              <p className="text-[13px] font-semibold mb-0.5" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
                 Marketplace
               </p>
               <p className="text-[11px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>

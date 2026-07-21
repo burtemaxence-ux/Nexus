@@ -99,7 +99,7 @@ export function AccountDropdown({ userName, userEmail, role, currentPlan, onSign
         className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-[var(--accent-light)] transition-colors duration-150"
       >
         <div className="flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6C63FF 0%, #4A8FD4 100%)' }}>
-          <span className="text-[10px] font-bold text-white" style={{ fontFamily: 'var(--font-syne)' }}>
+          <span className="text-[10px] font-bold text-white" style={{ fontFamily: 'var(--font-manrope)' }}>
             {getInitials(userName || userEmail)}
           </span>
         </div>
@@ -413,7 +413,7 @@ export function Topbar({
         className="flex items-center gap-2 flex-shrink-0"
       >
         <Logo size={24} className="flex-shrink-0" />
-        <span className="text-[14px] font-semibold tracking-tight" style={{ color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}>
+        <span className="text-[14px] font-semibold tracking-tight" style={{ color: '#f0f0f8', fontFamily: 'var(--font-manrope)' }}>
           Quartzbase
         </span>
       </Link>

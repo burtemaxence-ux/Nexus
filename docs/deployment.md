@@ -333,3 +333,46 @@ Cocher chaque point avant la mise en production.
 - [ ] Sentry : vérifier qu'une erreur test remonte sur sentry.io
 - [ ] Healthcheck : `curl https://quartzbase.fr/api/health` retourne HTTP 200
 - [ ] Auth rate limits : configurer dans Supabase Dashboard > Authentication > Rate Limits
+
+## 10. Disaster recovery — restauration de la base (R5 / audit 2026-07-21, P1-7)
+
+Supabase effectue des **backups quotidiens automatiques** (rétention 7 jours sur le
+plan Pro). Aucune configuration n'est requise, mais la procédure de restauration
+doit être connue AVANT d'en avoir besoin.
+
+### Restauration complète (perte ou corruption majeure)
+
+1. Dashboard Supabase → projet `euvvibqzrhbleztqfdbu` → **Database → Backups**.
+2. Choisir le backup daté → **Restore**. ⚠️ La restauration **écrase** l'état
+   actuel du projet ; elle prend de quelques minutes à ~1 h selon la taille.
+3. Pendant la restauration, l'app est indisponible → activer le mode maintenance
+   (renommer temporairement le domaine Vercel ou afficher une page statique).
+4. Après restauration : vérifier `scripts/check-migrations.ts` (sondes des
+   migrations critiques), puis un parcours réel (login → planning → pointage).
+
+### Restauration chirurgicale (une table/lignes supprimées par erreur)
+
+Ne PAS restaurer tout le projet. Ouvrir un ticket Supabase (support Pro) pour
+obtenir un dump du backup daté, ou restaurer le backup vers un **nouveau projet
+jetable** puis rapatrier les lignes via `pg_dump --table` / `COPY`.
+
+### Test périodique (à faire 1×/trimestre, ~1 h)
+
+1. Créer un projet Supabase jetable (org de test).
+2. Y restaurer le dernier backup (via le support ou `pg_restore` du dump).
+3. Chronométrer et noter le temps ci-dessous.
+4. Supprimer le projet jetable.
+
+| Date du test | Temps de restauration | Testé par | Notes |
+|---|---|---|---|
+| _à remplir au premier test_ | | | |
+
+### À sauvegarder EN DEHORS de Supabase (le backup DB ne couvre pas tout)
+
+- **Secrets** : variables d'environnement Vercel (exporter une copie chiffrée),
+  clés Stripe/Resend/Anthropic/Twilio/VAPID.
+- **Storage Supabase** (documents RH, logos) : non inclus dans le backup DB —
+  prévoir un export périodique des buckets si le volume devient significatif.
+- **Configuration Stripe** : les produits/prix sont recréables via
+  `docs/deployment.md` §8 ; les abonnements clients vivent chez Stripe (pas de
+  risque de perte côté app).

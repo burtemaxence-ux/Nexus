@@ -98,7 +98,7 @@ export function ComplianceRing() {
           </span>
         </div>
         <div className="min-w-0 flex-1">
-          <p style={{ fontFamily: 'var(--font-syne)', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+          <p style={{ fontFamily: 'var(--font-manrope)', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
             {score === 100 ? 'Plannings conformes' : 'Conformité à vérifier'}
           </p>
           <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: '3px 0 0', lineHeight: 1.4 }}>

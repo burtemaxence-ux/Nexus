@@ -132,7 +132,7 @@ function LeaveForm({
           type="submit"
           disabled={submitting}
           className="btn-primary flex items-center justify-center gap-1.5 disabled:opacity-50 flex-1 md:flex-none"
-          style={{ fontFamily: 'var(--font-syne)' }}
+          style={{ fontFamily: 'var(--font-manrope)' }}
         >
           {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {submitting ? 'Envoi...' : 'Envoyer la demande'}
@@ -239,7 +239,7 @@ export default function EmployeeCongesPage() {
         <div>
           <h1
             className="text-[20px] font-bold tracking-[-0.02em]"
-            style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+            style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
           >
             Mes congés
           </h1>
@@ -251,7 +251,7 @@ export default function EmployeeCongesPage() {
           onClick={openForm}
           disabled={showForm}
           className="btn-primary flex items-center gap-1.5 disabled:opacity-50"
-          style={{ fontFamily: 'var(--font-syne)' }}
+          style={{ fontFamily: 'var(--font-manrope)' }}
         >
           <Plus className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Nouvelle demande</span>
@@ -265,7 +265,7 @@ export default function EmployeeCongesPage() {
           className="hidden md:block mb-6 p-5 rounded-[14px] dashboard-s1"
           style={{ border: '1px solid var(--accent)', backgroundColor: 'rgba(108,99,255,0.06)' }}
         >
-          <p className="text-[13px] font-semibold mb-4" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+          <p className="text-[13px] font-semibold mb-4" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
             Nouvelle demande d&apos;absence
           </p>
           <LeaveForm {...formProps} />
@@ -284,7 +284,7 @@ export default function EmployeeCongesPage() {
               <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-hover)' }} />
             </div>
             <div className="flex items-center justify-between px-5 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
-              <span className="text-[14px] font-semibold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+              <span className="text-[14px] font-semibold" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
                 Nouvelle demande
               </span>
               <button onClick={closeForm} className="p-1.5 rounded-lg" style={{ color: 'var(--text-tertiary)' }}>
@@ -305,7 +305,7 @@ export default function EmployeeCongesPage() {
         </div>
       ) : requests.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center dashboard-s1">
-          <p className="text-[13px] font-semibold mb-1" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-secondary)' }}>
+          <p className="text-[13px] font-semibold mb-1" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-secondary)' }}>
             Aucune demande
           </p>
           <p className="text-[12px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
@@ -332,7 +332,7 @@ export default function EmployeeCongesPage() {
                 </div>
                 <p
                   className="text-[14px] font-bold"
-                  style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+                  style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
                 >
                   {formatDate(req.start_date)}
                   {req.start_date !== req.end_date && (

@@ -133,7 +133,7 @@ export default function RegisterPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-[22px] font-bold" style={{ color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}>
+        <h2 className="text-[22px] font-bold" style={{ color: '#f0f0f8', fontFamily: 'var(--font-manrope)' }}>
           Vérifiez vos emails
         </h2>
         <p className="text-[14px]" style={{ color: '#9090a8', fontFamily: 'var(--font-dm-sans)' }}>
@@ -159,7 +159,7 @@ export default function RegisterPage() {
       <div className="auth-cascade-1 flex flex-col items-center mb-7 text-center">
         <h2
           className="text-[22px] font-bold tracking-tight mb-3"
-          style={{ color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}
+          style={{ color: '#f0f0f8', fontFamily: 'var(--font-manrope)' }}
         >
           Démarrez votre essai gratuit
         </h2>

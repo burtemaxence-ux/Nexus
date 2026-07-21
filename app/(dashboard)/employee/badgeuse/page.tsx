@@ -120,7 +120,7 @@ function TimePicker({ hour, minute, onHour, onMinute }: TimePickerProps) {
         </button>
         <span
           className="text-[40px] font-bold tabular-nums w-14 text-center"
-          style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+          style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
         >
           {String(hour).padStart(2, '0')}
         </span>
@@ -130,7 +130,7 @@ function TimePicker({ hour, minute, onHour, onMinute }: TimePickerProps) {
       </div>
       <span
         className="text-[30px] font-bold mb-1"
-        style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-tertiary)' }}
+        style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-tertiary)' }}
       >:
       </span>
       <div className="flex flex-col items-center">
@@ -139,7 +139,7 @@ function TimePicker({ hour, minute, onHour, onMinute }: TimePickerProps) {
         </button>
         <span
           className="text-[40px] font-bold tabular-nums w-14 text-center"
-          style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+          style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
         >
           {String(minute).padStart(2, '0')}
         </span>
@@ -272,7 +272,7 @@ export default function BadgeusePage() {
             <span className="font-medium" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--accent)' }}>
               {shifts[0].position ?? 'Service prévu'}
             </span>
-            <span className="font-bold tabular-nums" style={{ fontFamily: 'var(--font-syne)', color: 'var(--accent)' }}>
+            <span className="font-bold tabular-nums" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--accent)' }}>
               {shifts[0].start_time.slice(0, 5)} → {shifts[0].end_time.slice(0, 5)}
             </span>
           </div>
@@ -289,7 +289,7 @@ export default function BadgeusePage() {
             style={{ backgroundColor: 'var(--bg-card)', border: '1px dashed var(--border)' }}
           >
             <CalendarX className="h-10 w-10 mx-auto" style={{ color: 'var(--text-tertiary)' }} />
-            <p className="font-semibold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-secondary)' }}>
+            <p className="font-semibold" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-secondary)' }}>
               Pas de service aujourd&apos;hui
             </p>
             <p className="text-[12px] leading-relaxed" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
@@ -308,7 +308,7 @@ export default function BadgeusePage() {
                   <>
                     <span
                       className="tabular-nums"
-                      style={{ fontFamily: 'var(--font-syne)', fontSize: 44, fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)' }}
+                      style={{ fontFamily: 'var(--font-manrope)', fontSize: 44, fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)' }}
                     >
                       {clockDisplay}
                     </span>
@@ -328,7 +328,7 @@ export default function BadgeusePage() {
                     </div>
                     <span
                       className="tabular-nums"
-                      style={{ fontFamily: 'var(--font-syne)', fontSize: 40, fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)' }}
+                      style={{ fontFamily: 'var(--font-manrope)', fontSize: 40, fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)' }}
                     >
                       {fmtElapsed(p.clock_in, now)}
                     </span>
@@ -348,7 +348,7 @@ export default function BadgeusePage() {
                     </div>
                     <span
                       className="tabular-nums"
-                      style={{ fontFamily: 'var(--font-syne)', fontSize: 40, fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)' }}
+                      style={{ fontFamily: 'var(--font-manrope)', fontSize: 40, fontWeight: 700, lineHeight: 1, color: 'var(--text-primary)' }}
                     >
                       {fmtElapsed(p.break_start, now)}
                     </span>
@@ -361,7 +361,7 @@ export default function BadgeusePage() {
                 {state === 'done' && (
                   <>
                     <CheckDraw size={52} />
-                    <span className="text-[13px] mt-3 font-semibold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+                    <span className="text-[13px] mt-3 font-semibold" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
                       Journée terminée
                     </span>
                     <span className="tabular-nums text-[12px] mt-1" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
@@ -529,7 +529,7 @@ function RippleBtn({ color, icon, label, action, loading, onPress }: {
       onClick={handleClick}
       disabled={loading !== null}
       className="relative w-full flex items-center justify-center gap-2.5 rounded-[16px] font-semibold text-[15px] overflow-hidden transition-all active:scale-[0.98] disabled:opacity-50"
-      style={{ height: '58px', backgroundColor: bg, color: textColor, border, boxShadow: shadow, fontFamily: 'var(--font-syne)' }}
+      style={{ height: '58px', backgroundColor: bg, color: textColor, border, boxShadow: shadow, fontFamily: 'var(--font-manrope)' }}
     >
       {ripples.map(rp => (
         <span key={rp.id} className="badgeuse-ripple" style={{ left: rp.x, top: rp.y }} />
@@ -548,7 +548,7 @@ function Row({ label, value, bold = false }: { label: string; value: string; bol
       <span className="text-[13px]" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-secondary)' }}>{label}</span>
       <span
         className="tabular-nums text-[14px]"
-        style={{ fontFamily: 'var(--font-syne)', color: bold ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: bold ? 700 : 400 }}
+        style={{ fontFamily: 'var(--font-manrope)', color: bold ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: bold ? 700 : 400 }}
       >
         {value}
       </span>

@@ -60,7 +60,7 @@ function StatCard({
         )}
         <span className="text-[10px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>{label}</span>
       </div>
-      <p className="text-[24px] font-bold leading-none tabular-nums" style={{ fontFamily: 'var(--font-syne)', color }}>{value}</p>
+      <p className="text-[24px] font-bold leading-none tabular-nums" style={{ fontFamily: 'var(--font-manrope)', color }}>{value}</p>
       {sub && <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-tertiary)' }}>{sub}</p>}
     </div>
   )
@@ -80,7 +80,7 @@ function ProdStat({ icon: Icon, label, value, color = 'var(--text-primary)', sub
         <Icon className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
         <span className="text-[10px] font-medium uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>{label}</span>
       </div>
-      <p className="text-[22px] font-bold leading-none tabular-nums" style={{ fontFamily: 'var(--font-syne)', color }}>{value}</p>
+      <p className="text-[22px] font-bold leading-none tabular-nums" style={{ fontFamily: 'var(--font-manrope)', color }}>{value}</p>
       {sub && <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-tertiary)' }}>{sub}</p>}
     </div>
   )
@@ -482,7 +482,7 @@ export default function RapportPage() {
 
           {/* Étage 1 — Quel rapport (primaire) */}
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-[22px] font-bold tracking-[-0.02em] shrink-0" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>Rapport</h1>
+            <h1 className="text-[22px] font-bold tracking-[-0.02em] shrink-0" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>Rapport</h1>
 
             <div className="flex gap-0.5 p-0.5 rounded-[11px]" style={{ backgroundColor: 'var(--bg-input)' }}>
               {([
@@ -542,7 +542,7 @@ export default function RapportPage() {
               >
                 <ChevronLeft className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
               </button>
-              <span className="text-[13px] font-semibold capitalize text-center px-1" style={{ minWidth: 150, color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+              <span className="text-[13px] font-semibold capitalize text-center px-1" style={{ minWidth: 150, color: 'var(--text-primary)', fontFamily: 'var(--font-manrope)' }}>
                 {period.label}
               </span>
               <button
@@ -825,7 +825,7 @@ export default function RapportPage() {
               <Lock className="h-5 w-5" style={{ color: 'var(--accent)' }} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>Pilotage de la productivité <span className="text-[11px] font-semibold align-middle ml-1 px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>PRO</span></p>
+              <p className="text-[14px] font-bold" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>Pilotage de la productivité <span className="text-[11px] font-semibold align-middle ml-1 px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>PRO</span></p>
               <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>Coût/CA, masse salariale, absentéisme et turnover — passez en Pro pour piloter votre rentabilité.</p>
             </div>
             <a href="/manager/settings/billing" className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium flex-shrink-0" style={{ backgroundColor: 'var(--accent)', color: 'white' }}>
@@ -836,7 +836,7 @@ export default function RapportPage() {
         <div className="rounded-[14px] p-5" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
           <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
             <div>
-              <p className="text-[14px] font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>Productivité</p>
+              <p className="text-[14px] font-bold" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>Productivité</p>
               <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>Coût de la main d&apos;œuvre rapporté au chiffre d&apos;affaires.</p>
             </div>
             <button
@@ -1019,7 +1019,7 @@ export default function RapportPage() {
             style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
           >
             <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-              <p className="text-[15px] font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>Chiffre d&apos;affaires</p>
+              <p className="text-[15px] font-bold" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>Chiffre d&apos;affaires</p>
               <p className="text-[12px] capitalize" style={{ color: 'var(--text-tertiary)' }}>{period.label}</p>
             </div>
             <div className="px-5 py-3 overflow-y-auto space-y-2">

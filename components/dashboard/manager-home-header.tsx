@@ -25,7 +25,7 @@ export function ManagerHomeHeader({ firstName, establishmentName }: { firstName:
   return (
     <div className="flex items-center justify-between flex-wrap" style={{ gap: '16px' }}>
       <div>
-        <h1 style={{ fontFamily: 'var(--font-syne)', fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)' }}>
+        <h1 style={{ fontFamily: 'var(--font-manrope)', fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)' }}>
           Bonjour {firstName}
         </h1>
         <p style={{ fontSize: '12.5px', margin: '5px 0 0', color: 'var(--text-tertiary)' }}>

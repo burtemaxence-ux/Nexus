@@ -50,7 +50,7 @@ export function OpenSlots() {
           <Megaphone className="h-5 w-5" style={{ color: 'var(--warning)' }} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+          <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-manrope)' }}>
             Postes à pourvoir
           </p>
           <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>

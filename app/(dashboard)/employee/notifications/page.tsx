@@ -94,7 +94,7 @@ export default function EmployeeNotificationsPage() {
           <div className="flex items-center gap-2">
             <h1
               className="text-[20px] font-bold tracking-[-0.02em]"
-              style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+              style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
             >
               Notifications
             </h1>
@@ -137,7 +137,7 @@ export default function EmployeeNotificationsPage() {
           >
             <Bell className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
           </div>
-          <p className="text-[14px] font-semibold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-secondary)' }}>
+          <p className="text-[14px] font-semibold" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-secondary)' }}>
             Aucune notification
           </p>
           <p className="text-[12px] mt-1" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
@@ -169,7 +169,7 @@ export default function EmployeeNotificationsPage() {
                     <div className="flex items-start justify-between gap-2">
                       <p
                         className="text-[13px] font-semibold"
-                        style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+                        style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
                       >
                         {notif.title}
                       </p>

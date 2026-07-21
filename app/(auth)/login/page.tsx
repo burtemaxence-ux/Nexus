@@ -98,7 +98,7 @@ export default function LoginPage() {
           <Logo size={36} />
           <span
             className="text-[18px] font-bold tracking-tight"
-            style={{ color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}
+            style={{ color: '#f0f0f8', fontFamily: 'var(--font-manrope)' }}
           >
             Quartzbase
           </span>

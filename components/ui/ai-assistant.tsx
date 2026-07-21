@@ -437,7 +437,7 @@ export function AiAssistant({
               <QuartzBot className="relative h-4 w-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-white" style={{ fontFamily: 'var(--font-syne)' }}>Nina</p>
+              <p className="text-sm font-semibold text-white" style={{ fontFamily: 'var(--font-manrope)' }}>Nina</p>
               <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.7)' }}>Propulsé par Claude</p>
             </div>
           </div>

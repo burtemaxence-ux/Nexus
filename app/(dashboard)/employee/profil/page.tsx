@@ -79,7 +79,7 @@ export default async function ProfilPage() {
             <div className="min-w-0">
               <h1
                 className="text-[20px] font-bold tracking-[-0.02em] truncate"
-                style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+                style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
               >
                 {name}
               </h1>

@@ -15,7 +15,7 @@ import { KpiCard } from '@/components/dashboard/kpi-card'
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
-type ShiftRow = { date?: string; start_time?: string | null; end_time?: string | null; break_minutes?: number | null }
+type ShiftRow = { date?: string; start_time?: string | null; end_time?: string | null; break_minutes?: number | null; poste_id?: string | null }
 
 // Durée d'un shift en heures (gère les shifts de nuit et déduit la pause).
 function shiftHours(s: ShiftRow): number {
@@ -43,6 +43,8 @@ interface Metrics {
   latenessCount: number
   plannedHours: number
   hoursPct: number | null
+  weekCost: number
+  costPct: number | null
   todayRate: number | null
   todayTotal: number
   todayPointed: number
@@ -135,7 +137,7 @@ export function ManagerMetricsClient() {
         { data: anyShift },
         { data: anyPublished },
         { data: weekStatus },
-        { count: postesCount },
+        { data: postesRows },
         { count: exchangePending },
         { count: cddExpiring },
         { data: latenessSpark },
@@ -145,15 +147,15 @@ export function ManagerMetricsClient() {
         supabase.from('profiles').select('id').eq('role', 'employee').eq('archived', false),
         supabase.from('leave_requests').select('id').eq('status', 'pending'),
         supabase.from('settings').select('value').eq('key', 'establishment_name').maybeSingle(),
-        supabase.from('shifts').select('employee_id, date, start_time, end_time, break_minutes').gte('date', weekStart).lte('date', weekEnd).is('deleted_at', null),
-        supabase.from('shifts').select('start_time, end_time, break_minutes').gte('date', prevStart).lte('date', prevEnd).is('deleted_at', null),
+        supabase.from('shifts').select('employee_id, date, start_time, end_time, break_minutes, poste_id').gte('date', weekStart).lte('date', weekEnd).is('deleted_at', null),
+        supabase.from('shifts').select('start_time, end_time, break_minutes, poste_id').gte('date', prevStart).lte('date', prevEnd).is('deleted_at', null),
         supabase.from('lateness_records').select('id').gte('date', monthStart),
         supabase.from('shifts').select('employee_id, profiles:employee_id(full_name)').eq('date', todayDate).is('deleted_at', null),
         supabase.from('presences').select('employee_id, clock_in, clock_out').eq('date', todayDate).not('clock_in', 'is', null),
         supabase.from('shifts').select('id').is('deleted_at', null).limit(1),
         supabase.from('week_status').select('week_monday').eq('published', true).limit(1),
         supabase.from('week_status').select('published').eq('week_monday', weekStart).maybeSingle(),
-        supabase.from('postes').select('*', { count: 'exact', head: true }),
+        supabase.from('postes').select('id, hourly_cost'),
         supabase.from('shift_exchanges').select('id', { count: 'exact', head: true }).eq('status', 'pending_approval'),
         supabase.from('contracts').select('id', { count: 'exact', head: true }).not('end_date', 'is', null).gte('end_date', todayDate).lte('end_date', in30),
         // Séries 8 semaines (sparklines réelles).
@@ -170,6 +172,14 @@ export function ManagerMetricsClient() {
       const plannedHours = Math.round((weekShifts ?? []).reduce((s: number, x: ShiftRow) => s + shiftHours(x), 0))
       const prevHours = Math.round((prevShifts ?? []).reduce((s: number, x: ShiftRow) => s + shiftHours(x), 0))
       const hoursPct = prevHours > 0 ? Math.round(((plannedHours - prevHours) / prevHours) * 100) : null
+
+      // Masse salariale prévisionnelle : heures × coût horaire du poste (P1-1).
+      // 0 si aucun coût horaire n'est configuré → le footer retombe sur le % d'heures.
+      const rateOf = new Map((postesRows ?? []).map((p: { id: string; hourly_cost: number | null }) => [p.id, p.hourly_cost ?? 0]))
+      const shiftCost = (s: ShiftRow) => shiftHours(s) * (s.poste_id ? (rateOf.get(s.poste_id) ?? 0) : 0)
+      const weekCost = Math.round((weekShifts ?? []).reduce((sum: number, x: ShiftRow) => sum + shiftCost(x), 0))
+      const prevCost = Math.round((prevShifts ?? []).reduce((sum: number, x: ShiftRow) => sum + shiftCost(x), 0))
+      const costPct = weekCost > 0 && prevCost > 0 ? Math.round(((weekCost - prevCost) / prevCost) * 100) : null
 
       // Présence du jour : employés planifiés aujourd'hui ayant pointé.
       type TodayShiftRow = { employee_id: string; profiles: { full_name: string | null } | { full_name: string | null }[] | null }
@@ -219,14 +229,14 @@ export function ManagerMetricsClient() {
       const isDefaultName = !nameRow?.value || nameRow.value === 'Mon établissement'
       const onboardingSteps = [
         { title: 'Nommer votre établissement', description: 'Ajoutez le nom et les informations de votre établissement.', done: !isDefaultName, href: '/manager/settings/organisation', cta: 'Configurer' },
-        { title: 'Créer vos postes', description: 'Définissez les rôles de votre équipe (ex. Serveur, Cuisinier).', done: (postesCount ?? 0) > 0, href: '/manager/settings/postes', cta: 'Créer' },
+        { title: 'Créer vos postes', description: 'Définissez les rôles de votre équipe (ex. Serveur, Cuisinier).', done: (postesRows?.length ?? 0) > 0, href: '/manager/settings/postes', cta: 'Créer' },
         { title: 'Inviter des employés', description: 'Ajoutez les membres de votre équipe.', done: employeeCount > 0, href: '/manager/employees/new', cta: 'Inviter' },
         { title: 'Créer un premier shift', description: 'Planifiez votre premier horaire dans le planning.', done: (anyShift?.length ?? 0) > 0, href: '/manager/planning', cta: 'Planifier' },
         { title: 'Publier le planning', description: 'Rendez le planning visible pour vos employés.', done: (anyPublished?.length ?? 0) > 0, href: '/manager/planning', cta: 'Publier' },
       ]
 
       setMetrics({
-        employeeCount, pendingCount, latenessCount, plannedHours, hoursPct,
+        employeeCount, pendingCount, latenessCount, plannedHours, hoursPct, weekCost, costPct,
         todayRate, todayTotal, todayPointed, onDutyInitials,
         exchangePending: exchangePending ?? 0, cddExpiring: cddExpiring ?? 0,
         presenceSpark, hoursSpark, retardsSpark, congesSpark, equipeSpark, weekLoad,
@@ -241,7 +251,7 @@ export function ManagerMetricsClient() {
   if (!metrics) return <MetricsSkeleton />
 
   const {
-    employeeCount, pendingCount, latenessCount, plannedHours, hoursPct,
+    employeeCount, pendingCount, latenessCount, plannedHours, hoursPct, weekCost, costPct,
     todayRate, todayTotal, todayPointed, onDutyInitials,
     exchangePending, cddExpiring, presenceSpark, hoursSpark, retardsSpark, congesSpark, equipeSpark, weekLoad, weekPublished,
     onboardingSteps, onboardingAllDone,
@@ -293,7 +303,17 @@ export function ManagerMetricsClient() {
           label="Heures planifiées" value={plannedHours} suffix="h"
           color={PALETTE.green.color} halo={PALETTE.green.halo} glow={PALETTE.green.glow} iconBg={PALETTE.green.iconBg}
           icon={Timer} sparkData={hoursSpark} gradientId="kpi-hours"
-          footer={hoursPct === null
+          footer={weekCost > 0
+            // Masse salariale prévisionnelle de la semaine (heures × coût
+            // horaire des postes). Delta en couleur neutre : un coût qui
+            // monte n'est ni « bon » ni « mauvais » en soi.
+            ? <div className="flex items-center" style={{ gap: '5px' }}>
+                <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>≈ {weekCost.toLocaleString('fr-FR')} €</span>
+                {costPct !== null && (
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>· {costPct >= 0 ? '+' : ''}{costPct}% vs N-1</span>
+                )}
+              </div>
+            : hoursPct === null
             ? <span style={{ fontSize: '11.5px', color: 'var(--text-tertiary)' }}>planifiées cette semaine</span>
             : <div className="flex items-center" style={{ gap: '5px' }}>
                 {footerArrow(hoursPct >= 0)}

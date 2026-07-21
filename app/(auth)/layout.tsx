@@ -34,7 +34,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Logo size={36} />
           <span
             className="text-[17px] font-semibold tracking-tight"
-            style={{ color: '#f0f0f8', fontFamily: 'var(--font-syne)' }}
+            style={{ color: '#f0f0f8', fontFamily: 'var(--font-manrope)' }}
           >
             Quartzbase
           </span>

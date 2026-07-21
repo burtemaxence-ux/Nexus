@@ -302,7 +302,7 @@ export default function PresencesDashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.02em]" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+          <h1 className="text-[22px] font-bold tracking-[-0.02em]" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
             Présences
           </h1>
           <p className="text-[13px] mt-1 capitalize" style={{ color: 'var(--text-tertiary)' }}>{todayLabel}</p>
@@ -354,7 +354,7 @@ export default function PresencesDashboardPage() {
               <div className="w-8 h-8 rounded-[9px] flex items-center justify-center mb-3" style={{ backgroundColor: bg }}>
                 <Icon className="h-4 w-4" style={{ color }} />
               </div>
-              <p className="text-[28px] font-bold leading-none tabular-nums" style={{ fontFamily: 'var(--font-syne)', color }}>{counts[key]}</p>
+              <p className="text-[28px] font-bold leading-none tabular-nums" style={{ fontFamily: 'var(--font-manrope)', color }}>{counts[key]}</p>
               <p className="text-[10px] uppercase tracking-[0.06em] mt-2" style={{ color: 'var(--text-tertiary)' }}>{label}</p>
             </div>
           ))}
@@ -444,7 +444,7 @@ function PresenceCard({ row, now, index }: { row: TableRow; now: Date; index: nu
         {/* Avatar + pastille live */}
         <div className="relative flex-shrink-0">
           <div className="h-11 w-11 rounded-full flex items-center justify-center text-[12px] font-semibold"
-            style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontFamily: 'var(--font-syne)' }}>
+            style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontFamily: 'var(--font-manrope)' }}>
             {getInitials(employee.full_name, employee.email)}
           </div>
           {live && (
@@ -513,7 +513,7 @@ function Mini({ label, value, color = 'var(--text-primary)' }: { label: string; 
       style={{ backgroundColor: 'var(--bg-input)' }}
     >
       <p className="text-[9px] uppercase tracking-[0.06em] mb-0.5" style={{ color: 'var(--text-tertiary)' }}>{label}</p>
-      <p className="text-[13px] font-semibold tabular-nums leading-none" style={{ color, fontFamily: 'var(--font-syne)' }}>{value}</p>
+      <p className="text-[13px] font-semibold tabular-nums leading-none" style={{ color, fontFamily: 'var(--font-manrope)' }}>{value}</p>
     </div>
   )
 }

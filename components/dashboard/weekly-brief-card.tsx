@@ -61,7 +61,7 @@ export function WeeklyBriefCard() {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center" style={{ gap: '8px', marginBottom: '5px' }}>
-            <span style={{ fontFamily: 'var(--font-syne)', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            <span style={{ fontFamily: 'var(--font-manrope)', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
               Brief de la semaine
             </span>
             <span

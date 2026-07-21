@@ -88,7 +88,7 @@ function MobilePlanningView({
           <ChevronLeft className="h-4 w-4" />
         </Link>
         <div className="flex items-center gap-2">
-          <span className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+          <span className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
             {weekLabel}
           </span>
           {isCurrentWeek && (
@@ -137,7 +137,7 @@ function MobilePlanningView({
               </span>
               <span
                 className="text-[16px] font-bold leading-none"
-                style={{ fontFamily: 'var(--font-syne)', color: selected ? '#fff' : today ? 'var(--accent)' : 'var(--text-primary)' }}
+                style={{ fontFamily: 'var(--font-manrope)', color: selected ? '#fff' : today ? 'var(--accent)' : 'var(--text-primary)' }}
               >
                 {dayNum}
               </span>
@@ -164,7 +164,7 @@ function MobilePlanningView({
         <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
           <h3
             className="text-[14px] font-semibold capitalize"
-            style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+            style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
           >
             {selectedDayLabel}
           </h3>
@@ -207,7 +207,7 @@ function MobilePlanningView({
                     <div className="flex items-center justify-between">
                       <span
                         className="text-[17px] font-bold tabular-nums"
-                        style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+                        style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
                       >
                         {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
                       </span>
@@ -246,7 +246,7 @@ function MobilePlanningView({
         {/* Week summary */}
         <div className="px-4 py-3 flex items-center justify-between gap-4" style={{ borderTop: '1px solid var(--border)' }}>
           <div className="text-center flex-1">
-            <p className="text-[18px] font-bold" style={{ fontFamily: 'var(--font-syne)', color: totalHours > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+            <p className="text-[18px] font-bold" style={{ fontFamily: 'var(--font-manrope)', color: totalHours > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
               {totalHours > 0 ? formatHours(totalHours) : '—'}
             </p>
             <p className="text-[10px] uppercase tracking-[0.06em] mt-0.5" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
@@ -255,7 +255,7 @@ function MobilePlanningView({
           </div>
           <div className="w-px h-8" style={{ backgroundColor: 'var(--border)' }} />
           <div className="text-center flex-1">
-            <p className="text-[18px] font-bold" style={{ fontFamily: 'var(--font-syne)', color: totalDays > 0 ? 'var(--accent)' : 'var(--text-tertiary)' }}>
+            <p className="text-[18px] font-bold" style={{ fontFamily: 'var(--font-manrope)', color: totalDays > 0 ? 'var(--accent)' : 'var(--text-tertiary)' }}>
               {totalDays > 0 ? totalDays : '—'}
             </p>
             <p className="text-[10px] uppercase tracking-[0.06em] mt-0.5" style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}>
@@ -337,7 +337,7 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
           <div className="flex items-center gap-2">
             <h2
               className="text-[15px] font-semibold"
-              style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+              style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
             >
               {weekLabel}
             </h2>
@@ -384,7 +384,7 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
                         borderRight: '1px solid var(--border)',
                       }}
                     >
-                      <div className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-syne)' }}>{weekday}</div>
+                      <div className="text-[13px] font-semibold" style={{ fontFamily: 'var(--font-manrope)' }}>{weekday}</div>
                       <div className="text-[11px] font-normal mt-0.5" style={{ fontFamily: 'var(--font-dm-sans)', color: today ? 'var(--accent)' : 'var(--text-tertiary)' }}>
                         {dayMonth}
                       </div>
@@ -403,7 +403,7 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
               <tr style={{ backgroundColor: 'var(--bg-card)' }}>
                 <td className="px-4 py-3" style={{ borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
                   <div>
-                    <p className="truncate text-[13px] font-semibold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+                    <p className="truncate text-[13px] font-semibold" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
                       {employee.full_name ?? employee.email}
                     </p>
                     {employee.position && (
@@ -453,7 +453,7 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
                                   color: accentColor,
                                 }}
                               >
-                                <p className="font-semibold text-[12px]" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+                                <p className="font-semibold text-[12px]" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
                                   {formatTime(shift.start_time)} – {formatTime(shift.end_time)}
                                 </p>
                                 <p className="truncate text-[11px]" style={{ fontFamily: 'var(--font-dm-sans)', color: accentColor, opacity: 0.85 }}>
@@ -481,7 +481,7 @@ export function EmployeePlanningGrid({ weekDates, employee, shifts, postes, leav
                 <td className="px-3 py-3 text-center align-middle" style={{ borderBottom: '1px solid var(--border)' }}>
                   <span
                     className="text-[14px] font-bold"
-                    style={{ fontFamily: 'var(--font-syne)', color: totalHours > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+                    style={{ fontFamily: 'var(--font-manrope)', color: totalHours > 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
                   >
                     {totalHours > 0 ? formatHours(totalHours) : '—'}
                   </span>

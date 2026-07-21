@@ -14,6 +14,12 @@ jobs:
   quality:
     name: Typecheck · Lint · Tests · Build
     runs-on: ubuntu-latest
+    # Variables publiques Supabase (Settings → Secrets and variables → Actions
+    # → Variables). Inlinées au build par Next (NEXT_PUBLIC_*) ; vides tant
+    # qu'elles ne sont pas configurées — le build les tolère, le smoke se saute.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -43,3 +49,16 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Smoke HTTP (audit 2026-07-21, P1-4) : démarre l'app buildée et vérifie
+      # que les pages publiques répondent et qu'une route protégée redirige
+      # vers /login. Nécessite les 2 variables publiques Supabase en secrets
+      # (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY) ; l'étape
+      # est sautée proprement tant qu'elles ne sont pas configurées.
+      - name: Smoke test HTTP
+        if: ${{ vars.NEXT_PUBLIC_SUPABASE_URL != '' }}
+        run: |
+          npx next start -p 3100 & echo $! > /tmp/next.pid
+          for i in $(seq 1 30); do curl -sf http://localhost:3100/login -o /dev/null && break; sleep 1; done
+          BASE_URL=http://localhost:3100 node scripts/smoke.mjs
+          kill "$(cat /tmp/next.pid)" || true

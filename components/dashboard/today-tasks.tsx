@@ -80,7 +80,7 @@ export function TodayTasks({ tasks }: { tasks: HomeTask[] }) {
       style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 1px 2px rgba(16,24,40,0.05), 0 10px 26px -12px rgba(16,24,40,0.12)' }}
     >
       <div className="flex items-center justify-between" style={{ padding: '16px 18px 4px' }}>
-        <p style={{ fontFamily: 'var(--font-syne)', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+        <p style={{ fontFamily: 'var(--font-manrope)', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
           À faire aujourd&apos;hui
         </p>
         <span

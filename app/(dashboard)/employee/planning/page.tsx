@@ -105,7 +105,7 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
           <div className="flex items-center gap-2">
             <h1
               className="text-[20px] font-bold tracking-[-0.02em]"
-              style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}
+              style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
             >
               Mon planning
             </h1>
@@ -135,7 +135,7 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
             </svg>
           </div>
-          <h2 className="text-[15px] font-semibold mb-2" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+          <h2 className="text-[15px] font-semibold mb-2" style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}>
             Planning en cours de préparation
           </h2>
           <p className="text-[13px] max-w-sm" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-dm-sans)' }}>

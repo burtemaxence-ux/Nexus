@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Syne, DM_Sans, Manrope } from 'next/font/google'
+import { Inter, DM_Sans, Manrope } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { PwaRegister } from '@/components/ui/pwa-register'
 import { Analytics } from '@vercel/analytics/react'
@@ -7,10 +7,12 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import './globals.css'
 
+// Syne retirée le 2026-07-21 (audit P1-5, reco de juin : grotesque sobre pour
+// la cible artisan). Les titres passent sur Manrope — graisse 800 ajoutée pour
+// remplacer les usages Syne 700/800.
 const inter   = Inter({ subsets: ['latin'], display: 'swap' })
-const syne    = Syne({ subsets: ['latin'], display: 'swap', variable: '--font-syne', weight: ['600', '700', '800'] })
 const dmSans  = DM_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-dm-sans' })
-const manrope = Manrope({ subsets: ['latin'], display: 'swap', variable: '--font-manrope', weight: ['400', '500', '600', '700'] })
+const manrope = Manrope({ subsets: ['latin'], display: 'swap', variable: '--font-manrope', weight: ['400', '500', '600', '700', '800'] })
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://quartzbase.fr'),
@@ -60,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         )}
       </head>
-      <body className={`${inter.className} ${syne.variable} ${dmSans.variable} ${manrope.variable}`}>
+      <body className={`${inter.className} ${dmSans.variable} ${manrope.variable}`}>
         <ErrorBoundary>
           {children}
         </ErrorBoundary>

@@ -59,7 +59,7 @@ export function OnboardingChecklist({ steps }: OnboardingChecklistProps) {
             <Rocket size={15} style={{ color: '#6C63FF' }} />
           </div>
           <div>
-            <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, fontFamily: 'var(--font-syne)' }}>
+            <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3, fontFamily: 'var(--font-manrope)' }}>
               Commencer avec Quartzbase
             </p>
             <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>

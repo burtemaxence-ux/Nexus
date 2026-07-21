@@ -76,7 +76,7 @@ export function ComplianceOverview() {
             <ShieldCheck className="h-5 w-5" style={{ color: 'var(--success)' }} />
           </div>
           <div className="min-w-0">
-            <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+            <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-manrope)' }}>
               Vos plannings sont conformes
             </p>
             <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
@@ -117,7 +117,7 @@ export function ComplianceOverview() {
           <ShieldAlert className="h-5 w-5" style={{ color: critical > 0 ? 'var(--danger)' : 'var(--warning)' }} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+          <p className="text-[14px] font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-manrope)' }}>
             {alerts.length} alerte{alerts.length > 1 ? 's' : ''} de conformité
           </p>
           <p className="text-[12px] mt-0.5" style={{ color: critical > 0 ? 'var(--danger)' : 'var(--text-secondary)' }}>

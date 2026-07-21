@@ -103,7 +103,7 @@ export function TodayRoster() {
           <CalendarClock className="h-5 w-5" style={{ color: 'var(--accent)' }} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+          <p className="text-[14px] font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-manrope)' }}>
             Service du jour
             {shifts.length > 0 && (
               <span className="w-1.5 h-1.5 rounded-full dot-pulse-green" style={{ backgroundColor: 'var(--success)' }} title="En direct" />
