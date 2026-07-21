@@ -156,13 +156,13 @@ export function Sidebar({
   // Collapsible groups — default open; persisted across sessions.
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
   // Theme toggle lives in the footer (Nexus `.dark` mechanism, `dp-theme` key).
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState(false)
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem('qb-sidebar-groups')
       if (raw) setOpenGroups(JSON.parse(raw))
-      setIsDark(localStorage.getItem('dp-theme') !== 'light')
+      setIsDark(localStorage.getItem('dp-theme') === 'dark')
     } catch { /* ignore */ }
   }, [])
 

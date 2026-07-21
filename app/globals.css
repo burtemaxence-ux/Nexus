@@ -42,10 +42,13 @@ html {
     --accent-hover:   #5B52E8;
     --accent-light:   rgba(108,99,255,0.10);
 
-    /* ── Status ───────────────────────────────────── */
-    --success:        #12b886;
-    --warning:        #f08c00;
-    --danger:         #fa5252;
+    /* ── Status ───────────────────────────────────────
+       Teintes alignées sur la famille sev-* du thème clair (WCAG : ≥3:1
+       sur fond blanc pour les trois ; danger atteint 4.83:1). Les anciennes
+       valeurs (#12b886 / #f08c00) étaient sous 2.6:1 sur fond clair. */
+    --success:        #16A34A;
+    --warning:        #D97706;
+    --danger:         #DC2626;
 
     /* ── Compliance severity (theme-aware) ────────── */
     --sev-critical-fg:     #DC2626;

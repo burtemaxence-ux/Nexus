@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('dp-theme');var p=location.pathname;var app=p.indexOf('/manager')===0||p.indexOf('/employee')===0||p.indexOf('/supervisor')===0;if(!(app&&t==='light')){document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})()`,
+            __html: `(function(){var p=location.pathname;var app=p.indexOf('/manager')===0||p.indexOf('/employee')===0||p.indexOf('/supervisor')===0;var d;try{d=!app||localStorage.getItem('dp-theme')==='dark'}catch(e){d=!app}if(d){document.documentElement.classList.add('dark')}})()`,
           }}
         />
         {supabaseUrl && (

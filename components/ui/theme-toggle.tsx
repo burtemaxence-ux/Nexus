@@ -7,14 +7,14 @@ import { Moon, Sun } from 'lucide-react'
  * Light/dark toggle for the authenticated app. Persists the choice in
  * `dp-theme` (read at first paint by the inline script in app/layout.tsx)
  * and flips the `.dark` class that drives the CSS variables + Tailwind
- * `dark:` variants. Default is dark when nothing is stored.
+ * `dark:` variants. Default is light when nothing is stored (N4).
  */
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState(false)
 
   useEffect(() => {
     try {
-      setIsDark(localStorage.getItem('dp-theme') !== 'light')
+      setIsDark(localStorage.getItem('dp-theme') === 'dark')
     } catch { /* ignore */ }
   }, [])
 

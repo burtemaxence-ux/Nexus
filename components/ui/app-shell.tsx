@@ -54,12 +54,12 @@ export function AppShell({
   const [collapsed, setCollapsed] = useState(false)
   const router = useRouter()
 
-  // Apply the user's chosen theme inside the app (default dark). On unmount
-  // — i.e. navigating out to the landing/auth pages, which are dark-only —
-  // restore dark so the marketing surface keeps its brand look.
+  // Apply the user's chosen theme inside the app (default light — N4). On
+  // unmount — i.e. navigating out to the landing/auth pages, which are
+  // dark-only — restore dark so the marketing surface keeps its brand look.
   useEffect(() => {
     try {
-      document.documentElement.classList.toggle('dark', localStorage.getItem('dp-theme') !== 'light')
+      document.documentElement.classList.toggle('dark', localStorage.getItem('dp-theme') === 'dark')
       setCollapsed(localStorage.getItem('qb-sidebar-collapsed') === '1')
     } catch { /* ignore */ }
     return () => { document.documentElement.classList.add('dark') }
