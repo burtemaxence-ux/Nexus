@@ -80,7 +80,7 @@ export default function AProposPage() {
         </CardGrid>
       </Section>
 
-      <FinalCta title="Faites connaissance avec l’outil" text="Le meilleur moyen de savoir si on parle votre langue, c'est d'essayer. 14 jours gratuits, sans carte bancaire." />
+      <FinalCta title="Faites connaissance avec l’outil" text="Le meilleur moyen de savoir si on parle votre langue, c'est d'essayer. 30 jours gratuits, sans carte bancaire." />
     </PageWrap>
   )
 }

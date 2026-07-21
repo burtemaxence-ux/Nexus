@@ -107,7 +107,7 @@ export default function ConformitePage() {
         </p>
       </Section>
 
-      <FinalCta title="Ne signez plus un planning à l’aveugle" text="Voyez vos infractions avant qu’elles n’arrivent. 14 jours gratuits, sans carte bancaire." />
+      <FinalCta title="Ne signez plus un planning à l’aveugle" text="Voyez vos infractions avant qu’elles n’arrivent. 30 jours gratuits, sans carte bancaire." />
     </PageWrap>
   )
 }

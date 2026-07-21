@@ -49,7 +49,7 @@ export default function GuideDemarragePage() {
         </CardGrid>
       </Section>
 
-      <FinalCta title="Faites votre premier planning" text="10 minutes suffisent. 14 jours gratuits, sans carte bancaire, sans engagement." />
+      <FinalCta title="Faites votre premier planning" text="10 minutes suffisent. 30 jours gratuits, sans carte bancaire, sans engagement." />
     </PageWrap>
   )
 }

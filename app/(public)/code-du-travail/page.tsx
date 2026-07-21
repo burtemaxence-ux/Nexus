@@ -55,7 +55,7 @@ export default function CodeDuTravailPage() {
         </p>
       </Section>
 
-      <FinalCta title="Restez en règle, automatiquement" text="Laissez Quartzbase vérifier le Code du travail à votre place. 14 jours gratuits." />
+      <FinalCta title="Restez en règle, automatiquement" text="Laissez Quartzbase vérifier le Code du travail à votre place. 30 jours gratuits." />
     </PageWrap>
   )
 }

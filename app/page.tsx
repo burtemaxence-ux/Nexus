@@ -19,11 +19,11 @@ import { LandingStyles }      from '@/components/public/landing-styles'
 export const metadata: Metadata = {
   title: 'Quartzbase — Le planning qui vous protège des prud\'hommes',
   description:
-    'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 14 jours gratuits, sans carte bancaire.',
+    'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 30 jours gratuits, sans carte bancaire.',
   openGraph: {
     title: 'Quartzbase — Le planning qui vous protège des prud\'hommes',
     description:
-      'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 14 jours gratuits, sans carte bancaire.',
+      'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 30 jours gratuits, sans carte bancaire.',
     url: 'https://quartzbase.fr',
     siteName: 'Quartzbase',
     locale: 'fr_FR',
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Quartzbase — Le planning qui vous protège des prud\'hommes',
     description:
-      'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 14 jours gratuits, sans carte bancaire.',
+      'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 30 jours gratuits, sans carte bancaire.',
   },
 }
 

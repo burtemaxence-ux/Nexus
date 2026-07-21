@@ -113,7 +113,7 @@ export function HeroSection() {
 
           {/* Réassurance */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 13.5, color: '#79828f', flexWrap: 'wrap' }}>
-            <span>14 jours gratuits</span>
+            <span>30 jours gratuits</span>
             <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#5a5a72' }} />
             <span>Sans carte bancaire</span>
             <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#5a5a72' }} />

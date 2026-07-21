@@ -104,7 +104,7 @@ export function Placeholder({ children }: { children: ReactNode }) {
 /** Bloc CTA de conversion, réutilisé en bas des pages de contenu. */
 export function FinalCta({
   title = 'Prêt à récupérer vos soirées ?',
-  text = 'Créez votre premier planning conforme en 10 minutes. 14 jours gratuits, sans carte bancaire.',
+  text = 'Créez votre premier planning conforme en 10 minutes. 30 jours gratuits, sans carte bancaire.',
 }: {
   title?: string
   text?: string
