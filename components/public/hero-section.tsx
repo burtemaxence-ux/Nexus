@@ -88,27 +88,6 @@ export function HeroSection() {
               <span style={{ position: 'relative', zIndex: 1, display: 'flex' }}><ArrowRight size={18} strokeWidth={2.4} /></span>
             </Link>
 
-            <a
-              href="https://demo.quartzbase.fr"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                background: 'transparent',
-                color: '#f0f0f8',
-                border: '1px solid rgba(255,255,255,0.14)',
-                borderRadius: 11,
-                padding: '16px 24px',
-                fontFamily: FONT,
-                fontSize: 15,
-                fontWeight: 600,
-                textDecoration: 'none',
-                transition: 'border-color 180ms ease',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(108,99,255,0.5)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)')}
-            >
-              Voir une démo →
-            </a>
           </div>
 
           {/* Réassurance */}
