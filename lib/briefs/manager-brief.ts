@@ -1,0 +1,207 @@
+import Anthropic from '@anthropic-ai/sdk'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { getISOWeekNumber, getLastWeekBounds, getThisWeekBounds, addDays } from '@/lib/utils/dates'
+import { captureError } from '@/lib/logger'
+
+// Brief hebdo manager : logique partagée entre le cron de soumission batch
+// (weekly-brief-submit, lundi 6h30) et le cron d'envoi (weekly-brief-manager,
+// lundi 7h00). Le prompt et le modèle doivent rester identiques entre le
+// chemin batch et le fallback synchrone.
+
+export const BRIEF_FEATURE = 'weekly-brief-manager'
+export const BRIEF_MODEL = 'claude-haiku-4-5-20251001'
+export const BRIEF_MAX_TOKENS = 300
+
+export interface EstablishmentBriefData {
+  est_id: string
+  est_name: string
+  week_label: string
+  context: string
+}
+
+function isoWeekLabel(monday: Date): string {
+  const weekNum = getISOWeekNumber(monday)
+  return `Semaine ${weekNum} (${monday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} – ${addDays(monday, 6).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })})`
+}
+
+export function buildBriefPrompt(contextData: string): string {
+  return `Tu es un collègue RH chaleureux qui fait le point hebdomadaire, à l'oral, à un manager de restauration ou de commerce.
+
+Rédige un paragraphe unique, fluide et naturel, de 3 à 4 phrases en français courant. Écris comme tu parlerais : ton humain et bienveillant, direct, jamais robotique.
+
+Couvre, en les liant naturellement dans le paragraphe : le bilan de présence de la semaine écoulée (avec le chiffre et la tendance vs la semaine précédente si disponible), le point d'attention le plus important s'il y en a un (absence imprévue, retards, dépassement), l'état de la conformité au Code du Travail, et une recommandation concrète pour la semaine (si le planning de la semaine prochaine n'est pas encore préparé, le signaler en priorité).
+
+Règles de forme STRICTES :
+- Aucun tiret de liste, aucune puce, aucun underscore, aucun caractère de mise en forme (pas de *, #, -, _, >).
+- Aucun émoji.
+- Aucun titre, aucune numérotation, aucun saut de ligne : un seul paragraphe.
+- N'invente aucun chiffre : utilise uniquement les données fournies.
+
+Données :
+${contextData}
+
+Réponds uniquement avec le paragraphe.`
+}
+
+/**
+ * Génération synchrone d'un brief (fallback quand le résultat batch n'est pas
+ * disponible). Ne lève jamais : retourne un texte de repli en cas d'erreur.
+ */
+export async function generateBriefSync(anthropic: Anthropic, context: string): Promise<string> {
+  try {
+    const msg = await anthropic.messages.create({
+      model: BRIEF_MODEL,
+      max_tokens: BRIEF_MAX_TOKENS,
+      messages: [{ role: 'user', content: buildBriefPrompt(context) }],
+    })
+    const block = msg.content[0]
+    return block.type === 'text' ? block.text.trim() : context
+  } catch {
+    return "Le point de la semaine n'a pas pu être généré cette fois. Toutes vos données restent disponibles dans Quartzbase."
+  }
+}
+
+/**
+ * Collecte les données de brief pour chaque établissement actif ayant des
+ * managers, des employés et de l'activité la semaine écoulée. Ne retourne que
+ * les établissements pour lesquels un brief doit être généré.
+ */
+export async function collectBriefData(now: Date): Promise<EstablishmentBriefData[]> {
+  const { start: lastStart, end: lastEnd } = getLastWeekBounds(now)
+  const { start: thisStart, end: thisEnd } = getThisWeekBounds(now)
+  const lastMon = lastStart.toISOString().slice(0, 10)
+  const lastSun = lastEnd.toISOString().slice(0, 10)
+  const thisMon = thisStart.toISOString().slice(0, 10)
+  const thisSun = thisEnd.toISOString().slice(0, 10)
+  const nextMon = addDays(thisStart, 7).toISOString().slice(0, 10)
+  const nextSun = addDays(thisEnd, 7).toISOString().slice(0, 10)
+  const weekLabel = isoWeekLabel(new Date(lastMon + 'T00:00:00'))
+
+  const { data: establishments } = await supabaseAdmin
+    .from('establishments')
+    .select('id, name')
+    .eq('is_active', true)
+
+  const entries: EstablishmentBriefData[] = []
+
+  for (const est of establishments ?? []) {
+    try {
+      // ── Managers avec email ─────────────────────────────────────────────
+      const { data: managers } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('role', 'manager')
+        .eq('archived', false)
+        .or(`establishment_id.eq.${est.id},active_establishment_id.eq.${est.id}`)
+        .not('email', 'is', null)
+
+      if (!managers?.length) continue
+
+      // ── Employés actifs ─────────────────────────────────────────────────
+      const { data: employees } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('role', 'employee')
+        .eq('archived', false)
+        .or(`establishment_id.eq.${est.id},active_establishment_id.eq.${est.id}`)
+
+      const employeeIds = (employees ?? []).map((e: { id: string }) => e.id)
+      if (!employeeIds.length) continue
+
+      // ── Données semaine écoulée ─────────────────────────────────────────
+
+      const [
+        { data: shiftsLastWeek },
+        { data: presencesLastWeek },
+        { data: latenessLastWeek },
+        { data: leavesLastWeek },
+        { count: complianceCount },
+        { count: pendingLeavesCount },
+        { data: shiftsThisWeek },
+        { data: leavesThisWeek },
+        { count: nextWeekShiftsCount },
+      ] = await Promise.all([
+        // Shifts publiés semaine passée
+        supabaseAdmin.from('shifts').select('id, employee_id, start_time, end_time, break_minutes').in('employee_id', employeeIds).gte('date', lastMon).lte('date', lastSun).eq('status', 'published'),
+        // Présences semaine passée (avec pointage)
+        supabaseAdmin.from('presences').select('employee_id, clock_in, clock_out, break_start, break_end').in('employee_id', employeeIds).gte('date', lastMon).lte('date', lastSun).not('clock_in', 'is', null),
+        // Retards semaine passée
+        supabaseAdmin.from('lateness_records').select('late_minutes, justified').in('employee_id', employeeIds).gte('date', lastMon).lte('date', lastSun),
+        // Congés approuvés semaine passée
+        supabaseAdmin.from('leave_requests').select('id').in('employee_id', employeeIds).eq('status', 'approved').lte('start_date', lastSun).gte('end_date', lastMon),
+        // Alertes conformité actives
+        supabaseAdmin.from('compliance_alerts').select('id', { count: 'exact', head: true }).eq('establishment_id', est.id).eq('status', 'active'),
+        // Congés en attente
+        supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).in('employee_id', employeeIds).eq('status', 'pending'),
+        // Shifts semaine en cours
+        supabaseAdmin.from('shifts').select('id, employee_id').in('employee_id', employeeIds).gte('date', thisMon).lte('date', thisSun).eq('status', 'published'),
+        // Congés approuvés semaine en cours
+        supabaseAdmin.from('leave_requests').select('id, employee_id').in('employee_id', employeeIds).eq('status', 'approved').lte('start_date', thisSun).gte('end_date', thisMon),
+        // Shifts publiés semaine prochaine (anticipation : planning préparé ?)
+        supabaseAdmin.from('shifts').select('id', { count: 'exact', head: true }).in('employee_id', employeeIds).gte('date', nextMon).lte('date', nextSun).eq('status', 'published'),
+      ])
+
+      const totalShifts = shiftsLastWeek?.length ?? 0
+
+      // Pas de données — on n'envoie pas
+      if (totalShifts === 0 && !(presencesLastWeek?.length)) continue
+
+      // ── Calculs semaine passée ──────────────────────────────────────────
+
+      const presentEmployees = new Set((presencesLastWeek ?? []).map((p: { employee_id: string }) => p.employee_id))
+      const presenceRate = totalShifts > 0
+        ? Math.round((presentEmployees.size / new Set((shiftsLastWeek ?? []).map((s: { employee_id: string }) => s.employee_id)).size) * 100)
+        : 0
+
+      const absencesImprevues = totalShifts - (presencesLastWeek?.length ?? 0)
+      const latenessRecords = (latenessLastWeek ?? []) as { late_minutes: number; justified: boolean }[]
+      const retardsCount = latenessRecords.filter(l => !l.justified).length
+      const retardsMinutesTotal = latenessRecords.filter(l => !l.justified).reduce((a, l) => a + l.late_minutes, 0)
+
+      // Masse salariale estimée (si heures réelles dispo)
+      let masseSalarialeReal = 0
+      for (const p of (presencesLastWeek ?? []) as { employee_id: string; clock_in: string | null; clock_out: string | null; break_start: string | null; break_end: string | null }[]) {
+        if (!p.clock_in || !p.clock_out) continue
+        const h = (new Date(p.clock_out).getTime() - new Date(p.clock_in).getTime()) / 3600000
+        const breakH = (p.break_start && p.break_end)
+          ? (new Date(p.break_end).getTime() - new Date(p.break_start).getTime()) / 3600000
+          : 0
+        masseSalarialeReal += Math.max(0, h - breakH)
+      }
+
+      // ── Données semaine en cours ────────────────────────────────────────
+      const shiftsThisCount = shiftsThisWeek?.length ?? 0
+      const leavesThisCount = new Set((leavesThisWeek ?? []).map((l: { employee_id: string }) => l.employee_id)).size
+
+      // ── Contexte pour Claude ────────────────────────────────────────────
+      const context = [
+        `Établissement : ${est.name}`,
+        `Semaine analysée : ${weekLabel}`,
+        ``,
+        `=== SEMAINE ÉCOULÉE ===`,
+        `Shifts planifiés : ${totalShifts}`,
+        `Employés ayant pointé : ${presentEmployees.size}`,
+        `Taux de présence estimé : ${presenceRate}%`,
+        `Absences imprévues (shift sans pointage) : ${Math.max(0, absencesImprevues)}`,
+        `Retards non justifiés : ${retardsCount} (total ${retardsMinutesTotal} min)`,
+        `Congés approuvés cette semaine : ${leavesLastWeek?.length ?? 0}`,
+        `Heures réelles travaillées (tous employés) : ${masseSalarialeReal.toFixed(1)}h`,
+        `Alertes de conformité contractuelle actives : ${complianceCount ?? 0}`,
+        ``,
+        `=== SEMAINE EN COURS ===`,
+        `Shifts planifiés cette semaine : ${shiftsThisCount}`,
+        `Employés en congé approuvé : ${leavesThisCount}`,
+        `Congés en attente de validation : ${pendingLeavesCount ?? 0}`,
+        ``,
+        `=== SEMAINE PROCHAINE (anticipation) ===`,
+        `Shifts publiés semaine prochaine : ${nextWeekShiftsCount ?? 0}${(nextWeekShiftsCount ?? 0) === 0 ? ' — ⚠️ planning pas encore préparé' : ''}`,
+      ].join('\n')
+
+      entries.push({ est_id: est.id, est_name: est.name, week_label: weekLabel, context })
+    } catch (err) {
+      captureError(err, { context: 'collect-brief-data', etablissement: est.id })
+    }
+  }
+
+  return entries
+}
