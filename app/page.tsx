@@ -7,7 +7,6 @@ import { StatsBand }          from '@/components/public/stats-band'
 import { ProblemSection }     from '@/components/public/problem-section'
 import { SolutionSection }    from '@/components/public/solution-section'
 import { HowItWorksSection }  from '@/components/public/how-it-works-section'
-import { SocialProofSection } from '@/components/public/social-proof-section'
 import { ComparisonSection }  from '@/components/public/comparison-section'
 import { PricingSection }     from '@/components/public/pricing-section'
 import { FaqSection }         from '@/components/public/faq'
@@ -100,7 +99,10 @@ export default function LandingPage() {
         <ProblemSection />
         <SolutionSection />
         <HowItWorksSection />
-        <SocialProofSection />
+        {/* SocialProofSection retirée le 2026-07-21 (audit P0-2) : elle
+            n'affichait que des avis fictifs — pratique réputée trompeuse
+            (Art. L121-4 C. conso). À rebrancher avec de VRAIS témoignages
+            consentis dès le client #1 (plan d'action G-1/G-3). */}
         <ComparisonSection />
         <PricingSection />
         <FaqSection />

@@ -3,10 +3,13 @@ import { Reveal } from '@/components/public/reveal'
 const FONT = 'var(--font-manrope), sans-serif'
 
 const STATS = [
-  { value: '1 200+',  label: 'établissements protégés' },
-  { value: '0',       label: 'contentieux pour nos clients depuis 2023' },
-  { value: '4 min',   label: 'pour générer un planning conforme' },
-  { value: '2 300 €', label: "d'amende évitée par infraction" },
+  // Uniquement des faits vérifiables du produit (audit 2026-07-21, P0-2 :
+  // pas de chiffres clients inventés). Réintroduire des stats d'usage
+  // réelles quand elles existeront.
+  { value: '7',     label: 'règles du Code du travail vérifiées en continu' },
+  { value: '2 min', label: 'pour générer un planning conforme' },
+  { value: '30 j',  label: "d'essai gratuit, sans carte bancaire" },
+  { value: '100 %', label: 'hébergé en Union européenne · RGPD' },
 ]
 
 export function StatsBand() {
