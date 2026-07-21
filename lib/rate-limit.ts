@@ -1,19 +1,20 @@
 /**
  * Rate limiter with Vercel KV backend (Redis) when available.
- * Falls back to in-memory store when KV_REST_API_URL / KV_URL is absent
- * (local dev, preview without KV attached).
+ * Falls back to a durable Postgres counter (migration 081, consume_rate_limit)
+ * when KV is absent, then to an in-memory store as last resort (local dev
+ * without any backend). Chain: KV → Postgres → in-memory.
  *
  * KV key schema : rate_limit:{key}
  * Each key stores a JSON object { count, resetAt } with a TTL of windowMs/1000 seconds.
  */
 
-if (!process.env.KV_REST_API_URL) {
+if (!process.env.KV_REST_API_URL && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   console.warn(
-    '[RateLimit] KV_REST_API_URL not configured — using in-memory store. ' +
-    'This affects only the generic hourly rate limit, which is best-effort and ' +
-    'not shared across serverless instances. The monthly AI quota is DB-backed ' +
-    '(migration 048, consume_ai_credit) and remains authoritative regardless. ' +
-    'Configure Vercel KV for reliable hourly rate limiting.'
+    '[RateLimit] Neither KV_REST_API_URL nor SUPABASE_SERVICE_ROLE_KEY configured ' +
+    '— using in-memory store. This affects only the generic hourly rate limit, ' +
+    'which is best-effort and not shared across serverless instances. The monthly ' +
+    'AI quota is DB-backed (migration 048, consume_ai_credit) and remains ' +
+    'authoritative regardless.'
   )
 }
 
@@ -81,6 +82,27 @@ async function checkKv(key: string, limit: number, windowMs: number): Promise<Ra
   return { allowed: true, remaining: limit - count, resetAt }
 }
 
+// ── Postgres backend (durable) ────────────────────────────────────────────────
+// Survives serverless cold starts, unlike the in-memory fallback. Calls the
+// SECURITY DEFINER function consume_rate_limit (migration 081) through the
+// service-role client — the function is not executable by anon/authenticated.
+
+function dbAvailable(): boolean {
+  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+}
+
+async function checkDb(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
+  const { supabaseAdmin } = await import('@/lib/supabase/admin')
+  const { data, error } = await supabaseAdmin.rpc('consume_rate_limit', {
+    p_key: key,
+    p_limit: limit,
+    p_window_seconds: Math.max(1, Math.round(windowMs / 1000)),
+  })
+  if (error) throw error
+  const r = data as { allowed: boolean; remaining: number; reset_at: number }
+  return { allowed: r.allowed, remaining: r.remaining, resetAt: Number(r.reset_at) }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export interface RateLimitOptions {
@@ -103,7 +125,14 @@ export async function checkRateLimit({ key, limit, windowMs }: RateLimitOptions)
     try {
       return await checkKv(key, limit, windowMs)
     } catch (err) {
-      console.warn('[rate-limit] KV error, falling back to in-memory', err)
+      console.warn('[rate-limit] KV error, falling back', err)
+    }
+  }
+  if (dbAvailable()) {
+    try {
+      return await checkDb(key, limit, windowMs)
+    } catch (err) {
+      console.warn('[rate-limit] DB error, falling back to in-memory', err)
     }
   }
   return checkInMemory(key, limit, windowMs)
