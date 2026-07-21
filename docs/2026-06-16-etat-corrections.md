@@ -44,17 +44,18 @@ sur le projet Supabase `euvvibqzrhbleztqfdbu`.
 
 **1 clic (toi)** — activer la protection des mots de passe compromis (Supabase → Auth).
 
-**N4 — thème clair par défaut : NON fait (casserait l'UI).** L'app est codée dark-first :
-`:root` déjà sombre, aucune palette claire, **72 couleurs en dur dans 23 fichiers**. Une bascule
-laisserait ces zones noires sur fond clair. Plan propre (~½-1 j, à valider en direct) :
-1. palette claire dans `:root`, palette sombre actuelle sous `.dark` ;
-2. migrer les 72 couleurs en dur → variables CSS (le gros du travail) ;
-3. garder la landing en dark (marque), ne passer que l'app authentifiée en clair ;
-4. sélecteur de thème + persistance ; 5. repasser WCAG sur la palette claire.
+**N4 — thème clair par défaut : ✅ FAIT (2026-07-21).** Les étapes 1-2-4 (palette claire
+`:root`, dark sous `.dark`, toggle + persistance `dp-theme`) avaient été livrées entre-temps ;
+le 2026-07-21 : bascule du **défaut** en clair dans l'app authentifiée (landing/auth restent
+dark) + passe WCAG sur les tokens statut clairs (succès #16A34A, warning #D97706,
+danger #DC2626 — ≥3:1 ; l'AA strict 4.5:1 pour les micro-textes 11px reste un choix design
+ouvert). Préférences déjà stockées préservées.
 
-**Technique recommandé, risqué → à froid sur branche Supabase de test** : passe RLS perf
-(`auth_rls_initplan` ×41 + `multiple_permissive_policies` ×149) ; nettoyage des index inutilisés
-(16) et doublons (2).
+**Passe RLS perf : ✅ FAIT.** 059 (initplan ×41) et 061 (policies permissives ×149) appliquées
+en prod en juin ; le 2026-07-21, migration 080 : les 4 initplan restants (tables créées après
+la passe : `home_task_completions`, `deletion_requests`) + index FK `requested_by`.
+Advisors performance : 0 WARN restant. Index « unused » volontairement conservés (ce sont des
+index de FK — les supprimer réintroduirait `unindexed_foreign_keys`) ; doublons déjà purgés (062).
 
 **Optionnel (plus tard)** : **E3** login 100 % passwordless par SMS (au-delà de l'invitation
 déjà couverte) — chantier auth à part, seulement si tu le juges utile.
