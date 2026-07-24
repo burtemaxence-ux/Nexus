@@ -72,12 +72,27 @@ export async function POST(req: NextRequest, { params }: Params) {
   // Look up the profile by email
   const { data: target } = await supabaseAdmin
     .from('profiles')
-    .select('id, full_name, email')
+    .select('id, full_name, email, role')
     .eq('email', email.toLowerCase().trim())
     .single()
 
   if (!target) {
     return NextResponse.json({ error: 'Aucun compte trouvé avec cet email. L\'utilisateur doit d\'abord créer un compte.' }, { status: 404 })
+  }
+
+  // Le rôle (manager/superviseur/employé) est GLOBAL au compte (profiles.role) :
+  // c'est lui que lisent le middleware et le layout. La colonne
+  // user_establishments.role ne fait que gérer l'appartenance, elle n'accorde
+  // aucun droit par elle-même. Ajouter un compte « employé » comme collaborateur
+  // créerait donc un accès non fonctionnel (le middleware le renverrait vers
+  // l'espace employé). On refuse plutôt que de laisser un accès fantôme — et on
+  // n'élève pas son rôle global (ce serait une escalade sur son établissement
+  // d'origine).
+  if (target.role !== 'manager' && target.role !== 'supervisor') {
+    return NextResponse.json(
+      { error: 'Ce compte est un compte employé. Seul un compte manager ou superviseur peut être ajouté comme collaborateur d\'un établissement.' },
+      { status: 409 }
+    )
   }
 
   // Check if already a member
