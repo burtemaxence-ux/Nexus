@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Sidebar } from './sidebar'
+import { RoleRouteGuard } from './role-route-guard'
 import { AccountDropdown } from './topbar'
 import { NotificationsBell } from './notifications-bell'
 import { TopbarSearch } from './topbar-search'
@@ -81,6 +82,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen" style={{ background: APP_BG }}>
+      <RoleRouteGuard role={role} />
       <div className="md:flex">
 
         {/* Sidebar — desktop only, pinned */}

@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Loader2, Copy, Check, ExternalLink } from 'lucide-react'
+import { Loader2, Copy, Check } from 'lucide-react'
 import type { Poste } from '@/types'
 import {
   CONTRACT_TYPES,
@@ -318,18 +318,15 @@ export default function NewEmployeePage() {
               <p className="text-[12px] break-all font-mono leading-relaxed" style={{ color: 'var(--text-primary)' }}>{inviteLink}</p>
             </div>
 
-            <div className="flex gap-2">
-              <Button onClick={handleCopy} className="flex-1 gap-2" variant={copied ? 'outline' : 'default'}>
-                {copied
-                  ? <><Check className="h-4 w-4 text-green-600" />Copié !</>
-                  : <><Copy className="h-4 w-4" />Copier le lien</>}
-              </Button>
-              <Button variant="outline" size="icon" asChild title="Ouvrir le lien">
-                <a href={inviteLink} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-            </div>
+            <Button onClick={handleCopy} className="w-full gap-2" variant={copied ? 'outline' : 'default'}>
+              {copied
+                ? <><Check className="h-4 w-4 text-green-600" />Copié !</>
+                : <><Copy className="h-4 w-4" />Copier le lien</>}
+            </Button>
+
+            <p className="text-[12px]" style={{ color: 'var(--warning)' }}>
+              N&apos;ouvrez pas ce lien vous-même : il connecterait ce navigateur au compte de {invitedFullName} et vous déconnecterait de votre espace manager.
+            </p>
 
             <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
               Ce lien expire après 24 heures. Si besoin, utilisez &ldquo;Renvoyer le lien&rdquo; depuis la liste des employés.
