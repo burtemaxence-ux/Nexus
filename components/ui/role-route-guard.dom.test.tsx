@@ -25,16 +25,16 @@ describe('RoleRouteGuard', () => {
     expect(reload).toHaveBeenCalled()
   })
 
-  it('recharge la page quand un shell employé entoure une page /manager', () => {
-    mockPathname.mockReturnValue('/manager/planning')
-    render(<RoleRouteGuard role="employee" />)
-    expect(reload).toHaveBeenCalled()
-  })
-
-  it('recharge aussi pour un superviseur sur une page /employee', () => {
+  it('recharge aussi pour un superviseur (shell périmé) sur une page /employee', () => {
     mockPathname.mockReturnValue('/employee/planning')
     render(<RoleRouteGuard role="supervisor" />)
     expect(reload).toHaveBeenCalled()
+  })
+
+  it('ne recharge PAS un shell employé sur /manager (onboarding manager Google — éviter la boucle)', () => {
+    mockPathname.mockReturnValue('/manager/planning')
+    render(<RoleRouteGuard role="employee" />)
+    expect(reload).not.toHaveBeenCalled()
   })
 
   it('ne recharge pas quand le rôle et la route sont cohérents', () => {
