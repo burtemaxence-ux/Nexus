@@ -1,14 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
-import { netShiftHours } from '@/lib/hours'
+import { netShiftHours, weeklyOvertimeHours } from '@/lib/hours'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const maxDuration = 30
-
-function contractRefHours(weeklyH: number, from: Date, to: Date): number {
-  const days = Math.round((to.getTime() - from.getTime()) / 86400000) + 1
-  return weeklyH * days / 7
-}
 
 // Totaux de synthèse de la période (lecture seule) pour le hero de la page Exports.
 export async function GET(request: NextRequest) {
@@ -21,12 +16,9 @@ export async function GET(request: NextRequest) {
     const to   = searchParams.get('to')   ?? ''
     if (!from || !to) return NextResponse.json({ error: 'Paramètres from/to requis' }, { status: 400 })
 
-    const fromDate = new Date(from)
-    const toDate = new Date(to)
-
     const [empRes, shiftRes, lateRes, absRes] = await Promise.all([
       supabase.from('profiles').select('id, weekly_hours').eq('role', 'employee').eq('archived', false),
-      supabase.from('shifts').select('employee_id, start_time, end_time, break_minutes').gte('date', from).lte('date', to).is('deleted_at', null),
+      supabase.from('shifts').select('employee_id, date, start_time, end_time, break_minutes').gte('date', from).lte('date', to).is('deleted_at', null),
       supabase.from('lateness_records').select('id', { count: 'exact', head: true }).gte('date', from).lte('date', to),
       supabase.from('leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'approved').lte('start_date', to).gte('end_date', from),
     ])
@@ -37,13 +29,11 @@ export async function GET(request: NextRequest) {
     let plannedHours = 0
     let overtimeHours = 0
     for (const emp of employees) {
-      const planned = shifts
-        .filter(s => s.employee_id === emp.id)
-        .reduce((sum, sh) => sum + netShiftHours(sh.start_time, sh.end_time, sh.break_minutes), 0)
-      plannedHours += planned
-      if (emp.weekly_hours) {
-        overtimeHours += Math.max(0, planned - contractRefHours(emp.weekly_hours, fromDate, toDate))
-      }
+      const empShifts = shifts.filter(s => s.employee_id === emp.id)
+      plannedHours += empShifts.reduce((sum, sh) => sum + netShiftHours(sh.start_time, sh.end_time, sh.break_minutes), 0)
+      // Heures sup par semaine ISO (comme le rapport paie), seuil = quotité
+      // contractuelle ou 35h par défaut. Ne se nettent pas entre semaines.
+      overtimeHours += weeklyOvertimeHours(empShifts, emp.weekly_hours ?? 35)
     }
 
     return NextResponse.json({
