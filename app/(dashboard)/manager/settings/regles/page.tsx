@@ -500,7 +500,7 @@ export default function ReglesPage() {
 
       {/* Génération */}
       <div className="nx-card">
-        <div className="nx-card-head"><div className="nx-ico" style={{ background: 'var(--accent-light)' }}><Cpu className="ic16" style={{ color: 'var(--accent)' }} /></div><div><div className="nx-card-title">Génération automatique du planning</div><div className="nx-card-desc">Comment Nexus construit votre planning quand vous cliquez sur « Générer ».</div></div></div>
+        <div className="nx-card-head"><div className="nx-ico" style={{ background: 'var(--accent-light)' }}><Cpu className="ic16" style={{ color: 'var(--accent)' }} /></div><div><div className="nx-card-title">Génération automatique du planning</div><div className="nx-card-desc">Comment Quartzbase construit votre planning quand vous cliquez sur « Générer ».</div></div></div>
         <div className="nx-card-body"><div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {([
             { value: 'algorithm', icon: Cpu, title: 'Algorithme déterministe (recommandé)', desc: 'Le solveur place les shifts en suivant des règles claires : repos 11h, max 10h/jour, heures contractuelles, prévision de CA. Instantané, gratuit, sans erreur de conformité, tous les jours couverts.' },
