@@ -2,6 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { requireAuth, requireManager } from '@/lib/api-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Clés écrites uniquement par des endpoints dédiés (secrets générés côté
+// serveur) — jamais via le formulaire de réglages. On les refuse ici.
+const SYSTEM_MANAGED_KEYS = new Set(['webhook_signing_secret', 'vapid_private_key', 'vapid_public_key'])
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -47,6 +51,13 @@ export async function PATCH(request: NextRequest) {
     for (const [key, value] of entries) {
       if (!KEY_RE.test(key)) {
         return NextResponse.json({ error: `Clé de paramètre invalide : ${key}` }, { status: 400 })
+      }
+      // Secrets gérés par le système via des endpoints dédiés (génération) :
+      // interdits à l'écriture par cet endpoint générique pour qu'un manager
+      // ne puisse pas écraser un secret. Cf. /api/integrations/signing-secret
+      // et /api/push/vapid-key.
+      if (SYSTEM_MANAGED_KEYS.has(key)) {
+        return NextResponse.json({ error: `Paramètre géré par le système : ${key}` }, { status: 403 })
       }
       if (value !== null && typeof value === 'object') {
         return NextResponse.json({ error: 'Valeur de paramètre invalide' }, { status: 400 })
