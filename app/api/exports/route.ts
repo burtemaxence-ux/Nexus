@@ -377,7 +377,7 @@ export async function GET(request: NextRequest) {
         siret,
         softwareName: 'QUARTZBASE',
         softwareVersion: '1.0',
-        contactName: settings.establishment_name ?? 'Nexus',
+        contactName: settings.establishment_name ?? 'Quartzbase',
         contactEmail: settings.org_email ?? '',
       },
       company: {

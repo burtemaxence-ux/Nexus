@@ -10,7 +10,9 @@ export async function POST(request: NextRequest) {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (profile?.role !== 'manager') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
-  const { type } = await request.json() as { type: 'webhook' | 'slack' }
+  const body = await request.json().catch(() => null)
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+  const { type } = body as { type: 'webhook' | 'slack' }
 
   const { data: settingsData } = await supabase.from('settings').select('key, value')
   const settings: Record<string, string> = {}

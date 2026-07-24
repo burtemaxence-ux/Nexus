@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { getWeekDates, toISODate, getWeekLabel } from '@/lib/utils/dates'
+import { netShiftHours } from '@/lib/hours'
 import type { Profile, Shift, LeaveRequest } from '@/types'
 import { ChevronLeft, ChevronRight, Loader2, Users, Clock, TrendingUp, CalendarOff, AlarmClock, Download, Banknote, Pencil, Euro, UserMinus, Lock, Zap } from 'lucide-react'
 import type { EmployeeReportRow } from './rapport-pdf'
@@ -97,16 +98,8 @@ type Presence = {
   break_minutes_used: number
 }
 
-function timeToMin(t: string): number {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
-}
-
 function shiftHours(s: Shift): number {
-  const start = timeToMin(s.start_time)
-  let end = timeToMin(s.end_time)
-  if (end < start) end += 1440
-  return Math.max(0, (end - start - s.break_minutes) / 60)
+  return netShiftHours(s.start_time, s.end_time, s.break_minutes)
 }
 
 function presenceHours(p: Presence): number {

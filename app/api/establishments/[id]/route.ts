@@ -23,7 +23,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
-  const { name } = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+  const { name } = body as { name?: string }
   if (!name?.trim()) return NextResponse.json({ error: 'Nom requis' }, { status: 400 })
 
   const { error } = await supabaseAdmin

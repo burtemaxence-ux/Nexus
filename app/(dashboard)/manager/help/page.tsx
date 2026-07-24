@@ -598,7 +598,7 @@ const SECTIONS: HelpSection[] = [
     ],
     tips: [
       'Les fonctions premium affichent un badge "Pro" et un bouton "Passer en Pro"',
-      '30 jours d\'essai gratuits, sans carte bleue',
+      '30 jours d\'essai gratuits, sans carte bancaire',
     ],
   },
 ]

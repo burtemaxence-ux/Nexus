@@ -3,6 +3,7 @@
 // single source of truth in lib/compliance/rules.ts.
 import type { Shift } from '@/types'
 import { toISODate } from '@/lib/utils/dates'
+import { grossShiftMinutes } from '@/lib/hours'
 import { checkCompliance, type ShiftRecord, type EmployeeMeta, type Violation, type ComplianceConfig } from '@/lib/compliance/rules'
 
 // ── Establishment-configurable shift duration bounds ───────────────────────────
@@ -32,13 +33,9 @@ export function fmtMins(m: number): string {
 }
 
 // Gross shift duration in minutes, handling overnight shifts (end <= start).
-export function calcDurationMinutes(start: string, end: string): number {
-  const [sh, sm] = start.split(':').map(Number)
-  const [eh, em] = end.split(':').map(Number)
-  let minutes = (eh * 60 + em) - (sh * 60 + sm)
-  if (minutes < 0) minutes += 24 * 60
-  return minutes
-}
+// Alias vers le helper partagé lib/hours (source unique de vérité), conservé
+// pour les appelants qui importent calcDurationMinutes.
+export const calcDurationMinutes = grossShiftMinutes
 
 // Establishment-specific duration warnings only (min/max shift length).
 export function computeDurationWarnings(

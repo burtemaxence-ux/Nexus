@@ -47,7 +47,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const { shift_id, note } = await req.json() as { shift_id: string; note?: string }
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+  const { shift_id, note } = body as { shift_id: string; note?: string }
   if (!shift_id) return NextResponse.json({ error: 'shift_id requis' }, { status: 400 })
 
   // Verify the shift belongs to the requesting employee and is in the future

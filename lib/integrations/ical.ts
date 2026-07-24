@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 import type { Shift } from '@/types'
 
 function getSecret(): string {
@@ -24,7 +24,13 @@ export function parseCalendarToken(token: string): string | null {
     idRaw.slice(20),
   ].join('-')
   const expected = createHmac('sha256', getSecret()).update(employeeId).digest('hex').slice(0, 16)
-  return sig === expected ? employeeId : null
+  // Comparaison constante en temps pour éviter une attaque temporelle sur la
+  // signature. sig et expected font toujours 16 caractères hex (regex ci-dessus
+  // + slice), donc les buffers ont la même longueur.
+  const sigBuf = Buffer.from(sig)
+  const expBuf = Buffer.from(expected)
+  const ok = sigBuf.length === expBuf.length && timingSafeEqual(sigBuf, expBuf)
+  return ok ? employeeId : null
 }
 
 function icsEscape(s: string): string {

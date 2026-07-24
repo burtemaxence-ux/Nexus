@@ -16,8 +16,8 @@ const manrope = Manrope({ subsets: ['latin'], display: 'swap', variable: '--font
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://quartzbase.fr'),
-  title: 'Quartzbase — Planning & conformité Code du Travail pour la restauration',
-  description: 'Le planning de votre équipe, conforme au Code du Travail et généré par l\'IA. Congés, badgeuse et alertes légales. À partir de 49€/mois, sans engagement.',
+  title: 'Quartzbase — Planning & conformité Code du travail pour la restauration',
+  description: 'Le planning de votre équipe, conforme au Code du travail et généré par l\'IA. Congés, badgeuse et alertes légales. À partir de 49€/mois, sans engagement.',
   applicationName: 'Quartzbase',
   appleWebApp: {
     capable: true,

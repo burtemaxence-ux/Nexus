@@ -89,6 +89,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Impossible de générer le lien' }, { status: 500 })
     }
 
+    // Re-vérification post-création : generateLink a déjà créé le profil (via le
+    // trigger). Une invitation concurrente qui aurait passé le pré-check plus
+    // haut est désormais comptée — si on dépasse la limite du plan, on annule
+    // cette création (avant tout SMS/notification). Course rare au ras de la
+    // limite : deux invitations simultanées peuvent être toutes deux annulées,
+    // ce qui préserve l'invariant « jamais au-dessus du plan » au prix d'un
+    // simple retour à retenter, jamais d'un dépassement facturé.
+    if (isFinite(limit) && role === 'employee') {
+      const { count: after } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'employee')
+        .eq('archived', false)
+        .eq('establishment_id', estId)
+
+      if ((after ?? 0) > limit) {
+        if (data.user?.id) await supabaseAdmin.auth.admin.deleteUser(data.user.id)
+        return NextResponse.json(
+          { error: `Limite de ${limit} employé${limit > 1 ? 's' : ''} atteinte pour votre plan. Passez au plan supérieur pour en ajouter d'autres.` },
+          { status: 403 }
+        )
+      }
+    }
+
     // Best-effort : envoie aussi le lien d'invitation par SMS si un téléphone est
     // fourni — réduit la friction d'adoption côté employé (mobile-first).
     // No-op si Twilio n'est pas configuré.

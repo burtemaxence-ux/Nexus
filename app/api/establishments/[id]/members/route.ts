@@ -61,7 +61,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Seul un manager peut inviter des collaborateurs' }, { status: 403 })
   }
 
-  const { email, role } = await req.json() as { email: string; role: 'manager' | 'supervisor' }
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+  const { email, role } = body as { email: string; role: 'manager' | 'supervisor' }
   if (!email?.trim()) return NextResponse.json({ error: 'Email requis' }, { status: 400 })
   if (!['manager', 'supervisor'].includes(role)) {
     return NextResponse.json({ error: 'Rôle invalide (manager ou supervisor)' }, { status: 400 })
@@ -70,12 +72,27 @@ export async function POST(req: NextRequest, { params }: Params) {
   // Look up the profile by email
   const { data: target } = await supabaseAdmin
     .from('profiles')
-    .select('id, full_name, email')
+    .select('id, full_name, email, role')
     .eq('email', email.toLowerCase().trim())
     .single()
 
   if (!target) {
     return NextResponse.json({ error: 'Aucun compte trouvé avec cet email. L\'utilisateur doit d\'abord créer un compte.' }, { status: 404 })
+  }
+
+  // Le rôle (manager/superviseur/employé) est GLOBAL au compte (profiles.role) :
+  // c'est lui que lisent le middleware et le layout. La colonne
+  // user_establishments.role ne fait que gérer l'appartenance, elle n'accorde
+  // aucun droit par elle-même. Ajouter un compte « employé » comme collaborateur
+  // créerait donc un accès non fonctionnel (le middleware le renverrait vers
+  // l'espace employé). On refuse plutôt que de laisser un accès fantôme — et on
+  // n'élève pas son rôle global (ce serait une escalade sur son établissement
+  // d'origine).
+  if (target.role !== 'manager' && target.role !== 'supervisor') {
+    return NextResponse.json(
+      { error: 'Ce compte est un compte employé. Seul un compte manager ou superviseur peut être ajouté comme collaborateur d\'un établissement.' },
+      { status: 409 }
+    )
   }
 
   // Check if already a member

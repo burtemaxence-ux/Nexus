@@ -243,7 +243,7 @@ export default function ExportsPage() {
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 12, padding: '12px 14px', borderRadius: 10, background: 'rgba(240,140,0,.09)', border: '0.5px solid rgba(240,140,0,.28)' }}>
             <AlertTriangle className="ic14" style={{ color: 'var(--warning)', marginTop: 1, flexShrink: 0 }} />
             <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-              <strong style={{ color: 'var(--text-primary)' }}>Pré-remplie, non déposable en l’état.</strong> Le fichier reprend établissement, salariés, contrats, heures et absences. Les rubriques réglementaires que Nexus ne détient pas (NIR, date de naissance, adresse salarié, montants de cotisations, taux de prélèvement à la source…) restent à compléter — faites-le valider par votre gestionnaire de paie avant tout dépôt sur net-entreprises.fr.
+              <strong style={{ color: 'var(--text-primary)' }}>Pré-remplie, non déposable en l’état.</strong> Le fichier reprend établissement, salariés, contrats, heures et absences. Les rubriques réglementaires que Quartzbase ne détient pas (NIR, date de naissance, adresse salarié, montants de cotisations, taux de prélèvement à la source…) restent à compléter — faites-le valider par votre gestionnaire de paie avant tout dépôt sur net-entreprises.fr.
             </p>
           </div>
         </div>

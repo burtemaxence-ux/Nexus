@@ -18,7 +18,10 @@ export async function GET() {
       .select('*, profiles(id, full_name, email, position)')
       .order('created_at', { ascending: false })
 
-    if (profile.role !== 'manager') {
+    // Managers ET superviseurs voient toute l'équipe (la RLS `leave_select`
+    // scope à l'établissement via is_manager(), vraie pour les deux rôles).
+    // Les employés ne voient que leurs propres demandes.
+    if (profile.role !== 'manager' && profile.role !== 'supervisor') {
       query = query.eq('employee_id', user.id) as typeof query
     }
 

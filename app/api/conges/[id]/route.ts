@@ -19,7 +19,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  const body = await request.json()
+  const body = await request.json().catch(() => null)
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
 
   if (profile?.role === 'manager') {
     const { status, manager_comment } = body

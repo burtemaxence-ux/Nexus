@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Limite atteinte (5 tokens maximum). Supprimez-en un d\'abord.' }, { status: 400 })
   }
 
-  const { name } = await req.json() as { name?: string }
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+  const { name } = body as { name?: string }
   if (!name?.trim()) return NextResponse.json({ error: 'Nom requis' }, { status: 400 })
 
   const { raw, hash } = generateToken()
