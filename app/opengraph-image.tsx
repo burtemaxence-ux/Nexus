@@ -55,7 +55,7 @@ export default function OpengraphImage() {
         </div>
 
         <div style={{ display: 'flex', fontSize: 30, color: 'rgba(255,255,255,0.6)', marginTop: 32 }}>
-          Conforme Code du Travail · Jusqu&apos;à 4 fois moins cher
+          Conforme Code du travail · Jusqu&apos;à 4 fois moins cher
         </div>
 
         <div style={{ display: 'flex', gap: 12, marginTop: 48 }}>
@@ -69,7 +69,7 @@ export default function OpengraphImage() {
               padding: '8px 22px',
             }}
           >
-            30 jours gratuits · sans carte bleue
+            30 jours gratuits · sans carte bancaire
           </div>
         </div>
       </div>

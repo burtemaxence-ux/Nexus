@@ -164,7 +164,7 @@ export default function RegisterPage() {
           Démarrez votre essai gratuit
         </h2>
         <div className="flex flex-wrap justify-center gap-2">
-          {['30 jours', 'Sans carte bleue', 'Annulation libre'].map(badge => (
+          {['30 jours', 'Sans carte bancaire', 'Annulation libre'].map(badge => (
             <span key={badge} className="auth-badge-success">{badge}</span>
           ))}
         </div>

@@ -18,11 +18,11 @@ import { LandingStyles }      from '@/components/public/landing-styles'
 export const metadata: Metadata = {
   title: 'Quartzbase — Le planning qui vous protège des prud\'hommes',
   description:
-    'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 30 jours gratuits, sans carte bancaire.',
+    'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du travail. 30 jours gratuits, sans carte bancaire.',
   openGraph: {
     title: 'Quartzbase — Le planning qui vous protège des prud\'hommes',
     description:
-      'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 30 jours gratuits, sans carte bancaire.',
+      'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du travail. 30 jours gratuits, sans carte bancaire.',
     url: 'https://quartzbase.fr',
     siteName: 'Quartzbase',
     locale: 'fr_FR',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Quartzbase — Le planning qui vous protège des prud\'hommes',
     description:
-      'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du Travail. 30 jours gratuits, sans carte bancaire.',
+      'Générez vos plannings en 2 minutes et soyez alerté avant chaque infraction au Code du travail. 30 jours gratuits, sans carte bancaire.',
   },
 }
 
@@ -44,7 +44,7 @@ const JSON_LD = {
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web, iOS, Android',
   description:
-    'Logiciel de planning intelligent pour la restauration et l\'artisanat : génération du planning par IA, badgeuse mobile, congés et conformité Code du Travail.',
+    'Logiciel de planning intelligent pour la restauration et l\'artisanat : génération du planning par IA, badgeuse mobile, congés et conformité Code du travail.',
   url: 'https://quartzbase.fr',
   inLanguage: 'fr-FR',
   offers: [
