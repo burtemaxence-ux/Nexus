@@ -1,6 +1,11 @@
 -- ============================================================
 -- 084 — Empêcher l'auto-élévation de rôle (faille de privilège)
 -- ============================================================
+-- ⚠️ INOPÉRANT — voir 085. Un REVOKE au niveau colonne ne peut pas soustraire
+-- d'un GRANT UPDATE au niveau table (que `authenticated` possède sur profiles) :
+-- has_column_privilege() restait à true. Le correctif effectif est le trigger
+-- de la migration 085. Ce fichier est conservé pour l'historique (déjà appliqué).
+-- ============================================================
 -- La policy `profiles_update` (061) autorise un utilisateur à modifier SA
 -- PROPRE ligne :
 --   USING/CHECK (id = auth.uid() OR (is_manager() AND establishment_id = current_establishment_id()))
