@@ -1,19 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
+import { netShiftHours } from '@/lib/hours'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const maxDuration = 30
 
-function timeToMin(t: string): number {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
-}
-function shiftHours(start: string, end: string, breakMin: number): number {
-  const s = timeToMin(start)
-  let e = timeToMin(end)
-  if (e < s) e += 1440
-  return Math.max(0, (e - s - breakMin) / 60)
-}
 function contractRefHours(weeklyH: number, from: Date, to: Date): number {
   const days = Math.round((to.getTime() - from.getTime()) / 86400000) + 1
   return weeklyH * days / 7
@@ -48,7 +39,7 @@ export async function GET(request: NextRequest) {
     for (const emp of employees) {
       const planned = shifts
         .filter(s => s.employee_id === emp.id)
-        .reduce((sum, sh) => sum + shiftHours(sh.start_time, sh.end_time, sh.break_minutes), 0)
+        .reduce((sum, sh) => sum + netShiftHours(sh.start_time, sh.end_time, sh.break_minutes), 0)
       plannedHours += planned
       if (emp.weekly_hours) {
         overtimeHours += Math.max(0, planned - contractRefHours(emp.weekly_hours, fromDate, toDate))
