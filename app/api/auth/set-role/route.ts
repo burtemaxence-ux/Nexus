@@ -60,10 +60,13 @@ export async function POST() {
     })
     .eq('id', user.id)
 
-  // Lier l'utilisateur à l'établissement dans user_establishments
+  // Lier l'utilisateur à l'établissement dans user_establishments. Le rôle est
+  // explicite (manager) : la bascule d'établissement lit user_establishments.role
+  // pour resynchroniser profiles.role, donc la ligne de l'établissement
+  // d'origine doit porter le bon rôle.
   await supabaseAdmin
     .from('user_establishments')
-    .upsert({ user_id: user.id, establishment_id: estId }, { onConflict: 'user_id,establishment_id' })
+    .upsert({ user_id: user.id, establishment_id: estId, role: 'manager' }, { onConflict: 'user_id,establishment_id' })
 
   // Mettre à jour les métadonnées Supabase Auth
   await supabaseAdmin.auth.admin.updateUserById(user.id, {
