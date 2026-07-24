@@ -6,7 +6,9 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const { establishment_id } = await request.json()
+  const body = await request.json().catch(() => null)
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+  const { establishment_id } = body as { establishment_id?: string }
   if (!establishment_id) return NextResponse.json({ error: 'establishment_id requis' }, { status: 400 })
 
   // Verify the user actually has access to this establishment

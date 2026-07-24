@@ -61,7 +61,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Seul un manager peut inviter des collaborateurs' }, { status: 403 })
   }
 
-  const { email, role } = await req.json() as { email: string; role: 'manager' | 'supervisor' }
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
+  const { email, role } = body as { email: string; role: 'manager' | 'supervisor' }
   if (!email?.trim()) return NextResponse.json({ error: 'Email requis' }, { status: 400 })
   if (!['manager', 'supervisor'].includes(role)) {
     return NextResponse.json({ error: 'Rôle invalide (manager ou supervisor)' }, { status: 400 })

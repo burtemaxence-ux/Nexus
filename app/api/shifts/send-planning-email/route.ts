@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (profile?.role !== 'manager') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
-  const body = await request.json()
+  const body = await request.json().catch(() => null)
+  if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
   const { week_monday } = body as { week_monday: string }
   if (!week_monday) return NextResponse.json({ error: 'week_monday requis' }, { status: 400 })
 
