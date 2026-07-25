@@ -78,25 +78,24 @@ Ne PAS lancer de migration de masse de l'un vers l'autre (gain nul, risque élev
 
 ## Session Start Protocol ⚡
 
-**MANDATORY** at start of each session:
+`.gitignore` exclut tout `.claude/` sauf `settings.json` et `hooks/`. Les notes qui
+s'y trouvent sont donc **locales** : absentes d'un clone frais et des sessions Claude
+Code on the web. Ne jamais les traiter comme du contexte acquis.
 
-```bash
-# Load essential docs (~800 tokens - 2 min read)
-✓ .claude/COMMON_MISTAKES.md      # ⚠️ CRITICAL - Read FIRST
-✓ .claude/QUICK_START.md          # Essential commands
-✓ .claude/ARCHITECTURE_MAP.md     # File locations
-```
+**Au démarrage, lire _si présents_** (sinon passer, ce n'est pas une erreur) :
+- `.claude/COMMON_MISTAKES.md` — pièges déjà rencontrés
+- `.claude/QUICK_START.md` — commandes essentielles
+- `.claude/ARCHITECTURE_MAP.md` — où se trouve quoi
 
-**At task completion:**
-- Create completion doc in `.claude/completions/YYYY-MM-DD-task-name.md`
-- Move session file to `.claude/sessions/archive/` (if created)
+**En fin de tâche** (local uniquement — ces dossiers sont gitignorés, donc inutile
+en session cloud où le conteneur est éphémère) :
+- doc de complétion dans `.claude/completions/YYYY-MM-DD-task-name.md`
+- archiver le fichier de session dans `.claude/sessions/archive/`
 
-**⚠️ NEVER auto-load:**
-- Files in `.claude/completions/` (0 token cost)
-- Files in `.claude/sessions/` (0 token cost)
-- Files in `docs/archive/` (0 token cost)
+**⚠️ NE JAMAIS auto-charger** : `.claude/completions/`, `.claude/sessions/`,
+`docs/archive/`.
 
 ---
 
-**Last Updated**: 2026-06-09
+**Last Updated**: 2026-07-25
 **Optimized with**: [Claude Token Optimizer](https://github.com/nadimtuhin/claude-token-optimizer)
