@@ -558,8 +558,12 @@ export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[
 
       const gapMin = nextStartAbsMin - currEndAbsMin
 
-      // Only check if shifts are on different days or same-day with gap > 0
-      if (gapMin >= 0 && gapMin < 660) {
+      // L3131-1 encadre le repos entre deux JOURNÉES de travail. Une coupure
+      // intra-journée (service du midi + service du soir) n'est pas un défaut de
+      // repos quotidien : elle relève de l'amplitude (amplitude_max) et, pour un
+      // temps partiel, de la coupure (part_time_split). Même garde que
+      // minor_rest_daily plus bas.
+      if (next.date !== curr.date && gapMin >= 0 && gapMin < 660) {
         const isOvernight = parseTimeMin(curr.endTime) <= parseTimeMin(curr.startTime)
         const minRestEnd = addMinutesToShiftEnd(curr.date, curr.endTime, isOvernight, 660)
         violations.push({

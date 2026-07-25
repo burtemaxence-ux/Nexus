@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireManager } from '@/lib/api-auth'
 import { getStripe, STRIPE_PRICES } from '@/lib/stripe'
 import { remainingTrialDays } from '@/lib/subscription'
@@ -43,7 +44,10 @@ export async function POST(request: NextRequest) {
     const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
     const appUrl = process.env.NEXT_PUBLIC_URL ?? 'https://quartzbase.fr'
 
-    const { data: sub } = await supabase
+    // Les identifiants Stripe ne sont plus lisibles par `authenticated`
+    // (migration 088) : lecture par le service-role, après requireManager(),
+    // avec le filtre d'établissement explicite qui remplace la RLS.
+    const { data: sub } = await supabaseAdmin
       .from('subscriptions')
       .select('stripe_customer_id, stripe_subscription_id')
       .eq('establishment_id', estId)

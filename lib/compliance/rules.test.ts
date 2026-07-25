@@ -98,6 +98,34 @@ describe('rest_daily — < 11h de repos entre deux shifts', () => {
     expect(ruleIds([shift(MON, '10:00', '18:00', 30), shift(TUE, '08:00', '14:00', 30)]))
       .not.toContain('rest_daily')
   })
+
+  // L3131-1 vise le repos entre deux JOURNÉES. Une coupure intra-journée
+  // (service du midi + service du soir) est le schéma horaire standard en
+  // restauration : elle relève de l'amplitude, pas du repos quotidien.
+  it('ne déclenche pas sur une coupure midi/soir dans la même journée', () => {
+    expect(ruleIds([shift(MON, '11:00', '14:30', 0), shift(MON, '18:30', '23:00', 0)]))
+      .not.toContain('rest_daily')
+  })
+
+  it('déclenche encore après un shift de nuit qui déborde sur le lendemain', () => {
+    // Lundi 22:00 → mardi 02:00, reprise mardi 10:00 = 8h de repos.
+    expect(ruleIds([shift(MON, '22:00', '02:00', 0), shift(TUE, '10:00', '15:00', 0)]))
+      .toContain('rest_daily')
+  })
+
+  it('ne déclenche pas quand une journée à deux services est suivie d\'un repos suffisant', () => {
+    // Fin lundi 23:00 → reprise mardi 11:00 = 12h de repos.
+    expect(ruleIds([
+      shift(MON, '11:00', '14:30', 0), shift(MON, '18:30', '23:00', 0),
+      shift(TUE, '11:00', '15:00', 0),
+    ])).not.toContain('rest_daily')
+  })
+
+  it('déclenche sur la frontière dimanche → lundi', () => {
+    // Fin dimanche 23:00 → reprise lundi 06:00 = 7h de repos.
+    expect(ruleIds([shift(SUN_PREV, '15:00', '23:00', 30), shift(MON, '06:00', '11:00', 0)]))
+      .toContain('rest_daily')
+  })
 })
 
 describe('days_consecutive — > 6 jours consécutifs', () => {

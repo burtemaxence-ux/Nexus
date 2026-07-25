@@ -63,13 +63,14 @@ export async function POST(request: NextRequest) {
       email,
       options: {
         redirectTo: `${siteUrl}/auth/set-password`,
+        // `data` alimente raw_user_meta_data, que le navigateur peut réécrire :
+        // ni le rôle ni l'établissement n'y transitent plus (cf. migration 086).
+        // Le rattachement se fait juste après, par attach_invited_user().
         data: {
-          role,
           full_name,
           first_name: first_name.trim(),
           last_name: last_name.trim(),
           position,
-          establishment_id: managerProfile?.establishment_id ?? null,
         },
       },
     })
@@ -87,6 +88,27 @@ export async function POST(request: NextRequest) {
     const inviteLink = data.properties?.action_link
     if (!inviteLink) {
       return NextResponse.json({ error: 'Impossible de générer le lien' }, { status: 500 })
+    }
+
+    // Rattachement au tenant, côté serveur et de façon atomique. Depuis la
+    // migration 086, le trigger crée tout compte isolé (manager de son propre
+    // établissement) : sans cet appel, l'invité resterait manager d'un
+    // établissement vide — et surtout, il ne faut PAS que le rôle vienne des
+    // métadonnées. Placé avant le re-contrôle de quota ci-dessous, qui compte
+    // les employés de l'établissement et suppose donc l'invité déjà rattaché.
+    if (!data.user?.id) {
+      return NextResponse.json({ error: 'Impossible de créer le compte invité' }, { status: 500 })
+    }
+    const { error: attachError } = await supabaseAdmin.rpc('attach_invited_user', {
+      p_user_id: data.user.id,
+      p_establishment_id: estId,
+      p_role: role,
+    })
+    if (attachError) {
+      // Pas d'invité orphelin : on annule la création.
+      await supabaseAdmin.auth.admin.deleteUser(data.user.id)
+      console.error('[employees/invite] attach_invited_user:', attachError.message)
+      return NextResponse.json({ error: "Impossible de rattacher l'invité à l'établissement" }, { status: 500 })
     }
 
     // Re-vérification post-création : generateLink a déjà créé le profil (via le
@@ -132,7 +154,8 @@ export async function POST(request: NextRequest) {
       phone: phone?.trim() || null,
       contract_type: contract_type ?? null,
       weekly_hours: weekly_hours ?? null,
-      establishment_id: managerProfile?.establishment_id ?? null,
+      // establishment_id et role appartiennent à attach_invited_user() : un seul
+      // chemin d'écriture pour le rattachement au tenant.
     }
     if (user) profileUpdate.invited_by = user.id
 
