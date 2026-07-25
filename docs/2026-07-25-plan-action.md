@@ -99,6 +99,13 @@ l'authentification et la facturation : une erreur y est plus coûteuse que deux 
 
 ## LOT 1 — Bloquants (12 h) · semaine du 28/07
 
+> **État au 25/07 : écrit et validé côté dépôt, NON APPLIQUÉ en base.**
+> Les migrations `086`, `087`, `088` et les diffs applicatifs correspondants sont commités.
+> `npx tsc --noEmit`, `npm run lint`, `npm run build` et les 266 tests passent.
+> Il reste à : (1) exécuter T0-1 sur une branche Supabase, (2) y appliquer les 3 migrations,
+> (3) rejouer les 3 parcours d'inscription et la suppression d'un employé, (4) `npm run verify:security`,
+> (5) appliquer en production. **Aucune migration ne doit partir en prod sans (1) à (4).**
+
 Ordre imposé : L1-4 en premier (indépendant, débloque la CI), puis L1-1 → L1-2 → L1-3 (couche
 authentification, du plus profond au plus superficiel), L1-5 en parallèle (code applicatif, sans lien).
 
@@ -107,9 +114,34 @@ authentification, du plus profond au plus superficiel), L1-5 en parallèle (code
 ```bash
 npm i next@14.2.35 eslint-config-next@14.2.35
 npm audit fix              # postcss, brace-expansion, minimatch (transitifs)
-npm audit --audit-level=high   # doit ne plus lister next ni postcss
+npm audit --omit=dev --json | jq '.metadata.vulnerabilities.critical'   # doit valoir 0
 npx tsc --noEmit && npm run lint && npm test && npm run build
 ```
+
+**⚠️ Constat fait à l'exécution — 14.2.35 est le dernier patch de la ligne 14.2.x.**
+La CVE critique disparaît bien (objectif de B4 atteint : 0 critique sur les dépendances de
+production). Mais il **reste 2 entrées HIGH** en production, et la lecture des plages de correction
+est sans appel : toutes indiquent `fix: … <15.5.x`. Autrement dit, **Next 14 ne recevra plus de
+correctif pour ces advisories** — elles ne sont réparées que sur la ligne 15.5.
+
+Conséquences, à intégrer plutôt qu'à subir :
+
+1. **Le gate CI ne peut pas être `--audit-level=high`** comme initialement écrit dans ce plan : il
+   serait rouge en permanence, et un gate toujours rouge est pire que pas de gate — on cesse de le
+   lire. Gate retenu : `npm audit --omit=dev --audit-level=critical`, doublé d'une revue trimestrielle
+   des HIGH restantes.
+2. **Les 2 HIGH restantes sont acceptables à court terme**, mais la décision doit être écrite, pas
+   implicite. Les advisories concernent : `postcss` embarqué dans Next (build-time uniquement, entrée
+   CSS non contrôlée par un tiers) ; côté Next, du DoS et des SSRF conditionnés à des configurations
+   que cette application n'utilise pas (i18n Pages Router — l'app est 100 % App Router ; serveur
+   custom — l'app est sur Vercel ; upgrades WebSocket — non utilisés).
+3. **Nouvelle ligne au backlog : migration vers Next 15.5.21+.** C'est un projet à part entière
+   (APIs de requête asynchrones, ruptures App Router), à cadrer après le lancement — mais à cadrer.
+   Rester sur une ligne majeure sans support sécurité est tenable 6 mois, pas 2 ans.
+4. **Cela contraint M9** (CSP avec nonces) : l'advisory GHSA-ffhc-5mcf-pf4q, « XSS in App Router
+   applications using CSP nonces », n'est corrigée qu'à partir de 15.5.16. Introduire des nonces sur
+   14.2.35 **ajouterait** un vecteur XSS. M9 est donc bloquée par la migration Next 15 — ce que le
+   plan initial ne voyait pas.
 
 Patch dans la même ligne 14.2.x : aucune rupture d'API attendue. Vérifier tout de même après build :
 le rendu des 3 pages publiques, `/login` → redirection, un cycle complet manager (planning, publication),
@@ -887,12 +919,23 @@ if (alertPartTimeSplit && isPartTime && dayShifts.length >= 2) {
 - **M19 (2 h)** — trigger de validation des transitions sur `shift_exchanges` : l'employé ne peut que
   `open → cancelled` (proposeur) ou `open → pending_approval` (accepteur) ; `approved`/`rejected` sont
   réservés au manager.
+- **M23 (1 h) — découvert pendant l'exécution du LOT 1.** `app/api/employees/invite/route.ts:34`
+  utilise `managerProfile.establishment_id` au lieu de `active_establishment_id ?? establishment_id`,
+  contrairement au reste du code. Un manager multi-site qui invite un salarié en opérant depuis
+  l'établissement B le rattache en réalité à l'établissement A. Même classe que M16, même correctif.
+  *Volontairement non corrigé dans le commit du LOT 1* : la valeur a été passée telle quelle à
+  `attach_invited_user()` pour ne pas mêler un changement de comportement à un correctif de sécurité
+  (règle R4).
 
 ### Modification CI (incluse dans M18)
 
 ```yaml
+      # --omit=dev : les vulnérabilités de la chaîne eslint ne partent pas en
+      # production. --audit-level=critical : les 2 HIGH restantes ne sont
+      # corrigées que sur la ligne Next 15 (cf. L1-4) ; un gate rouge en
+      # permanence cesse d'être lu.
       - name: Audit dépendances
-        run: npm audit --audit-level=high
+        run: npm audit --omit=dev --audit-level=critical
 
       - name: Vérifications de sécurité (base)
         if: ${{ github.event_name == 'pull_request' }}
@@ -924,7 +967,8 @@ Aucun élément de ce lot ne justifie de retarder l'ouverture commerciale.
 | ID | Sujet | Charge | Déclencheur |
 |---|---|---|---|
 | m10 | Activer la protection des mots de passe compromis (Supabase → Auth → Passwords) | 15 min | **à faire maintenant** : une case à cocher, aucun code |
-| M9 | CSP bloquante avec nonces, sans `unsafe-eval` | 3 h | après 1 semaine d'exploitation des rapports report-only |
+| **NEW** | **Migration Next 15.5.21+** | à cadrer | **bloque M9** ; Next 14 ne reçoit plus de correctif de sécurité (cf. L1-4) |
+| M9 | CSP bloquante avec nonces, sans `unsafe-eval` | 3 h | **après** la migration Next 15 : GHSA-ffhc-5mcf-pf4q rend les nonces vulnérables au XSS avant 15.5.16 |
 | m3 | Scinder `is_manager()` / `is_supervisor()` | 3 h | quand un client demandera un vrai rôle superviseur |
 | m8, m9 | Middleware : rôle lu depuis `profiles`, liste blanche de routes testée | 4 h | avant d'ajouter une nouvelle zone de routes |
 | m2, m11 | Unifier les 3 implémentations de `getWeekMonday` sur `lib/utils/dates.ts` (UTC) | 4 h | au premier bug de date signalé |
