@@ -271,7 +271,7 @@ schéma de référence. Chacun demande un arbitrage.
 
 | Objet | Statut | Enjeu |
 |---|---|---|
-| `profiles.invited_by` (+ FK) | absent en prod | **défaut actif** : `/api/employees/invite` écrit cette colonne. L'UPDATE d'enrichissement échoue donc *en entier*, sans que le code vérifie l'erreur → `first_name`, `last_name`, `position`, `phone`, `contract_type`, `weekly_hours` restent NULL et l'API répond 200. Constaté : 1 employé sur 15 sans `weekly_hours`. |
+| ~~`profiles.invited_by` (+ FK)~~ | **corrigé le 2026-07-26** par la migration 090, appliquée en prod | était un défaut actif : `/api/employees/invite` écrivait cette colonne, l'UPDATE d'enrichissement échouait donc *en entier* sans que le code vérifie l'erreur → `first_name`, `last_name`, `position`, `phone`, `contract_type`, `weekly_hours` restaient NULL pour une API répondant 200. |
 | `subscriptions_stripe_customer_id_key` (UNIQUE) | absent en prod | rien n'empêche deux lignes de partager le même `stripe_customer_id` |
 | `subscriptions_stripe_subscription_id_key` (UNIQUE) | absent en prod | idem — à arbitrer avec l'idempotence du webhook Stripe |
 | `idx_availabilities_employee` | absent en prod | simple index de perf, sans risque |

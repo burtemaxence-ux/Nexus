@@ -123,7 +123,20 @@ export async function POST(request: NextRequest) {
       ).catch(() => {})
     }
 
-    // Enrich the profile created by the DB trigger
+    // Enrich the profile created by the DB trigger.
+    //
+    // Depuis 090, le trigger ignore les métadonnées du client : il crée
+    // TOUJOURS un employé dans un établissement neuf qui lui appartient. Ce
+    // rattachement-ci est donc le seul chemin vers un établissement existant,
+    // et il s'exécute en service-role (non soumis à la garde 085). C'est aussi
+    // lui qui porte le rôle : sans ça, tout superviseur ou co-manager invité
+    // resterait un simple employé.
+    const { data: created } = await supabaseAdmin
+      .from('profiles')
+      .select('id, establishment_id')
+      .eq('email', email)
+      .single()
+
     const profileUpdate: Record<string, unknown> = {
       first_name: first_name.trim(),
       last_name: last_name.trim(),
@@ -132,14 +145,31 @@ export async function POST(request: NextRequest) {
       phone: phone?.trim() || null,
       contract_type: contract_type ?? null,
       weekly_hours: weekly_hours ?? null,
+      role,
       establishment_id: managerProfile?.establishment_id ?? null,
     }
     if (user) profileUpdate.invited_by = user.id
 
-    await supabaseAdmin
+    const { error: enrichError } = await supabaseAdmin
       .from('profiles')
       .update(profileUpdate)
       .eq('email', email)
+
+    // Cet UPDATE porte le rattachement au tenant : s'il échoue, l'invité reste
+    // isolé dans son établissement transitoire et le manager ne le voit jamais.
+    // Un échec silencieux ici est précisément ce qui a masqué la dérive
+    // `invited_by` en production — on le remonte désormais.
+    if (enrichError) {
+      if (data.user?.id) await supabaseAdmin.auth.admin.deleteUser(data.user.id)
+      console.error('[invite] enrichissement du profil échoué', enrichError)
+      return NextResponse.json({ error: "Impossible de finaliser l'invitation" }, { status: 500 })
+    }
+
+    // L'établissement transitoire créé par le trigger n'a plus d'occupant.
+    const transientEstablishment = created?.establishment_id
+    if (transientEstablishment && transientEstablishment !== managerProfile?.establishment_id) {
+      await supabaseAdmin.from('establishments').delete().eq('id', transientEstablishment)
+    }
 
     // Auto-create first contract if enough data provided
     if (contract_type && start_date && weekly_hours) {

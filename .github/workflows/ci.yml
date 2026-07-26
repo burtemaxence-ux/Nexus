@@ -53,6 +53,12 @@ jobs:
       - name: Sondes des migrations critiques
         run: SUPABASE_DB_URL="postgres://postgres:postgres@localhost:5432/ci" npx tsx scripts/check-migrations.ts
 
+      # Rejoue les scénarios d'attaque des findings de sécurité contre le
+      # schéma reconstruit. Une régression sur l'isolation multi-tenant casse
+      # la CI au lieu d'attendre le prochain audit.
+      - name: Tests d'intégration SQL (isolation multi-tenant)
+        run: ./supabase/harness/run-tests.sh ci
+
   quality:
     name: Typecheck · Lint · Tests · Build
     runs-on: ubuntu-latest
