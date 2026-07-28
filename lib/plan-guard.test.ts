@@ -8,8 +8,6 @@ function sub(plan: string, status: string): SubscriptionRow {
     id: 'sub-1',
     plan,
     status,
-    stripe_customer_id: 'cus_1',
-    stripe_subscription_id: 'sub_1',
     current_period_end: null,
     cancel_at_period_end: false,
     trial_end: null,

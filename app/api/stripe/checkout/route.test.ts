@@ -6,6 +6,17 @@ import { TRIAL_DAYS } from '@/lib/subscription'
 import { getPendingFirstMonth, firstMonthCouponId } from '@/lib/referral'
 import { POST } from './route'
 
+// Depuis la migration 088, les identifiants Stripe ne sont plus lisibles par le
+// rôle `authenticated` : la route lit la ligne d'abonnement via le service-role
+// (après requireManager, avec filtre d'établissement explicite).
+const admin = vi.hoisted(() => ({
+  sub: null as { stripe_customer_id: string | null; stripe_subscription_id: string | null } | null,
+}))
+vi.mock('@/lib/supabase/admin', () => ({
+  supabaseAdmin: {
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: admin.sub }) }) }) }),
+  },
+}))
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('@/lib/api-auth', () => ({ requireManager: vi.fn() }))
 vi.mock('@/lib/referral', () => ({ getPendingFirstMonth: vi.fn(), firstMonthCouponId: vi.fn() }))
@@ -21,11 +32,10 @@ vi.mock('@/lib/stripe', () => ({
 const sessionsCreate = vi.fn()
 const customersCreate = vi.fn()
 
-function fakeSupabase(sub: { stripe_customer_id: string | null; stripe_subscription_id: string | null } | null = null) {
+function fakeSupabase() {
   return {
     auth: { getUser: async () => ({ data: { user: { id: 'u1', created_at: new Date().toISOString() } } }) },
     from: () => ({ select: () => ({ eq: () => ({
-      maybeSingle: async () => ({ data: sub }),
       single: async () => ({ data: { full_name: 'Max' } }),
     }) }) }),
   }
@@ -34,6 +44,7 @@ function req(body: unknown) { return { json: async () => body } as unknown as Re
 
 beforeEach(() => {
   vi.clearAllMocks()
+  admin.sub = null
   STRIPE_PRICES.essential_monthly = 'price_ess_m'
   vi.mocked(requireManager).mockResolvedValue({
     user: { id: 'u1', email: 'm@x.fr' },
@@ -96,9 +107,7 @@ describe('POST /api/stripe/checkout', () => {
   })
 
   it('ré-abonnement : ni essai, ni coupon, client Stripe réutilisé', async () => {
-    vi.mocked(createClient).mockResolvedValue(
-      fakeSupabase({ stripe_customer_id: 'cus_exist', stripe_subscription_id: 'sub_old' }) as never
-    )
+    admin.sub = { stripe_customer_id: 'cus_exist', stripe_subscription_id: 'sub_old' }
 
     const res = await POST(req({ planId: 'essential', interval: 'monthly' }))
     expect(res.status).toBe(200)

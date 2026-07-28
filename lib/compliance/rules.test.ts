@@ -130,6 +130,15 @@ describe('rest_daily — < 11h de repos entre deux shifts', () => {
     expect(ruleIds([shift(SUN_PREV, '11:00', '14:30', 0), shift(SUN_PREV, '18:30', '23:00', 0)]))
       .not.toContain('rest_daily')
   })
+
+  it("ne déclenche pas quand une journée à deux services est suivie d'un repos suffisant", () => {
+    // Fin lundi 23:00 → reprise mardi 11:00 = 12h de repos. Vérifie que la
+    // coupure intra-journée ne masque pas le calcul de la paire lundi→mardi.
+    expect(ruleIds([
+      shift(MON, '11:00', '14:30', 0), shift(MON, '18:30', '23:00', 0),
+      shift(TUE, '11:00', '15:00', 0),
+    ])).not.toContain('rest_daily')
+  })
 })
 
 describe('days_consecutive — > 6 jours consécutifs', () => {

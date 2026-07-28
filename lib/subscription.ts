@@ -6,12 +6,17 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  */
 export const TRIAL_DAYS = 30
 
+/**
+ * Vue « entitlement » de l'abonnement — sans les identifiants Stripe.
+ * Ceux-ci ne sont plus lisibles par le rôle `authenticated` (migration 088) :
+ * les inclure ici ferait échouer la requête en 42501, y compris pour un
+ * manager. Les routes qui en ont besoin (checkout, portail) les lisent via le
+ * service-role, après contrôle de rôle.
+ */
 export type SubscriptionRow = {
   id: string
   plan: string
   status: string
-  stripe_customer_id: string | null
-  stripe_subscription_id: string | null
   current_period_end: string | null
   cancel_at_period_end: boolean
   trial_end: string | null
@@ -23,7 +28,7 @@ export async function getSubscription(
 ): Promise<SubscriptionRow | null> {
   const { data } = await supabase
     .from('subscriptions')
-    .select('id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_end, cancel_at_period_end, trial_end')
+    .select('id, plan, status, current_period_end, cancel_at_period_end, trial_end')
     .eq('establishment_id', establishmentId)
     .maybeSingle()
 
