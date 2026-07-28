@@ -12,6 +12,9 @@ doit être remplacé avant envoi.
    est pas une : retire-la de la liste.
 4. **Pas de pièce jointe au premier email.** Une pièce jointe non sollicitée déclenche les
    filtres et se fait ignorer. Le one-pager part au deuxième échange.
+5. **Cession sèche.** Aucune participation conservée, aucune clause de suite. C'est un
+   argument de vente en soi — à dire dès que la question de la structure se pose : *« vous
+   reprenez tout, je ne garde rien, il n'y a personne derrière moi. »*
 
 ---
 
@@ -111,8 +114,9 @@ sans prix ne reçoit que des curieux.
 > pour la génération de plannings. Domaine `quartzbase.fr`, marque et identité graphique.
 >
 > **Ce qui fait la valeur.** Un moteur de conformité au droit du travail français : 17
-> règles implémentées, les 17 couvertes par des tests. C'est ce qui prend des mois à
-> refaire.
+> règles implémentées, les 17 couvertes par des tests. Générer ce code est facile
+> aujourd'hui — savoir qu'il est juste ne l'est pas. L'interprétation de chaque règle est
+> tranchée et verrouillée par des tests.
 >
 > **Ce qu'il n'y a pas.** Aucun client, aucun revenu, aucun trafic. La base ne contient que
 > des données de démonstration. Le repreneur repart de zéro sur le commercial — et hérite
@@ -122,8 +126,12 @@ sans prix ne reçoit que des curieux.
 > **Fourni.** Dépôt Git et historique, base et migrations, runbook d'exploitation complet,
 > audit technique daté, document d'architecture, transfert des comptes tiers.
 >
-> **Prix :** [à fixer — cf. §2 du plan : n'affiche un prix ici qu'après les premières
-> réponses des thèses A et B, qui te donneront la fourchette réelle]
+> **Prix : 4 500 €**, négociable. Cession sèche : aucune participation conservée, aucune
+> clause de suite, le repreneur reprend l'actif en entier.
+
+*(Prix issu de `valorisation.md` §3. Sur un petit actif, un prix précis vend plus vite qu'un
+« faites une offre ». Si aucun contact au bout de deux semaines : descendre à 2 500 € plutôt
+que de laisser l'annonce dormir.)*
 
 ---
 
@@ -158,9 +166,16 @@ le prix demandé.
 > et de validation juridique que ça vous économise. Vous êtes mieux placé que moi pour
 > l'estimer. Qu'est-ce que ça vaudrait pour vous ?
 
-Si on insiste pour que tu ouvres : renvoyer sur la logique de coût de build, sans conclure.
-« Ce que je peux vous dire, c'est ce qu'il y a dedans : 57 000 lignes, 262 tests, 17 règles
-juridiques validées, environ six mois de travail. À vous de voir ce que ça vaut chez vous. »
+Si on insiste pour que tu ouvres : renvoyer sur le temps gagné, **jamais sur le volume de
+code**. En 2026, « 57 000 lignes, six mois de travail » appelle immédiatement « je refais ça
+avec une IA en trois semaines » — et ce n'est pas faux. Dire plutôt :
+
+> Ce que je peux vous dire, c'est ce qu'il y a dedans : 17 règles du Code du travail dont
+> l'interprétation est tranchée et verrouillée par des tests, une isolation multi-tenant
+> vérifiée, un webhook de paiement idempotent testé. Générer ce code est facile aujourd'hui.
+> Savoir qu'il est juste, non — c'est là qu'est le temps.
+
+Cf. `valorisation.md` §4 pour l'argumentaire complet, et §3 pour les fourchettes.
 
 **Et note chaque chiffre entendu.** Trois réponses suffisent à connaître ta fourchette
 réelle — c'est ce qui te permettra d'afficher un prix dans l'annonce de la thèse C.

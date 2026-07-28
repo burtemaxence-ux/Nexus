@@ -102,6 +102,9 @@ Détermine ce qui se vend (cession d'actif vs cession de titres) et le régime f
 vente. **Réponse attendue : le statut, et au nom de qui sont les comptes tiers du §1 du
 runbook.**
 
+Vérifier au passage que l'actif (code, domaine, marque) est bien détenu par l'entité qui
+vend, et n'est pas resté éparpillé entre une société et le nom propre du fondateur.
+
 ### J-2 · Titularité de la propriété intellectuelle — *le point qui tue les deals*
 Quelqu'un d'autre a-t-il écrit du code, un design, un texte ? Cofondateur, freelance,
 stagiaire, prestataire ?

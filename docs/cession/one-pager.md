@@ -14,8 +14,12 @@ production et audité, mais jamais commercialisé : le fondateur entre en gendar
 septembre 2026 et n'a pas conduit de phase de vente.
 
 Ce qui est proposé ici n'est donc pas un business avec des revenus à reprendre. C'est un
-**actif technique fini** : 57 000 lignes de code auditées, 262 tests verts, et un moteur de
-conformité au droit du travail français que personne n'a envie de réécrire.
+**produit fini et déjà durci en production** : un moteur de conformité au droit du travail
+français dont l'interprétation a été tranchée et figée par des tests, une base multi-tenant
+vérifiée, et des circuits de paiement couverts.
+
+Écrire du code est devenu bon marché. **Savoir qu'il est juste ne l'est pas** — c'est ce qui
+est vendu ici.
 
 Le reste de ce document est vérifiable ligne à ligne dans le dépôt.
 
@@ -108,8 +112,12 @@ transfert ou recréation documentée des comptes tiers.
 
 ## Prix
 
-Ouvert. La discussion est libre — le fondateur n'a pas de prix de réserve public et
-privilégie une reprise rapide et propre à une négociation longue.
+**À négocier. Cession sèche, sans participation conservée** — le cédant ne garde aucune part,
+aucun droit de regard, aucun lien continu. Le repreneur reprend l'actif en entier, libre de
+toute clause.
+
+Pas de prix de réserve affiché : une reprise rapide et propre prime sur une négociation
+longue.
 
 ---
 

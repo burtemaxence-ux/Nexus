@@ -85,8 +85,10 @@ La méthode correcte, et elle est simple :
 3. **Les 3 premières réponses fixent la fourchette réelle.** Note-les, elles valent tous
    les benchmarks.
 4. **Le seul plancher qui se défend :** un actif sans revenu ne se valorise pas sur un
-   multiple — l'acheteur compare à son coût de *build*. C'est ton unique argument chiffrable,
-   et il est solide : 57 000 lignes, 262 tests, 17 règles juridiques validées.
+   multiple — l'acheteur compare à son coût de *build*. ⚠️ **Mis à jour le 28/07 :** ce coût
+   s'est effondré de 65-75 % avec les agents de codage. **Ne plus argumenter sur le volume
+   de code** — ça appelle « je le refais avec une IA ». Argumenter sur le droit vérifié et
+   le durcissement production. Analyse chiffrée et fourchettes : `docs/cession/valorisation.md`.
 
 **Attention, contre-intuitif :** les concurrents directs sur le planning CHR sont les
 **pires** cibles. Ils ont déjà le module, ils préfèrent recoder, et une prise de contact
