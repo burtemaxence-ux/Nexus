@@ -102,11 +102,11 @@ Tout ce qui n'est pas nécessaire à l'envoi du premier email est hors périmèt
 
 | ID | Action | Effort | Critère de succès |
 |----|--------|--------|-------------------|
-| **C-1** | **One-pager de cession** (1 page, pas 10) : ce qui est vendu (§1), les 3 chiffres qui comptent (17 règles testées / 262 tests / 0 advisor), la transparence « 0 client, 0 revenu » assumée en haut, 4 captures, un lien vidéo | 3 h | 1 PDF envoyable |
-| **C-2** | **Liste de 15 cibles** — 5 par thèse A/B/C (§2). Pour A et B : nom de l'entreprise, la personne, son email, **et la ligne « pourquoi eux »**. Une cible sans cette ligne est une cible à retirer | 3 h | 15 lignes, dont 10 avec un contact nominatif |
-| **C-3** | **Vidéo démo 3 min, non montée** — Loom, écran + voix : créer un planning, l'alerte de conformité qui se déclenche, l'export. Brute. Une vidéo léchée ne convertit pas mieux et coûte une journée | 30 min | lien partageable |
-| **C-4** | **Envoi de la vague 1 : 10 emails** (5 thèse A + 5 thèse B), personnalisés sur la ligne « pourquoi eux » | 2 h | **10 emails partis le 31/07** |
-| **C-5** | **Annonce marketplace (thèse C)** publiée en parallèle — le one-pager suffit comme contenu | 1 h | annonce en ligne le 3/08 |
+| **C-1** | ~~One-pager de cession~~ | — | ✅ **fait le 28/07** → `docs/cession/one-pager.md`. Reste : l'exporter en PDF et y ajouter 4 captures |
+| **C-2** | ~~Liste de cibles~~ | — | ✅ **fait le 28/07** → `docs/cession/cibles.md` : 15 cibles, « pourquoi eux » rédigé pour les 10 de A et B, sources vérifiées. **Reste à Maxence : trouver les 10 contacts nominatifs** (méthode dans le fichier) |
+| **C-3** | **Vidéo démo 3 min, non montée** — Loom, écran + voix : créer un planning, l'alerte de conformité qui se déclenche, l'export. Brute. Une vidéo léchée ne convertit pas mieux et coûte une journée | 30 min | lien partageable — **seul livrable de la semaine 1 que personne ne peut faire à ta place** |
+| **C-4** | **Envoi de la vague 1 : 10 emails** (5 thèse A + 5 thèse B), personnalisés sur la ligne « pourquoi eux » | 2 h | ✍️ trames prêtes → `docs/cession/emails-approche.md` (+ script de réponse à « combien vous en voulez ? »). **10 emails partis le 31/07** |
+| **C-5** | **Annonce marketplace (thèse C)** publiée en parallèle | 1 h | ✍️ texte prêt → `docs/cession/emails-approche.md`. Annonce en ligne le 3/08 (**le prix reste à fixer**) |
 
 > **Le seul indicateur qui compte cette semaine : 10 emails partis + 1 annonce en ligne.**
 > Pas « dossier avancé ». Si le 31/07 au soir rien n'est parti, le plan a déjà échoué.
@@ -117,9 +117,9 @@ Tout ce qui n'est pas nécessaire à l'envoi du premier email est hors périmèt
 |----|--------|--------|-------------------|
 | **C-6** | **Relance unique** de la vague 1 à J+7, deux lignes. Une seule. Pas de troisième email | 30 min | relances parties le 7/08 |
 | **C-7** | **Vague 2 : 5 emails** (le reste de la liste C-2) | 1 h | envoyés avant le 10/08 |
-| **C-8** | **T-1 — Runbook de reprise** : déploiement, secrets (où ils sont, comment les faire tourner), crons, migrations, restauration de backup, comptes tiers (Supabase/Vercel/Stripe/Resend/Anthropic/Twilio) | 1 j | un dev senior reprend l'exploitation sans t'appeler |
-| **C-9** | **T-2 — Dossier de cession complet** : l'audit du 21/07 + `ARCHITECTURE.md` + §1 de ce plan + **les coûts d'exploitation mensuels réels** | ½ j | dossier PDF ; **les coûts sont le seul chiffre que tu es seul à avoir — il est systématiquement demandé** |
-| **C-10** | **Lever les blocages du §4** (structure juridique, propriété IP, transférabilité des comptes) | ½ j | §4 sans case ouverte |
+| **C-8** | ~~T-1 — Runbook de reprise~~ | — | ✅ **fait le 28/07** → `docs/cession/runbook-reprise.md` : 9 comptes tiers et leur mode de transfert, rotation exhaustive des secrets, les 9 tâches planifiées, échéances silencieuses, première semaine du repreneur, points d'attention hérités |
+| **C-9** | **T-2 — Dossier de cession** | ¼ j | 🟠 **assemblé à 90 %** : one-pager + due-diligence + runbook + audit du 21/07 + `ARCHITECTURE.md`. **Manque le tableau des coûts d'exploitation mensuels** (grille vide prête dans le runbook §4) — c'est le seul chiffre que tu es seul à avoir, et il est systématiquement demandé |
+| **C-10** | **Lever les blocages du §4** | 2 h | 🟠 J-3, J-4, J-6 ✅ répondus le 28/07. **Restent J-1 (structure juridique), J-2 (titularité IP), J-5 (marque INPI), J-7 (abonnements Stripe)** — quatre phrases, mais personne d'autre ne peut les écrire |
 
 ### Semaines 4-5 — 18 → 31 août : **conclure ou refermer**
 
@@ -131,15 +131,19 @@ Le §5 (gate du 17 août) décide laquelle des deux branches s'exécute ici.
 
 À traiter en semaine 2, pas au moment où un acheteur les demande.
 
-| # | Question | Pourquoi ça bloque |
+**→ Réponses rédigées dans `docs/cession/due-diligence.md`.** Les trois points vérifiables
+l'ont été le 28/07 ; les quatre autres n'existent que dans ta tête et attendent une phrase
+de toi chacun.
+
+| # | Question | État |
 |---|---|---|
-| J-1 | **Y a-t-il une société** (SASU, micro-entreprise…) ou l'actif est-il détenu en nom propre ? | Détermine ce qui se vend (cession d'actif vs cession de titres) et la fiscalité. Un acheteur ne signe pas sans le savoir |
-| J-2 | **Qui détient l'IP ?** Un cofondateur, un freelance, un stagiaire a-t-il écrit du code ? | Une chaîne de titularité trouée = deal mort. Si oui : une cession de droits signée, même par email |
-| J-3 | **Transférabilité des comptes** : Supabase, Vercel, Stripe, Resend, Anthropic, registrar du domaine | Certains se transfèrent, d'autres se recréent. À lister dans le runbook (C-8) |
-| J-4 | **Nom de code `Nexus` vs marque `Quartzbase`** | Le repo, le `package.json` et la CI portent « Nexus », le produit « Quartzbase ». À expliciter dans le dossier : ce qui est transféré, c'est la marque Quartzbase |
-| J-5 | **Marque déposée ?** `Quartzbase` est-il déposé à l'INPI ? | Si non, le dire. Si oui, c'est un actif de plus dans le §1 |
-| J-6 | **Données personnelles en base** | Bonne nouvelle : 0 utilisateur externe, la base ne contient que du démo. **C'est un argument de vente** — aucun transfert RGPD à organiser. À écrire noir sur blanc |
-| J-7 | **Les 2 abonnements Stripe `active`** (échéances 4 et 16 août) | S'ils sont en mode *live*, tu te factures toi-même. À résilier — et à ne pas laisser apparaître comme « 2 clients » dans un dossier, ce serait faux |
+| J-1 | **Y a-t-il une société** (SASU, micro-entreprise…) ou l'actif est-il détenu en nom propre ? | ⏳ **toi** — détermine ce qui se vend (cession d'actif vs cession de titres) et la fiscalité |
+| J-2 | **Qui détient l'IP ?** Un cofondateur, un freelance, un stagiaire a-t-il écrit du code ? | ⏳ **toi** — chaîne de titularité trouée = deal mort. Si oui : cession de droits signée **avant** d'engager la discussion |
+| J-3 | **Transférabilité des comptes** | ✅ 9 services inventoriés (runbook §1). Seul point dur : **Stripe ne se transfère pas** — compte à recréer, indolore ici faute d'abonnés |
+| J-4 | **Nom de code `Nexus` vs marque `Quartzbase`** | ✅ résidu inventorié : 6 endroits, aucune dépendance externe cassée, webhooks déjà en double émission |
+| J-5 | **Marque déposée ?** `Quartzbase` est-il déposé à l'INPI ? | ⏳ **toi** — si oui, c'est un actif de plus au §1 ; si non, le dire simplement |
+| J-6 | **Données personnelles en base** | ✅ **aucune donnée réelle** : IBAN 0/19, NIR 0/19, date de naissance 0/19, adresse 0/19. Argument de vente. ⚠️ **mais le schéma prévoit de collecter NIR et IBAN en clair** — à déclarer spontanément (cf. due-diligence.md) |
+| J-7 | **Les 2 abonnements Stripe `active`** (échéances 4 et 16 août) | ⏳ **toi** — mode *live* ou test ? Si live, tu te factures toi-même. À résilier avant qu'ils ne repassent |
 
 ---
 
