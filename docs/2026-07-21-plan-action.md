@@ -32,6 +32,12 @@ Clients payants actifs aujourd'hui ?
 **Critère de succès du §0 :** une décision écrite et datée, ajoutée en tête de
 `docs/2026-06-16-decision-trajectoire.md`, avant le 27 juillet.
 
+> ✅ **Fait le 28/07/2026 — résultat : PISTE B.** Clients payants externes mesurés en base de
+> prod : **0** (les 2 abonnements `active` sont des comptes perso/démo ; aucun tiers ne s'est
+> jamais connecté). Décision écrite en tête de `docs/2026-06-16-decision-trajectoire.md`.
+> **Les §2, §3 et §4 ci-dessous sont donc caducs** — seul le §5 (paquet de cession) s'applique,
+> plus P1-2 et P1-3 du §2.
+
 ---
 
 ## 1. SEMAINE 1 (22-27 juillet) — P0 : risque juridique & revenu, coût quasi nul
@@ -45,7 +51,7 @@ Commune à toutes les pistes. Total : **~2 h de travail + 1 réunion**.
 | P0-3 | **Mots de passe compromis** | Supabase Dashboard → Authentication → activer « Leaked password protection » | 1 clic | Maxence | advisor sécurité HaveIBeenPwned disparu |
 | P0-4 | **Relances d'impayés** | Stripe Dashboard → Settings → Billing → activer Smart Retries + emails d'échec de paiement + page de mise à jour de carte | 15 min | Maxence | réglage actif ; chaque `past_due` déclenche des relances automatiques |
 | P0-5 | **Brief batch en prod** | Lundi 28/07 matin : logs Vercel de `weekly-brief-submit` (6h30) et `weekly-brief-manager` (7h00) ; vérifier `from_batch > 0` et réception de l'email | 5 min | Maxence | brief reçu + `from_batch ≥ 1` dans la réponse du cron |
-| P0-6 | **Décision de trajectoire** | §0 ci-dessus | 1 réunion | Maxence | décision écrite et datée |
+| P0-6 | ~~Décision de trajectoire~~ | §0 ci-dessus | — | ✅ fait le 28/07 | ✅ décision écrite et datée : **Piste B — cession de l'actif** (0 client payant mesuré en base) |
 
 ---
 
