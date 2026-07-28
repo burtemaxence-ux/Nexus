@@ -54,6 +54,8 @@ Trajectoires écartées ce jour :
 3. **Exécution du paquet de cession** (§5 du plan du 21/07) : T-1 runbook de reprise,
    T-2 dossier de cession, T-3 liste d'acquéreurs, T-4 email de continuité (sans objet ici :
    0 client externe à prévenir — seul point positif de ce constat).
+   → Plan d'exécution détaillé : **`docs/2026-07-28-plan-cession.md`** (calendrier 5 semaines,
+   3 thèses d'acquisition, gate du 17/08, sortie propre si rien ne se vend).
 
 ## Ce sur quoi porte la valeur
 

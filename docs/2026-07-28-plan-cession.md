@@ -1,0 +1,224 @@
+# PLAN DE CESSION — QUARTZBASE
+
+**Date :** 28 juillet 2026
+**Décision source :** `docs/2026-06-16-decision-trajectoire.md` (point de contrôle du 28/07 —
+0 client payant mesuré en base → Piste B)
+**Horizon :** 5 semaines — du 28 juillet au 31 août 2026 (butée dure : entrée en gendarmerie
+~septembre)
+**Budget d'effort total :** ~5 jours de travail, étalés. Si une action de ce plan demande plus
+que son estimation, c'est qu'elle est mal cadrée — la couper, pas l'étirer.
+
+---
+
+## 0. LE RAISONNEMENT (pourquoi ce plan est dans cet ordre)
+
+La tentation naturelle est de préparer d'abord (runbook, dossier, valorisation) puis de
+contacter. **C'est l'ordre qui fait échouer les cessions courtes.**
+
+La ressource rare ici n'est pas ton temps de travail : c'est le **temps calendaire**. Un
+éditeur met 1 à 3 semaines à répondre à un email entrant, et autant à faire tourner une
+décision en interne. Sur 5 semaines, tu as la place pour **un seul aller-retour, deux au
+mieux**. Chaque jour passé à polir avant d'envoyer est un jour retiré au seul processus qui
+a une latence externe.
+
+Conséquence, qui structure tout le reste :
+
+> **Les premiers emails partent le 31 juillet.** Avec un one-pager, pas un dossier.
+> Le runbook et le dossier complet se construisent *pendant* que les réponses arrivent —
+> personne ne demande un runbook avant d'avoir dit « ça m'intéresse ».
+
+Le deuxième principe : **ne pas jouer une seule thèse d'acquisition.** Les trois thèses du
+§2 s'adressent à des acheteurs différents, avec des pitchs et des prix différents, et
+surtout **elles ne se disputent pas ton temps** — les emails partent le même jour. Jouer la
+seule thèse « un éditeur va acheter mon SaaS » revient à miser 5 semaines sur l'issue la
+moins probable.
+
+---
+
+## 1. CE QUI EST VENDU — inventaire vérifié le 28/07/2026
+
+Chiffres relus dans le repo et la prod ce jour, pas repris des audits (certains y sont
+sous-estimés).
+
+| Actif | État vérifié |
+|---|---|
+| **Moteur de conformité** `lib/compliance` | **17 règles** de droit du travail français implémentées, **les 17 couvertes par des tests** — repos quotidien/hebdo, durées max jour/semaine/moyenne, pauses, jours consécutifs, dimanche, nuit, amplitude, heures contractuelles, coupures temps partiel, **et 5 règles spécifiques aux mineurs**. *(L'audit du 21/07 annonçait 8 règles : il sous-comptait.)* |
+| Base de code | 57 189 lignes TS/TSX, Next.js 14 App Router, TypeScript strict, 0 TODO/FIXME |
+| Tests | **262 tests / 26 fichiers, tous verts** (relancés le 28/07) — dont les circuits d'argent Stripe |
+| Base de données | Supabase Postgres, 39 migrations trackées, RLS multi-tenant vérifiée, **0 advisor de performance** |
+| Surface applicative | 63 pages, 99 routes API, PWA installable, API REST v1, webhooks sortants, Slack, iCal |
+| Facturation | Stripe branché et testé : 3 plans (49 / 89 / 149 €/mois), essai 30 j, parrainage, dunning |
+| IA | Intégration Anthropic : génération de planning, briefs hebdo (Batch API), chat manager |
+| Marque & domaine | `quartzbase.fr`, identité complète (SVG lockup + symbole, mono clair/sombre) |
+| Vitrine | Landing + 6 pages SEO réglementaires (`/code-du-travail`, `/conformite`, `/securite`…) |
+| Exports métier | PDF, iCal, **DSN mensuelle (NEODeS) pré-remplie** |
+| **Ce qui n'est PAS vendu** | **Aucun client, aucun revenu, aucun trafic.** À dire en premier, pas à faire découvrir. |
+
+**Le point à comprendre pour vendre :** ce qui a de la valeur ici n'est pas « une app de
+planning » — il en existe trente. C'est **le moteur de conformité au droit du travail
+français, testé**, plus le fait qu'il soit déjà emballé dans un produit fini. Ça ne
+s'achète pas pour gagner de l'argent tout de suite, ça s'achète pour **gagner 6 mois**.
+
+---
+
+## 2. TROIS THÈSES D'ACQUISITION — à jouer en parallèle, jamais à mélanger
+
+| | **A — Time-to-market conformité** | **B — Comblement de gamme** | **C — Reprise d'actif** |
+|---|---|---|---|
+| **Qui** | Acteur RH/planning étranger ou adjacent qui veut entrer sur le marché français CHR | Éditeur caisse / paie / compta qui a déjà des clients CHR mais pas de module planning | Développeur indépendant, petit studio, repreneur de side-projects |
+| **Ce qu'il achète** | Le moteur `lib/compliance` + les pages réglementaires. Le reste est un bonus | L'app entière, à rebrander et brancher sur sa base clients | Un codebase fini, auditté, qu'il relance sous son nom |
+| **Ce à quoi il compare** | Le coût de faire coder + valider 17 règles de droit français : plusieurs mois de dev + conseil juridique | Son coût de build interne (~6 mois de dev pour cette surface) | Le prix d'autres projets finis sans traction |
+| **Pitch en une ligne** | « 17 règles du Code du travail français, implémentées et testées, prêtes à brancher » | « Votre module planning conforme, livré fini, à votre marque » | « SaaS complet, 262 tests verts, 0 dette, prêt à relancer » |
+| **Canal** | Email direct au Head of Product / Country Manager France | Email direct au fondateur / dir. produit | Marketplaces (Acquire.com, Flippa, side-project boards) + communautés indie FR |
+| **Probabilité** | 🔴 Faible | 🟠 Moyenne-faible | 🟢 La plus élevée |
+| **Délai de closing** | 4-8 semaines — **dépasse ta butée** | 3-6 semaines — **serré** | 1-3 semaines — **tient** |
+| **Ordre de grandeur** | Le plus haut | Intermédiaire | Le plus bas |
+
+**Sur les prix — à lire avant de citer un chiffre à qui que ce soit.** Je ne mets pas de
+fourchette en euros dans ce plan : je n'ai pas de comparables sourcés, et un chiffre inventé
+ici deviendrait ton point d'ancrage en négociation, ce qui est le pire résultat possible.
+La méthode correcte, et elle est simple :
+
+1. **Ne cite aucun prix dans le premier email.** Tu n'as pas l'information ; l'acheteur, si.
+2. **Fais parler le premier.** « Qu'est-ce que ça représente pour vous ? » En cession
+   d'actif sans revenu, celui qui annonce un chiffre en premier plafonne la discussion.
+3. **Les 3 premières réponses fixent la fourchette réelle.** Note-les, elles valent tous
+   les benchmarks.
+4. **Le seul plancher qui se défend :** un actif sans revenu ne se valorise pas sur un
+   multiple — l'acheteur compare à son coût de *build*. C'est ton unique argument chiffrable,
+   et il est solide : 57 000 lignes, 262 tests, 17 règles juridiques validées.
+
+**Attention, contre-intuitif :** les concurrents directs sur le planning CHR sont les
+**pires** cibles. Ils ont déjà le module, ils préfèrent recoder, et une prise de contact
+leur donne surtout de l'information gratuite sur toi. Ne les approche qu'en dernier recours.
+
+---
+
+## 3. CALENDRIER
+
+### Semaine 1 — 28 juillet → 3 août : **envoyer**
+
+Tout ce qui n'est pas nécessaire à l'envoi du premier email est hors périmètre cette semaine.
+
+| ID | Action | Effort | Critère de succès |
+|----|--------|--------|-------------------|
+| **C-1** | **One-pager de cession** (1 page, pas 10) : ce qui est vendu (§1), les 3 chiffres qui comptent (17 règles testées / 262 tests / 0 advisor), la transparence « 0 client, 0 revenu » assumée en haut, 4 captures, un lien vidéo | 3 h | 1 PDF envoyable |
+| **C-2** | **Liste de 15 cibles** — 5 par thèse A/B/C (§2). Pour A et B : nom de l'entreprise, la personne, son email, **et la ligne « pourquoi eux »**. Une cible sans cette ligne est une cible à retirer | 3 h | 15 lignes, dont 10 avec un contact nominatif |
+| **C-3** | **Vidéo démo 3 min, non montée** — Loom, écran + voix : créer un planning, l'alerte de conformité qui se déclenche, l'export. Brute. Une vidéo léchée ne convertit pas mieux et coûte une journée | 30 min | lien partageable |
+| **C-4** | **Envoi de la vague 1 : 10 emails** (5 thèse A + 5 thèse B), personnalisés sur la ligne « pourquoi eux » | 2 h | **10 emails partis le 31/07** |
+| **C-5** | **Annonce marketplace (thèse C)** publiée en parallèle — le one-pager suffit comme contenu | 1 h | annonce en ligne le 3/08 |
+
+> **Le seul indicateur qui compte cette semaine : 10 emails partis + 1 annonce en ligne.**
+> Pas « dossier avancé ». Si le 31/07 au soir rien n'est parti, le plan a déjà échoué.
+
+### Semaines 2-3 — 4 → 17 août : **construire pendant que ça mûrit**
+
+| ID | Action | Effort | Critère de succès |
+|----|--------|--------|-------------------|
+| **C-6** | **Relance unique** de la vague 1 à J+7, deux lignes. Une seule. Pas de troisième email | 30 min | relances parties le 7/08 |
+| **C-7** | **Vague 2 : 5 emails** (le reste de la liste C-2) | 1 h | envoyés avant le 10/08 |
+| **C-8** | **T-1 — Runbook de reprise** : déploiement, secrets (où ils sont, comment les faire tourner), crons, migrations, restauration de backup, comptes tiers (Supabase/Vercel/Stripe/Resend/Anthropic/Twilio) | 1 j | un dev senior reprend l'exploitation sans t'appeler |
+| **C-9** | **T-2 — Dossier de cession complet** : l'audit du 21/07 + `ARCHITECTURE.md` + §1 de ce plan + **les coûts d'exploitation mensuels réels** | ½ j | dossier PDF ; **les coûts sont le seul chiffre que tu es seul à avoir — il est systématiquement demandé** |
+| **C-10** | **Lever les blocages du §4** (structure juridique, propriété IP, transférabilité des comptes) | ½ j | §4 sans case ouverte |
+
+### Semaines 4-5 — 18 → 31 août : **conclure ou refermer**
+
+Le §5 (gate du 17 août) décide laquelle des deux branches s'exécute ici.
+
+---
+
+## 4. BLOCAGES À LEVER TÔT — ils tuent une cession en due diligence
+
+À traiter en semaine 2, pas au moment où un acheteur les demande.
+
+| # | Question | Pourquoi ça bloque |
+|---|---|---|
+| J-1 | **Y a-t-il une société** (SASU, micro-entreprise…) ou l'actif est-il détenu en nom propre ? | Détermine ce qui se vend (cession d'actif vs cession de titres) et la fiscalité. Un acheteur ne signe pas sans le savoir |
+| J-2 | **Qui détient l'IP ?** Un cofondateur, un freelance, un stagiaire a-t-il écrit du code ? | Une chaîne de titularité trouée = deal mort. Si oui : une cession de droits signée, même par email |
+| J-3 | **Transférabilité des comptes** : Supabase, Vercel, Stripe, Resend, Anthropic, registrar du domaine | Certains se transfèrent, d'autres se recréent. À lister dans le runbook (C-8) |
+| J-4 | **Nom de code `Nexus` vs marque `Quartzbase`** | Le repo, le `package.json` et la CI portent « Nexus », le produit « Quartzbase ». À expliciter dans le dossier : ce qui est transféré, c'est la marque Quartzbase |
+| J-5 | **Marque déposée ?** `Quartzbase` est-il déposé à l'INPI ? | Si non, le dire. Si oui, c'est un actif de plus dans le §1 |
+| J-6 | **Données personnelles en base** | Bonne nouvelle : 0 utilisateur externe, la base ne contient que du démo. **C'est un argument de vente** — aucun transfert RGPD à organiser. À écrire noir sur blanc |
+| J-7 | **Les 2 abonnements Stripe `active`** (échéances 4 et 16 août) | S'ils sont en mode *live*, tu te factures toi-même. À résilier — et à ne pas laisser apparaître comme « 2 clients » dans un dossier, ce serait faux |
+
+---
+
+## 5. GATE DU 17 AOÛT — et plan de repli daté
+
+Le 17 août au soir, compter les **réponses de fond** reçues (une réponse de fond = un
+échange où l'acheteur pose une question sur l'actif ; un « merci, pas pour nous » n'en est
+pas une).
+
+```
+Réponses de fond au 17/08 ?
+│
+├── ≥ 1 sur thèse A ou B ──► BRANCHE 1 : conclure.
+│      Tout le temps restant sur cette discussion. C-8/C-9 finalisés à sa demande.
+│      Ne pas ouvrir de nouveau front, ne pas relancer les autres.
+│
+└── 0  ──────────────────► BRANCHE 2 : bascule intégrale sur la thèse C (marketplace),
+       prix affiché, closing rapide visé au 31/08. Si aucune offre au 31/08 → §6.
+```
+
+**Critère de succès du gate :** une ligne écrite et datée en tête de ce fichier, le 17/08.
+Comme le point de contrôle du 28/07 — le même mécanisme, il a fonctionné.
+
+---
+
+## 6. SI RIEN NE SE VEND — la sortie propre (à exécuter avant le 31 août)
+
+Un plan de cession sans plan de non-vente n'est pas un plan. Le scénario le plus probable
+reste « pas d'acheteur en 5 semaines », et il ne doit pas se solder par un actif qui pourrit
+en silence pendant que tu es injoignable.
+
+| ID | Action | Pourquoi |
+|----|--------|----------|
+| F-1 | **Ouvrir `lib/compliance` en open source** (licence permissive), avec un README qui cite les articles de loi | La partie qui a une valeur d'usage réelle et une durée de vie longue. Ça te construit un actif de réputation là où l'actif commercial n'a rien donné |
+| F-2 | **Couper les coûts récurrents** : Anthropic, Resend, Twilio, Vercel → plan gratuit ou résiliation ; Supabase → pause du projet | Un actif dormant qui coûte 50 €/mois pendant 2 ans, c'est 1 200 € pour rien |
+| F-3 | **Renouveler `quartzbase.fr` pour 2 ans** et poser une page statique | Le domaine est la seule chose qui devient irrécupérable si elle expire. 2 ans coûtent une dizaine d'euros et gardent la porte ouverte |
+| F-4 | **Archiver le repo** avec le runbook (C-8) et le dossier (C-9) dedans | Tu reprends là où tu t'es arrêté dans 2 ans, sans rien avoir à reconstituer |
+
+> **F-1 ne s'exécute qu'après le 31 août.** Ouvrir le moteur de conformité avant la fin du
+> processus détruit exactement ce qui se vend dans les thèses A et B. C'est une porte à sens
+> unique : elle ne s'ouvre qu'une fois la vente déclarée close.
+
+---
+
+## 7. À NE PAS FAIRE
+
+- ❌ **Coder quoi que ce soit.** Gel des features acté le 28/07. Aucun acheteur n'a jamais
+  payé plus cher pour une feature ajoutée pendant la négociation. Seuls passent les bugs
+  bloquants pour une démo.
+- ❌ **Polir avant d'envoyer.** Le one-pager de C-1 est bon quand il est envoyable, pas quand
+  il est beau.
+- ❌ **Annoncer un prix en premier** (§2).
+- ❌ **Approcher les concurrents directs du planning CHR** avant d'avoir épuisé A, B et C.
+- ❌ **Signer un client payant** pour « améliorer le dossier ». Un client acquis maintenant
+  est un client abandonné en septembre, et un passif dans une due diligence.
+- ❌ **Refaire un audit.** Celui du 21/07 + le §1 de ce fichier suffisent.
+- ❌ **Attendre une réponse avant d'envoyer la suivante.** Les 15 cibles partent en 2 vagues
+  planifiées, pas en réaction.
+
+---
+
+## 8. SUIVI — 4 chiffres, chaque dimanche, 3 minutes
+
+| Semaine | Emails envoyés | Réponses de fond | Discussions actives | Offres reçues | Note |
+|---------|:---:|:---:|:---:|:---:|------|
+| 03/08 | | | | | objectif : 10 envoyés + annonce en ligne |
+| 10/08 | | | | | vague 2 partie, relance faite |
+| 17/08 | | | | | **GATE — décision écrite (§5)** |
+| 24/08 | | | | | |
+| 31/08 | | | | | **bilan : closing, ou §6 exécuté** |
+
+**Ce plan a réussi si, au 31 août :** soit une cession signée ou une discussion sérieuse en
+cours avec un acheteur identifié, soit le §6 exécuté en entier — coûts coupés, domaine
+sécurisé, `lib/compliance` ouvert, repo archivé.
+
+**Il a échoué si** le 31 août arrive sans qu'aucune des deux branches n'ait été menée à son
+terme : un actif laissé en l'état, qui continue à coûter, sans personne pour s'en occuper.
+
+---
+
+*Plan dérivé de la décision de trajectoire du 28/07/2026. À mettre à jour en cochant, pas en
+réécrivant.*
