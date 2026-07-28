@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { checkCompliance, type ShiftRecord, type RuleId } from './rules'
+import { checkCompliance, RULES, type ShiftRecord, type RuleId } from './rules'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 let seq = 0
@@ -96,6 +96,38 @@ describe('rest_daily — < 11h de repos entre deux shifts', () => {
   it('ne déclenche pas avec 11h ou plus de repos', () => {
     // Fin lundi 18:00 → reprise mardi 08:00 = 14h de repos.
     expect(ruleIds([shift(MON, '10:00', '18:00', 30), shift(TUE, '08:00', '14:00', 30)]))
+      .not.toContain('rest_daily')
+  })
+
+  // Le repos quotidien se mesure ENTRE DEUX JOURNÉES. Une coupure à l'intérieur
+  // d'une même journée n'est pas un manquement au repos quotidien : c'est
+  // l'amplitude qui la borne (13h = 24h − 11h), et amplitude_max s'en charge.
+  it('ne déclenche pas sur une coupure midi/soir — le service en restauration', () => {
+    // 11:00–14:30 puis 18:30–23:00 : 4h de coupure, amplitude 12h.
+    const shifts = [shift(MON, '11:00', '14:30', 0), shift(MON, '18:30', '23:00', 0)]
+    expect(ruleIds(shifts)).not.toContain('rest_daily')
+
+    // Et surtout : aucune infraction CRITIQUE sur ce planning parfaitement légal.
+    const critiques = checkCompliance(shifts).filter(v => RULES[v.ruleId].severity === 'critical')
+    expect(critiques).toEqual([])
+  })
+
+  it('déclenche toujours après un poste de nuit chevauchant minuit', () => {
+    // Lundi 22:00 → mardi 02:00, reprise mardi 08:00 = 6h de repos seulement.
+    expect(ruleIds([shift(MON, '22:00', '02:00', 0), shift(TUE, '08:00', '12:00', 0)]))
+      .toContain('rest_daily')
+  })
+
+  it('déclenche à la frontière dimanche → lundi', () => {
+    // Fin dimanche 23:00 → reprise lundi 07:00 = 8h. Le changement de semaine
+    // ne doit pas faire perdre la paire au calcul.
+    expect(ruleIds([shift(SUN_PREV, '15:00', '23:00', 0), shift(MON, '07:00', '12:00', 0)]))
+      .toContain('rest_daily')
+  })
+
+  it('ne déclenche pas sur une coupure intra-journée un dimanche', () => {
+    // Même coupure midi/soir, mais un dimanche : seul sunday_work doit sortir.
+    expect(ruleIds([shift(SUN_PREV, '11:00', '14:30', 0), shift(SUN_PREV, '18:30', '23:00', 0)]))
       .not.toContain('rest_daily')
   })
 })

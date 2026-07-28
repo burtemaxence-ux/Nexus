@@ -11,6 +11,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Rejoue TOUTES les migrations du dépôt sur une base Postgres vierge, puis
+  # sonde les objets critiques. Ferme la boucle « correctif écrit ≠ correctif
+  # opérant » : une migration qui ne s'applique pas sur une base neuve, ou dont
+  # l'objet attendu n'existe pas, casse la CI au lieu de passer inaperçue.
+  migrations:
+    name: Migrations · rejeu sur base vierge
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Rejeu des migrations sur base vierge
+        run: ./supabase/harness/replay.sh ci
+
+      - name: Sondes des migrations critiques
+        run: SUPABASE_DB_URL="postgres://postgres:postgres@localhost:5432/ci" npx tsx scripts/check-migrations.ts
+
+      # Rejoue les scénarios d'attaque des findings de sécurité contre le
+      # schéma reconstruit. Une régression sur l'isolation multi-tenant casse
+      # la CI au lieu d'attendre le prochain audit.
+      - name: Tests d'intégration SQL (isolation multi-tenant)
+        run: ./supabase/harness/run-tests.sh ci
+
   quality:
     name: Typecheck · Lint · Tests · Build
     runs-on: ubuntu-latest
@@ -30,6 +78,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # Bloque toute CRITICAL, et toute HIGH sur une dépendance de production
+      # hors exception motivée. Voir scripts/audit-gate.mjs.
+      - name: Audit des dépendances
+        run: node scripts/audit-gate.mjs
 
       - name: Typecheck
         run: npx tsc --noEmit
