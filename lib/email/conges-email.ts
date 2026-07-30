@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import type { LeaveType } from '@/types'
+import { isDemoRecipient } from '@/lib/demo'
 
 const LEAVE_LABELS: Record<LeaveType, string> = {
   CP: 'Congés payés', RTT: 'RTT', maladie: 'Arrêt maladie', sans_solde: 'Sans solde', autre: 'Autre',
@@ -126,6 +127,8 @@ export async function sendLeaveDecisionEmail({
     console.warn('[email] RESEND_API_KEY non défini — notification congé ignorée')
     return
   }
+
+  if (isDemoRecipient(toEmail)) return
 
   const resend = new Resend(apiKey)
   const from = process.env.RESEND_FROM_EMAIL ?? 'Quartzbase <noreply@quartzbase.fr>'

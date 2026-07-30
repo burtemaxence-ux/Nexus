@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import type { Profile, Shift } from '@/types'
+import { isDemoRecipient } from '@/lib/demo'
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
@@ -117,7 +118,10 @@ export async function sendPlanningPublishedEmails({
     shiftsByEmployee.set(shift.employee_id, existing)
   }
 
-  const targets = employees.filter(emp => (shiftsByEmployee.get(emp.id) ?? []).length > 0)
+  const targets = employees
+    .filter(emp => (shiftsByEmployee.get(emp.id) ?? []).length > 0)
+    // Démo : adresses inexistantes — envoyer ferait rebondir chaque message.
+    .filter(emp => !isDemoRecipient(emp.email))
 
   const results = await Promise.allSettled(
     targets.map(emp => {

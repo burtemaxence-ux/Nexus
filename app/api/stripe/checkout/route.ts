@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
+import { isDemoAccount } from '@/lib/demo'
 import { getStripe, STRIPE_PRICES } from '@/lib/stripe'
 import { remainingTrialDays } from '@/lib/subscription'
 import { getPendingFirstMonth, firstMonthCouponId } from '@/lib/referral'
@@ -15,6 +16,11 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { user, profile } = await requireManager(supabase)
+
+    // Démo : aucun paiement réel n'est initié.
+    if (isDemoAccount(user.email)) {
+      return NextResponse.json({ url: '/manager/settings/billing?demo=checkout' })
+    }
 
     const raw = await request.json()
     const parsed = CheckoutSchema.safeParse(raw)

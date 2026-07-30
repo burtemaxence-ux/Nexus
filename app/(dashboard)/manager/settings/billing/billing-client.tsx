@@ -109,6 +109,20 @@ export function BillingClient({ subscription, trialDaysLeft, employeeCount, empl
     fetch('/api/ai/quota').then(r => (r.ok ? r.json() : null)).then(d => { if (d) setQuota(d) }).catch(() => {})
   }, [isActive])
 
+  // Démo : les routes Stripe renvoient ici plutôt que d'ouvrir une vraie session
+  // de paiement. On l'explique au lieu d'afficher une erreur générique.
+  useEffect(() => {
+    const demo = new URLSearchParams(window.location.search).get('demo')
+    if (!demo) return
+    toast.info(
+      demo === 'portal'
+        ? 'Démonstration : le portail de facturation Stripe n’est pas ouvert.'
+        : 'Démonstration : aucun paiement n’est initié.',
+      { description: 'En production, ce bouton ouvre Stripe et déclenche l’abonnement.' },
+    )
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [])
+
   async function handleCheckout(planId: PlanId) {
     setLoading(`${planId}_${interval}`)
     try {

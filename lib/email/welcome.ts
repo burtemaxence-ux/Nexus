@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { isDemoRecipient } from '@/lib/demo'
 
 function buildHtml(firstName: string): string {
   return `<!DOCTYPE html>
@@ -116,6 +117,8 @@ export async function sendWelcomeEmail(email: string, fullName: string): Promise
     console.warn('[email] RESEND_API_KEY non défini — welcome email ignoré')
     return
   }
+
+  if (isDemoRecipient(email)) return
 
   const resend = new Resend(apiKey)
   const firstName = fullName.split(' ')[0] || fullName || 'Manager'

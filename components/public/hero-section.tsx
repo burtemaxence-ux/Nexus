@@ -90,6 +90,41 @@ export function HeroSection() {
 
           </div>
 
+          {/* Démos en accès direct — l'application réelle, sur un jeu de données
+              de démonstration. Aucune inscription. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
+            {[
+              { href: '/demo?role=manager',  label: 'Démo manager',  sub: "Planning, conformité, coûts" },
+              { href: '/demo?role=employee', label: 'Démo salarié',  sub: 'Horaires, pointage, congés' },
+            ].map(d => (
+              <a
+                key={d.href}
+                href={d.href}
+                style={{
+                  display: 'inline-flex', flexDirection: 'column', gap: 2,
+                  background: 'rgba(255,255,255,0.04)',
+                  color: '#f0f0f8',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  borderRadius: 12, padding: '11px 18px',
+                  fontFamily: FONT, textDecoration: 'none',
+                  transition: 'border-color 180ms ease, background 180ms ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = 'rgba(108,99,255,0.55)'
+                  e.currentTarget.style.background = 'rgba(108,99,255,0.10)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                }}
+              >
+                <span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: '-0.01em' }}>{d.label} →</span>
+                <span style={{ fontSize: 11.5, color: '#79828f' }}>{d.sub}</span>
+              </a>
+            ))}
+            <span style={{ fontSize: 12.5, color: '#5a5a72' }}>Sans inscription</span>
+          </div>
+
           {/* Réassurance */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 13.5, color: '#79828f', flexWrap: 'wrap' }}>
             <span>30 jours gratuits</span>

@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { isDemoRecipient } from '@/lib/demo'
 
 function buildHtml(firstName: string): string {
   const billingUrl = `${process.env.NEXT_PUBLIC_URL ?? 'https://quartzbase.fr'}/billing`
@@ -68,6 +69,8 @@ export async function sendTrialEndingEmail(email: string, fullName: string): Pro
     console.warn('[email] RESEND_API_KEY non défini — trial-ending email ignoré')
     return
   }
+
+  if (isDemoRecipient(email)) return
 
   const resend = new Resend(apiKey)
   const firstName = fullName.split(' ')[0] || fullName || 'Manager'

@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { isDemoAccount } from '@/lib/demo'
+import { demoReply, demoStream } from '@/lib/demo-ai'
 
 const client = new Anthropic()
 
@@ -22,6 +24,18 @@ export async function POST(req: Request) {
   if (!rl.allowed) return rateLimitResponse(rl.resetAt)
 
   const { messages } = await req.json() as { messages: Message[] }
+
+  // Démo publique : réponse simulée, diffusée à l'identique, aucun crédit consommé.
+  if (isDemoAccount(user.email)) {
+    const last = messages[messages.length - 1]?.content ?? ''
+    return new Response(demoStream(demoReply(last, 'employee')), {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    })
+  }
 
   const today = new Date().toISOString().split('T')[0]
   const day14ahead = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]

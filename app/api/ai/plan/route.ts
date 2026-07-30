@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
+import { isDemoAccount } from '@/lib/demo'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { getSubscription } from '@/lib/subscription'
 import { getPlanTier, isPro } from '@/lib/plan-guard'
@@ -188,7 +189,7 @@ export type ProposedShift = {
 export async function POST(req: Request) {
   const requestStartedAt = Date.now()
   const supabase = await createClient()
-  let authUser: { id: string }
+  let authUser: { id: string; email?: string }
   let estId: string
   try {
     const { user, profile } = await requireManager(supabase)
@@ -218,9 +219,14 @@ export async function POST(req: Request) {
   // fourni (toggle du modal), sinon réglage par établissement. 'algorithm'
   // (solveur déterministe, instantané, conforme par construction) par DÉFAUT ;
   // 'ai' (LLM, texte libre) seulement si explicitement choisi.
-  const engine: 'ai' | 'algorithm' = engineOverride === 'ai' || engineOverride === 'algorithm'
-    ? engineOverride
-    : await readEngine(supabase, estId)
+  // Démo : toujours le solveur déterministe. Le visiteur voit une génération
+  // réellement calculée et conforme — pas une réponse en boîte — sans qu'un
+  // seul crédit Anthropic soit consommé par un compte public.
+  const engine: 'ai' | 'algorithm' = isDemoAccount(authUser.email)
+    ? 'algorithm'
+    : engineOverride === 'ai' || engineOverride === 'algorithm'
+      ? engineOverride
+      : await readEngine(supabase, estId)
 
   const sub  = await getSubscription(supabase, estId)
   const tier = getPlanTier(sub)

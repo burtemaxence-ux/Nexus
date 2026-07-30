@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { isDemoRecipient } from '@/lib/demo'
 
 export interface WeeklyBriefData {
   managerFirstName: string
@@ -88,6 +89,8 @@ export async function sendWeeklyBriefEmail(
     console.warn('[weekly-brief-email] RESEND_API_KEY manquant')
     return
   }
+
+  if (isDemoRecipient(toEmail)) return
 
   const resend = new Resend(process.env.RESEND_API_KEY)
   const from = process.env.RESEND_FROM_EMAIL ?? 'Quartzbase <noreply@quartzbase.fr>'

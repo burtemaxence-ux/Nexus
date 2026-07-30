@@ -29,3 +29,17 @@ export const DEMO_LANDING: Record<DemoRole, string> = {
   manager: '/manager',
   employee: '/employee',
 }
+
+// ── Garde des envois sortants ────────────────────────────────────────────────
+// Les adresses de démonstration n'existent pas. Leur envoyer des emails ferait
+// rebondir chaque message : quota consommé pour rien, et réputation du domaine
+// d'envoi abîmée. Le filtre est posé au transport plutôt que dans les routes :
+// il couvre aussi les tâches planifiées, et il ne peut pas bloquer un vrai
+// client par erreur — seuls ces trois motifs sont écartés.
+const DEMO_EMAIL_DOMAINS = ['@demo.qb.fr', '@nexus-demo.fr']
+
+export function isDemoRecipient(email: string | null | undefined): boolean {
+  if (!email) return false
+  const e = email.toLowerCase().trim()
+  return e === DEMO_ACCOUNTS.manager || DEMO_EMAIL_DOMAINS.some(d => e.endsWith(d))
+}

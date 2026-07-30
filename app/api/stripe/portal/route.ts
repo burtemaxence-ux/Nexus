@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
 import { getStripe } from '@/lib/stripe'
+import { isDemoAccount } from '@/lib/demo'
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { profile } = await requireManager(supabase)
+    const { user, profile } = await requireManager(supabase)
+
+    // Démo : aucune session de facturation réelle n'est ouverte.
+    if (isDemoAccount(user.email)) {
+      return NextResponse.json({ url: '/manager/settings/billing?demo=portal' })
+    }
 
     const { returnUrl } = await request.json().catch(() => ({}))
     const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''

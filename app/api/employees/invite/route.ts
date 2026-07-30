@@ -5,6 +5,7 @@ import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit
 import { InviteSchema, validationError } from '@/lib/validations'
 import { createNotification } from '@/lib/notifications/create'
 import { sendSms } from '@/lib/sms'
+import { isDemoAccount } from '@/lib/demo'
 import { getSubscription } from '@/lib/subscription'
 import { getPlanTier, PLAN_EMPLOYEE_LIMITS } from '@/lib/plan-guard'
 import { NextRequest, NextResponse } from 'next/server'
@@ -28,6 +29,20 @@ export async function POST(request: NextRequest) {
     // Only managers can invite — supervisors have read-only access
     if (managerProfile.role !== 'manager') {
       return NextResponse.json({ error: 'Seul un manager peut inviter des employés' }, { status: 403 })
+    }
+
+    // ── Démo publique ────────────────────────────────────────────────
+    // Cette route envoie un email ET un SMS à une adresse saisie librement.
+    // Ouverte à un visiteur anonyme, elle transformerait les comptes Resend et
+    // Twilio en relais d'envoi vers n'importe qui. On simule donc la réussite
+    // sans rien créer ni envoyer : l'interface se comporte à l'identique.
+    if (isDemoAccount(user.email)) {
+      await new Promise(r => setTimeout(r, 700))
+      return NextResponse.json({
+        ok: true,
+        demo: true,
+        message: `Invitation envoyée à ${email} (simulée — vous êtes en démonstration).`,
+      })
     }
 
     // ── Guard : limite employés par plan ──────────────────────────────

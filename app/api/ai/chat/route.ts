@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { isDemoAccount } from '@/lib/demo'
+import { demoReply, demoStream } from '@/lib/demo-ai'
 import { getSubscription } from '@/lib/subscription'
 import { getPlanTier } from '@/lib/plan-guard'
 
@@ -21,7 +23,7 @@ export async function POST(req: Request) {
   }
 
   const supabase = await createClient()
-  let authUser: { id: string }
+  let authUser: { id: string; email?: string }
   let estId: string
   try {
     const { user, profile } = await requireManager(supabase)
@@ -60,6 +62,18 @@ export async function POST(req: Request) {
   const { messages, establishmentName } = await req.json() as {
     messages: Message[]
     establishmentName: string
+  }
+
+  // Démo publique : réponse simulée, diffusée à l'identique, aucun crédit consommé.
+  if (isDemoAccount(authUser.email)) {
+    const last = messages[messages.length - 1]?.content ?? ''
+    return new Response(demoStream(demoReply(last, 'manager')), {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    })
   }
 
   const today = new Date().toISOString().split('T')[0]
