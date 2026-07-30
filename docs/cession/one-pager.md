@@ -76,8 +76,11 @@ managers, assistant conversationnel. Quotas en base, non contournables.
 **Métier français** — export DSN mensuelle (NEODeS) pré-rempli, exports PDF et iCal,
 API REST v1, webhooks sortants, intégration Slack.
 
-**Marque** — domaine `quartzbase.fr`, identité graphique complète, landing et 6 pages SEO
-réglementaires (`/code-du-travail`, `/conformite`, `/securite`, `/guide-demarrage`…).
+**Nom et identité** — domaine `quartzbase.fr`, identité graphique complète (droits d'auteur
+cédés), landing et 6 pages SEO réglementaires (`/code-du-travail`, `/conformite`,
+`/securite`, `/guide-demarrage`…). *`Quartzbase` est un nom d'usage : **il n'y a aucun dépôt
+INPI**, et aucune recherche d'antériorité n'a été conduite. À déposer par le repreneur s'il
+souhaite un titre.*
 
 ---
 

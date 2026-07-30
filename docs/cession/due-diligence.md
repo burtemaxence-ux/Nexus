@@ -141,13 +141,38 @@ il ne contredit rien.*
 
 ---
 
-## ⏳ Reste un point — mineur
+## ✅ Répondu le 30/07 — J-5 · Marque `Quartzbase`
 
-### J-5 · Marque `Quartzbase`
-Déposée à l'INPI, ou simple nom commercial et nom de domaine ? Si déposée : classe(s), date,
-numéro — c'est un actif de plus à inscrire dans le one-pager. Si non déposée : le dire, sans
-plus. À vérifier aussi qu'aucune marque antérieure proche n'existe dans la classe logiciel,
-sous peine de vendre un nom que l'acquéreur devra changer.
+**Aucun dépôt INPI. Le projet est resté au stade du code : `Quartzbase` est un nom d'usage
+et un nom de domaine, pas une marque enregistrée.**
+
+**Ce qui se transfère malgré tout :**
+
+| Élément | Statut |
+|---|---|
+| Domaine `quartzbase.fr` | ✅ Transférable (code AuthInfo) |
+| Identité graphique (lockup, symbole, versions mono) | ✅ Œuvres originales, droits d'auteur cédés au repreneur par le contrat de cession |
+| Le nom lui-même | ⚪ Usage libre, sans titre de propriété industrielle |
+| Notoriété attachée au nom | ⚪ Nulle — corollaire de l'absence de trafic et de clients |
+
+**À dire à l'acquéreur, sans le minimiser :** il n'achète pas une marque protégée. S'il veut
+un titre, il dépose lui-même — l'ordre de grandeur est de quelques centaines d'euros pour
+une classe à l'INPI, ce qui est marginal face au prix de cession, et il déposera de toute
+façon à son nom plutôt qu'au nôtre. **L'absence de dépôt n'est donc pas une perte de valeur
+ici, c'est une étape qu'il aurait refaite.**
+
+### ⚠️ Ce qui n'a PAS été vérifié — à dire aussi
+
+**Aucune recherche d'antériorité n'a été conduite dans les registres** (INPI, EUIPO). Une
+recherche web menée le 30/07 ne fait apparaître **aucune entité nommée « Quartzbase »** — ce
+qui est rassurant en pratique, mais **une recherche web n'est pas une recherche de marque**.
+Plusieurs sociétés françaises du logiciel utilisent la racine « Quartz » (Quartz Ingénierie,
+Quartz Informatique, Quartz-Pharma, et Quartzy aux États-Unis) sans qu'aucune ne porte ce
+nom-là.
+
+Le dire tel quel dans la discussion. Un acquéreur qui veut déposer fera lui-même la recherche
+d'antériorité — c'est sa décision et son budget, pas le nôtre, et prétendre le contraire
+serait une garantie qu'on ne peut pas tenir.
 
 ### J-7 · Les deux abonnements Stripe — *échéances 4 et 16 août*
 Sont-ils en mode *live* ? Si oui, tu te factures toi-même (2 × plan Multi-site).

@@ -128,7 +128,7 @@ Quatre choses, et elles ne dépendent que de toi. Total : **~2 heures.** Tout le
 | **C-7** | **Vague 2 : 5 emails** (le reste de la liste C-2) | 1 h | envoyés le 1er septembre |
 | **C-8** | ~~T-1 — Runbook de reprise~~ | — | ✅ **fait le 28/07** → `docs/cession/runbook-reprise.md` : 9 comptes tiers et leur mode de transfert, rotation exhaustive des secrets, les 9 tâches planifiées, échéances silencieuses, première semaine du repreneur, points d'attention hérités |
 | **C-9** | **T-2 — Dossier de cession** | ¼ j | 🟠 **assemblé à 90 %** : one-pager + due-diligence + runbook + audit du 21/07 + `ARCHITECTURE.md`. **Manque le tableau des coûts d'exploitation mensuels** (grille vide prête dans le runbook §4) — c'est le seul chiffre que tu es seul à avoir, et il est systématiquement demandé |
-| **C-10** | **Lever les blocages du §4** | 5 min | 🟢 **6 points sur 7 fermés** : J-3, J-4, J-6 le 28/07 ; J-1, J-2, J-7 le 30/07. **Reste J-5** (la marque est-elle déposée à l'INPI ?) — une vérification, pas une décision |
+| **C-10** | ~~Lever les blocages du §4~~ | — | ✅ **fait — 7 points sur 7 fermés** : J-3, J-4, J-6 le 28/07 ; J-1, J-2, J-5, J-7 le 30/07. `docs/cession/due-diligence.md` est complet et répond à tout ce qu'un acquéreur demandera |
 
 ### 25 août → mi-septembre : **envoyer, puis conclure ou refermer**
 
@@ -152,7 +152,7 @@ de toi chacun.
 | J-2 | **Qui détient l'IP ?** | ✅ **répondu le 30/07 — auteur unique, aucun tiers n'a jamais contribué.** Chaîne de titularité sans trou : c'est un **argument de vente**, à écrire dans le dossier |
 | J-3 | **Transférabilité des comptes** | ✅ 9 services inventoriés (runbook §1). Seul point dur : **Stripe ne se transfère pas** — compte à recréer, indolore ici faute d'abonnés |
 | J-4 | **Nom de code `Nexus` vs marque `Quartzbase`** | ✅ résidu inventorié : 6 endroits, aucune dépendance externe cassée, webhooks déjà en double émission |
-| J-5 | **Marque déposée ?** `Quartzbase` est-il déposé à l'INPI ? | ⏳ **toi** — si oui, c'est un actif de plus au §1 ; si non, le dire simplement |
+| J-5 | **Marque déposée ?** | ✅ **répondu le 30/07 — aucun dépôt INPI.** Nom d'usage + domaine + identité graphique (droits d'auteur cédés), pas de titre de propriété industrielle. Sans impact sur le prix : l'acquéreur déposerait à son nom de toute façon |
 | J-6 | **Données personnelles en base** | ✅ **aucune donnée réelle** : IBAN 0/19, NIR 0/19, date de naissance 0/19, adresse 0/19. Argument de vente. ⚠️ **mais le schéma prévoit de collecter NIR et IBAN en clair** — à déclarer spontanément (cf. due-diligence.md) |
 | J-7 | **Les 2 abonnements Stripe `active`** | ✅ **résolu le 30/07 — supprimés.** Leurs identifiants Stripe n'existaient ni en live ni en test : valeurs semées en dur, aucun paiement réel. La table `subscriptions` est vide |
 
