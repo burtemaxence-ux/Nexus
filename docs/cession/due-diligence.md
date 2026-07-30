@@ -121,9 +121,27 @@ Rien à démêler.
 **Aucun de ces points n'est bloquant.** Ne pas créer de société pour vendre : le coût et le
 délai dépasseraient le produit attendu de la vente.
 
+## ✅ Résolu le 30/07 — J-7 · Les deux abonnements Stripe
+
+**Supprimés. La table `subscriptions` est vide : 0 ligne, 0 abonnement actif.**
+
+Vérification faite d'abord : les deux lignes portaient bien un `stripe_customer_id` et un
+`stripe_subscription_id`, **mais ces identifiants n'existent chez Stripe ni en mode live ni
+en mode test**. C'étaient des valeurs semées en dur, jamais passées par un paiement réel.
+Conclusion : **aucun euro n'a jamais été débité, et la suppression n'a touché à rien
+d'externe** — il n'y avait aucun abonnement à résilier côté Stripe.
+
+Ce qui rend le dossier vérifiable sans réserve : la base dit désormais exactement ce que dit
+le one-pager — **0 client, 0 revenu, 0 abonnement**. Un acquéreur qui ouvre la table n'y
+trouve plus rien à interpréter.
+
+*Reste une ligne dans `referrals` : un code de parrainage `pending`, jamais utilisé
+(`referred_id` nul, remise 0 %). Ce n'est ni un client ni un revenu — laissé en place,
+il ne contredit rien.*
+
 ---
 
-## ⏳ Restent deux points — mineurs, mais à fermer
+## ⏳ Reste un point — mineur
 
 ### J-5 · Marque `Quartzbase`
 Déposée à l'INPI, ou simple nom commercial et nom de domaine ? Si déposée : classe(s), date,
