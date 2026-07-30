@@ -183,12 +183,12 @@ Repris de l'audit du 21/07/2026 — tout est documenté, rien n'est caché.
 
 ## 7. Ce que le cédant peut faire, et jusqu'à quand
 
-**Disponible jusqu'à fin août 2026**, puis injoignable (entrée en gendarmerie).
+**Disponible pour une passation au moment de la cession**, pas pour une exploitation dans la durée.
 
-Accompagnement possible avant cette date : une session de passation en visio, la réponse aux
-questions écrites, l'assistance au transfert des comptes. **À caler avant la signature, pas
-après** — après, il n'y aura personne au bout du fil. Ce runbook est écrit pour que ça n'ait
-pas d'importance.
+Accompagnement possible : une session de passation en visio, la réponse aux questions
+écrites, l'assistance au transfert des comptes. **À caler au moment de la signature** — le
+cédant ne restera pas disponible indéfiniment. Ce runbook est écrit pour que ça n'ait pas
+d'importance.
 
 ---
 

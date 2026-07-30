@@ -1,7 +1,7 @@
 # Quartzbase — cession d'actif
 
 **SaaS de planning et de conformité au droit du travail pour la restauration et le commerce.
-Produit fini, en production, audité. Cédé pour cause d'indisponibilité du fondateur.**
+Produit fini, en production, audité. Cédé par un fondateur qui n'en fera pas la vente.**
 
 Contact : Maxence Burte — maxence.burte@gmail.com — `quartzbase.fr`
 
@@ -10,8 +10,8 @@ Contact : Maxence Burte — maxence.burte@gmail.com — `quartzbase.fr`
 ## À dire tout de suite
 
 **Quartzbase n'a aucun client et ne génère aucun revenu.** Le produit a été construit, mis en
-production et audité, mais jamais commercialisé : le fondateur entre en gendarmerie en
-septembre 2026 et n'a pas conduit de phase de vente.
+production et audité, mais jamais commercialisé : son auteur a construit le produit, pas
+l'entreprise autour. La vente ne l'intéresse pas — et sans elle, il ne se passe rien.
 
 Ce qui est proposé ici n'est donc pas un business avec des revenus à reprendre. C'est un
 **produit fini et déjà durci en production** : un moteur de conformité au droit du travail
@@ -95,9 +95,9 @@ Ce qu'un audit trouverait de toute façon. Autant le dire ici.
 - **Le dépôt porte deux noms** : `Nexus` en interne, `Quartzbase` en façade. Le résidu est
   limité et inventorié (quelques clés de stockage local, en-têtes de webhook — déjà émis en
   double `X-Nexus-Event` / `X-Quartzbase-Event` —, identifiants iCal).
-- **Le fondateur est indisponible à partir de septembre 2026.** Un accompagnement à la reprise
-  est possible avant cette date, pas après. Un runbook d'exploitation complet est fourni pour
-  que la reprise ne dépende pas de lui.
+- **Le fondateur n'assurera pas l'exploitation dans la durée.** Une passation est possible au
+  moment de la cession ; au-delà, un runbook d'exploitation complet est fourni pour que la
+  reprise ne dépende pas de lui.
 
 ---
 

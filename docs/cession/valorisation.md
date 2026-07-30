@@ -76,7 +76,7 @@ de code.
 
 **Coût de reconstruction 2026 : 12 000 – 25 000 €.** C'est un **plafond théorique**, pas un
 prix : un acheteur paie toujours une fraction du coût de reconstruction, parce qu'il hérite
-en plus de code qu'il n'a pas écrit, sans garantie, sans support après septembre, et sans
+en plus de code qu'il n'a pas écrit, sans garantie, sans support dans la durée, et sans
 pouvoir vérifier à bas coût que les 17 règles sont justes. La fraction usuelle pour un actif
 non éprouvé se situe autour de **20 à 40 %**.
 
@@ -90,7 +90,7 @@ non éprouvé se situe autour de **20 à 40 %**.
 
 **Espérance honnête : quelques milliers d'euros.** Pas de quoi changer quoi que ce soit à ta
 situation — ce qui est un argument de plus pour ne pas y passer plus que les 5 jours prévus,
-et pour ne pas laisser une négociation traîner jusqu'en septembre.
+et pour ne pas laisser une négociation traîner indéfiniment.
 
 ### Prix à afficher
 
@@ -130,7 +130,7 @@ marché. C'est du droit français vérifié, une base déjà durcie en productio
 
 | Levier | Effet | Coût | Verdict |
 |---|---|---|---|
-| **1 seul client payant** | Fait basculer d'une vente d'actif à une vente d'entreprise, avec un multiple applicable. **C'est le seul levier qui change l'ordre de grandeur** | Plusieurs semaines de vente, et un client abandonné en septembre | ❌ Écarté le 28/07, à raison |
+| **1 seul client payant** | Fait basculer d'une vente d'actif à une vente d'entreprise, avec un multiple applicable. **C'est le seul levier qui change l'ordre de grandeur** | Plusieurs semaines de vente, et un client à supporter ensuite | ❌ Écarté le 28/07, à raison |
 | **Packager `lib/compliance` seul** (README, articles de loi, tests lisibles) | Rend la partie qui résiste à l'IA évaluable en 10 minutes par un acheteur | ~½ journée | ✅ **Le meilleur rapport effort/prix du dossier** |
 | **Vidéo de 3 min** (C-3) | Un acheteur qui voit tourner un produit ne se demande plus s'il tourne | 30 min | ✅ Fais-la |
 | **Réponse à J-2** (titularité IP) | Ne fait pas monter le prix, mais son absence tue le deal | 1 phrase | ✅ Indispensable |

@@ -72,8 +72,8 @@ module planning.
 > encore leurs plannings sur Excel à côté de votre solution »]
 >
 > Je cède Quartzbase, un SaaS de planning et de conformité pour la restauration : produit
-> fini, en production, audité — mais jamais commercialisé. J'entre en gendarmerie en
-> septembre et je ne le porterai pas.
+> fini, en production, audité — mais jamais commercialisé. Je l'arrête : j'ai construit le
+> produit, faire la vente ne m'intéresse pas, et sans ça il ne se passera rien.
 >
 > Concrètement : planning par glisser-déposer, pointage mobile, congés, contrôle
 > automatique du droit du travail (17 règles testées), export DSN, facturation Stripe
@@ -143,7 +143,7 @@ Deux lignes. Pas de nouvel argument, pas de relance de la relance.
 >
 > Je remonte ce message au cas où il serait passé à la trappe. Si le sujet n'est pas pour
 > vous, un simple « non » me suffit et je n'insiste pas — ça m'aide à savoir où concentrer
-> mes efforts d'ici septembre.
+> mes efforts.
 >
 > Maxence
 

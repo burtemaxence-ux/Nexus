@@ -114,7 +114,7 @@ stagiaire, prestataire ?
 - **Si oui** — obtenir une **cession de droits écrite et signée** *avant* d'engager la
   discussion. Un échange d'emails explicite vaut mieux que rien. Une chaîne de titularité
   trouée découverte en due diligence arrête l'opération, et il sera trop tard pour la
-  réparer depuis la gendarmerie.
+  réparer une fois la discussion engagée.
 
 ### J-5 · Marque `Quartzbase`
 Déposée à l'INPI, ou simple nom commercial et nom de domaine ? Si déposée : classe(s), date,
@@ -143,8 +143,8 @@ tableau. Le dossier dit « 0 client, 0 revenu » — la base doit dire la même 
 
 **Le dernier point est le plus important de tous.** Chaque chiffre annoncé dans le one-pager
 est reproductible en une commande. C'est ce qui rend crédible la seule affirmation qu'il ne
-peut pas vérifier : que tu vends parce que tu entres en gendarmerie, et pas parce que quelque
-chose ne va pas.
+peut pas vérifier : que tu vends parce que la partie commerciale ne t'intéresse pas, et pas
+parce que quelque chose ne va pas.
 
 ---
 

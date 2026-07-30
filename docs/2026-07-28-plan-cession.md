@@ -3,8 +3,11 @@
 **Date :** 28 juillet 2026
 **Décision source :** `docs/2026-06-16-decision-trajectoire.md` (point de contrôle du 28/07 —
 0 client payant mesuré en base → Piste B)
-**Horizon :** 5 semaines — du 28 juillet au 31 août 2026 (butée dure : entrée en gendarmerie
-~septembre)
+**Horizon :** ⚠️ **Calendrier révisé le 30/07 — l'échéance de septembre ne s'applique plus.**
+Il n'y a plus de butée externe. Le rythme est donné par deux contraintes réelles : **août est
+mort en France** (personne ne lit ses emails entre le 1er et le 25), et **l'actif se déprécie**
+(dépendances, coûts d'infra, marché qui bouge). D'où : préparation en août, envoi le 25 août,
+décision mi-septembre.
 **Budget d'effort total :** ~5 jours de travail, étalés. Si une action de ce plan demande plus
 que son estimation, c'est qu'elle est mal cadrée — la couper, pas l'étirer.
 
@@ -17,21 +20,25 @@ contacter. **C'est l'ordre qui fait échouer les cessions courtes.**
 
 La ressource rare ici n'est pas ton temps de travail : c'est le **temps calendaire**. Un
 éditeur met 1 à 3 semaines à répondre à un email entrant, et autant à faire tourner une
-décision en interne. Sur 5 semaines, tu as la place pour **un seul aller-retour, deux au
-mieux**. Chaque jour passé à polir avant d'envoyer est un jour retiré au seul processus qui
-a une latence externe.
+décision en interne. Compte **deux mois entre le premier email et une réponse ferme**, quelle
+que soit la qualité du dossier. C'est incompressible, et c'est le seul poste du plan que tu
+ne contrôles pas.
 
 Conséquence, qui structure tout le reste :
 
-> **Les premiers emails partent le 31 juillet.** Avec un one-pager, pas un dossier.
-> Le runbook et le dossier complet se construisent *pendant* que les réponses arrivent —
-> personne ne demande un runbook avant d'avoir dit « ça m'intéresse ».
+> **Les premiers emails partent le 25 août** — le premier jour où les décideurs français
+> sont rentrés. Envoyer avant, c'est écrire dans le vide ; envoyer plus tard, c'est laisser
+> l'actif se déprécier pour rien.
+>
+> **La contrepartie de ce report : le paquet part complet.** Sans butée, la raison qui
+> imposait d'envoyer un one-pager seul disparaît — autant approcher avec `lib/compliance`
+> déjà packagé, ce qui se voit directement dans le prix.
 
 Le deuxième principe : **ne pas jouer une seule thèse d'acquisition.** Les trois thèses du
 §2 s'adressent à des acheteurs différents, avec des pitchs et des prix différents, et
 surtout **elles ne se disputent pas ton temps** — les emails partent le même jour. Jouer la
-seule thèse « un éditeur va acheter mon SaaS » revient à miser 5 semaines sur l'issue la
-moins probable.
+seule thèse « un éditeur va acheter mon SaaS » revient à tout miser sur l'issue la moins
+probable.
 
 ---
 
@@ -71,7 +78,7 @@ s'achète pas pour gagner de l'argent tout de suite, ça s'achète pour **gagner
 | **Pitch en une ligne** | « 17 règles du Code du travail français, implémentées et testées, prêtes à brancher » | « Votre module planning conforme, livré fini, à votre marque » | « SaaS complet, 262 tests verts, 0 dette, prêt à relancer » |
 | **Canal** | Email direct au Head of Product / Country Manager France | Email direct au fondateur / dir. produit | Marketplaces (Acquire.com, Flippa, side-project boards) + communautés indie FR |
 | **Probabilité** | 🔴 Faible | 🟠 Moyenne-faible | 🟢 La plus élevée |
-| **Délai de closing** | 4-8 semaines — **dépasse ta butée** | 3-6 semaines — **serré** | 1-3 semaines — **tient** |
+| **Délai de closing** | 4-8 semaines | 3-6 semaines | 1-3 semaines — **de loin le plus rapide** |
 | **Ordre de grandeur** | Le plus haut | Intermédiaire | Le plus bas |
 
 **Sur les prix — à lire avant de citer un chiffre à qui que ce soit.** Je ne mets pas de
@@ -98,9 +105,9 @@ leur donne surtout de l'information gratuite sur toi. Ne les approche qu'en dern
 
 ## 3. CALENDRIER
 
-### Semaine 1 — 28 juillet → 3 août : **envoyer**
+### Cette semaine — 30 juillet → 3 août : **débloquer**
 
-Tout ce qui n'est pas nécessaire à l'envoi du premier email est hors périmètre cette semaine.
+Quatre choses, et elles ne dépendent que de toi. Total : **~2 heures.** Tout le reste est déjà écrit.
 
 | ID | Action | Effort | Critère de succès |
 |----|--------|--------|-------------------|
@@ -113,19 +120,21 @@ Tout ce qui n'est pas nécessaire à l'envoi du premier email est hors périmèt
 > **Le seul indicateur qui compte cette semaine : 10 emails partis + 1 annonce en ligne.**
 > Pas « dossier avancé ». Si le 31/07 au soir rien n'est parti, le plan a déjà échoué.
 
-### Semaines 2-3 — 4 → 17 août : **construire pendant que ça mûrit**
+### Août — 4 → 24 août : **préparer sans se presser**
 
 | ID | Action | Effort | Critère de succès |
 |----|--------|--------|-------------------|
 | **C-6** | **Relance unique** de la vague 1 à J+7, deux lignes. Une seule. Pas de troisième email | 30 min | relances parties le 7/08 |
-| **C-7** | **Vague 2 : 5 emails** (le reste de la liste C-2) | 1 h | envoyés avant le 10/08 |
+| **C-7** | **Vague 2 : 5 emails** (le reste de la liste C-2) | 1 h | envoyés le 1er septembre |
 | **C-8** | ~~T-1 — Runbook de reprise~~ | — | ✅ **fait le 28/07** → `docs/cession/runbook-reprise.md` : 9 comptes tiers et leur mode de transfert, rotation exhaustive des secrets, les 9 tâches planifiées, échéances silencieuses, première semaine du repreneur, points d'attention hérités |
 | **C-9** | **T-2 — Dossier de cession** | ¼ j | 🟠 **assemblé à 90 %** : one-pager + due-diligence + runbook + audit du 21/07 + `ARCHITECTURE.md`. **Manque le tableau des coûts d'exploitation mensuels** (grille vide prête dans le runbook §4) — c'est le seul chiffre que tu es seul à avoir, et il est systématiquement demandé |
 | **C-10** | **Lever les blocages du §4** | 2 h | 🟠 J-3, J-4, J-6 ✅ répondus le 28/07. **Restent J-1 (structure juridique), J-2 (titularité IP), J-5 (marque INPI), J-7 (abonnements Stripe)** — quatre phrases, mais personne d'autre ne peut les écrire |
 
-### Semaines 4-5 — 18 → 31 août : **conclure ou refermer**
+### 25 août → mi-septembre : **envoyer, puis conclure ou refermer**
 
-Le §5 (gate du 17 août) décide laquelle des deux branches s'exécute ici.
+**25 août** : les 10 emails partent, l'annonce marketplace est publiée.
+**1er septembre** : relance unique (C-6), vague 2 (C-7).
+**15 septembre** : le gate du §5 décide laquelle des deux branches s'exécute.
 
 ---
 
@@ -149,32 +158,32 @@ de toi chacun.
 
 ---
 
-## 5. GATE DU 17 AOÛT — et plan de repli daté
+## 5. GATE DU 15 SEPTEMBRE — et plan de repli daté
 
-Le 17 août au soir, compter les **réponses de fond** reçues (une réponse de fond = un
+Le 15 septembre au soir, compter les **réponses de fond** reçues (une réponse de fond = un
 échange où l'acheteur pose une question sur l'actif ; un « merci, pas pour nous » n'en est
 pas une).
 
 ```
-Réponses de fond au 17/08 ?
+Réponses de fond au 15/09 ?
 │
 ├── ≥ 1 sur thèse A ou B ──► BRANCHE 1 : conclure.
 │      Tout le temps restant sur cette discussion. C-8/C-9 finalisés à sa demande.
 │      Ne pas ouvrir de nouveau front, ne pas relancer les autres.
 │
 └── 0  ──────────────────► BRANCHE 2 : bascule intégrale sur la thèse C (marketplace),
-       prix affiché, closing rapide visé au 31/08. Si aucune offre au 31/08 → §6.
+       prix affiché, closing rapide visé au 30/09. Si aucune offre au 30/09 → §6.
 ```
 
-**Critère de succès du gate :** une ligne écrite et datée en tête de ce fichier, le 17/08.
+**Critère de succès du gate :** une ligne écrite et datée en tête de ce fichier, le 15/09.
 Comme le point de contrôle du 28/07 — le même mécanisme, il a fonctionné.
 
 ---
 
-## 6. SI RIEN NE SE VEND — la sortie propre (à exécuter avant le 31 août)
+## 6. SI RIEN NE SE VEND — la sortie propre (à exécuter avant le 30 septembre)
 
 Un plan de cession sans plan de non-vente n'est pas un plan. Le scénario le plus probable
-reste « pas d'acheteur en 5 semaines », et il ne doit pas se solder par un actif qui pourrit
+reste « pas d'acheteur du tout », et il ne doit pas se solder par un actif qui pourrit
 en silence pendant que tu es injoignable.
 
 | ID | Action | Pourquoi |
@@ -184,7 +193,7 @@ en silence pendant que tu es injoignable.
 | F-3 | **Renouveler `quartzbase.fr` pour 2 ans** et poser une page statique | Le domaine est la seule chose qui devient irrécupérable si elle expire. 2 ans coûtent une dizaine d'euros et gardent la porte ouverte |
 | F-4 | **Archiver le repo** avec le runbook (C-8) et le dossier (C-9) dedans | Tu reprends là où tu t'es arrêté dans 2 ans, sans rien avoir à reconstituer |
 
-> **F-1 ne s'exécute qu'après le 31 août.** Ouvrir le moteur de conformité avant la fin du
+> **F-1 ne s'exécute qu'après le 30 septembre.** Ouvrir le moteur de conformité avant la fin du
 > processus détruit exactement ce qui se vend dans les thèses A et B. C'est une porte à sens
 > unique : elle ne s'ouvre qu'une fois la vente déclarée close.
 
@@ -211,17 +220,18 @@ en silence pendant que tu es injoignable.
 
 | Semaine | Emails envoyés | Réponses de fond | Discussions actives | Offres reçues | Note |
 |---------|:---:|:---:|:---:|:---:|------|
-| 03/08 | | | | | objectif : 10 envoyés + annonce en ligne |
-| 10/08 | | | | | vague 2 partie, relance faite |
-| 17/08 | | | | | **GATE — décision écrite (§5)** |
-| 24/08 | | | | | |
-| 31/08 | | | | | **bilan : closing, ou §6 exécuté** |
+| 03/08 | | | | | J-1, J-2, Stripe résilié, vidéo faite |
+| 24/08 | | | | | 10 contacts trouvés, `lib/compliance` packagé |
+| 31/08 | | | | | **objectif : 10 emails envoyés le 25/08 + annonce en ligne** |
+| 07/09 | | | | | relance faite, vague 2 partie |
+| 15/09 | | | | | **GATE — décision écrite (§5)** |
+| 30/09 | | | | | **bilan : closing, ou §6 exécuté** |
 
-**Ce plan a réussi si, au 31 août :** soit une cession signée ou une discussion sérieuse en
+**Ce plan a réussi si, au 30 septembre :** soit une cession signée ou une discussion sérieuse en
 cours avec un acheteur identifié, soit le §6 exécuté en entier — coûts coupés, domaine
 sécurisé, `lib/compliance` ouvert, repo archivé.
 
-**Il a échoué si** le 31 août arrive sans qu'aucune des deux branches n'ait été menée à son
+**Il a échoué si** le 30 septembre arrive sans qu'aucune des deux branches n'ait été menée à son
 terme : un actif laissé en l'état, qui continue à coûter, sans personne pour s'en occuper.
 
 ---
