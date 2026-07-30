@@ -105,6 +105,25 @@ Ce qu'un audit trouverait de toute façon. Autant le dire ici.
 
 ---
 
+## Coût de détention : ≈ 0 € par mois
+
+Toute la pile tourne sur des paliers gratuits — Vercel, Supabase, Resend, Sentry, GitHub.
+L'IA fonctionne sur crédits prépayés : **10 € versés depuis le début du projet, 6 crédits
+consommés en tout.** Le seul décaissement récurrent est le renouvellement annuel du domaine.
+
+**Un repreneur peut donc détenir cet actif sans qu'il lui coûte quoi que ce soit** — le
+garder en sommeil, prendre le temps de décider quoi en faire, sans que ça saigne.
+
+À prévoir en revanche dès la mise en exploitation réelle : les paliers gratuits ne passent
+pas à l'échelle, et le plan Vercel Hobby est réservé à un usage non commercial (passage en
+Pro nécessaire). Le chiffre ci-dessus est un plancher d'infrastructure à zéro utilisateur,
+pas un coût d'exploitation en charge.
+
+*Les tâches planifiées tournent réellement : le contrôle de conformité hebdomadaire a produit
+ses alertes le dimanche 26 juillet 2026 — vérifiable en base.*
+
+---
+
 ## Propriété — chaîne de titularité sans aucun trou
 
 **Un seul auteur, un seul titulaire, aucun tiers.** Le produit a été développé intégralement

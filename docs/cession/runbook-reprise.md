@@ -115,25 +115,51 @@ n'envoie rien — c'est le comportement voulu, pas une panne.
 
 ---
 
-## 4. Coût d'exploitation mensuel
+## 4. Coût d'exploitation mensuel — **≈ 0 €**
 
-**À remplir par le cédant avant envoi à un acquéreur.** C'est le seul chiffre du dossier que
-personne d'autre ne peut produire, et il est demandé à chaque fois.
+Relevé auprès du cédant le 30/07/2026. **L'intégralité de la pile tourne sur des paliers
+gratuits.**
 
-| Service | Plan actuel | € / mois | Ce qui fait varier le coût |
-|---|---|---|---|
-| Vercel | | | Nombre de déploiements, bande passante, exécutions de fonctions |
-| Supabase | | | Taille de la base, utilisateurs actifs, bande passante |
-| Anthropic | | | Volume d'appels IA — **le seul coût qui croît avec l'usage**. Briefs déjà optimisés via Batch API (−50 %) |
-| Resend | | | Volume d'emails |
-| Twilio | | | Volume de SMS (invitations uniquement) |
-| Sentry | | | Volume d'événements |
-| Domaine `.fr` | | | Renouvellement annuel |
-| **Total** | | | |
+| Service | Plan actuel | € / mois | Ce qui ferait monter le coût |
+|---|---|---:|---|
+| Vercel | Gratuit (Hobby) | **0** | Bande passante, exécutions de fonctions — **et le passage en Pro, obligatoire pour un usage commercial** (voir ci-dessous) |
+| Supabase | Gratuit | **0** | Taille de la base, utilisateurs actifs mensuels, bande passante |
+| Anthropic (API) | Crédits prépayés — **10 € versés en tout** | **0** | Volume d'appels IA. **Consommation réelle à ce jour : 6 crédits sur toute la vie du projet** (dernier appel le 11/07). Briefs déjà optimisés via Batch API (−50 %) |
+| Resend | Gratuit | **0** | Volume d'emails |
+| Twilio | Gratuit / non utilisé | **0** | Volume de SMS (invitations employés uniquement) |
+| Sentry | Gratuit | **0** | Volume d'événements |
+| GitHub | Gratuit | **0** | — |
+| Domaine `quartzbase.fr` | Renouvellement annuel | ~1 | Seul décaissement récurrent réel |
+| **Total** | | **≈ 0 €/mois** | |
 
-À l'état actuel — zéro utilisateur — les coûts variables sont nuls : ce total est un
-**plancher d'infrastructure**, pas un coût d'exploitation en charge. Le dire tel quel à un
-acquéreur ; il fera lui-même la projection.
+**Non inclus, volontairement :** l'abonnement Claude à 20 €/mois du cédant. C'est un **outil de
+développement personnel**, pas une dépendance du produit — l'application n'en a pas besoin
+pour tourner, et le repreneur n'en hérite pas. L'inclure gonflerait artificiellement le coût
+d'exploitation.
+
+### Ce que ça veut dire pour un repreneur
+
+**L'actif ne coûte rien à détenir.** C'est rare et ça vaut d'être dit : un repreneur peut le
+garder en sommeil, prendre son temps pour décider quoi en faire, sans que ça saigne. Sur un
+actif sans revenu, c'est précisément ce qui retire le risque.
+
+**Mais les paliers gratuits ne passent pas à l'échelle**, et deux d'entre eux ont une
+contrainte à connaître avant de démarrer :
+
+- **Vercel Hobby est réservé à un usage non commercial.** Un repreneur qui exploite
+  commercialement doit passer en Pro. À budgéter dès le premier client, pas après.
+- **Un projet Supabase gratuit se met en pause après une période sans activité.** Sans
+  conséquence tant que rien ne tourne, bloquant le jour où un utilisateur se connecte.
+
+**Le total ci-dessus est donc un plancher d'infrastructure à zéro utilisateur, pas un coût
+d'exploitation en charge.** Le présenter comme tel à un acquéreur : il fera lui-même la
+projection, et il aura raison de la faire.
+
+### Les tâches planifiées tournent réellement
+
+Vérifié en base le 30/07 : le contrôle de conformité hebdomadaire (`compliance-check`,
+dimanche 22 h) a produit ses alertes **le dimanche 26 juillet**. Les tâches planifiées ne
+sont pas seulement déclarées dans `vercel.json` — elles s'exécutent en production.
 
 ---
 

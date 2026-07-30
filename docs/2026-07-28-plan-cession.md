@@ -127,7 +127,7 @@ Quatre choses, et elles ne dépendent que de toi. Total : **~2 heures.** Tout le
 | **C-6** | **Relance unique** de la vague 1 à J+7, deux lignes. Une seule. Pas de troisième email | 30 min | relances parties le 7/08 |
 | **C-7** | **Vague 2 : 5 emails** (le reste de la liste C-2) | 1 h | envoyés le 1er septembre |
 | **C-8** | ~~T-1 — Runbook de reprise~~ | — | ✅ **fait le 28/07** → `docs/cession/runbook-reprise.md` : 9 comptes tiers et leur mode de transfert, rotation exhaustive des secrets, les 9 tâches planifiées, échéances silencieuses, première semaine du repreneur, points d'attention hérités |
-| **C-9** | **T-2 — Dossier de cession** | ¼ j | 🟠 **assemblé à 90 %** : one-pager + due-diligence + runbook + audit du 21/07 + `ARCHITECTURE.md`. **Manque le tableau des coûts d'exploitation mensuels** (grille vide prête dans le runbook §4) — c'est le seul chiffre que tu es seul à avoir, et il est systématiquement demandé |
+| **C-9** | ~~T-2 — Dossier de cession~~ | — | ✅ **complet le 30/07** : one-pager + due-diligence (7/7) + runbook + valorisation + `lib/compliance/README.md` + audit du 21/07 + `ARCHITECTURE.md`. **Coûts d'exploitation renseignés : ≈ 0 €/mois**, toute la pile étant sur paliers gratuits — c'est un argument de vente, pas une ligne de tableau |
 | **C-10** | ~~Lever les blocages du §4~~ | — | ✅ **fait — 7 points sur 7 fermés** : J-3, J-4, J-6 le 28/07 ; J-1, J-2, J-5, J-7 le 30/07. `docs/cession/due-diligence.md` est complet et répond à tout ce qu'un acquéreur demandera |
 
 ### 25 août → mi-septembre : **envoyer, puis conclure ou refermer**
