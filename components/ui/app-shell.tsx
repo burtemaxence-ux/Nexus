@@ -16,6 +16,8 @@ import { AiAssistant } from './ai-assistant'
 import { BreadcrumbNav } from './breadcrumb-nav'
 import { PageTransition } from './page-transition'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
+import { DemoBanner } from '@/components/demo/demo-banner'
+import { isDemoAccount } from '@/lib/demo'
 
 interface EstablishmentEntry {
   id: string
@@ -54,6 +56,7 @@ export function AppShell({
 }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false)
   const router = useRouter()
+  const isDemo = isDemoAccount(userEmail)
 
   // Apply the user's chosen theme inside the app (default light — N4). On
   // unmount — i.e. navigating out to the landing/auth pages, which are
@@ -186,7 +189,8 @@ export function AppShell({
           mode="employee"
         />
       )}
-      <OnboardingWizard role={role} />
+      <OnboardingWizard role={role} demo={isDemo} />
+      {isDemo && <DemoBanner role={role} />}
 
       {/* Bottom nav — mobile only */}
       <BottomNav

@@ -28,6 +28,7 @@ export async function middleware(request: NextRequest) {
   // Si l'utilisateur n'est pas connecté et tente d'accéder à une route protégée
   if (!user && pathname !== '/' && pathname !== '/login' && pathname !== '/register'
     && pathname !== '/billing'
+    && pathname !== '/demo'
     && !PUBLIC_MARKETING_PAGES.includes(pathname)
     && !pathname.startsWith('/auth/')
     && !pathname.startsWith('/legal/')
