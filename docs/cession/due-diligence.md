@@ -90,31 +90,40 @@ client.*
 
 ---
 
-## ⏳ À traiter par Maxence — non contournable
+## ✅ Répondu le 30/07 — J-2 · Titularité de la propriété intellectuelle
 
-Ces quatre points ne se lisent ni dans le code ni dans la base. **Un acquéreur sérieux les
-demandera au deuxième échange** ; ne pas savoir y répondre coûte la crédibilité gagnée sur
-tout le reste.
+**Développé intégralement par une seule personne. Aucun tiers n'a jamais écrit une ligne de
+code, un design ou un texte : pas de cofondateur, pas de freelance, pas de prestataire, pas
+de stagiaire.**
 
-### J-1 · Structure juridique — *à écrire en une phrase*
-Y a-t-il une société (SASU, micro-entreprise…) ou l'actif est-il détenu en nom propre ?
-Détermine ce qui se vend (cession d'actif vs cession de titres) et le régime fiscal de la
-vente. **Réponse attendue : le statut, et au nom de qui sont les comptes tiers du §1 du
-runbook.**
+C'est le point qui tue le plus de cessions, et il est ici dans son meilleur état possible.
+**À écrire tel quel dans le dossier** — ce n'est pas une formalité, c'est un argument :
+aucune cession de droits à obtenir, aucun tiers à faire signer, aucune revendication
+possible après la vente.
 
-Vérifier au passage que l'actif (code, domaine, marque) est bien détenu par l'entité qui
-vend, et n'est pas resté éparpillé entre une société et le nom propre du fondateur.
+## ✅ Répondu le 30/07 — J-1 · Structure juridique
 
-### J-2 · Titularité de la propriété intellectuelle — *le point qui tue les deals*
-Quelqu'un d'autre a-t-il écrit du code, un design, un texte ? Cofondateur, freelance,
-stagiaire, prestataire ?
+**Aucune société. L'actif est détenu en nom propre par le fondateur, personne physique.**
 
-- **Si non** — l'écrire noir sur blanc dans le dossier : « développé intégralement par le
-  cédant, aucun tiers n'a de droit ». C'est un argument, pas une formalité.
-- **Si oui** — obtenir une **cession de droits écrite et signée** *avant* d'engager la
-  discussion. Un échange d'emails explicite vaut mieux que rien. Une chaîne de titularité
-  trouée découverte en due diligence arrête l'opération, et il sera trop tard pour la
-  réparer une fois la discussion engagée.
+Combiné à J-2, ça donne la situation de propriété la plus simple qui existe : **un seul
+titulaire, aucun associé, aucun organe social, aucun tiers ayant un droit quelconque.**
+Rien à démêler.
+
+**Ce que ça implique concrètement :**
+
+| Point | Conséquence |
+|---|---|
+| **Nature de l'opération** | Nécessairement une **cession d'actif** — il n'y a pas de titres à céder. C'est le cas le plus simple, et celui que tous les acquéreurs visés préfèrent : ils reprennent le code, le domaine et la marque, sans reprendre une structure ni son passé |
+| **Document de closing** | Un **contrat de cession** signé, pas une facture. Un particulier ne facture pas — le contrat est la pièce comptable de l'acquéreur. Il énumère ce qui est transféré (dépôt et historique, droits d'auteur sur le code, domaine, marque, base et migrations) et porte la garantie d'éviction : *je suis seul auteur, aucun tiers n'a de droit* — ce que J-2 permet d'affirmer sans réserve |
+| **Comptes tiers** | Ils sont au nom du fondateur en personne. Sans conséquence pour GitHub, Vercel, Supabase, Resend, Anthropic, Sentry, le registrar. **Stripe est le seul à vérifier** : le compte est adossé à une identité, il ne se transfère pas — mais c'était déjà la conclusion du runbook §1, et il n'y a aucun abonnement client à migrer |
+| **Fiscalité** | Le produit de la vente est un revenu à déclarer. Aux montants en jeu (`valorisation.md` : quelques milliers d'euros), l'enjeu est faible — **une question à un comptable, pas un obstacle**. À régler avant de signer, pas avant d'envoyer les emails |
+
+**Aucun de ces points n'est bloquant.** Ne pas créer de société pour vendre : le coût et le
+délai dépasseraient le produit attendu de la vente.
+
+---
+
+## ⏳ Restent deux points — mineurs, mais à fermer
 
 ### J-5 · Marque `Quartzbase`
 Déposée à l'INPI, ou simple nom commercial et nom de domaine ? Si déposée : classe(s), date,

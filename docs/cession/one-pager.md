@@ -101,6 +101,23 @@ Ce qu'un audit trouverait de toute façon. Autant le dire ici.
 
 ---
 
+## Propriété — chaîne de titularité sans aucun trou
+
+**Un seul auteur, un seul titulaire, aucun tiers.** Le produit a été développé intégralement
+par une seule personne : pas de cofondateur, pas de freelance, pas de prestataire, pas de
+stagiaire. Aucun tiers n'a jamais écrit une ligne de code, un design ou un texte, et personne
+ne détient de droit sur quoi que ce soit.
+
+L'actif est détenu **en nom propre** — il n'y a aucune société, donc aucun associé, aucun
+organe social, aucun passé de structure à reprendre. L'opération est une **cession d'actif**
+pure : le repreneur prend le code, le domaine et la marque, et rien d'autre.
+
+Le closing se fait par **contrat de cession signé**, portant garantie d'éviction. C'est la
+situation la plus simple qu'un acquéreur puisse rencontrer, et elle supprime le poste qui
+fait habituellement échouer les due diligences sur les petits actifs.
+
+---
+
 ## Ce qui est fourni à la signature
 
 Dépôt Git complet et son historique · base de données et migrations · runbook d'exploitation

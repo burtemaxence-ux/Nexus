@@ -128,7 +128,7 @@ Quatre choses, et elles ne dépendent que de toi. Total : **~2 heures.** Tout le
 | **C-7** | **Vague 2 : 5 emails** (le reste de la liste C-2) | 1 h | envoyés le 1er septembre |
 | **C-8** | ~~T-1 — Runbook de reprise~~ | — | ✅ **fait le 28/07** → `docs/cession/runbook-reprise.md` : 9 comptes tiers et leur mode de transfert, rotation exhaustive des secrets, les 9 tâches planifiées, échéances silencieuses, première semaine du repreneur, points d'attention hérités |
 | **C-9** | **T-2 — Dossier de cession** | ¼ j | 🟠 **assemblé à 90 %** : one-pager + due-diligence + runbook + audit du 21/07 + `ARCHITECTURE.md`. **Manque le tableau des coûts d'exploitation mensuels** (grille vide prête dans le runbook §4) — c'est le seul chiffre que tu es seul à avoir, et il est systématiquement demandé |
-| **C-10** | **Lever les blocages du §4** | 2 h | 🟠 J-3, J-4, J-6 ✅ répondus le 28/07. **Restent J-1 (structure juridique), J-2 (titularité IP), J-5 (marque INPI), J-7 (abonnements Stripe)** — quatre phrases, mais personne d'autre ne peut les écrire |
+| **C-10** | **Lever les blocages du §4** | 15 min | 🟢 **5 points sur 7 fermés** : J-3, J-4, J-6 le 28/07 ; J-1 et J-2 le 30/07. **Restent J-5 (marque INPI) et J-7 (abonnements Stripe)** — deux vérifications, pas des décisions |
 
 ### 25 août → mi-septembre : **envoyer, puis conclure ou refermer**
 
@@ -148,8 +148,8 @@ de toi chacun.
 
 | # | Question | État |
 |---|---|---|
-| J-1 | **Y a-t-il une société** (SASU, micro-entreprise…) ou l'actif est-il détenu en nom propre ? | ⏳ **toi** — détermine ce qui se vend (cession d'actif vs cession de titres) et la fiscalité |
-| J-2 | **Qui détient l'IP ?** Un cofondateur, un freelance, un stagiaire a-t-il écrit du code ? | ⏳ **toi** — chaîne de titularité trouée = deal mort. Si oui : cession de droits signée **avant** d'engager la discussion |
+| J-1 | **Y a-t-il une société** ou l'actif est-il détenu en nom propre ? | ✅ **répondu le 30/07 — aucune société, détention en nom propre.** Donc cession d'actif pure, closing par **contrat de cession** (pas de facture). Fiscalité : une question à un comptable, sans enjeu aux montants visés |
+| J-2 | **Qui détient l'IP ?** | ✅ **répondu le 30/07 — auteur unique, aucun tiers n'a jamais contribué.** Chaîne de titularité sans trou : c'est un **argument de vente**, à écrire dans le dossier |
 | J-3 | **Transférabilité des comptes** | ✅ 9 services inventoriés (runbook §1). Seul point dur : **Stripe ne se transfère pas** — compte à recréer, indolore ici faute d'abonnés |
 | J-4 | **Nom de code `Nexus` vs marque `Quartzbase`** | ✅ résidu inventorié : 6 endroits, aucune dépendance externe cassée, webhooks déjà en double émission |
 | J-5 | **Marque déposée ?** `Quartzbase` est-il déposé à l'INPI ? | ⏳ **toi** — si oui, c'est un actif de plus au §1 ; si non, le dire simplement |
