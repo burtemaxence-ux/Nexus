@@ -186,3 +186,127 @@ sur `subscriptions` (advisor `duplicate_index`). Les `unused_index` (INFO) sont
 
 La prochaine migration sera nommée **063_xxx.sql** (056→062 appliquées).
 Ne pas réutiliser les numéros 017-021 ni 053-062 — tous appliqués en prod.
+
+---
+
+# Réconciliation dépôt ↔ production — 2026-07-26 (audit C4 / Phase 0)
+
+> Cette section remplace, pour tout ce qui la contredit, les statuts datés ci-dessus.
+
+## Constat de départ
+
+Un rejeu des migrations du dépôt sur une base Postgres vierge **échouait sur 7
+migrations**, et le schéma obtenu ne correspondait pas à la production. Tant que
+c'était le cas, aucun audit RLS n'était reproductible : on corrigeait des policies
+sur un état de base qu'on ne pouvait ni rejouer ni comparer.
+
+Outil ajouté : `supabase/harness/` (bootstrap Supabase local + `replay.sh` +
+`introspect.sql`). Ne dépend ni du CLI Supabase ni de Docker.
+
+## Causes des échecs de rejeu
+
+| Cause | Migrations | Correctif |
+|---|---|---|
+| `is_manager()` définie en 015 mais appelée dès 003 | 003, 004, 005, 006, 055 (cascade) | ajout de `002a_is_manager_helper.sql` (définition identique, 015 laissée intacte car `CREATE OR REPLACE` idempotent) |
+| `046_perf_fk_indexes_and_rls` indexe `home_task_completions` créée en 071 | 046_perf | renumérotée `087_` |
+| `planning_signatures` : aucun `CREATE TABLE` dans le dépôt | 061 | ajout de `034_planning_signatures.sql` |
+
+## Renumérotation des doublons
+
+Six numéros étaient portés par deux fichiers (042, 043, 044, 045, 046, 071).
+
+**Choix assumé : ordre de dépendances, pas ordre chronologique réel.** Encoder la
+vraie chronologie dans les numéros imposait de renuméroter 14 fichiers en cascade
+(072→085 décalés), pour un bénéfice nul sur le seul critère vérifiable — « un rejeu
+sur base vierge reproduit la prod ». La chronologie réelle est conservée ci-dessous
+comme donnée, pas comme numérotation.
+
+| Fichier | Nouveau nom | Contrainte respectée |
+|---|---|---|
+| `042_support_reports` | `042a_support_reports` | avant 074 et 087 qui en dépendent |
+| `043_admin_client_overview` | `076_admin_client_overview` | aucune dépendance entrante |
+| `044_fix_subscription_plan_status_constraints` | `077_…` | après 066 (drift `subscriptions`) |
+| `045_owner_multisite_entitlement` | `086_…` | aucune dépendance entrante |
+| `046_perf_fk_indexes_and_rls` | `087_…` | après 071 (`home_task_completions`) |
+| `071_planning_conformity_alerts` | `088_…` | après 030 (`compliance_alerts`) |
+
+`042_fix_api_tokens_policy` **garde son numéro** : elle doit rester *avant* 061, qui
+supprime sa policy `managers_read_own_tokens`. La déplacer après 061 faisait survivre
+une policy absente de la prod — écart détecté puis corrigé pendant cette phase.
+
+### Chronologie réelle en prod (`supabase_migrations.schema_migrations`)
+
+Les migrations **001 à 041** ne figurent pas dans l'historique : appliquées à la main
+dans l'éditeur SQL Supabase, avant le suivi. Idem `043_fix_storage_policies` et
+`045_fix_user_establishments_rls`. Ordre horodaté des autres :
+
+```
+0615 046_harden → 047 → 042_fix_api_tokens → 044_fix_settings → 048 → 049 → 050 → 051 → 052
+0616 053 → 054 → 055        0618 056 → 057        0619 058 → 059 → 060 → 061 → 062
+0621 063 → 064 → 065 → 066 → 067                  0622 068 → 069 → 070
+0630 071_home_task_completions                    0702 071_planning_conformity_alerts
+0704 042_support_reports → 043_admin_client_overview → 044_fix_subscription… →
+     045_owner_multisite… → 046_perf_fk_indexes…
+0706 078 → 079        0711 072        0718 073        0720 074
+0721 080 → 081 → 082 → 083            0724 084 → 085
+```
+
+## Migrations de rattrapage ajoutées
+
+Objets présents en prod, absents du dépôt. Définitions relevées telles quelles
+(`pg_get_functiondef`, `information_schema`, `pg_get_triggerdef`) — **rien n'est
+corrigé**, on documente l'existant avant de le réparer.
+
+| Fichier | Contenu |
+|---|---|
+| `034_planning_signatures.sql` | table + contraintes + RLS + `employee_can_sign_own` |
+| `078_fix_handle_new_user_no_cross_tenant_fallback.sql` | `handle_new_user()` version prod + trigger `on_auth_user_created` |
+| `079_calendar_token_version.sql` | `profiles.calendar_token_version integer NOT NULL DEFAULT 1` |
+| `089_reconcile_prod_schema.sql` | `profiles.is_active`, `profiles_is_active_idx`, `subscriptions_establishment_id_key`, trigger `subscriptions_updated_at` |
+
+## Écarts restants — la prod manque ce que le dépôt crée
+
+Volontairement **non supprimés** du dépôt : les retirer graverait des défauts dans le
+schéma de référence. Chacun demande un arbitrage.
+
+| Objet | Statut | Enjeu |
+|---|---|---|
+| ~~`profiles.invited_by` (+ FK)~~ | **corrigé le 2026-07-26** par la migration 090, appliquée en prod | était un défaut actif : `/api/employees/invite` écrivait cette colonne, l'UPDATE d'enrichissement échouait donc *en entier* sans que le code vérifie l'erreur → `first_name`, `last_name`, `position`, `phone`, `contract_type`, `weekly_hours` restaient NULL pour une API répondant 200. |
+| `subscriptions_stripe_customer_id_key` (UNIQUE) | absent en prod | rien n'empêche deux lignes de partager le même `stripe_customer_id` |
+| `subscriptions_stripe_subscription_id_key` (UNIQUE) | absent en prod | idem — à arbitrer avec l'idempotence du webhook Stripe |
+| `idx_availabilities_employee` | absent en prod | simple index de perf, sans risque |
+
+## Vérification
+
+```
+90 migrations rejouées sans erreur sur base vierge
+```
+
+| Type d'objet | Dépôt | Prod | Écart |
+|---|---:|---:|---|
+| TABLE | 34 | 34 | — |
+| COLUMN | 323 | 322 | `profiles.invited_by` |
+| POLICY | 90 | 90 | — |
+| TRIGGER | 19 | 19 | — |
+| CONSTRAINT | 135 | 132 | `invited_by_fkey` + 2 UNIQUE Stripe |
+| INDEX | 126 | 123 | `idx_availabilities_employee` + 2 index UNIQUE Stripe |
+
+Tous les écarts restants sont ceux du tableau précédent, et aucun autre.
+
+## CI
+
+`scripts/check-migrations.ts` tourne désormais en étape **bloquante** sur une base
+Postgres éphémère (job `migrations` de `.github/workflows/ci.yml`). Trois sondes
+étaient obsolètes et validaient des objets supprimés par 061 :
+
+| Sonde | Sondait | Sonde désormais |
+|---|---|---|
+| `042_fix_api_tokens_policy` | `managers_read_own_tokens` (droppée par 061) | `managers manage tokens` |
+| `045_fix_user_establishments_rls` | `managers_manage_own_memberships` (droppée par 061) | les 4 policies `user_establishments_*` |
+| `052_harden_ai_functions` | `consume_ai_credit(integer)` (remplacée par 060) | `consume_ai_credit(integer,text)` |
+
+Les 10 sondes passent sur la base rejouée **et** sur la prod.
+
+## Note sur les futures migrations
+
+Prochain numéro libre : **090**. Ne réutiliser aucun numéro ≤ 089.

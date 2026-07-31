@@ -22,14 +22,19 @@ const MIGRATIONS_DIR = join(__dirname, '..', 'supabase', 'migrations')
 // One probe per "APPLY MANUALLY" migration. Each query must return a single
 // row with a boolean column `ok` = true when the migration is applied.
 const PROBES: { migration: string; sql: string }[] = [
+  // 061 a fusionné les policies permissives : `managers_read_own_tokens` a été
+  // remplacée par `managers manage tokens`. On sonde la policy actuelle.
   { migration: '042_fix_api_tokens_policy',
-    sql: `SELECT EXISTS(SELECT 1 FROM pg_policies WHERE policyname='managers_read_own_tokens') AS ok` },
+    sql: `SELECT EXISTS(SELECT 1 FROM pg_policies WHERE tablename='api_tokens' AND policyname='managers manage tokens') AS ok` },
   { migration: '043_fix_storage_policies',
     sql: `SELECT (SELECT count(*) FROM pg_policies WHERE policyname IN('logos_manager_upload','logos_manager_update','logos_manager_delete'))=3 AS ok` },
   { migration: '044_fix_settings_rls',
     sql: `SELECT (SELECT count(*) FROM pg_policies WHERE policyname IN('settings_read','settings_write','settings_update','settings_delete'))=4 AS ok` },
+  // Idem 061 : `managers_manage_own_memberships` éclatée en une policy par action.
   { migration: '045_fix_user_establishments_rls',
-    sql: `SELECT EXISTS(SELECT 1 FROM pg_policies WHERE policyname='managers_manage_own_memberships') AS ok` },
+    sql: `SELECT (SELECT count(*) FROM pg_policies WHERE tablename='user_establishments'
+              AND policyname IN('user_establishments_select','user_establishments_insert',
+                                'user_establishments_update','user_establishments_delete'))=4 AS ok` },
   { migration: '048_ai_usage',
     sql: `SELECT (EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='ai_usage')
               AND EXISTS(SELECT 1 FROM pg_proc WHERE proname='consume_ai_credit')) AS ok` },
@@ -41,9 +46,10 @@ const PROBES: { migration: string; sql: string }[] = [
   { migration: '051_perf_indexes',
     sql: `SELECT (EXISTS(SELECT 1 FROM pg_indexes WHERE indexname='idx_profiles_id_establishment')
               AND EXISTS(SELECT 1 FROM pg_indexes WHERE indexname='idx_marketplace_slots_establishment_status')) AS ok` },
+  // 060 a remplacé consume_ai_credit(integer) par consume_ai_credit(integer,text) :
+  // sonder l'ancienne signature levait une erreur au lieu de renvoyer false.
   { migration: '052_harden_ai_functions',
-    sql: `SELECT NOT has_function_privilege('anon','public.consume_ai_credit(integer)','EXECUTE')
-              AND NOT has_function_privilege('anon','public.consume_ai_credit(integer,text)','EXECUTE') AS ok` },
+    sql: `SELECT NOT has_function_privilege('anon','public.consume_ai_credit(integer,text)','EXECUTE') AS ok` },
   { migration: '060_ai_usage_per_feature',
     sql: `SELECT (EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='ai_usage' AND column_name='feature')
               AND EXISTS(SELECT 1 FROM pg_proc WHERE proname='consume_ai_credit' AND pronargs=2)) AS ok` },

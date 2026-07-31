@@ -558,8 +558,15 @@ export function checkCompliance(shifts: ShiftRecord[], employees?: EmployeeMeta[
 
       const gapMin = nextStartAbsMin - currEndAbsMin
 
-      // Only check if shifts are on different days or same-day with gap > 0
-      if (gapMin >= 0 && gapMin < 660) {
+      // Le repos quotidien (L3131-1) se mesure ENTRE DEUX JOURNÉES de travail.
+      // Une coupure à l'intérieur d'une même journée — le service midi puis
+      // soir, quotidien en restauration — n'en est pas un manquement : c'est
+      // l'amplitude qui la borne, et amplitude_max s'en charge déjà (13h,
+      // valeur qui découle arithmétiquement des 11h de repos : 24h − 11h).
+      // Sans cette condition, tout planning de service normal remontait une
+      // infraction CRITIQUE, ce qui noyait les vraies. Même garde que
+      // minor_rest_daily ci-dessous.
+      if (next.date !== curr.date && gapMin >= 0 && gapMin < 660) {
         const isOvernight = parseTimeMin(curr.endTime) <= parseTimeMin(curr.startTime)
         const minRestEnd = addMinutesToShiftEnd(curr.date, curr.endTime, isOvernight, 660)
         violations.push({
