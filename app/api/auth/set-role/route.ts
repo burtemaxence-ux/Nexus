@@ -32,7 +32,20 @@ export async function POST() {
       .eq('id', existingProfile.establishment_id)
       .eq('owner_id', user.id)
       .maybeSingle()
-    if (ownedEst) return NextResponse.json({ role: 'manager', already_setup: true })
+    if (ownedEst) {
+      // Depuis la migration 086, le compte naît déjà manager de son propre
+      // établissement : ce court-circuit est désormais le cas nominal, et non
+      // plus l'exception. La ligne d'appartenance doit donc être garantie ici —
+      // sinon la bascule d'établissement (qui lit user_establishments.role)
+      // resterait sans ligne pour tous les comptes créés après 086.
+      await supabaseAdmin
+        .from('user_establishments')
+        .upsert(
+          { user_id: user.id, establishment_id: existingProfile.establishment_id, role: 'manager' },
+          { onConflict: 'user_id,establishment_id' }
+        )
+      return NextResponse.json({ role: 'manager', already_setup: true })
+    }
   }
 
   // Créer un établissement dédié pour ce nouveau manager Google

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireManager } from '@/lib/api-auth'
 import { getStripe } from '@/lib/stripe'
 import { isDemoAccount } from '@/lib/demo'
@@ -18,7 +19,9 @@ export async function POST(request: NextRequest) {
     const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
     const appUrl = process.env.NEXT_PUBLIC_URL ?? 'https://quartzbase.fr'
 
-    const { data: sub } = await supabase
+    // Identifiant Stripe non lisible par `authenticated` (migration 088) :
+    // lecture par le service-role, après requireManager(), filtre explicite.
+    const { data: sub } = await supabaseAdmin
       .from('subscriptions')
       .select('stripe_customer_id')
       .eq('establishment_id', estId)
