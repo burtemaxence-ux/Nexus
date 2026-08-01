@@ -11,10 +11,10 @@ import { DEMO_ESTABLISHMENT_ID } from '@/lib/demo'
 // modifications des visiteurs, et ses dates s'éloignent de la semaine courante
 // jusqu'à ce qu'un acquéreur tombe sur un planning vide.
 //
-// Toute la logique vit dans `public.reset_demo_data()` (migration 088) plutôt
-// qu'ici : elle est ainsi versionnée avec le schéma, exécutable à la main par
-// un repreneur, et sans effet sur une base neuve où l'établissement de
-// démonstration n'existe pas.
+// Toute la logique vit dans `public.reset_demo_data()` (migrations 088 puis
+// 089) plutôt qu'ici : elle est ainsi versionnée avec le schéma, exécutable à
+// la main par un repreneur, et sans effet sur une base neuve où l'établissement
+// de démonstration n'existe pas.
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCron(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
     services: row?.services ?? 0,
     pointages: row?.pointages ?? 0,
     retards: row?.retards ?? 0,
+    conges: row?.conges ?? 0,
     semainesAnalysees: alertes,
   })
 }
