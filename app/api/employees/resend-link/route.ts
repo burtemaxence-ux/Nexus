@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient as createServerClient } from '@/lib/supabase/server'
 import { checkRateLimit, getClientIp, rateLimitResponse } from '@/lib/rate-limit'
 import { NextRequest, NextResponse } from 'next/server'
+import { isDemoAccount } from '@/lib/demo'
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request)
@@ -14,6 +15,13 @@ export async function POST(request: NextRequest) {
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (!['manager', 'supervisor'].includes(profile?.role ?? '')) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+
+  // Démo publique : même risque que la route d'invitation — un lien d'accès
+  // serait généré et envoyé à une adresse saisie par le visiteur.
+  if (isDemoAccount(user.email)) {
+    await new Promise(r => setTimeout(r, 600))
+    return NextResponse.json({ ok: true, demo: true })
+  }
 
   const body = await request.json().catch(() => null)
   if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })

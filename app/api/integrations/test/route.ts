@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { testWebhook } from '@/lib/integrations/webhook'
+import { isDemoAccount } from '@/lib/demo'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -9,6 +10,15 @@ export async function POST(request: NextRequest) {
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (profile?.role !== 'manager') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+
+  // Démo publique : cette route fait émettre une requête sortante par le
+  // serveur vers une URL que le visiteur contrôle (réglage `webhook_url`).
+  // Ouverte à un anonyme, elle sert de relais pour sonder des adresses
+  // internes ou inonder un tiers. On simule le succès sans rien émettre.
+  if (isDemoAccount(user.email)) {
+    await new Promise(r => setTimeout(r, 500))
+    return NextResponse.json({ ok: true, status: 200, demo: true })
+  }
 
   const body = await request.json().catch(() => null)
   if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
