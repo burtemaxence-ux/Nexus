@@ -82,7 +82,7 @@ module planning.
 >
 > Concrètement : planning par glisser-déposer, pointage mobile, congés, contrôle
 > automatique du droit du travail (17 règles testées), export DSN, facturation Stripe
-> branchée. 262 tests verts, 0 dette technique signalée à l'audit.
+> branchée. 267 tests verts, 0 dette technique signalée à l'audit.
 >
 > Pour un éditeur qui a déjà les clients, c'est un module à rebrander plutôt que six mois
 > de développement. Je suis transparent d'emblée : il n'y a aucun client ni aucun revenu à
@@ -111,7 +111,7 @@ communautés indie francophones.
 **Format :** annonce publique, pas un email. Ici le prix *doit* être affiché — une annonce
 sans prix ne reçoit que des curieux.
 
-> **Titre :** SaaS de planning RH (France) — produit fini, 262 tests, 0 client, à relancer
+> **Titre :** SaaS de planning RH (France) — produit fini, 267 tests, 0 client, à relancer
 >
 > **En une ligne.** SaaS de planning et de conformité au droit du travail pour la
 > restauration. Construit, mis en production, audité — jamais commercialisé. Le fondateur

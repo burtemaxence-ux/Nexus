@@ -51,7 +51,7 @@ sous-estimés).
 |---|---|
 | **Moteur de conformité** `lib/compliance` | **17 règles** de droit du travail français implémentées, **les 17 couvertes par des tests** — repos quotidien/hebdo, durées max jour/semaine/moyenne, pauses, jours consécutifs, dimanche, nuit, amplitude, heures contractuelles, coupures temps partiel, **et 5 règles spécifiques aux mineurs**. *(L'audit du 21/07 annonçait 8 règles : il sous-comptait.)* |
 | Base de code | 57 189 lignes TS/TSX, Next.js 14 App Router, TypeScript strict, 0 TODO/FIXME |
-| Tests | **262 tests / 26 fichiers, tous verts** (relancés le 28/07) — dont les circuits d'argent Stripe |
+| Tests | **267 tests / 28 fichiers, tous verts** (relancés le 01/08) — dont les circuits d'argent Stripe |
 | Base de données | Supabase Postgres, 39 migrations trackées, RLS multi-tenant vérifiée, **0 advisor de performance** |
 | Surface applicative | 63 pages, 99 routes API, PWA installable, API REST v1, webhooks sortants, Slack, iCal |
 | Facturation | Stripe branché et testé : 3 plans (49 / 89 / 149 €/mois), essai 30 j, parrainage, dunning |
@@ -75,7 +75,7 @@ s'achète pas pour gagner de l'argent tout de suite, ça s'achète pour **gagner
 | **Qui** | Acteur RH/planning étranger ou adjacent qui veut entrer sur le marché français CHR | Éditeur caisse / paie / compta qui a déjà des clients CHR mais pas de module planning | Développeur indépendant, petit studio, repreneur de side-projects |
 | **Ce qu'il achète** | Le moteur `lib/compliance` + les pages réglementaires. Le reste est un bonus | L'app entière, à rebrander et brancher sur sa base clients | Un codebase fini, auditté, qu'il relance sous son nom |
 | **Ce à quoi il compare** | Le coût de faire coder + valider 17 règles de droit français : plusieurs mois de dev + conseil juridique | Son coût de build interne (~6 mois de dev pour cette surface) | Le prix d'autres projets finis sans traction |
-| **Pitch en une ligne** | « 17 règles du Code du travail français, implémentées et testées, prêtes à brancher » | « Votre module planning conforme, livré fini, à votre marque » | « SaaS complet, 262 tests verts, 0 dette, prêt à relancer » |
+| **Pitch en une ligne** | « 17 règles du Code du travail français, implémentées et testées, prêtes à brancher » | « Votre module planning conforme, livré fini, à votre marque » | « SaaS complet, 267 tests verts, 0 dette, prêt à relancer » |
 | **Canal** | Email direct au Head of Product / Country Manager France | Email direct au fondateur / dir. produit | Marketplaces (Acquire.com, Flippa, side-project boards) + communautés indie FR |
 | **Probabilité** | 🔴 Faible | 🟠 Moyenne-faible | 🟢 La plus élevée |
 | **Délai de closing** | 4-8 semaines | 3-6 semaines | 1-3 semaines — **de loin le plus rapide** |

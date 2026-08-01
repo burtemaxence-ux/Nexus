@@ -167,7 +167,7 @@ sont pas seulement déclarées dans `vercel.json` — elles s'exécutent en prod
 ## 5. Première semaine du repreneur
 
 1. **Cloner, installer, faire tourner les tests.** `npm install && npm test` → doit afficher
-   262 tests verts sur 26 fichiers. Si ce n'est pas le cas, s'arrêter là et le signaler :
+   267 tests verts sur 28 fichiers. Si ce n'est pas le cas, s'arrêter là et le signaler :
    c'est la garantie de base de la cession.
 2. **Lever un environnement propre.** Copier `.env.example` en `.env.local`, renseigner les
    valeurs des nouveaux comptes (§1), lancer `npm run dev`.
@@ -231,7 +231,7 @@ Repris de l'audit du 21/07/2026 — tout est documenté, rien n'est caché.
 - **Index « inutilisés »** signalés par les advisors Supabase : **conservés volontairement**,
   ce sont des index de clés étrangères. La décision est documentée en tête de la migration
   080. Ne pas les supprimer.
-- **Aucun test de bout en bout.** 262 tests unitaires et d'intégration, mais pas de parcours
+- **Aucun test de bout en bout.** 267 tests unitaires et d'intégration, mais pas de parcours
   navigateur automatisé. Un smoke HTTP existe (`scripts/smoke.mjs`).
 - **Le dépôt porte deux noms.** `Nexus` en interne (dépôt, `package.json`, CI), `Quartzbase`
   en façade. Résidu inventorié et limité : clés de stockage local

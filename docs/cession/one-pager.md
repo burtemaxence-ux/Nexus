@@ -45,7 +45,7 @@ Le reste de ce document est vérifiable ligne à ligne dans le dépôt.
 | | |
 |---|---|
 | **17** | règles du Code du travail français implémentées — **et les 17 couvertes par des tests unitaires** |
-| **262** | tests automatisés, tous verts (26 fichiers), dont l'intégralité des circuits de facturation Stripe |
+| **267** | tests automatisés, tous verts (28 fichiers), dont l'intégralité des circuits de facturation Stripe |
 | **0** | avertissement de performance sur la base de données (advisors Supabase), et 0 TODO/FIXME dans le code |
 
 ---
@@ -176,5 +176,5 @@ longue.
 
 ---
 
-*Chiffres relevés le 28 juillet 2026 dans le dépôt et la base de production. Suite de tests
-relancée le jour même : 262 tests, 26 fichiers, 0 échec.*
+*Chiffres relevés le 1er août 2026 dans le dépôt et la base de production. Suite de tests
+relancée le jour même : 267 tests, 28 fichiers, 0 échec.*
