@@ -25,6 +25,9 @@ interface Props {
 
 const EASE = 'cubic-bezier(.32,.72,0,1)'
 const SCRIM = 'rgba(9,11,20,.72)'
+// Une étape sans cible présente un écran entier plutôt qu'un élément : le voile
+// s'allège pour qu'on voie l'écran dont il est question, au lieu de le masquer.
+const SCRIM_SOFT = 'rgba(9,11,20,.46)'
 
 type Box = { top: number; left: number; width: number; height: number }
 
@@ -162,7 +165,10 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
   // Placement de la bulle : sous la cible si la place le permet, au-dessus
   // sinon, et centrée quand l'étape n'a pas de cible.
   const CARD_W = 380
-  const CARD_H_EST = 240
+  // Estimation revue à la hausse depuis que les étapes portent une explication
+  // complète : sous-estimer la hauteur place la bulle sous une cible basse, où
+  // elle sort de l'écran.
+  const CARD_H_EST = 300
   let cardStyle: React.CSSProperties
 
   if (!halo) {
@@ -197,7 +203,7 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
           width: halo?.width ?? 0,
           height: halo?.height ?? 0,
           borderRadius: 14,
-          boxShadow: `0 0 0 9999px ${SCRIM}`,
+          boxShadow: `0 0 0 9999px ${halo ? SCRIM : SCRIM_SOFT}`,
           transition: `all 520ms ${EASE}`,
           pointerEvents: 'auto',
         }}
@@ -228,6 +234,10 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
           borderRadius: 16,
           boxShadow: '0 24px 70px rgba(0,0,0,.45)',
           overflow: 'hidden',
+          // Filet pour les étapes les plus longues sur petit écran : la bulle
+          // défile plutôt que de déborder hors du champ. Après `overflow`, que
+          // l'ordre des propriétés ferait sinon gagner.
+          maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
           pointerEvents: 'auto',
           opacity: settling ? 0 : 1,
           transition: `top 520ms ${EASE}, left 520ms ${EASE}, opacity 200ms ${EASE}`,

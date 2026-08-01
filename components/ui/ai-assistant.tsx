@@ -390,6 +390,7 @@ export function AiAssistant({
         onClick={handleToggle}
         aria-label={open ? "Fermer l'assistant Nina" : 'Ouvrir l’assistant Nina'}
         aria-expanded={open}
+        data-tour="assistant"
         className="fixed right-4 z-50 flex items-center justify-center rounded-full transition-transform duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white bottom-[80px] md:bottom-6"
         style={{
           height: '52px',
