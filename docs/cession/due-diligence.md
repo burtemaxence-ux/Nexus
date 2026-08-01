@@ -139,6 +139,12 @@ trouve plus rien à interpréter.
 (`referred_id` nul, remise 0 %). Ce n'est ni un client ni un revenu — laissé en place,
 il ne contredit rien.*
 
+**Une nuance à connaître, visible dans le code :** l'établissement de démonstration est
+traité comme un abonné Multi-site par `lib/subscription.ts`, afin qu'un visiteur voie le
+produit entier plutôt qu'un mur de paiement. Cet abonnement est **synthétisé à la lecture,
+jamais écrit** : la table `subscriptions` reste vide. C'est précisément pour cela qu'il a
+été fait ainsi — la base devait continuer à dire la même chose que ce document.
+
 ---
 
 ## ✅ Répondu le 30/07 — J-5 · Marque `Quartzbase`

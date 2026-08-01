@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { DEMO_ESTABLISHMENT_ID } from './demo'
 
 /**
  * Free trial length, in days. Single source of truth shared by the Stripe
@@ -21,6 +22,24 @@ export async function getSubscription(
   supabase: SupabaseClient,
   establishmentId: string
 ): Promise<SubscriptionRow | null> {
+  // Démonstration : abonnement Multi-site synthétisé à la lecture, jamais
+  // écrit en base. Un visiteur voit le produit entier — toutes les fonctions
+  // débloquées, aucun mur de paiement — alors que la table `subscriptions`
+  // reste vide, comme l'affirme le dossier de cession. Point unique : tout ce
+  // qui dépend du plan (mur de paiement, quotas, limites, exports) en découle.
+  if (establishmentId === DEMO_ESTABLISHMENT_ID) {
+    return {
+      id: 'demo',
+      plan: 'multisite',
+      status: 'active',
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      current_period_end: null,
+      cancel_at_period_end: false,
+      trial_end: null,
+    }
+  }
+
   const { data } = await supabase
     .from('subscriptions')
     .select('id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_end, cancel_at_period_end, trial_end')

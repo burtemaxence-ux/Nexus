@@ -7,6 +7,14 @@
 
 export const DEMO_ESTABLISHMENT_NAME = 'La Boulangerie du Soleil'
 
+/**
+ * Établissement de démonstration. Sert à débloquer l'accès complet sans créer
+ * d'abonnement en base : le dossier de cession affirme « 0 client, 0 revenu,
+ * 0 abonnement » et la table `subscriptions` doit rester vide pour qu'un
+ * acquéreur qui l'ouvre y lise exactement la même chose.
+ */
+export const DEMO_ESTABLISHMENT_ID = '67dbd3ea-6427-4fcb-aa01-0798c71e7a17'
+
 export const DEMO_ACCOUNTS = {
   manager: 'demo@quartzbase.fr',
   employee: 'alice.martin@demo.qb.fr',
