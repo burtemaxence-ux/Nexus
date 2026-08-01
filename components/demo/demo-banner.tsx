@@ -19,8 +19,8 @@ export function DemoBanner({ role }: DemoBannerProps) {
   const otherLabel = isEmployee ? 'Voir en manager' : 'Voir en employé'
 
   function replayTutorial() {
-    localStorage.removeItem('qb-demo-tour-done')
-    localStorage.removeItem('nexus-onboarding-step')
+    localStorage.removeItem('qb-demo-tour-done:manager')
+    localStorage.removeItem('qb-demo-tour-done:employee')
     window.location.reload()
   }
 

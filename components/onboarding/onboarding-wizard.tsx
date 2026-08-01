@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Sparkles, Tags, Users, Calendar, Send,
-  ShieldCheck, Clock, ArrowLeftRight, FileDown, Wallet,
   ChevronRight, ChevronLeft, ChevronUp, ChevronDown, X, CheckCircle2,
 } from 'lucide-react'
 
@@ -56,86 +55,11 @@ const STEPS = [
   },
 ]
 
-// ── Parcours de DÉMONSTRATION ─────────────────────────────────────────────────
-// Distincts des étapes ci-dessus : l'onboarding réel guide la CONFIGURATION d'un
-// compte vide (« créez vos postes », « invitez votre équipe »), ce qui n'a aucun
-// sens sur une démo déjà peuplée. Ici on fait visiter ce qui est déjà là.
-
-const DEMO_STEPS_MANAGER = [
-  {
-    icon: Sparkles, color: '#2D3A8C', colorLight: '#EEF0FA',
-    title: 'Bienvenue dans la démo',
-    description: "Vous êtes manager de « La Boulangerie du Soleil », 8 salariés. Tout est réel : c'est l'application elle-même, avec des données fictives. Modifiez ce que vous voulez, rien n'est en jeu.",
-    cta: 'Faire le tour', href: null,
-  },
-  {
-    icon: Calendar, color: '#059669', colorLight: '#D1FAE5',
-    title: 'Le planning de la semaine',
-    description: "Glissez un service d'un jour à l'autre, cliquez sur une case vide pour en ajouter un. L'IA peut aussi générer une semaine complète sous contraintes.",
-    cta: 'Ouvrir le planning', href: '/manager/planning',
-  },
-  {
-    icon: ShieldCheck, color: '#DC2626', colorLight: '#FEE2E2',
-    title: 'Le contrôle de conformité',
-    description: "Le cœur du produit : 17 règles du Code du travail vérifiées en continu — repos quotidien, durées maximales, coupures, travail des mineurs. Chaque alerte cite son article.",
-    cta: 'Voir les alertes', href: '/manager/compliance',
-  },
-  {
-    icon: Wallet, color: '#7C3AED', colorLight: '#EDE9FE',
-    title: 'Ce que le planning coûte',
-    description: "Heures planifiées converties en masse salariale estimée, comparée à la semaine précédente. C'est le chiffre que le gérant regarde en premier.",
-    cta: 'Voir le tableau de bord', href: '/manager',
-  },
-  {
-    icon: FileDown, color: '#D97706', colorLight: '#FEF3C7',
-    title: 'Les exports',
-    description: 'Planning en PDF, flux iCal pour les agendas, et une DSN mensuelle pré-remplie au format NEODeS pour le comptable.',
-    cta: 'Terminer', href: '/manager/settings/exports',
-  },
-]
-
-const DEMO_STEPS_EMPLOYEE = [
-  {
-    icon: Sparkles, color: '#2D3A8C', colorLight: '#EEF0FA',
-    title: 'Bienvenue dans la démo',
-    description: "Vous êtes salarié de « La Boulangerie du Soleil ». C'est exactement l'écran que voit un employé — même application, mêmes droits, données fictives.",
-    cta: 'Faire le tour', href: null,
-  },
-  {
-    icon: Calendar, color: '#059669', colorLight: '#D1FAE5',
-    title: 'Vos services',
-    description: 'Vos horaires de la semaine, dès que le manager publie le planning. Consultable hors ligne et installable sur le téléphone.',
-    cta: 'Voir mon planning', href: '/employee/planning',
-  },
-  {
-    icon: Clock, color: '#2563EB', colorLight: '#EFF6FF',
-    title: 'Le pointage',
-    description: "Arrivée et départ pointés depuis le téléphone avec un code PIN. Les oublis sont détectés automatiquement le soir même.",
-    cta: 'Ouvrir la badgeuse', href: '/employee/badgeuse',
-  },
-  {
-    icon: Send, color: '#7C3AED', colorLight: '#EDE9FE',
-    title: 'Vos congés',
-    description: 'Demande en deux clics, solde estimé, et réponse du manager notifiée. Plus de demandes perdues par SMS.',
-    cta: 'Voir les congés', href: '/employee/conges',
-  },
-  {
-    icon: ArrowLeftRight, color: '#D97706', colorLight: '#FEF3C7',
-    title: 'Les échanges de services',
-    description: "Proposez un service à l'équipe, ou reprenez celui d'un collègue. Le manager valide, le planning se met à jour tout seul.",
-    cta: 'Terminer', href: '/employee/echanges',
-  },
-]
-
-const DEMO_DONE_KEY = 'qb-demo-tour-done'
-
 interface OnboardingWizardProps {
   role: 'manager' | 'employee' | 'supervisor'
-  /** Compte de démonstration : joue le parcours de visite au lieu de la configuration. */
-  demo?: boolean
 }
 
-export function OnboardingWizard({ role, demo = false }: OnboardingWizardProps) {
+export function OnboardingWizard({ role }: OnboardingWizardProps) {
   const router = useRouter()
   const [visible, setVisible]       = useState(false)
   const [minimized, setMinimized]   = useState(false)
@@ -143,21 +67,7 @@ export function OnboardingWizard({ role, demo = false }: OnboardingWizardProps) 
   const [done, setDone]             = useState(false)
   const [exiting, setExiting]       = useState(false)
 
-  const steps = demo
-    ? (role === 'employee' ? DEMO_STEPS_EMPLOYEE : DEMO_STEPS_MANAGER)
-    : STEPS
-
   useEffect(() => {
-    // Démo : les DEUX rôles ont un parcours, et l'état ne vit qu'en local —
-    // les comptes de démonstration sont réinitialisés chaque nuit, il n'y a
-    // rien à persister côté serveur.
-    if (demo) {
-      if (localStorage.getItem(DEMO_DONE_KEY) === 'true') return
-      const savedDemo = localStorage.getItem('nexus-onboarding-step')
-      if (savedDemo) setStep(parseInt(savedDemo, 10))
-      setVisible(true)
-      return
-    }
     if (role !== 'manager' && role !== 'supervisor') return
     const saved = localStorage.getItem('nexus-onboarding-step')
     if (saved) setStep(parseInt(saved, 10))
@@ -167,7 +77,7 @@ export function OnboardingWizard({ role, demo = false }: OnboardingWizardProps) 
         if (data.onboarding_completed !== 'true') setVisible(true)
       })
       .catch(() => setVisible(true))
-  }, [role, demo])
+  }, [role])
 
   function saveStep(s: number) {
     setStep(s)
@@ -176,17 +86,13 @@ export function OnboardingWizard({ role, demo = false }: OnboardingWizardProps) 
 
   async function finish() {
     setDone(true)
-    if (demo) {
-      localStorage.setItem(DEMO_DONE_KEY, 'true')
-    } else {
-      try {
-        await fetch('/api/settings', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ onboarding_completed: 'true' }),
-        })
-      } catch { /* best-effort */ }
-    }
+    try {
+      await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ onboarding_completed: 'true' }),
+      })
+    } catch { /* best-effort */ }
     localStorage.removeItem('nexus-onboarding-step')
     setTimeout(() => {
       setExiting(true)
@@ -195,7 +101,7 @@ export function OnboardingWizard({ role, demo = false }: OnboardingWizardProps) 
   }
 
   function handleNext() {
-    if (step < steps.length - 1) {
+    if (step < STEPS.length - 1) {
       saveStep(step + 1)
     } else {
       finish()
@@ -207,18 +113,18 @@ export function OnboardingWizard({ role, demo = false }: OnboardingWizardProps) 
   }
 
   function handleCtaClick() {
-    const current = steps[step]
+    const current = STEPS[step]
     if (current.href) router.push(current.href)
     handleNext()
   }
 
   if (!visible) return null
 
-  const current = steps[step]
+  const current = STEPS[step]
   const isFirst = step === 0
-  const isLast  = step === steps.length - 1
+  const isLast  = step === STEPS.length - 1
   const Icon    = current.icon
-  const progress = Math.round(((step + 1) / steps.length) * 100)
+  const progress = Math.round(((step + 1) / STEPS.length) * 100)
 
   return (
     <div
@@ -247,7 +153,7 @@ export function OnboardingWizard({ role, demo = false }: OnboardingWizardProps) 
             className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
             style={{ backgroundColor: current.colorLight, color: current.color }}
           >
-            {step + 1}/{steps.length}
+            {step + 1}/{STEPS.length}
           </span>
           <ChevronUp className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
         </button>
@@ -291,7 +197,7 @@ export function OnboardingWizard({ role, demo = false }: OnboardingWizardProps) 
               {/* Header */}
               <div className="flex items-center justify-between px-4 pt-3 pb-0">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.07em]" style={{ color: 'var(--text-tertiary)' }}>
-                  Étape {step + 1} / {steps.length}
+                  Étape {step + 1} / {STEPS.length}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -332,7 +238,7 @@ export function OnboardingWizard({ role, demo = false }: OnboardingWizardProps) 
 
               {/* Step dots */}
               <div className="flex justify-center gap-1.5 pb-3">
-                {steps.map((_, i) => (
+                {STEPS.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => saveStep(i)}

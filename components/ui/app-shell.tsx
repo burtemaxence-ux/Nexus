@@ -17,6 +17,7 @@ import { BreadcrumbNav } from './breadcrumb-nav'
 import { PageTransition } from './page-transition'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
 import { DemoBanner } from '@/components/demo/demo-banner'
+import { DemoTour } from '@/components/demo/demo-tour'
 import { isDemoAccount } from '@/lib/demo'
 
 interface EstablishmentEntry {
@@ -189,7 +190,7 @@ export function AppShell({
           mode="employee"
         />
       )}
-      <OnboardingWizard role={role} demo={isDemo} />
+      {isDemo ? <DemoTour role={role} /> : <OnboardingWizard role={role} />}
       {isDemo && <DemoBanner role={role} />}
 
       {/* Bottom nav — mobile only */}

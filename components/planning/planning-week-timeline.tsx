@@ -396,6 +396,7 @@ export function PlanningWeekTimeline({
               }}
               onClick={() => setVerify(v => !v)}
               title="Vérifier la conformité au Code du Travail"
+              data-tour="verify"
             >
               <AlertTriangle size={13} />
               {verify
@@ -406,7 +407,7 @@ export function PlanningWeekTimeline({
             </button>
             <AiQuotaBadge refreshKey={aiQuotaKey} />
             <button className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', borderColor: 'var(--accent)', color: 'var(--accent)' }}
-              onClick={() => setShowAiPlanModal(true)} title="Générer le planning automatiquement avec l'IA">
+              onClick={() => setShowAiPlanModal(true)} title="Générer le planning automatiquement avec l'IA" data-tour="generate">
               <Sparkles size={13} />Générer
             </button>
             <button className="btn-primary" onClick={() => handleWeekStatus({ published: !weekPublished })} disabled={statusLoading || employees.length === 0}
@@ -418,7 +419,7 @@ export function PlanningWeekTimeline({
         </div>
 
         {/* ── Metric cards ─────────────────────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }} data-tour="metrics">
           <MetricCard icon={<Users size={18} />} iconBg="var(--accent-light)" iconColor="var(--accent)" value={totalPlanned > 0 ? formatHours(totalPlanned) : '0h'} label="Total planifiées" trend={totalPlanned > 0 ? 'up' : null} />
           <MetricCard icon={<UserCheck size={18} />} iconBg="#FFF7ED" iconColor="#EA580C" value="—" label="Total travaillées" trend={null} />
           <MetricCard icon={<Clock size={18} />} iconBg="#F5F5F5" iconColor="var(--text-secondary)" value={overtime != null ? formatHours(overtime) : '—'} label="Heures supp." trend={overtime != null && overtime > 0 ? 'up' : null} />
