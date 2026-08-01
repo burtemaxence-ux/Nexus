@@ -57,7 +57,7 @@ politiques RLS : le secret le plus sensible du projet), `NEXT_PUBLIC_SUPABASE_AN
 
 **Argent** — `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, et les 6 `STRIPE_PRICE_*`
 
-**Automatismes et accès machine** — `CRON_SECRET` (protège les 9 tâches planifiées),
+**Automatismes et accès machine** — `CRON_SECRET` (protège les 10 tâches planifiées),
 `CALENDAR_SECRET` (signature des flux iCal)
 
 **Services** — `RESEND_API_KEY`, `OPS_RESEND_API_KEY`, `ANTHROPIC_API_KEY`,
@@ -83,7 +83,7 @@ openssl rand -hex 32
 
 ## 3. Ce qui tourne tout seul — et ce qui casse si personne ne regarde
 
-Neuf tâches planifiées, définies dans `vercel.json`, toutes protégées par `CRON_SECRET`
+Dix tâches planifiées, définies dans `vercel.json`, toutes protégées par `CRON_SECRET`
 (heures UTC) :
 
 | Tâche | Fréquence | Rôle |
@@ -97,6 +97,7 @@ Neuf tâches planifiées, définies dans `vercel.json`, toutes protégées par `
 | `weekly-brief-submit` | lundi 6 h 30 | soumet les briefs IA à la Batch API Anthropic |
 | `weekly-brief-manager` | lundi 7 h | envoie les briefs générés aux managers |
 | `weekly-summary-employee` | vendredi 18 h | récapitulatif hebdo employé |
+| `demo-reset` | tous les jours 3 h | rejoue l'état de référence de la démonstration (§6) |
 
 **Les deux briefs sont couplés** : `weekly-brief-submit` dépose un lot chez Anthropic,
 `weekly-brief-manager` le relève 30 minutes plus tard. Si le premier échoue, le second
