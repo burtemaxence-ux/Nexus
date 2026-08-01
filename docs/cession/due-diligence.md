@@ -192,7 +192,7 @@ tableau. Le dossier dit « 0 client, 0 revenu » — la base doit dire la même 
 
 | Sa vérification | Ce qu'il trouve |
 |---|---|
-| `npm install && npm test` | **262 tests verts, 26 fichiers** (relancés le 28/07) |
+| `npm install && npm test` | **267 tests verts, 28 fichiers** (relancés le 01/08) |
 | `npm run build` | Build de production vert |
 | Lecture de `lib/compliance` | **17 règles, les 17 testées** |
 | Advisors Supabase | **0 avertissement de performance** ; 2 réglages de sécurité ouverts, documentés au §6 du runbook |

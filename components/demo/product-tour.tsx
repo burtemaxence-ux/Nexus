@@ -100,12 +100,20 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
     let cancelled = false
     setSettling(true)
 
+    // Une étape qui change de page n'est jouée qu'une fois la page arrivée.
+    // Sans cette attente, la bulle apparaît immédiatement — elle décrit un
+    // écran encore invisible, puis clignote quand la navigation aboutit et
+    // relance l'effet. Quatre des six étapes du parcours salarié sont dans ce
+    // cas. Le changement de `pathname` rejoue cet effet, qui prend alors la
+    // branche normale.
+    if (step.route && step.route !== pathname) {
+      router.push(step.route)
+      // Filet : une navigation qui n'aboutit pas ne doit pas figer la visite.
+      const rescue = setTimeout(() => { setVisible(true); setSettling(false) }, 2500)
+      return () => clearTimeout(rescue)
+    }
+
     const run = async () => {
-      if (step.route && step.route !== pathname) {
-        router.push(step.route)
-        // La navigation est asynchrone : `locate` attend de toute façon que la
-        // cible existe, il suffit de lui laisser la main.
-      }
       const found = await locate(step.selector)
       if (cancelled) return
       setBox(found)
@@ -226,6 +234,7 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
 
       {/* Bulle */}
       <div
+        data-tour-card
         style={{
           position: 'absolute',
           width: CARD_W, maxWidth: 'calc(100vw - 32px)',

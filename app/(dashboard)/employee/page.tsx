@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { formatHours } from '@/lib/planning-utils'
 import { Calendar, Sun, ArrowLeftRight, Clock, ChevronRight, Zap } from 'lucide-react'
 
 function todayISO() {
@@ -78,7 +79,10 @@ export default async function EmployeeDashboard() {
   const shift = todayShifts?.[0] ?? null
   const nextShift = upcomingShifts?.[0] ?? null
 
-  const weekHours = Math.round((weekShifts ?? []).reduce((sum, s) => sum + shiftHoursOf(s), 0))
+  // Arrondir à l'heure entière ici affichait « 38h » alors que Mon planning,
+  // sur les mêmes services, annonce « 37h30 » : deux chiffres pour une même
+  // semaine, à un clic d'écart. Même formateur des deux côtés.
+  const weekHours = (weekShifts ?? []).reduce((sum, s) => sum + shiftHoursOf(s), 0)
   const weekShiftCount = (weekShifts ?? []).length
   const approvedCPDays = (approvedCP ?? []).reduce((acc, l) => {
     const start = new Date(l.start_date); const end = new Date(l.end_date)
@@ -252,7 +256,7 @@ export default async function EmployeeDashboard() {
         {/* ── MA SEMAINE ── */}
         <div className="grid grid-cols-3 gap-3 dashboard-s2">
           {[
-            { value: `${weekHours}h`, label: 'Cette semaine' },
+            { value: formatHours(weekHours), label: 'Cette semaine' },
             { value: `${weekShiftCount}`, label: weekShiftCount > 1 ? 'Services' : 'Service' },
             { value: `${leaveBalance}j`, label: 'Solde congés' },
           ].map((s, i) => (
