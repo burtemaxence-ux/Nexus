@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
+import { refuseDemoDeletion } from '@/lib/demo-guard'
 
 export async function PATCH(
   request: Request,
@@ -63,8 +64,13 @@ export async function DELETE(
   const supabase = await createClient()
   let estId: string
   try {
-    const { profile } = await requireManager(supabase)
+    const { user, profile } = await requireManager(supabase)
     estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
+
+    // Démo publique : les quatre postes portent les coûts horaires dont dépend
+    // le chiffrage du planning, et ne sont pas dans l'instantané.
+    const refus = refuseDemoDeletion(user.email, 'Supprimer un poste')
+    if (refus) return refus
   } catch (e) {
     if (e instanceof Response) return e as NextResponse
     throw e

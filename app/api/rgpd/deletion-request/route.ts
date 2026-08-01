@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
 import { notifyOps } from '@/lib/ops-alert'
+import { isDemoAccount } from '@/lib/demo'
 import { NextResponse } from 'next/server'
 
 // Renvoie la demande de suppression active de l'établissement, s'il y en a une.
@@ -31,7 +32,18 @@ export async function GET() {
 export async function POST() {
   try {
     const supabase = await createClient()
-    const { profile } = await requireManager(supabase)
+    const { user, profile } = await requireManager(supabase)
+
+    // Démo publique : cette route n'efface rien tout de suite, mais elle pose
+    // une demande d'effacement sur l'établissement et déclenche une alerte à
+    // l'exploitant. Ouverte à un visiteur anonyme, elle sert de sonnette — et
+    // la demande, si elle était traitée, emporterait la démonstration entière.
+    // Succès simulé, comme pour les autres effets sortants (invitation,
+    // webhook) : l'écran se comporte normalement, rien n'est écrit ni envoyé.
+    if (isDemoAccount(user.email)) {
+      return NextResponse.json({ ok: true, status: 'pending', demo: true })
+    }
+
     const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
     if (!estId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 400 })
 

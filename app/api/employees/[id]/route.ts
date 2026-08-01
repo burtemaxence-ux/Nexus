@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { requireManager } from '@/lib/api-auth'
 import { hashPin } from '@/lib/pin'
+import { refuseDemoDeletion } from '@/lib/demo-guard'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function PATCH(
@@ -66,7 +67,7 @@ export async function DELETE(
 ) {
   try {
     const supabase = await createClient()
-    const { profile } = await requireManager(supabase)
+    const { user, profile } = await requireManager(supabase)
 
     const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
 
@@ -78,6 +79,13 @@ export async function DELETE(
       .single()
 
     if (!target) return NextResponse.json({ error: 'Employé introuvable' }, { status: 404 })
+
+    // Démo publique : la cascade ci-dessous emporte tout l'historique du
+    // salarié, et l'instantané de démonstration référence son identifiant — la
+    // remise à zéro suivante échouerait sur la clé étrangère et cesserait de
+    // réparer quoi que ce soit.
+    const refus = refuseDemoDeletion(user.email, 'Supprimer un salarié')
+    if (refus) return refus
 
     // Deleting the auth user cascades to profiles → shifts → leave_requests
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(params.id)

@@ -99,6 +99,7 @@ export default function EmployeeDetailPage() {
   const [avatarUrl, setAvatarUrl] = useState('')
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
+  const [contractError, setContractError] = useState<string | null>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const [activeDays, setActiveDays] = useState<Set<number>>(new Set())
   const [dayTimes, setDayTimes] = useState<Record<number, { start: string; end: string }>>({})
@@ -324,7 +325,15 @@ export default function EmployeeDetailPage() {
   }
 
   async function handleDeleteContract(contractId: string) {
-    await fetch(`/api/employees/${id}/contracts/${contractId}`, { method: 'DELETE' })
+    setContractError(null)
+    const res = await fetch(`/api/employees/${id}/contracts/${contractId}`, { method: 'DELETE' })
+    // Le refus renvoyé aux comptes de démonstration porte son explication :
+    // sans cet affichage, le contrat réapparaissait après `load()` sans qu'on
+    // sache pourquoi, ce qui se lit comme une panne.
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      setContractError(data?.error ?? 'La suppression du contrat a échoué.')
+    }
     load()
   }
 
@@ -703,6 +712,10 @@ export default function EmployeeDetailPage() {
                 <Shield className="h-3.5 w-3.5" />
                 Créé par <span className="font-medium text-foreground">{invitedByName}</span> le {formatDate(employee.created_at)}
               </div>
+            )}
+
+            {contractError && (
+              <p className="text-sm" style={{ color: 'var(--danger)' }}>{contractError}</p>
             )}
 
             {contracts.length === 0 ? (
