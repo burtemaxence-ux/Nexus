@@ -35,8 +35,14 @@ export async function GET(request: NextRequest) {
     NextResponse.redirect(`${origin}/login?demo=${reason}`)
 
   try {
+    // Type 'recovery' et non 'magiclink' : en magiclink, GoTrue emprunte le
+    // chemin d'inscription et tente un INSERT dans auth.users, qui échoue sur
+    // la contrainte d'unicité de l'email puisque le compte existe déjà
+    // (« duplicate key value violates users_email_partial_key » → 500).
+    // 'recovery' n'est défini que pour un utilisateur existant : il ne crée
+    // jamais rien, et échoue proprement si le compte est absent.
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
+      type: 'recovery',
       email: DEMO_ACCOUNTS[role],
     })
 
@@ -65,20 +71,10 @@ export async function GET(request: NextRequest) {
       },
     )
 
-    // Selon la version de GoTrue, un jeton de lien magique se vérifie sous le
-    // type 'magiclink' ou sous le type générique 'email'. On tente le second si
-    // le premier est refusé — sans credentials, impossible de trancher a priori.
-    let verifyError = (await supabase.auth.verifyOtp({
-      type: 'magiclink',
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      type: 'recovery',
       token_hash: tokenHash,
-    })).error
-
-    if (verifyError) {
-      verifyError = (await supabase.auth.verifyOtp({
-        type: 'email',
-        token_hash: tokenHash,
-      })).error
-    }
+    })
 
     if (verifyError) {
       console.error('[demo] verifyOtp', verifyError)
