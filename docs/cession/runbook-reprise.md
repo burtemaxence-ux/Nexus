@@ -182,7 +182,43 @@ sont pas seulement déclarées dans `vercel.json` — elles s'exécutent en prod
 
 ---
 
-## 6. Points d'attention hérités
+## 6. La démonstration publique
+
+`/demo?role=manager` et `/demo?role=employee` ouvrent une session sur des comptes
+de démonstration : **c'est l'application réelle**, pas une copie. Il n'y a donc rien à
+maintenir en double, et aucune divergence possible entre ce qu'un visiteur voit et ce
+qu'un client verrait.
+
+| | |
+|---|---|
+| Établissement | « La Boulangerie du Soleil » — 8 salariés, 140 services, 17 modules peuplés |
+| Comptes | `demo@quartzbase.fr` (manager) et `alice.martin@demo.qb.fr` (salarié) |
+| Accès complet | Abonnement Multi-site **synthétisé à la lecture** dans `lib/subscription.ts` — jamais écrit en base, pour que la table `subscriptions` reste vide |
+| Remise à zéro | `public.reset_demo_data()` (migration 088), appelée par `/api/cron/demo-reset` à 03h00 UTC |
+| Visite guidée | `components/demo/product-tour.tsx` + les deux parcours de `tour-steps.ts` |
+
+**Aucune action de la démo ne produit d'effet sortant.** Les gardes, à connaître avant
+de toucher au code :
+
+- **IA** — la génération de planning bascule sur le solveur déterministe (aucun crédit
+  Anthropic), les assistants renvoient des réponses pré-écrites diffusées en flux.
+- **Emails** — filtre au transport sur les motifs d'adresses de démonstration
+  (`lib/demo.ts`), donc actif aussi pour les tâches planifiées.
+- **SMS** — filtre au transport sur la plage `06 39 98 xx xx`, réservée à la fiction par
+  l'ARCEP (`lib/sms.ts`), verrouillé par des tests.
+- **Invitation, renvoi de lien, webhook de test, Stripe** — bloqués par session : ces
+  routes émettent vers une adresse ou une URL saisie librement, et feraient de la démo un
+  relais d'envoi ouvert.
+
+> ⚠️ **Ne jamais insérer d'utilisateurs directement dans `auth.users`.** Les comptes de
+> démonstration l'avaient été, sans `instance_id` et avec des jetons à NULL : GoTrue ne les
+> retrouvait pas, tentait de les recréer, et échouait sur l'index unique de l'email. Ils
+> ont été inutilisables pendant deux mois sans que rien ne le signale. Passer par l'API
+> d'administration, qui renseigne les colonnes internes attendues. Cf. migration 086.
+
+---
+
+## 7. Points d'attention hérités
 
 Repris de l'audit du 21/07/2026 — tout est documenté, rien n'est caché.
 
@@ -207,7 +243,7 @@ Repris de l'audit du 21/07/2026 — tout est documenté, rien n'est caché.
 
 ---
 
-## 7. Ce que le cédant peut faire, et jusqu'à quand
+## 8. Ce que le cédant peut faire, et jusqu'à quand
 
 **Disponible pour une passation au moment de la cession**, pas pour une exploitation dans la durée.
 

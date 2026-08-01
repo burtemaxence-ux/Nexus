@@ -10,8 +10,10 @@ doit être remplacé avant envoi.
 3. **La ligne `[pourquoi eux]` n'est pas décorative** — c'est elle qui fait la différence
    entre un email lu et un email supprimé. Si tu ne sais pas quoi y écrire, la cible n'en
    est pas une : retire-la de la liste.
-4. **Pas de pièce jointe au premier email.** Une pièce jointe non sollicitée déclenche les
-   filtres et se fait ignorer. Le one-pager part au deuxième échange.
+4. **Pas de pièce jointe au premier email** — elle déclenche les filtres et se fait
+   ignorer. Un **lien de démo** la remplace avantageusement : il ne coûte rien à ouvrir,
+   il se juge en deux minutes, et il évite la demande de rendez-vous qui fait décrocher.
+   Le one-pager part au deuxième échange.
 5. **Cession sèche.** Aucune participation conservée, aucune clause de suite. C'est un
    argument de vente en soi — à dire dès que la question de la structure se pose : *« vous
    reprenez tout, je ne garde rien, il n'y a personne derrière moi. »*
@@ -44,7 +46,10 @@ doit être remplacé avant envoi.
 > C'est le genre de brique qui coûte plusieurs mois entre le dev et la validation
 > juridique. Elle est écrite, testée, et se branche indépendamment du reste.
 >
-> Est-ce que ça a une valeur pour vous ? Je peux vous envoyer le détail technique.
+> Vous pouvez le voir tourner sans inscription ni rendez-vous :
+> quartzbase.fr/demo?role=manager
+>
+> Est-ce que ça a une valeur pour vous ?
 >
 > Maxence Burte
 > quartzbase.fr
@@ -82,6 +87,10 @@ module planning.
 > Pour un éditeur qui a déjà les clients, c'est un module à rebrander plutôt que six mois
 > de développement. Je suis transparent d'emblée : il n'y a aucun client ni aucun revenu à
 > reprendre — c'est un actif technique, pas un business.
+>
+> Le plus simple est de regarder : quartzbase.fr/demo?role=manager — accès
+> direct, sans inscription, avec une visite guidée. Le côté salarié se voit en
+> un clic depuis le même écran.
 >
 > Ça vaut un échange de 20 minutes ?
 >
@@ -122,6 +131,9 @@ sans prix ne reçoit que des curieux.
 > des données de démonstration. Le repreneur repart de zéro sur le commercial — et hérite
 > en échange d'une base technique auditée avec 0 avertissement de performance et 0 TODO
 > dans le code.
+>
+> **À essayer.** Deux accès en libre-service, sans inscription :
+> quartzbase.fr/demo?role=manager et quartzbase.fr/demo?role=employee
 >
 > **Fourni.** Dépôt Git et historique, base et migrations, runbook d'exploitation complet,
 > audit technique daté, document d'architecture, transfert des comptes tiers.

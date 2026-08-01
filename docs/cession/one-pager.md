@@ -7,6 +7,21 @@ Contact : Maxence Burte — maxence.burte@gmail.com — `quartzbase.fr`
 
 ---
 
+## Jugez par vous-même — sans inscription
+
+**Démo manager :** `quartzbase.fr/demo?role=manager`
+**Démo salarié :** `quartzbase.fr/demo?role=employee`
+
+Ce ne sont ni des captures ni un enregistrement : ce sont **deux accès à
+l'application réelle**, sur un établissement de démonstration de 8 salariés,
+avec une visite guidée intégrée. Vous basculez d'un rôle à l'autre en un clic.
+Modifiez ce que vous voulez — les données sont fictives et remises à zéro chaque
+nuit, et aucune action n'y déclenche d'envoi réel.
+
+*Il n'y a rien à recréer pour vous montrer le produit : la démo EST le produit.*
+
+---
+
 ## À dire tout de suite
 
 **Quartzbase n'a aucun client et ne génère aucun revenu.** Le produit a été construit, mis en

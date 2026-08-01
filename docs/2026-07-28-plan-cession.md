@@ -113,7 +113,7 @@ Quatre choses, et elles ne dépendent que de toi. Total : **~2 heures.** Tout le
 |----|--------|--------|-------------------|
 | **C-1** | ~~One-pager de cession~~ | — | ✅ **fait le 28/07** → `docs/cession/one-pager.md`. Reste : l'exporter en PDF et y ajouter 4 captures |
 | **C-2** | ~~Liste de cibles~~ | — | ✅ **fait le 28/07** → `docs/cession/cibles.md` : 15 cibles, « pourquoi eux » rédigé pour les 10 de A et B, sources vérifiées. **Reste à Maxence : trouver les 10 contacts nominatifs** (méthode dans le fichier) |
-| **C-3** | **Vidéo démo 3 min, non montée** — Loom, écran + voix : créer un planning, l'alerte de conformité qui se déclenche, l'export. Brute. Une vidéo léchée ne convertit pas mieux et coûte une journée | 30 min | lien partageable — **seul livrable de la semaine 1 que personne ne peut faire à ta place** |
+| **C-3** | ~~Vidéo démo~~ | — | ✅ **remplacée le 01/08 par mieux : deux démos en libre-service.** `quartzbase.fr/demo?role=manager` et `?role=employee` ouvrent l'application réelle sur un établissement peuplé, avec visite guidée intégrée. Un acquéreur se sert lui-même à 2 h du matin au lieu de demander un rendez-vous — et il n'y a aucune vidéo à refaire quand le produit bouge |
 | **C-4** | **Envoi de la vague 1 : 10 emails** (5 thèse A + 5 thèse B), personnalisés sur la ligne « pourquoi eux » | 2 h | ✍️ trames prêtes → `docs/cession/emails-approche.md` (+ script de réponse à « combien vous en voulez ? »). **10 emails partis le 31/07** |
 | **C-5** | **Annonce marketplace (thèse C)** publiée en parallèle | 1 h | ✍️ texte prêt → `docs/cession/emails-approche.md`. Annonce en ligne le 3/08 (**le prix reste à fixer**) |
 
