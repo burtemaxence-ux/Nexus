@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { checkRateLimit, rateLimitResponse, getClientIp } from '@/lib/rate-limit'
 import { DEMO_ACCOUNTS, DEMO_LANDING, isDemoRole } from '@/lib/demo'
@@ -10,7 +10,15 @@ import { DEMO_ACCOUNTS, DEMO_LANDING, isDemoRole } from '@/lib/demo'
 // l'espace correspondant. Réutilise `generateLink` — le même mécanisme que les
 // invitations employé — puis échange le jeton côté serveur, sans aller-retour
 // par le domaine Supabase.
-export async function GET(request: Request) {
+//
+// ⚠️ Le client Supabase est instancié ICI plutôt que via `lib/supabase/server`.
+// Ce dernier écrit les cookies dans le store de `next/headers`, à l'intérieur
+// d'un try/catch qui avale les échecs — et ces écritures ne se reportent PAS
+// sur une réponse de redirection construite à la main. La session était donc
+// posée dans le vide : le visiteur arrivait sur /manager sans cookie et le
+// middleware le renvoyait vers /login. On construit donc la réponse d'abord,
+// et on y écrit les cookies directement.
+export async function GET(request: NextRequest) {
   const ip = getClientIp(request)
   const { allowed, resetAt } = await checkRateLimit({ key: `demo:${ip}`, limit: 10, windowMs: 60_000 })
   if (!allowed) return rateLimitResponse(resetAt)
@@ -21,6 +29,11 @@ export async function GET(request: Request) {
   const requested = searchParams.get('role')
   const role = isDemoRole(requested) ? requested : 'manager'
 
+  // Le motif d'échec est repris dans l'URL pour rester diagnosticable sans
+  // ouvrir les logs de la plateforme.
+  const fail = (reason: string) =>
+    NextResponse.redirect(`${origin}/login?demo=${reason}`)
+
   try {
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
@@ -30,23 +43,51 @@ export async function GET(request: Request) {
     const tokenHash = data?.properties?.hashed_token
     if (error || !tokenHash) {
       console.error('[demo] generateLink', error)
-      return NextResponse.redirect(`${origin}/login`)
+      return fail('lien')
     }
 
-    const supabase = await createClient()
-    const { error: verifyError } = await supabase.auth.verifyOtp({
+    // La réponse existe AVANT la vérification : c'est elle qui portera les
+    // cookies de session posés par verifyOtp.
+    const response = NextResponse.redirect(`${origin}${DEMO_LANDING[role]}`)
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => request.cookies.getAll(),
+          setAll: cookiesToSet => {
+            for (const { name, value, options } of cookiesToSet) {
+              response.cookies.set(name, value, options)
+            }
+          },
+        },
+      },
+    )
+
+    // Selon la version de GoTrue, un jeton de lien magique se vérifie sous le
+    // type 'magiclink' ou sous le type générique 'email'. On tente le second si
+    // le premier est refusé — sans credentials, impossible de trancher a priori.
+    let verifyError = (await supabase.auth.verifyOtp({
       type: 'magiclink',
       token_hash: tokenHash,
-    })
+    })).error
+
+    if (verifyError) {
+      verifyError = (await supabase.auth.verifyOtp({
+        type: 'email',
+        token_hash: tokenHash,
+      })).error
+    }
 
     if (verifyError) {
       console.error('[demo] verifyOtp', verifyError)
-      return NextResponse.redirect(`${origin}/login`)
+      return fail('session')
     }
 
-    return NextResponse.redirect(`${origin}${DEMO_LANDING[role]}`)
+    return response
   } catch (e) {
     console.error('[demo]', e)
-    return NextResponse.redirect(`${origin}/login`)
+    return fail('erreur')
   }
 }
