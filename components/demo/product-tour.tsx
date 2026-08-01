@@ -62,10 +62,18 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
 
     return new Promise(resolve => {
       const deadline = Date.now() + 4000
+      // Un élément présent mais de taille nulle est masqué par CSS — la barre
+      // latérale sur mobile, par exemple. Inutile d'attendre la pleine échéance
+      // dans ce cas : on abandonne vite et l'étape s'affiche centrée.
+      const hiddenDeadline = Date.now() + 700
       const attempt = () => {
         const el = document.querySelector(selector)
         if (el) {
           const r = el.getBoundingClientRect()
+          if (r.width === 0 && r.height === 0 && Date.now() > hiddenDeadline) {
+            resolve(null)
+            return
+          }
           if (r.width > 0 && r.height > 0) {
             const needsScroll = r.top < 80 || r.bottom > window.innerHeight - 80
             if (needsScroll) el.scrollIntoView({ block: 'center', behavior: 'smooth' })

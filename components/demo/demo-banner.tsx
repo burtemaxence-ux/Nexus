@@ -28,7 +28,12 @@ export function DemoBanner({ role }: DemoBannerProps) {
     <div
       role="status"
       style={{
-        position: 'fixed', left: 16, bottom: 16, zIndex: 60,
+        position: 'fixed', left: 16, zIndex: 60,
+        // La barre de navigation du bas (mobile) occupe ~60 px : le bandeau se
+        // pose au-dessus plutôt que de la recouvrir. Même valeur sur grand
+        // écran, où elle reste cohérente avec les autres éléments flottants —
+        // un style inline ne peut pas être surchargé par une classe.
+        bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
         display: 'flex', alignItems: 'center', gap: 10,
         padding: '9px 12px', borderRadius: 12,
         background: 'var(--bg-card)',
