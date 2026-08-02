@@ -202,9 +202,14 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
   let cardStyle: React.CSSProperties
 
   if (!halo) {
+    // Étape sans cible : elle présente un ÉCRAN, pas un élément. Au centre, la
+    // bulle se posait pile sur ce qu'elle décrivait — le planning, la liste des
+    // congés — et le visiteur lisait un commentaire sans voir son objet. Elle
+    // s'ancre donc en bas, où il y a le moins à voir.
     cardStyle = {
-      top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-      maxHeight: 'calc(100vh - 32px)',
+      top: Math.max(16, window.innerHeight - cardH - 24),
+      left: '50%', transform: 'translateX(-50%)',
+      maxHeight: 'calc(100vh - 40px)',
     }
   } else {
     const below = halo.top + halo.height + 16

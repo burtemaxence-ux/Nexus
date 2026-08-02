@@ -47,7 +47,18 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
   const reqHeaders = await headers()
   const host = reqHeaders.get('host') ?? 'localhost:3000'
   const protocol = host.startsWith('localhost') ? 'http' : 'https'
-  const calendarUrl = `${protocol}://${host}/api/calendar/${generateCalendarToken(user.id)}`
+  // L'abonnement iCal est un confort ; le planning est l'écran principal du
+  // salarié. `generateCalendarToken` LÈVE quand CALENDAR_SECRET est absent —
+  // sur un environnement où la variable n'est pas posée (une préproduction,
+  // typiquement), l'écran entier tombait sur « une erreur inattendue » alors
+  // que seul le bouton d'abonnement était en cause. On dégrade au lieu de
+  // casser : pas de secret, pas de bouton, le planning s'affiche.
+  let calendarUrl: string | null = null
+  try {
+    calendarUrl = `${protocol}://${host}/api/calendar/${generateCalendarToken(user.id)}`
+  } catch {
+    calendarUrl = null
+  }
 
   const { data: profileData } = await supabase
     .from('profiles')
@@ -122,7 +133,7 @@ export default async function EmployeePlanningPage({ searchParams }: EmployeePla
             Planning en lecture seule
           </p>
         </div>
-        <ICalCopyButton url={calendarUrl} />
+        {calendarUrl && <ICalCopyButton url={calendarUrl} />}
       </div>
 
       {!isPublished ? (
