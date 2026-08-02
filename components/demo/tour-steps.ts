@@ -111,11 +111,14 @@ export const MANAGER_TOUR: TourStep[] = [
   {
     selector: '[data-tour="assistant"]',
     title: 'Nina, l’assistante intégrée',
-    body: 'Elle reçoit à chaque question l’état complet de l’établissement — équipe, contrats, congés, retards, services passés et à venir. Elle rédige les documents RH avec leur base légale (avertissement, convocation, attestation) et propose des actions à confirmer : valider un congé, créer un créneau, inviter un salarié, copier une semaine.',
-    takeaway: 'En démonstration ses réponses sont pré-écrites — brancher un visiteur anonyme sur une clé API payante serait imprudent. Le circuit réel est dans app/api/ai/chat. La génération de planning, elle, n’est pas simulée.',
+    body: 'Elle reçoit à chaque question l’état complet de l’établissement — équipe, contrats, congés, retards, services. Elle rédige les documents RH avec leur base légale, et propose des actions à confirmer : valider un congé, créer un créneau, inviter un salarié.',
+    takeaway: 'Ses réponses sont pré-écrites en démonstration : on n’expose pas une clé API à un visiteur anonyme. Le solveur de planning, lui, calcule vraiment.',
   },
   {
-    route: '/manager/settings',
+    // Surtout pas `/manager/settings` : cette route n'est pas une page, elle
+    // redirige ici. La visite attend que l'adresse corresponde, et une adresse
+    // qui se dérobe la faisait boucler jusqu'à l'écran noir.
+    route: '/manager/settings/organisation',
     title: 'Le paramétrage',
     body: 'Postes et coûts horaires, règles de planning, contrats et convention collective, intégrations — API REST en lecture seule, webhooks compatibles Zapier, Make et n8n, Slack, abonnement iCal —, exports, RGPD, parrainage, facturation.',
     takeaway: 'Chaque établissement se règle sans toucher au code. C’est ce qui sépare un produit vendable d’une application faite pour un seul client.',

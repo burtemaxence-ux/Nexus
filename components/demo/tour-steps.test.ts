@@ -19,6 +19,21 @@ describe('visite guidée de la démonstration', () => {
     expect(manquantes).toEqual([])
   })
 
+  // `/manager/settings` existait bien — mais ne fait que rediriger vers
+  // `/manager/settings/organisation`. L'adresse demandée n'étant jamais
+  // atteinte, la visite repoussait la navigation à chaque rendu : boucle, puis
+  // exception client et écran noir. Exister ne suffit donc pas : l'écran doit
+  // aussi rester à l'adresse où on l'envoie.
+  it('n’ouvre aucun écran qui se contente de rediriger', () => {
+    const fuyantes = Array.from(new Set(STEPS.map(s => s.route).filter(Boolean)))
+      .filter(route => {
+        const source = readFileSync(`app/(dashboard)${route}/page.tsx`, 'utf8')
+        return /^\s*redirect\(/m.test(source) && !/export default async/.test(source)
+      })
+
+    expect(fuyantes).toEqual([])
+  })
+
   it('ne met en lumière que des ancres présentes dans le code', () => {
     const ancres = Array.from(new Set(STEPS.map(s => s.selector).filter(Boolean)))
       .map(sel => (sel as string).match(/^\[data-tour="([^"]+)"\]$/)?.[1])

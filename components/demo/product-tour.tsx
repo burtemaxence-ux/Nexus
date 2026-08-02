@@ -29,6 +29,10 @@ const SCRIM = 'rgba(9,11,20,.72)'
 // s'allège pour qu'on voie l'écran dont il est question, au lieu de le masquer.
 const SCRIM_SOFT = 'rgba(9,11,20,.46)'
 
+const CARD_W = 380
+// Hauteur de départ, le temps du premier rendu : ensuite la bulle est mesurée.
+const CARD_H_EST = 300
+
 type Box = { top: number; left: number; width: number; height: number }
 
 /**
@@ -50,6 +54,17 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
   // `window` doit attendre le montage, sinon le rendu casse.
   const [mounted, setMounted] = useState(false)
   const rafRef = useRef<number | null>(null)
+  // Étape pour laquelle une navigation a déjà été demandée. Sans ce garde-fou,
+  // une route qui REDIRIGE ne fait jamais correspondre `pathname` à `step.route`
+  // et l'effet la repousse à chaque rendu — boucle de navigation, exception
+  // client, écran noir. C'est ce qui arrivait sur /manager/settings.
+  const pushedFor = useRef<number | null>(null)
+  // Hauteur réelle de la bulle. L'estimation seule suffisait tant que les
+  // étapes tenaient en deux phrases ; depuis qu'elles portent une explication
+  // complète, la sous-estimer plaçait la bulle par-dessus la cible — sur
+  // l'étape de l'assistant, elle recouvrait le bouton dont elle parlait.
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [cardH, setCardH] = useState(CARD_H_EST)
 
   const step = steps[index]
   const isFirst = index === 0
@@ -106,7 +121,8 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
     // relance l'effet. Quatre des six étapes du parcours salarié sont dans ce
     // cas. Le changement de `pathname` rejoue cet effet, qui prend alors la
     // branche normale.
-    if (step.route && step.route !== pathname) {
+    if (step.route && step.route !== pathname && pushedFor.current !== index) {
+      pushedFor.current = index
       router.push(step.route)
       // Filet : une navigation qui n'aboutit pas ne doit pas figer la visite.
       const rescue = setTimeout(() => { setVisible(true); setSettling(false) }, 2500)
@@ -127,6 +143,15 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [index, step, pathname, router, locate])
+
+  // ── Mesure de la bulle ────────────────────────────────────────────────────
+  // Après chaque changement d'étape ou de cible : le placement du rendu suivant
+  // s'appuie sur la hauteur vraie, pas sur une estimation. En environnement de
+  // test `offsetHeight` vaut 0 — on garde alors l'estimation.
+  useEffect(() => {
+    const h = cardRef.current?.offsetHeight ?? 0
+    if (h > 0 && h !== cardH) setCardH(h)
+  }, [index, box, settling, cardH])
 
   // ── Suivi du défilement et du redimensionnement ───────────────────────────
   useEffect(() => {
@@ -170,24 +195,32 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
     ? { top: box.top - pad, left: box.left - pad, width: box.width + pad * 2, height: box.height + pad * 2 }
     : null
 
-  // Placement de la bulle : sous la cible si la place le permet, au-dessus
-  // sinon, et centrée quand l'étape n'a pas de cible.
-  const CARD_W = 380
-  // Estimation revue à la hausse depuis que les étapes portent une explication
-  // complète : sous-estimer la hauteur place la bulle sous une cible basse, où
-  // elle sort de l'écran.
-  const CARD_H_EST = 300
+  // Placement de la bulle : du côté de la cible où il y a le plus de place, et
+  // centrée quand l'étape n'a pas de cible. La hauteur retenue est celle
+  // MESURÉE au rendu précédent — c'est elle qui garantit que la bulle ne
+  // recouvre pas l'élément qu'elle décrit.
   let cardStyle: React.CSSProperties
 
   if (!halo) {
-    cardStyle = { top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }
+    cardStyle = {
+      top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+      maxHeight: 'calc(100vh - 32px)',
+    }
   } else {
     const below = halo.top + halo.height + 16
-    const fitsBelow = below + CARD_H_EST < window.innerHeight
-    const top = fitsBelow ? below : Math.max(16, halo.top - CARD_H_EST - 16)
+    const spaceBelow = window.innerHeight - below - 16
+    const spaceAbove = halo.top - 32
+    // On passe au-dessus dès que le dessous ne suffit plus — sauf s'il y a
+    // encore moins de place au-dessus, auquel cas rester dessous est le
+    // moindre mal.
+    const useBelow = cardH <= spaceBelow || spaceBelow >= spaceAbove
+
     let left = halo.left + halo.width / 2 - CARD_W / 2
     left = Math.min(Math.max(16, left), window.innerWidth - CARD_W - 16)
-    cardStyle = { top, left }
+
+    cardStyle = useBelow
+      ? { top: below, left, maxHeight: Math.max(160, spaceBelow) }
+      : { top: Math.max(16, halo.top - cardH - 16), left, maxHeight: Math.max(160, spaceAbove) }
   }
 
   return (
@@ -235,6 +268,7 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
       {/* Bulle */}
       <div
         data-tour-card
+        ref={cardRef}
         style={{
           position: 'absolute',
           width: CARD_W, maxWidth: 'calc(100vw - 32px)',
@@ -243,10 +277,11 @@ export function ProductTour({ steps, onClose, onFinish }: Props) {
           borderRadius: 16,
           boxShadow: '0 24px 70px rgba(0,0,0,.45)',
           overflow: 'hidden',
-          // Filet pour les étapes les plus longues sur petit écran : la bulle
-          // défile plutôt que de déborder hors du champ. Après `overflow`, que
-          // l'ordre des propriétés ferait sinon gagner.
-          maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
+          // Une étape longue sur petit écran défile dans la bulle plutôt que de
+          // déborder. `maxHeight` vient de `cardStyle`, qui la borne à la place
+          // réellement disponible du côté choisi — après `overflow`, que l'ordre
+          // des propriétés ferait sinon gagner.
+          overflowY: 'auto',
           pointerEvents: 'auto',
           opacity: settling ? 0 : 1,
           transition: `top 520ms ${EASE}, left 520ms ${EASE}, opacity 200ms ${EASE}`,

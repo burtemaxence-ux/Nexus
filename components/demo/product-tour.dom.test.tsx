@@ -67,4 +67,30 @@ describe('ProductTour — étapes qui changent de page', () => {
     await waitFor(() => expect(card().style.opacity).toBe('1'))
     expect(push).not.toHaveBeenCalled()
   })
+
+  // Régression : `/manager/settings` n'est pas une page, c'est un redirect vers
+  // `/manager/settings/organisation`. `pathname` n'atteint donc JAMAIS la route
+  // demandée — et re-pousser à chaque rendu enfermait la visite dans une boucle
+  // de navigation, qui finissait en exception client et écran noir.
+  it('ne boucle pas quand la route demandée redirige ailleurs', async () => {
+    pathname = '/manager'
+    const steps: TourStep[] = [
+      { route: '/manager/settings', title: 'Le paramétrage', body: 'Une route qui redirige.' },
+    ]
+
+    const { rerender } = render(
+      <ProductTour steps={steps} onClose={() => {}} onFinish={() => {}} />,
+    )
+    await act(async () => { await new Promise(r => setTimeout(r, 0)) })
+    expect(push).toHaveBeenCalledTimes(1)
+
+    // La redirection dépose le visiteur ailleurs que sur la route demandée.
+    pathname = '/manager/settings/organisation'
+    rerender(<ProductTour steps={steps} onClose={() => {}} onFinish={() => {}} />)
+    await act(async () => { await new Promise(r => setTimeout(r, 0)) })
+
+    // Une seule demande de navigation, et l'étape se joue sur la page d'arrivée.
+    expect(push).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(card().style.opacity).toBe('1'))
+  })
 })

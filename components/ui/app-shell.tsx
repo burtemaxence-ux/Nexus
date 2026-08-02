@@ -18,6 +18,7 @@ import { PageTransition } from './page-transition'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
 import { DemoBanner } from '@/components/demo/demo-banner'
 import { DemoTour } from '@/components/demo/demo-tour'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { isDemoAccount } from '@/lib/demo'
 
 interface EstablishmentEntry {
@@ -190,7 +191,14 @@ export function AppShell({
           mode="employee"
         />
       )}
-      {isDemo ? <DemoTour role={role} /> : <OnboardingWizard role={role} />}
+      {/* La visite guidée est un ornement : si elle tombe, elle ne doit pas
+          emporter l'application avec elle. Une boucle de navigation sur une
+          route qui redirige a déjà coûté un écran noir sur la démo publique,
+          au milieu du parcours — sans aucun moyen d'en sortir. Le repli est
+          vide : le visiteur perd la visite, pas le produit. */}
+      {isDemo
+        ? <ErrorBoundary fallback={null}><DemoTour role={role} /></ErrorBoundary>
+        : <OnboardingWizard role={role} />}
       {isDemo && <DemoBanner role={role} />}
 
       {/* Bottom nav — mobile only */}
