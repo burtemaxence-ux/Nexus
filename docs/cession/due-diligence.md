@@ -147,6 +147,30 @@ jamais écrit** : la table `subscriptions` reste vide. C'est précisément pour 
 
 ---
 
+## ✅ Résolu le 02/08 — Les établissements présents en base
+
+**La base contient deux établissements, et aucun n'est un client :**
+
+| Établissement | Ce que c'est |
+|---|---|
+| **La Boulangerie du Soleil** | L'établissement de démonstration publique — celui qu'ouvrent `quartzbase.fr/demo?role=manager` et `?role=employee`. 8 salariés fictifs, remis à zéro chaque nuit |
+| **Le Bistrot Parisien** | L'environnement de test du fondateur, où le produit a été développé et éprouvé. Comptes personnels et salariés fictifs en `@nexus-demo.fr` |
+
+Aucun des deux ne porte d'abonnement : la table `subscriptions` est vide, et c'est
+vérifiable en une requête. **0 client, 0 revenu, 0 abonnement** reste exact au sens
+commercial — personne n'a jamais payé ni utilisé le produit en exploitation réelle.
+
+Trois établissements résiduels ont été supprimés le 02/08 : un créé par erreur et resté
+vide, et deux doublons de comptes du fondateur, sans aucune donnée. Les comptes qui y
+étaient rattachés ont été **rattachés à l'environnement de test plutôt que détruits** —
+`profiles.establishment_id` est `NOT NULL` alors que sa clé étrangère annonce
+`ON DELETE SET NULL`, si bien qu'un établissement portant des profils ne peut pas être
+supprimé sans supprimer les comptes. Contradiction de schéma sans effet en exploitation
+(rien ne supprime d'établissement dans le produit), mais **à corriger avant de brancher la
+demande d'effacement RGPD**, qui bute sur le même mur.
+
+---
+
 ## ✅ Répondu le 30/07 — J-5 · Marque `Quartzbase`
 
 **Aucun dépôt INPI. Le projet est resté au stade du code : `Quartzbase` est un nom d'usage

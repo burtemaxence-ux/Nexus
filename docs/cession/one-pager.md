@@ -104,7 +104,8 @@ souhaite un titre.*
 Ce qu'un audit trouverait de toute façon. Autant le dire ici.
 
 - **Aucune traction.** 0 client, 0 revenu, 0 trafic organique établi. La base de production
-  ne contient que des données de démonstration, et **aucun abonnement** — la table est vide,
+  ne contient que deux établissements — celui de la démonstration publique et
+  l'environnement de test du fondateur — et **aucun abonnement** : la table est vide,
   c'est vérifiable en une requête.
 - **Aucune donnée personnelle à transférer.** Corollaire du point précédent, et c'est une
   bonne nouvelle : pas de reprise de traitement RGPD, pas d'information des personnes
