@@ -41,7 +41,7 @@ C'est précisément le raisonnement qu'un acquéreur va tenir en 2026, et il aur
 
 | | **Anchor pré-IA (2023)** | **Réalité 2026** |
 |---|---|---|
-| Reconstruire 57 000 lignes, 63 pages, 99 routes, 267 tests | ~5-6 mois de développeur senior | **6 à 10 semaines** avec un agent de codage |
+| Reconstruire 57 000 lignes, 63 pages, 99 routes, 278 tests | ~5-6 mois de développeur senior | **6 à 10 semaines** avec un agent de codage |
 | Coût équivalent (~500 €/jour) | **50 000 – 70 000 €** | **12 000 – 25 000 €** |
 
 **Décote d'environ 65 à 75 % sur l'argument principal du dossier.**
@@ -107,7 +107,7 @@ et pour ne pas laisser une négociation traîner indéfiniment.
 ## 4. Conséquence directe : l'argumentaire doit changer
 
 **C'est le point le plus utile de ce document.** Le dossier s'appuyait sur
-« 57 000 lignes, 267 tests, environ six mois de travail ». **En 2026, cet argument travaille
+« 57 000 lignes, 278 tests, environ six mois de travail ». **En 2026, cet argument travaille
 contre toi** : il invite exactement la réponse « je refais ça avec une IA en trois semaines ».
 
 Il faut cesser de vendre du **volume de code** et vendre ce que l'IA ne produit pas :
@@ -116,7 +116,7 @@ Il faut cesser de vendre du **volume de code** et vendre ce que l'IA ne produit 
 |---|---|
 | « 57 000 lignes de code » | « 63 pages et 99 routes **en production**, pas une démo » |
 | « environ six mois de travail » | « **du temps calendaire vers un état fiable** — pas vers un prototype » |
-| « 267 tests » (seul) | « 267 tests **qui verrouillent les circuits d'argent et les 17 règles de droit** » |
+| « 278 tests » (seul) | « 278 tests **qui verrouillent les circuits d'argent et les 17 règles de droit** » |
 | « le moteur fait 17 règles » | « 17 règles **dont l'interprétation a été tranchée et figée par des tests** — une IA en écrit de plausibles, elle ne vous dit pas si elles sont justes » |
 | « code propre, 0 TODO » | « **0 avertissement de performance sur la base, RLS multi-tenant vérifiée, webhook Stripe idempotent testé** — les trois endroits où le code généré casse » |
 

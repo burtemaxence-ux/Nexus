@@ -125,7 +125,7 @@ reste plus rien à protéger.
 | C-4 | Tiny Acquisitions | — | — | | — | |
 | C-5 | Communautés FR | — | — | | — | |
 
-**Objectif du 31/07 : les 10 lignes A et B remplies jusqu'à la colonne « Envoyé le ».**
+**Objectif du 25/08 : les 10 lignes A et B remplies jusqu'à la colonne « Envoyé le ».** Les emails eux-mêmes sont rédigés → `emails-a-envoyer.md` ; seule la colonne « Contact trouvé » bloque encore.
 
 ---
 

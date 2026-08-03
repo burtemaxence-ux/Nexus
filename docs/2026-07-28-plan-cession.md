@@ -51,7 +51,7 @@ sous-estimés).
 |---|---|
 | **Moteur de conformité** `lib/compliance` | **17 règles** de droit du travail français implémentées, **les 17 couvertes par des tests** — repos quotidien/hebdo, durées max jour/semaine/moyenne, pauses, jours consécutifs, dimanche, nuit, amplitude, heures contractuelles, coupures temps partiel, **et 5 règles spécifiques aux mineurs**. *(L'audit du 21/07 annonçait 8 règles : il sous-comptait.)* |
 | Base de code | 57 189 lignes TS/TSX, Next.js 14 App Router, TypeScript strict, 0 TODO/FIXME |
-| Tests | **267 tests / 28 fichiers, tous verts** (relancés le 01/08) — dont les circuits d'argent Stripe |
+| Tests | **278 tests / 31 fichiers, tous verts** (relancés le 01/08) — dont les circuits d'argent Stripe |
 | Base de données | Supabase Postgres, 39 migrations trackées, RLS multi-tenant vérifiée, **0 advisor de performance** |
 | Surface applicative | 63 pages, 99 routes API, PWA installable, API REST v1, webhooks sortants, Slack, iCal |
 | Facturation | Stripe branché et testé : 3 plans (49 / 89 / 149 €/mois), essai 30 j, parrainage, dunning |
@@ -75,7 +75,7 @@ s'achète pas pour gagner de l'argent tout de suite, ça s'achète pour **gagner
 | **Qui** | Acteur RH/planning étranger ou adjacent qui veut entrer sur le marché français CHR | Éditeur caisse / paie / compta qui a déjà des clients CHR mais pas de module planning | Développeur indépendant, petit studio, repreneur de side-projects |
 | **Ce qu'il achète** | Le moteur `lib/compliance` + les pages réglementaires. Le reste est un bonus | L'app entière, à rebrander et brancher sur sa base clients | Un codebase fini, auditté, qu'il relance sous son nom |
 | **Ce à quoi il compare** | Le coût de faire coder + valider 17 règles de droit français : plusieurs mois de dev + conseil juridique | Son coût de build interne (~6 mois de dev pour cette surface) | Le prix d'autres projets finis sans traction |
-| **Pitch en une ligne** | « 17 règles du Code du travail français, implémentées et testées, prêtes à brancher » | « Votre module planning conforme, livré fini, à votre marque » | « SaaS complet, 267 tests verts, 0 dette, prêt à relancer » |
+| **Pitch en une ligne** | « 17 règles du Code du travail français, implémentées et testées, prêtes à brancher » | « Votre module planning conforme, livré fini, à votre marque » | « SaaS complet, 278 tests verts, 0 dette, prêt à relancer » |
 | **Canal** | Email direct au Head of Product / Country Manager France | Email direct au fondateur / dir. produit | Marketplaces (Acquire.com, Flippa, side-project boards) + communautés indie FR |
 | **Probabilité** | 🔴 Faible | 🟠 Moyenne-faible | 🟢 La plus élevée |
 | **Délai de closing** | 4-8 semaines | 3-6 semaines | 1-3 semaines — **de loin le plus rapide** |
@@ -105,27 +105,32 @@ leur donne surtout de l'information gratuite sur toi. Ne les approche qu'en dern
 
 ## 3. CALENDRIER
 
-### Cette semaine — 30 juillet → 3 août : **débloquer**
+### Jusqu'au 24 août — **préparer, sans envoyer**
 
-Quatre choses, et elles ne dépendent que de toi. Total : **~2 heures.** Tout le reste est déjà écrit.
+⚠️ **Recalé le 03/08.** Ce tableau annonçait un envoi le 31/07, décidé avant la révision du
+30/07 qui a reporté au 25 août. Rien n'est parti — et c'était le bon choix : personne ne lit
+ses emails en France entre le 1er et le 25 août. Les lignes ci-dessous disent désormais l'état
+réel, pas l'intention initiale.
+
+Tout ce qui pouvait être écrit l'est. Ce qui reste ne dépend que de toi.
 
 | ID | Action | Effort | Critère de succès |
 |----|--------|--------|-------------------|
 | **C-1** | ~~One-pager de cession~~ | — | ✅ **fait le 28/07** → `docs/cession/one-pager.md`. Reste : l'exporter en PDF et y ajouter 4 captures |
 | **C-2** | ~~Liste de cibles~~ | — | ✅ **fait le 28/07** → `docs/cession/cibles.md` : 15 cibles, « pourquoi eux » rédigé pour les 10 de A et B, sources vérifiées. **Reste à Maxence : trouver les 10 contacts nominatifs** (méthode dans le fichier) |
 | **C-3** | ~~Vidéo démo~~ | — | ✅ **remplacée le 01/08 par mieux : deux démos en libre-service.** `quartzbase.fr/demo?role=manager` et `?role=employee` ouvrent l'application réelle sur un établissement peuplé, avec visite guidée intégrée. Un acquéreur se sert lui-même à 2 h du matin au lieu de demander un rendez-vous — et il n'y a aucune vidéo à refaire quand le produit bouge |
-| **C-4** | **Envoi de la vague 1 : 10 emails** (5 thèse A + 5 thèse B), personnalisés sur la ligne « pourquoi eux » | 2 h | ✍️ trames prêtes → `docs/cession/emails-approche.md` (+ script de réponse à « combien vous en voulez ? »). **10 emails partis le 31/07** |
-| **C-5** | **Annonce marketplace (thèse C)** publiée en parallèle | 1 h | ✍️ texte prêt → `docs/cession/emails-approche.md`. Annonce en ligne le 3/08 (**le prix reste à fixer**) |
+| **C-4** | **Envoi de la vague 1 : 10 emails** (5 thèse A + 5 thèse B), personnalisés sur la ligne « pourquoi eux » | 2 h | ⏳ **à envoyer le 25/08.** Les dix emails sont rédigés et personnalisés → `docs/cession/emails-a-envoyer.md`. **Bloqué par une seule chose : les contacts nominatifs (C-2)** |
+| **C-5** | **Annonce marketplace (thèse C)** publiée en parallèle | 1 h | ⏳ **à publier le 25/08.** Texte prêt → `emails-approche.md`. Prix tranché : **4 500 €** affichés, repli 2 500 € après deux semaines sans contact (`valorisation.md` §3) |
 
-> **Le seul indicateur qui compte cette semaine : 10 emails partis + 1 annonce en ligne.**
-> Pas « dossier avancé ». Si le 31/07 au soir rien n'est parti, le plan a déjà échoué.
+> **Le seul indicateur qui comptera le 25 août : 10 emails partis + 1 annonce en ligne.**
+> Pas « dossier avancé ». Si le 25/08 au soir rien n'est parti, le plan a échoué.
 
-### Août — 4 → 24 août : **préparer sans se presser**
+### 1er septembre — **relancer une fois, puis élargir**
 
 | ID | Action | Effort | Critère de succès |
 |----|--------|--------|-------------------|
-| **C-6** | **Relance unique** de la vague 1 à J+7, deux lignes. Une seule. Pas de troisième email | 30 min | relances parties le 7/08 |
-| **C-7** | **Vague 2 : 5 emails** (le reste de la liste C-2) | 1 h | envoyés le 1er septembre |
+| **C-6** | **Relance unique** de la vague 1 à J+7, deux lignes. Une seule. Pas de troisième email | 30 min | relances parties le 1er/09 |
+| **C-7** | **Vague 2 : 5 emails** (le reste de la liste C-2) | 1 h | envoyés le 1er/09 |
 | **C-8** | ~~T-1 — Runbook de reprise~~ | — | ✅ **fait le 28/07** → `docs/cession/runbook-reprise.md` : 9 comptes tiers et leur mode de transfert, rotation exhaustive des secrets, les 9 tâches planifiées, échéances silencieuses, première semaine du repreneur, points d'attention hérités |
 | **C-9** | ~~T-2 — Dossier de cession~~ | — | ✅ **complet le 30/07** : one-pager + due-diligence (7/7) + runbook + valorisation + `lib/compliance/README.md` + audit du 21/07 + `ARCHITECTURE.md`. **Coûts d'exploitation renseignés : ≈ 0 €/mois**, toute la pile étant sur paliers gratuits — c'est un argument de vente, pas une ligne de tableau |
 | **C-10** | ~~Lever les blocages du §4~~ | — | ✅ **fait — 7 points sur 7 fermés** : J-3, J-4, J-6 le 28/07 ; J-1, J-2, J-5, J-7 le 30/07. `docs/cession/due-diligence.md` est complet et répond à tout ce qu'un acquéreur demandera |
@@ -220,7 +225,7 @@ en silence pendant que tu es injoignable.
 
 | Semaine | Emails envoyés | Réponses de fond | Discussions actives | Offres reçues | Note |
 |---------|:---:|:---:|:---:|:---:|------|
-| 03/08 | | | | | J-1, J-2, Stripe résilié, vidéo faite |
+| 03/08 | 0 | — | — | — | J-1, J-2, Stripe résilié. Démo en libre-service à la place de la vidéo, et durcie : conformité sur 4 règles, gardes anti-casse, base ramenée à 2 établissements. **Les 10 emails sont rédigés** (`emails-a-envoyer.md`) |
 | 24/08 | | | | | 10 contacts trouvés, `lib/compliance` packagé |
 | 31/08 | | | | | **objectif : 10 emails envoyés le 25/08 + annonce en ligne** |
 | 07/09 | | | | | relance faite, vague 2 partie |

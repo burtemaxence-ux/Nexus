@@ -82,7 +82,7 @@ module planning.
 >
 > Concrètement : planning par glisser-déposer, pointage mobile, congés, contrôle
 > automatique du droit du travail (17 règles testées), export DSN, facturation Stripe
-> branchée. 267 tests verts, 0 dette technique signalée à l'audit.
+> branchée. 278 tests verts, 0 dette technique signalée à l'audit.
 >
 > Pour un éditeur qui a déjà les clients, c'est un module à rebrander plutôt que six mois
 > de développement. Je suis transparent d'emblée : il n'y a aucun client ni aucun revenu à
@@ -111,7 +111,7 @@ communautés indie francophones.
 **Format :** annonce publique, pas un email. Ici le prix *doit* être affiché — une annonce
 sans prix ne reçoit que des curieux.
 
-> **Titre :** SaaS de planning RH (France) — produit fini, 267 tests, 0 client, à relancer
+> **Titre :** SaaS de planning RH (France) — produit fini, 278 tests, 0 client, à relancer
 >
 > **En une ligne.** SaaS de planning et de conformité au droit du travail pour la
 > restauration. Construit, mis en production, audité — jamais commercialisé. Le fondateur
@@ -202,5 +202,6 @@ réelle — c'est ce qui te permettra d'afficher un prix dans l'annonce de la th
 - [ ] Les `[pourquoi eux]` sont écrits pour les 10 cibles — pas 8, pas « je verrai »
 - [ ] Les 2 abonnements Stripe personnels sont résiliés (J-7) : ils ne doivent pas
       apparaître comme des clients dans une capture d'écran ou un accès de démonstration
-- [ ] Envoi le matin, en semaine. Pas le vendredi après-midi, pas en août pour les cibles
-      françaises si tu peux l'éviter — d'où l'importance de partir le 31/07
+- [ ] Envoi le matin, en semaine. Pas le vendredi après-midi, et surtout pas en plein août
+      pour les cibles françaises — d'où la date retenue : **le mardi 25 août au matin**, le
+      premier jour où les décideurs français sont rentrés
