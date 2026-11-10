@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     // uniquement de la RLS pour l'isolation inter-tenant).
     let query = supabase
       .from('presences')
-      .select('id, employee_id, date, clock_in, clock_out, break_start, break_end, break_minutes_used, needs_review')
+      .select('id, employee_id, date, clock_in, clock_out, break_start, break_end, break_minutes_used, needs_review, updated_at')
       .gte('date', from)
       .lte('date', to)
       .order('date', { ascending: true })
