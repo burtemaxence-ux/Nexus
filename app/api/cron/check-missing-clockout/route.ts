@@ -4,6 +4,7 @@ import { sendPushToUser } from '@/lib/push'
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthorizedCron } from '@/lib/cron-auth'
 import { captureError } from '@/lib/logger'
+import { parisShiftInstant } from '@/lib/presences/date'
 
 // L'app cible la France : les heures de shift (TIME) sont en heure locale
 // Europe/Paris. Le cron tourne en UTC sur Vercel → on dérive l'heure et la date
@@ -27,11 +28,16 @@ export async function GET(request: NextRequest) {
     // ── Clôture forcée des pointages oubliés des jours précédents ────────────
     // Un pointage resté ouvert d'un jour passé fausse les heures : on le clôt
     // sur l'heure de fin du shift correspondant et on le marque « à revoir ».
+    // Un service de nuit reste ouvert après minuit. Ne clôturer que les
+    // pointages ouverts depuis plus de 16 h, déjà considérés anormaux.
+    const staleBefore = new Date(now.getTime() - 16 * 60 * 60 * 1000).toISOString()
     const { data: staleOpen } = await supabaseAdmin
       .from('presences')
       .select('id, employee_id, date, clock_in')
       .is('clock_out', null)
       .lt('date', todayStr)
+      .not('clock_in', 'is', null)
+      .lte('clock_in', staleBefore)
 
     let forceClosed = 0
     for (const p of (staleOpen ?? []) as { id: string; employee_id: string; date: string; clock_in: string }[]) {
@@ -45,14 +51,20 @@ export async function GET(request: NextRequest) {
         .limit(1)
         .maybeSingle()
       const endTime = (shift?.end_time as string | undefined)?.slice(0, 5) ?? '23:59'
-      let clockOutMs = new Date(`${p.date}T${endTime}:00Z`).getTime()
+      let clockOut = parisShiftInstant(p.date, endTime)
       const clockInMs = new Date(p.clock_in).getTime()
-      if (clockOutMs <= clockInMs) clockOutMs += 24 * 60 * 60 * 1000 // shift de nuit
-      await supabaseAdmin
+      if (!clockOut || clockOut.getTime() <= clockInMs) {
+        const nextDate = new Date(new Date(`${p.date}T12:00:00Z`).getTime() + 86400000)
+          .toISOString().slice(0, 10)
+        clockOut = parisShiftInstant(nextDate, endTime)
+      }
+      if (!clockOut) continue // heure locale inexistante pendant le passage à l'heure d'été
+      const { data: closed, error: closeError } = await supabaseAdmin
         .from('presences')
-        .update({ clock_out: new Date(clockOutMs).toISOString(), needs_review: true })
-        .eq('id', p.id)
-      forceClosed++
+        .update({ clock_out: clockOut.toISOString(), needs_review: true })
+        .eq('id', p.id).is('clock_out', null).select('id').maybeSingle()
+      if (closeError) throw closeError
+      if (closed) forceClosed++
     }
 
     // Find shifts whose end_time was 15+ minutes ago and have no clock_out today.

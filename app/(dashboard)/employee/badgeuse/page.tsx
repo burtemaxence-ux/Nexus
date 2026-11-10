@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { LogIn, LogOut, Coffee, PlayCircle, CalendarX, ChevronUp, ChevronDown, Clock3 } from 'lucide-react'
+import { LogIn, LogOut, Coffee, PlayCircle, CalendarX } from 'lucide-react'
 import { CheckDraw } from '@/components/ui/check-draw'
+import { parisDate } from '@/lib/presences/date'
 
 type Presence = {
   id: string
@@ -108,56 +109,6 @@ function ProgressRing({
   )
 }
 
-// ── Mini time picker ──────────────────────────────────────────────────────────
-interface TimePickerProps { hour: number; minute: number; onHour(h: number): void; onMinute(m: number): void }
-function TimePicker({ hour, minute, onHour, onMinute }: TimePickerProps) {
-  const btn = 'p-2 rounded-xl transition-all select-none hover:bg-white/8 active:scale-95'
-  return (
-    <div className="flex items-center gap-1 justify-center">
-      <div className="flex flex-col items-center">
-        <button className={btn} onClick={() => onHour((hour + 1) % 24)}>
-          <ChevronUp className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
-        </button>
-        <span
-          className="text-[40px] font-bold tabular-nums w-14 text-center"
-          style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
-        >
-          {String(hour).padStart(2, '0')}
-        </span>
-        <button className={btn} onClick={() => onHour((hour - 1 + 24) % 24)}>
-          <ChevronDown className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
-        </button>
-      </div>
-      <span
-        className="text-[30px] font-bold mb-1"
-        style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-tertiary)' }}
-      >:
-      </span>
-      <div className="flex flex-col items-center">
-        <button className={btn} onClick={() => onMinute(Math.round(minute / 5 + 1) % 12 * 5)}>
-          <ChevronUp className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
-        </button>
-        <span
-          className="text-[40px] font-bold tabular-nums w-14 text-center"
-          style={{ fontFamily: 'var(--font-manrope)', color: 'var(--text-primary)' }}
-        >
-          {String(minute).padStart(2, '0')}
-        </span>
-        <button className={btn} onClick={() => onMinute((Math.round(minute / 5 - 1 + 12) % 12) * 5)}>
-          <ChevronDown className="h-4 w-4" style={{ color: 'var(--text-secondary)' }} />
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function nowHM() { const n = new Date(); return { hour: n.getHours(), minute: Math.round(n.getMinutes() / 5) * 5 % 60 } }
-function hmToISO(h: number, m: number): string {
-  const d = new Date()
-  d.setHours(h, m, 0, 0)
-  return d.toISOString()
-}
-
 export default function BadgeusePage() {
   const [presence, setPresence] = useState<Presence | null | undefined>(undefined)
   const [shifts, setShifts] = useState<Shift[]>([])
@@ -166,12 +117,10 @@ export default function BadgeusePage() {
   const [error, setError] = useState<string | null>(null)
   const [now, setNow] = useState(new Date())
 
-  const [hm, setHm] = useState<{ hour: number; minute: number }>(nowHM())
-  const [showPicker, setShowPicker] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
 
   const fetchData = useCallback(async () => {
-    const today = new Date().toISOString().slice(0, 10)
+    const today = parisDate(new Date())
     const [presRes, shiftsRes, settingsRes] = await Promise.all([
       fetch('/api/presences'),
       fetch(`/api/shifts?employee=me&date=${today}`),
@@ -189,22 +138,17 @@ export default function BadgeusePage() {
   useEffect(() => {
     fetchData()
     const secTick = setInterval(() => setNow(new Date()), 1000)
-    const minTick = setInterval(() => { if (!showPicker) setHm(nowHM()) }, 60000)
-    return () => { clearInterval(secTick); clearInterval(minTick) }
-  }, [fetchData, showPicker])
+    return () => clearInterval(secTick)
+  }, [fetchData])
 
   async function post(endpoint: string) {
     setLoading(endpoint)
     setError(null)
     const res = await fetch(`/api/presences/${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ time: hmToISO(hm.hour, hm.minute) }),
     })
     if (res.ok) {
       setPresence(await res.json())
-      setShowPicker(false)
-      setHm(nowHM())
       setConfirmed(true)
       setTimeout(() => setConfirmed(false), 1600)
     } else { const b = await res.json().catch(() => ({})); setError(b.error ?? 'Erreur de pointage') }
@@ -423,33 +367,6 @@ export default function BadgeusePage() {
                 )}
                 {state === 'on_break' && (
                   <RippleBtn color="success" icon={<PlayCircle className="h-5 w-5" />} label="Fin de pause — reprendre le travail" action="break-end" loading={loading} onPress={post} />
-                )}
-              </div>
-            )}
-
-            {/* ── Réglage de l'heure (replié par défaut, avant pointage uniquement) ── */}
-            {state === 'idle' && (
-              <div className="w-full mt-4">
-                <button
-                  onClick={() => setShowPicker(v => !v)}
-                  className="w-full flex items-center justify-center gap-2 py-2 text-[12px] transition-colors"
-                  style={{ fontFamily: 'var(--font-dm-sans)', color: 'var(--text-tertiary)' }}
-                >
-                  <Clock3 className="h-3.5 w-3.5" />
-                  Heure : {String(hm.hour).padStart(2, '0')}:{String(hm.minute).padStart(2, '0')}
-                  <span style={{ color: 'var(--accent)' }}>· {showPicker ? 'fermer' : 'modifier'}</span>
-                </button>
-                {showPicker && (
-                  <div
-                    className="rounded-[20px] p-5 mt-2"
-                    style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
-                  >
-                    <TimePicker
-                      hour={hm.hour} minute={hm.minute}
-                      onHour={h => setHm((v: { hour: number; minute: number }) => ({ ...v, hour: h }))}
-                      onMinute={m => setHm((v: { hour: number; minute: number }) => ({ ...v, minute: m }))}
-                    />
-                  </div>
                 )}
               </div>
             )}

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { parisDate } from '@/lib/presences/date'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -7,7 +8,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
   const { data: profile } = await supabase.from('profiles').select('role, establishment_id, active_establishment_id').eq('id', user.id).single()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = parisDate(new Date())
   const { searchParams } = new URL(request.url)
 
   if (profile?.role === 'manager' || profile?.role === 'supervisor') {
@@ -31,7 +32,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data ?? [])
   }
 
-  // Employee: own presence for today only
+  // Reprendre d'abord le pointage ouvert, y compris un service de nuit.
+  const { data: open, error: openError } = await supabase
+    .from('presences').select('*').eq('employee_id', user.id)
+    .is('clock_out', null).not('clock_in', 'is', null)
+    .order('clock_in', { ascending: false }).limit(1).maybeSingle()
+  if (openError) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  if (open) return NextResponse.json(open)
+
+  // Employee: own completed presence for the local day.
   const { data, error } = await supabase
     .from('presences')
     .select('*')

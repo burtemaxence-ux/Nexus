@@ -1,20 +1,28 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { clockIdentity } from '@/lib/presences/clock'
+import { NextResponse } from 'next/server'
 
-export async function POST(request: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+export async function POST() {
+  const identity = await clockIdentity()
+  if (!identity) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  const { userId, establishmentId } = identity
+  const supabase = supabaseAdmin
 
-  const body = await request.json().catch(() => ({}))
-  const breakStart = body.time ?? new Date().toISOString()
-  const today = new Date().toISOString().slice(0, 10)
+  const breakStart = new Date().toISOString()
 
-  // Récupère la présence du jour et la limite de pause
-  const [{ data: presence }, { data: limitRow }] = await Promise.all([
-    supabase.from('presences').select('break_start, break_end, break_minutes_used').eq('employee_id', user.id).eq('date', today).single(),
-    supabase.from('settings').select('value').eq('key', 'break_minutes_limit').single(),
+  // La présence ouverte peut dater de la veille pour un service de nuit.
+  const [{ data: presence, error: presenceError }, { data: limitRow }] = await Promise.all([
+    supabase.from('presences').select('id, break_start, break_end, break_minutes_used')
+      .eq('employee_id', userId).eq('establishment_id', establishmentId)
+      .is('clock_out', null).not('clock_in', 'is', null)
+      .order('clock_in', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('settings').select('value').eq('establishment_id', establishmentId)
+      .eq('key', 'break_minutes_limit').maybeSingle(),
   ])
+
+  if (presenceError) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  if (!presence) return NextResponse.json({ error: 'Aucun pointage actif trouvé' }, { status: 409 })
+  if (presence.break_start && !presence.break_end) return NextResponse.json({ error: 'Pause déjà en cours' }, { status: 409 })
 
   const limit = parseInt(limitRow?.value ?? '30', 10)
   const used = presence?.break_minutes_used ?? 0
@@ -23,28 +31,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Limite de pause atteinte (${limit} min)` }, { status: 400 })
   }
 
-  // Si une pause précédente est terminée, on accumule son temps avant d'en démarrer une nouvelle
-  let additionalMinutes = 0
-  if (presence?.break_start && presence?.break_end) {
-    additionalMinutes = Math.max(
-      0,
-      Math.floor((new Date(presence.break_end).getTime() - new Date(presence.break_start).getTime()) / 60000)
-    )
-  }
-
-  const { data, error } = await supabase
+  let update = supabase
     .from('presences')
     .update({
       break_start: breakStart,
       break_end: null,
-      break_minutes_used: used + additionalMinutes,
-      updated_at: new Date().toISOString(),
+      updated_at: breakStart,
     })
-    .eq('employee_id', user.id)
-    .eq('date', today)
-    .select()
-    .single()
+    .eq('id', presence.id).eq('employee_id', userId).eq('establishment_id', establishmentId)
+    .is('clock_out', null)
+  update = presence.break_end ? update.eq('break_end', presence.break_end) : update.is('break_start', null)
+  const { data, error } = await update.select().maybeSingle()
 
   if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  if (!data) return NextResponse.json({ error: 'Pause déjà modifiée' }, { status: 409 })
   return NextResponse.json(data)
 }
