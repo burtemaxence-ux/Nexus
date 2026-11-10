@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { isDemoAccount } from '@/lib/demo'
+import { CorrectionDialog } from './correction-dialog'
+import { parisDate, parisShiftInstant } from '@/lib/presences/date'
 import { Wifi, Users, LogIn, LogOut, Coffee, CalendarDays } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -24,6 +27,7 @@ type PresenceRow = {
   break_start: string | null
   break_end: string | null
   break_minutes_used: number
+  updated_at: string
   needs_review?: boolean
 }
 
@@ -51,25 +55,25 @@ type TableRow = {
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
 function getToday(): string {
-  return new Date().toISOString().slice(0, 10)
+  return parisDate(new Date())
 }
 
 function getWeekRange(): { from: string; to: string } {
-  const d = new Date()
-  const day = d.getDay()
+  const d = new Date(getToday() + 'T12:00:00Z')
+  const day = d.getUTCDay()
   const diff = day === 0 ? -6 : 1 - day
   const mon = new Date(d)
-  mon.setDate(d.getDate() + diff)
+  mon.setUTCDate(d.getUTCDate() + diff)
   const sun = new Date(mon)
-  sun.setDate(mon.getDate() + 6)
+  sun.setUTCDate(mon.getUTCDate() + 6)
   return { from: mon.toISOString().slice(0, 10), to: sun.toISOString().slice(0, 10) }
 }
 
 function getMonthRange(): { from: string; to: string } {
-  const d = new Date()
+  const [year, month] = getToday().split('-').map(Number)
   return {
-    from: new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10),
-    to: new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10),
+    from: new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10),
+    to: new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10),
   }
 }
 
@@ -81,18 +85,18 @@ function getDateRange(period: Period): { from: string; to: string } {
 
 function buildDateList(from: string, to: string): string[] {
   const dates: string[] = []
-  const cur = new Date(from + 'T12:00:00')
-  const end = new Date(to + 'T12:00:00')
+  const cur = new Date(from + 'T12:00:00Z')
+  const end = new Date(to + 'T12:00:00Z')
   while (cur <= end) {
     dates.push(cur.toISOString().slice(0, 10))
-    cur.setDate(cur.getDate() + 1)
+    cur.setUTCDate(cur.getUTCDate() + 1)
   }
   return dates
 }
 
 function formatTime(iso: string | null): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
 }
 
 function formatDuration(minutes: number): string {
@@ -123,8 +127,8 @@ function findClosestShift(shiftList: ShiftRow[], date: string, clockIn: string |
   if (!clockIn) return sorted[0]
   const clockInMs = new Date(clockIn).getTime()
   return sorted.reduce((best, s) => {
-    const sMs = new Date(`${date}T${s.start_time}`).getTime()
-    const bMs = new Date(`${date}T${best.start_time}`).getTime()
+    const sMs = parisShiftInstant(date, s.start_time)?.getTime() ?? Infinity
+    const bMs = parisShiftInstant(date, best.start_time)?.getTime() ?? Infinity
     return Math.abs(sMs - clockInMs) < Math.abs(bMs - clockInMs) ? s : best
   })
 }
@@ -139,16 +143,16 @@ function computeRow(
   let late_minutes = 0
 
   if (shift && presence?.clock_in) {
-    const shiftStart = new Date(`${date}T${shift.start_time}`)
+    const shiftStart = parisShiftInstant(date, shift.start_time)
     const clockIn = new Date(presence.clock_in)
-    late_minutes = Math.max(0, Math.floor((clockIn.getTime() - shiftStart.getTime()) / 60000))
+    if (shiftStart) late_minutes = Math.max(0, Math.floor((clockIn.getTime() - shiftStart.getTime()) / 60000))
   }
 
   if (!presence?.clock_in) {
     if (!shift) return { status: 'no_data', late_minutes: 0 }
     if (date === today) {
-      const shiftStart = new Date(`${date}T${shift.start_time}`)
-      if (shiftStart > now) return { status: 'scheduled', late_minutes: 0 }
+      const shiftStart = parisShiftInstant(date, shift.start_time)
+      if (shiftStart && shiftStart > now) return { status: 'scheduled', late_minutes: 0 }
     }
     return { status: 'absent', late_minutes: 0 }
   }
@@ -203,6 +207,21 @@ export default function PresencesDashboardPage() {
   const [shifts, setShifts] = useState<ShiftRow[]>([])
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(new Date())
+  const [canCorrect, setCanCorrect] = useState(false)
+  const [correction, setCorrection] = useState<TableRow | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    let mounted = true
+    async function loadRole() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || isDemoAccount(user.email)) return
+      const { data } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+      if (mounted) setCanCorrect(data?.role === 'manager')
+    }
+    void loadRole()
+    return () => { mounted = false }
+  }, [])
 
   const fetchData = useCallback(async (p: Period) => {
     const { from, to } = getDateRange(p)
@@ -382,7 +401,7 @@ export default function PresencesDashboardPage() {
         /* ── AUJOURD'HUI : cartes live ── */
         <div className="space-y-2.5">
           {rows.map((row, i) => (
-            <PresenceCard key={row.key} row={row} now={now} index={i} />
+            <PresenceCard key={row.key} row={row} now={now} index={i} onCorrect={canCorrect ? setCorrection : undefined} />
           ))}
         </div>
       ) : (
@@ -402,20 +421,38 @@ export default function PresencesDashboardPage() {
               </thead>
               <tbody>
                 {rows.map(row => (
-                  <PresenceTableRow key={row.key} row={row} />
+                  <PresenceTableRow key={row.key} row={row} onCorrect={canCorrect ? setCorrection : undefined} />
                 ))}
               </tbody>
             </table>
           </div>
         </div>
       )}
+      {correction && (
+        <CorrectionDialog
+          employeeId={correction.employee.id}
+          employeeName={correction.employee.full_name ?? correction.employee.email ?? 'Salarié'}
+          date={correction.date}
+          presence={correction.presence}
+          onClose={() => { setCorrection(null); void fetchData(period) }}
+        />
+      )}
     </div>
+  )
+}
+
+function CorrectionButton({ row, onCorrect }: { row: TableRow; onCorrect?: (row: TableRow) => void }) {
+  if (!onCorrect || row.date > getToday()) return null
+  return (
+    <button type="button" onClick={() => onCorrect(row)} className="text-xs font-medium text-text-secondary hover:underline">
+      Corriger le pointage
+    </button>
   )
 }
 
 // ── Carte live (aujourd'hui) ────────────────────────────────────────────────────
 
-function PresenceCard({ row, now, index }: { row: TableRow; now: Date; index: number }) {
+function PresenceCard({ row, now, index, onCorrect }: { row: TableRow; now: Date; index: number; onCorrect?: (row: TableRow) => void }) {
   const { employee, shift, presence, status, late_minutes } = row
   const cfg = STATUS_CFG[status]
   const worked = workedMinutes(presence)
@@ -496,6 +533,8 @@ function PresenceCard({ row, now, index }: { row: TableRow; now: Date; index: nu
         />
       </div>
 
+      {onCorrect && <div className="mt-3"><CorrectionButton row={row} onCorrect={onCorrect} /></div>}
+
       {/* Barre de progression du shift (live) */}
       {live && shift && (
         <div className="mt-3 w-full rounded-full overflow-hidden" style={{ height: '4px', backgroundColor: 'var(--border)' }}>
@@ -520,7 +559,7 @@ function Mini({ label, value, color = 'var(--text-primary)' }: { label: string; 
 
 // ── Ligne de table (semaine / mois) ─────────────────────────────────────────────
 
-function PresenceTableRow({ row }: { row: TableRow }) {
+function PresenceTableRow({ row, onCorrect }: { row: TableRow; onCorrect?: (row: TableRow) => void }) {
   const { employee, date, shift, presence, status, late_minutes } = row
   const cfg = STATUS_CFG[status]
   const isLate = late_minutes > 0
@@ -578,6 +617,7 @@ function PresenceTableRow({ row }: { row: TableRow }) {
           {presence?.needs_review && (
             <span className="dp-badge-warning whitespace-nowrap" title="Durée anormale (oubli de pointage probable) — à corriger">⚠ À vérifier</span>
           )}
+          <CorrectionButton row={row} onCorrect={onCorrect} />
         </div>
       </td>
     </tr>
