@@ -72,40 +72,32 @@ export async function POST(request: NextRequest) {
     const proto = host.includes('localhost') ? 'http' : 'https'
     const siteUrl = `${proto}://${host}`
 
-    // generateLink bypasses Supabase's SMTP entirely — no rate limit, no email sent
-    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'invite',
+    const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      options: {
-        redirectTo: `${siteUrl}/auth/set-password`,
-        data: {
-          role,
-          full_name,
-          first_name: first_name.trim(),
-          last_name: last_name.trim(),
-          position,
-          establishment_id: managerProfile?.establishment_id ?? null,
-        },
+      app_metadata: { quartzbase_invitation: { role, establishment_id: estId } },
+      user_metadata: {
+        role,
+        full_name,
+        first_name: first_name.trim(),
+        last_name: last_name.trim(),
+        position,
+        establishment_id: estId,
       },
     })
 
-    if (error) {
-      if (error.message.includes('already been registered') || error.message.includes('already exists')) {
+    const invitedUser = created.user
+    if (createError || !invitedUser) {
+      if (createError && ['email_exists', 'user_already_exists'].includes(createError.code ?? '')) {
         return NextResponse.json(
           { error: 'Un compte avec cet email existe déjà. Utilisez "Renvoyer le lien" depuis la liste des employés.' },
           { status: 409 }
         )
       }
-      return NextResponse.json({ error: 'Impossible de créer le lien d\'invitation' }, { status: 500 })
+      return NextResponse.json({ error: 'Impossible de créer le compte invité' }, { status: 500 })
     }
 
-    const inviteLink = data.properties?.action_link
-    if (!inviteLink) {
-      return NextResponse.json({ error: 'Impossible de générer le lien' }, { status: 500 })
-    }
-
-    // Re-vérification post-création : generateLink a déjà créé le profil (via le
-    // trigger). Une invitation concurrente qui aurait passé le pré-check plus
+    // Re-vérification post-création : le trigger a créé le profil. Une
+    // invitation concurrente qui aurait passé le pré-check plus
     // haut est désormais comptée — si on dépasse la limite du plan, on annule
     // cette création (avant tout SMS/notification). Course rare au ras de la
     // limite : deux invitations simultanées peuvent être toutes deux annulées,
@@ -120,12 +112,24 @@ export async function POST(request: NextRequest) {
         .eq('establishment_id', estId)
 
       if ((after ?? 0) > limit) {
-        if (data.user?.id) await supabaseAdmin.auth.admin.deleteUser(data.user.id)
+        await supabaseAdmin.auth.admin.deleteUser(invitedUser.id)
         return NextResponse.json(
           { error: `Limite de ${limit} employé${limit > 1 ? 's' : ''} atteinte pour votre plan. Passez au plan supérieur pour en ajouter d'autres.` },
           { status: 403 }
         )
       }
+    }
+
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: { redirectTo: `${siteUrl}/auth/set-password` },
+    })
+    const inviteLink = linkData.properties?.action_link
+    if (linkError || !inviteLink || linkData.user?.id !== invitedUser.id) {
+      const { error: cleanupError } = await supabaseAdmin.auth.admin.deleteUser(invitedUser.id)
+      if (cleanupError) console.error('[invite] cleanup failed:', cleanupError.code)
+      return NextResponse.json({ error: 'Impossible de générer le lien' }, { status: 500 })
     }
 
     // Best-effort : envoie aussi le lien d'invitation par SMS si un téléphone est
@@ -154,25 +158,17 @@ export async function POST(request: NextRequest) {
     await supabaseAdmin
       .from('profiles')
       .update(profileUpdate)
-      .eq('email', email)
+      .eq('id', invitedUser.id)
 
     // Auto-create first contract if enough data provided
     if (contract_type && start_date && weekly_hours) {
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
-        .single()
-
-      if (profile) {
-        await supabaseAdmin.from('contracts').insert({
-          employee_id: profile.id,
-          type: contract_type,
-          start_date,
-          weekly_hours,
-          created_by: user?.id ?? null,
-        })
-      }
+      await supabaseAdmin.from('contracts').insert({
+        employee_id: invitedUser.id,
+        type: contract_type,
+        start_date,
+        weekly_hours,
+        created_by: user.id,
+      })
     }
 
     // In-app notification to the manager who sent the invite
