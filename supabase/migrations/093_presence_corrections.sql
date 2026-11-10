@@ -57,8 +57,9 @@ BEGIN
   FOR UPDATE;
 
   IF previous.updated_at IS DISTINCT FROM p_expected_updated_at THEN
+    -- A stale form is an HTTP conflict, so PostgREST must not retry it.
     RAISE EXCEPTION 'Le pointage a changé. Fermez la fenêtre et rouvrez-la pour voir les dernières heures.'
-      USING ERRCODE = '40001';
+      USING ERRCODE = 'PT409';
   END IF;
 
   -- Some older rows used UTC for the civil date. Preserve their local arrival

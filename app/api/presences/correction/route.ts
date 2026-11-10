@@ -17,7 +17,7 @@ const correction = target.extend({
 function correctionError(error: { code: string; message: string }) {
   if (error.code === '42501') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   if (error.code === '22023') return NextResponse.json({ error: error.message }, { status: 400 })
-  if (['40001', '23505'].includes(error.code)) {
+  if (['PT409', '40001', '23505'].includes(error.code)) {
     return NextResponse.json({ error: 'Le pointage a changé. Fermez la fenêtre et rouvrez-la.' }, { status: 409 })
   }
   return NextResponse.json({ error: 'Impossible de traiter la correction du pointage.' }, { status: 500 })

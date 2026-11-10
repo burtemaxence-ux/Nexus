@@ -66,4 +66,10 @@ describe('corrections de pointage', () => {
     expect(response.status).toBe(403)
     expect(supabaseAdmin.from).not.toHaveBeenCalled()
   })
+
+  it('renvoie un conflit lorsque le formulaire utilise une version périmée', async () => {
+    vi.mocked(supabaseAdmin.rpc).mockResolvedValue({ data: null, error: { code: 'PT409' } } as never)
+    const response = await POST(request({ ...payload, expectedUpdatedAt: '2026-10-21T04:00:00.000Z' }))
+    expect(response.status).toBe(409)
+  })
 })
