@@ -34,7 +34,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    const establishmentId = profile.active_establishment_id ?? profile.establishment_id ?? null
+    const establishmentId = profile.active_establishment_id ?? profile.establishment_id
+    if (!establishmentId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 403 })
 
     const body = await request.json()
     const { from_monday } = body as { from_monday: string }
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
     const { data: existingShifts, error: checkError } = await supabase
       .from('shifts')
       .select('id')
+      .eq('establishment_id', establishmentId)
       .gte('date', toMonday)
       .lte('date', toSunday)
       .is('deleted_at', null)
@@ -75,6 +77,7 @@ export async function POST(request: NextRequest) {
     const { data: sourceShifts, error: fetchError } = await supabase
       .from('shifts')
       .select('employee_id, date, start_time, end_time, position, notes, poste_id, break_minutes')
+      .eq('establishment_id', establishmentId)
       .gte('date', from_monday)
       .lte('date', fromSunday)
       .is('deleted_at', null)
@@ -93,6 +96,7 @@ export async function POST(request: NextRequest) {
     // Build new shifts with dates incremented by 7 days
     const newShifts = sourceShifts.map((shift) => ({
       employee_id: shift.employee_id,
+      establishment_id: establishmentId,
       date: addDays(shift.date, 7),
       start_time: shift.start_time,
       end_time: shift.end_time,
@@ -115,14 +119,12 @@ export async function POST(request: NextRequest) {
 
     // Trace de conformité planning (non bloquant) : une synchro par employé
     // touché sur la semaine cible (toMonday appartient à cette semaine ISO).
-    if (establishmentId) {
-      const employees = Array.from(new Set(newShifts.map((s) => s.employee_id)))
-      await Promise.all(
-        employees.map((employeeId) =>
-          syncPlanningConformity({ establishmentId, employeeId, anyDateInWeek: toMonday }),
-        ),
-      )
-    }
+    const employees = Array.from(new Set(newShifts.map((s) => s.employee_id)))
+    await Promise.all(
+      employees.map((employeeId) =>
+        syncPlanningConformity({ establishmentId, employeeId, anyDateInWeek: toMonday }),
+      ),
+    )
 
     return NextResponse.json({ copied: inserted?.length ?? 0 }, { status: 201 })
   } catch (err) {

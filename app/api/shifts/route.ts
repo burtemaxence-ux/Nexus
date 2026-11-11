@@ -8,7 +8,9 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { user } = await requireAuth(supabase)
+    const { user, profile } = await requireAuth(supabase)
+    const establishmentId = profile.active_establishment_id ?? profile.establishment_id
+    if (!establishmentId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 403 })
 
     const { searchParams } = new URL(request.url)
     const employeeParam = searchParams.get('employee')
@@ -19,6 +21,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('shifts')
       .select('id, start_time, end_time, position, date, employee_id, break_minutes, notes, poste_id, status')
+      .eq('establishment_id', establishmentId)
       .is('deleted_at', null)
 
     if (employeeParam === 'me') {
@@ -46,6 +49,8 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { profile } = await requireManager(supabase)
+    const establishmentId = profile.active_establishment_id ?? profile.establishment_id
+    if (!establishmentId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 403 })
 
     const raw = await request.json().catch(() => null)
     const parsed = ShiftSchema.safeParse(raw)
@@ -53,14 +58,11 @@ export async function POST(request: NextRequest) {
 
     const { employee_id, date, start_time, end_time, position, poste_id, break_minutes, notes } = parsed.data
 
-    // Vérifie que l'employé est visible pour ce manager. Les profils sont scopés
-    // par établissement en RLS : un employee_id d'un autre établissement renvoie
-    // null ici, ce qui évite de créer un shift rattaché à un employé d'un autre
-    // tenant (le trigger force l'establishment_id du manager sur le shift).
     const { data: emp } = await supabase
       .from('profiles')
       .select('id')
       .eq('id', employee_id)
+      .eq('establishment_id', establishmentId)
       .maybeSingle()
     if (!emp) {
       return NextResponse.json({ error: 'Employé introuvable dans cet établissement' }, { status: 400 })
@@ -70,6 +72,7 @@ export async function POST(request: NextRequest) {
       .from('shifts')
       .insert({
         employee_id,
+        establishment_id: establishmentId,
         date,
         start_time,
         end_time,
@@ -88,32 +91,29 @@ export async function POST(request: NextRequest) {
       if ((error as { code?: string }).code === '23505') {
         return NextResponse.json({ error: 'Ce créneau existe déjà pour cet employé.' }, { status: 409 })
       }
+      if (error.code === '42501') {
+        return NextResponse.json({ error: 'Employé ou poste indisponible dans cet établissement' }, { status: 400 })
+      }
       console.error('[shifts POST] error:', error)
       return NextResponse.json({ error: 'Erreur lors de la création du shift' }, { status: 500 })
     }
 
     // Fire webhook (non-blocking)
-    const establishmentId = profile.active_establishment_id ?? profile.establishment_id
-    if (establishmentId) {
-      supabase.from('settings').select('key, value').then(({ data: settings }) => {
+    void supabase.from('settings').select('key, value').eq('establishment_id', establishmentId)
+      .then(async ({ data: settings }) => {
         const settingsMap = Object.fromEntries((settings ?? []).map(s => [s.key, s.value]))
-        const empName = supabase.from('profiles').select('full_name').eq('id', employee_id).single()
-          .then(({ data: emp }) => {
-            void fireWebhook(settingsMap, 'shift.created', {
-              employeeName: emp?.full_name ?? employee_id,
-              date,
-              startTime: start_time,
-              endTime: end_time,
-            }, { establishmentId })
-          })
-        void empName
+        const { data: employee } = await supabase.from('profiles').select('full_name')
+          .eq('id', employee_id).eq('establishment_id', establishmentId).single()
+        void fireWebhook(settingsMap, 'shift.created', {
+          employeeName: employee?.full_name ?? employee_id,
+          date,
+          startTime: start_time,
+          endTime: end_time,
+        }, { establishmentId })
       })
-    }
 
     // Trace de conformité planning (non bloquant — ne bloque jamais la sauvegarde).
-    if (establishmentId) {
-      await syncPlanningConformity({ establishmentId, employeeId: employee_id, anyDateInWeek: date })
-    }
+    await syncPlanningConformity({ establishmentId, employeeId: employee_id, anyDateInWeek: date })
 
     return NextResponse.json({ shift: data }, { status: 201 })
   } catch (e) {

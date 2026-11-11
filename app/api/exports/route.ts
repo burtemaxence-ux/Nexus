@@ -90,6 +90,8 @@ export async function GET(request: NextRequest) {
   try {
   const supabase = await createClient()
   const { profile } = await requireManager(supabase)
+  const estId = profile.active_establishment_id ?? profile.establishment_id
+  if (!estId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 403 })
 
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type') ?? 'hours_per_employee'
@@ -106,9 +108,12 @@ export async function GET(request: NextRequest) {
   // ── heures travaillées par employé ──────────────────────────────────────────
   if (type === 'hours_per_employee' || type === 'overtime') {
     const [empRes, shiftRes, presRes] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, email, position, contract_type, weekly_hours').eq('role', 'employee').eq('archived', false).order('full_name'),
-      supabase.from('shifts').select('employee_id, start_time, end_time, break_minutes').gte('date', from).lte('date', to).is('deleted_at', null),
-      supabase.from('presences').select('employee_id, clock_in, clock_out, break_minutes_used').gte('date', from).lte('date', to),
+      supabase.from('profiles').select('id, full_name, email, position, contract_type, weekly_hours')
+        .eq('establishment_id', estId).eq('role', 'employee').eq('archived', false).order('full_name'),
+      supabase.from('shifts').select('employee_id, start_time, end_time, break_minutes')
+        .eq('establishment_id', estId).gte('date', from).lte('date', to).is('deleted_at', null),
+      supabase.from('presences').select('employee_id, clock_in, clock_out, break_minutes_used')
+        .eq('establishment_id', estId).gte('date', from).lte('date', to),
     ])
 
     const employees = empRes.data ?? []
@@ -167,6 +172,7 @@ export async function GET(request: NextRequest) {
     const { data } = await supabase
       .from('lateness_records')
       .select('date, scheduled_time, actual_time, late_minutes, justified, notes, profiles:employee_id(full_name, email, position)')
+      .eq('establishment_id', estId)
       .gte('date', from)
       .lte('date', to)
       .order('date', { ascending: true })
@@ -194,6 +200,7 @@ export async function GET(request: NextRequest) {
     const { data } = await supabase
       .from('leave_requests')
       .select('type, start_date, end_date, status, profiles:employee_id(full_name, email)')
+      .eq('establishment_id', estId)
       .lte('start_date', to)
       .gte('end_date', from)
       .order('start_date', { ascending: true })
@@ -219,9 +226,12 @@ export async function GET(request: NextRequest) {
     const format = searchParams.get('format') ?? 'generique'
 
     const [empRes, shiftRes, leaveRes] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, weekly_hours').eq('role', 'employee').eq('archived', false).order('full_name'),
-      supabase.from('shifts').select('employee_id, date, start_time, end_time, break_minutes').gte('date', from).lte('date', to).is('deleted_at', null),
-      supabase.from('leave_requests').select('employee_id, type, start_date, end_date').eq('status', 'approved').lte('start_date', to).gte('end_date', from),
+      supabase.from('profiles').select('id, full_name, weekly_hours')
+        .eq('establishment_id', estId).eq('role', 'employee').eq('archived', false).order('full_name'),
+      supabase.from('shifts').select('employee_id, date, start_time, end_time, break_minutes')
+        .eq('establishment_id', estId).gte('date', from).lte('date', to).is('deleted_at', null),
+      supabase.from('leave_requests').select('employee_id, type, start_date, end_date')
+        .eq('establishment_id', estId).eq('status', 'approved').lte('start_date', to).gte('end_date', from),
     ])
 
     const employees = empRes.data ?? []
@@ -306,15 +316,14 @@ export async function GET(request: NextRequest) {
 
   // ── DSN mensuelle (NEODeS) — pré-remplie ──────────────────────────────────────
   if (type === 'dsn') {
-    const estId = profile.active_establishment_id ?? profile.establishment_id ?? ''
-
     const [setRes, empRes, shiftRes, leaveRes] = await Promise.all([
-      estId
-        ? supabase.from('settings').select('key, value').eq('establishment_id', estId)
-        : supabase.from('settings').select('key, value'),
-      supabase.from('profiles').select('id, full_name, weekly_hours').eq('role', 'employee').eq('archived', false).order('full_name'),
-      supabase.from('shifts').select('employee_id, start_time, end_time, break_minutes').gte('date', from).lte('date', to).is('deleted_at', null),
-      supabase.from('leave_requests').select('employee_id, type, start_date, end_date').eq('status', 'approved').lte('start_date', to).gte('end_date', from),
+      supabase.from('settings').select('key, value').eq('establishment_id', estId),
+      supabase.from('profiles').select('id, full_name, weekly_hours')
+        .eq('establishment_id', estId).eq('role', 'employee').eq('archived', false).order('full_name'),
+      supabase.from('shifts').select('employee_id, start_time, end_time, break_minutes')
+        .eq('establishment_id', estId).gte('date', from).lte('date', to).is('deleted_at', null),
+      supabase.from('leave_requests').select('employee_id, type, start_date, end_date')
+        .eq('establishment_id', estId).eq('status', 'approved').lte('start_date', to).gte('end_date', from),
     ])
 
     const settings: Record<string, string> = {}
@@ -326,7 +335,8 @@ export async function GET(request: NextRequest) {
     const empIds = employees.map(e => e.id)
 
     const contractRes = empIds.length
-      ? await supabase.from('contracts').select('employee_id, type, start_date, end_date, weekly_hours, hourly_rate').in('employee_id', empIds).order('start_date', { ascending: false })
+      ? await supabase.from('contracts').select('employee_id, type, start_date, end_date, weekly_hours, hourly_rate')
+        .eq('establishment_id', estId).in('employee_id', empIds).order('start_date', { ascending: false })
       : { data: [] as { employee_id: string; type: string; start_date: string; end_date: string | null; weekly_hours: number; hourly_rate: number | null }[] }
     // Contrat le plus récent par salarié.
     const latestContract = new Map<string, { type: string; start_date: string; end_date: string | null; weekly_hours: number; hourly_rate: number | null }>()

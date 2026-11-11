@@ -84,23 +84,32 @@ export async function PATCH(
 
     // État avant modif : nécessaire pour rafraîchir aussi la semaine/employé
     // d'origine si le shift change de jour ou d'employé.
-    const { data: before } = await supabase
+    const { data: before, error: lookupError } = await supabase
       .from('shifts')
       .select('employee_id, date')
       .eq('id', id)
       .eq('establishment_id', estId)
+      .is('deleted_at', null)
       .maybeSingle()
+    if (lookupError) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    if (!before) return NextResponse.json({ error: 'Créneau introuvable' }, { status: 404 })
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('shifts')
       .update(updateData)
       .eq('id', id)
       .eq('establishment_id', estId)
+      .is('deleted_at', null)
+      .select('id').maybeSingle()
 
     if (error) {
+      if (error.code === '42501') {
+        return NextResponse.json({ error: 'Employé ou poste indisponible dans cet établissement' }, { status: 400 })
+      }
       console.error('[shifts PATCH] error:', error)
       return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
     }
+    if (!updated) return NextResponse.json({ error: 'Créneau introuvable' }, { status: 404 })
 
     // Trace de conformité planning (non bloquant) : ancien et nouvel état.
     await syncTouchedWeeks(estId, [

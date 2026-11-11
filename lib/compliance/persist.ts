@@ -44,6 +44,7 @@ export async function syncPlanningConformity(opts: {
       supabaseAdmin
         .from('shifts')
         .select('id, employee_id, date, start_time, end_time, break_minutes')
+        .eq('establishment_id', establishmentId)
         .eq('employee_id', employeeId)
         .gte('date', monday)
         .lte('date', sunday)
@@ -52,6 +53,7 @@ export async function syncPlanningConformity(opts: {
         .from('profiles')
         .select('id, full_name, birth_date, contract_type, weekly_hours')
         .eq('id', employeeId)
+        .eq('establishment_id', establishmentId)
         .maybeSingle(),
       // Instantané précédent : pour ne notifier que les NOUVELLES infractions.
       supabaseAdmin
@@ -68,14 +70,14 @@ export async function syncPlanningConformity(opts: {
         .in('key', COMPLIANCE_SETTINGS_KEYS),
     ])
 
-    const employees: EmployeeMeta[] = profile
-      ? [{
-          id: profile.id,
-          birthDate: profile.birth_date ?? null,
-          contractType: profile.contract_type ?? null,
-          weeklyHours: profile.weekly_hours ?? null,
-        }]
-      : []
+    if (!profile) return
+
+    const employees: EmployeeMeta[] = [{
+      id: profile.id,
+      birthDate: profile.birth_date ?? null,
+      contractType: profile.contract_type ?? null,
+      weeklyHours: profile.weekly_hours ?? null,
+    }]
 
     const records: ShiftRecord[] = (shifts ?? []).map((s: {
       id: string; employee_id: string; date: string

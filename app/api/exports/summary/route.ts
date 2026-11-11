@@ -9,7 +9,9 @@ export const maxDuration = 30
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
-    await requireManager(supabase)
+    const { profile } = await requireManager(supabase)
+    const establishmentId = profile.active_establishment_id ?? profile.establishment_id
+    if (!establishmentId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 403 })
 
     const { searchParams } = new URL(request.url)
     const from = searchParams.get('from') ?? ''
@@ -17,10 +19,14 @@ export async function GET(request: NextRequest) {
     if (!from || !to) return NextResponse.json({ error: 'Paramètres from/to requis' }, { status: 400 })
 
     const [empRes, shiftRes, lateRes, absRes] = await Promise.all([
-      supabase.from('profiles').select('id, weekly_hours').eq('role', 'employee').eq('archived', false),
-      supabase.from('shifts').select('employee_id, date, start_time, end_time, break_minutes').gte('date', from).lte('date', to).is('deleted_at', null),
-      supabase.from('lateness_records').select('id', { count: 'exact', head: true }).gte('date', from).lte('date', to),
-      supabase.from('leave_requests').select('id', { count: 'exact', head: true }).eq('status', 'approved').lte('start_date', to).gte('end_date', from),
+      supabase.from('profiles').select('id, weekly_hours')
+        .eq('establishment_id', establishmentId).eq('role', 'employee').eq('archived', false),
+      supabase.from('shifts').select('employee_id, date, start_time, end_time, break_minutes')
+        .eq('establishment_id', establishmentId).gte('date', from).lte('date', to).is('deleted_at', null),
+      supabase.from('lateness_records').select('id', { count: 'exact', head: true })
+        .eq('establishment_id', establishmentId).gte('date', from).lte('date', to),
+      supabase.from('leave_requests').select('id', { count: 'exact', head: true })
+        .eq('establishment_id', establishmentId).eq('status', 'approved').lte('start_date', to).gte('end_date', from),
     ])
 
     const employees = empRes.data ?? []

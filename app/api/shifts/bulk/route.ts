@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const { profile } = await requireManager(supabase)
     const establishmentId = profile.active_establishment_id ?? profile.establishment_id
+    if (!establishmentId) return NextResponse.json({ error: 'Établissement introuvable' }, { status: 403 })
 
     const raw = await request.json().catch(() => null)
     const input = Array.isArray(raw?.shifts) ? raw.shifts : null
@@ -38,24 +39,26 @@ export async function POST(request: NextRequest) {
     const invalidCount = input.length - valid.length
     if (valid.length === 0) return NextResponse.json({ error: 'Aucun créneau valide' }, { status: 422 })
 
-    // Employés visibles pour ce manager (RLS scope l'établissement) : un
-    // employee_id d'un autre tenant renvoie null → créneau ignoré.
     const empIds = Array.from(new Set(valid.map(v => v.employee_id)))
-    const { data: emps } = await supabase.from('profiles').select('id').in('id', empIds)
-    const allowed = new Set((emps ?? []).map((e: { id: string }) => e.id))
+    const posteIds = Array.from(new Set(valid.flatMap(v => v.poste_id ? [v.poste_id] : [])))
 
-    // Créneaux déjà en base pour ces employés sur la plage de dates concernée :
-    // sert à détecter les chevauchements sans réinsérer un doublon.
     const dates = valid.map(v => v.date).sort()
-    const { data: existing } = await supabase
-      .from('shifts')
-      .select('employee_id, date, start_time, end_time')
-      .in('employee_id', empIds)
-      .gte('date', dates[0])
-      .lte('date', dates[dates.length - 1])
-      .is('deleted_at', null)
+    const [employees, postes, existing] = await Promise.all([
+      supabase.from('profiles').select('id').eq('establishment_id', establishmentId).in('id', empIds),
+      posteIds.length
+        ? supabase.from('postes').select('id').eq('establishment_id', establishmentId).in('id', posteIds)
+        : Promise.resolve({ data: [], error: null }),
+      supabase.from('shifts').select('employee_id, date, start_time, end_time')
+        .eq('establishment_id', establishmentId).in('employee_id', empIds)
+        .gte('date', dates[0]).lte('date', dates[dates.length - 1]).is('deleted_at', null),
+    ])
+    if (employees.error || postes.error || existing.error) {
+      return NextResponse.json({ error: 'Impossible de vérifier les créneaux de cet établissement' }, { status: 500 })
+    }
+    const allowedEmployees = new Set((employees.data ?? []).map(e => e.id))
+    const allowedPostes = new Set((postes.data ?? []).map(p => p.id))
     const existingByEmp = new Map<string, ShiftTimes[]>()
-    for (const e of (existing ?? []) as (ShiftTimes & { employee_id: string })[]) {
+    for (const e of (existing.data ?? []) as (ShiftTimes & { employee_id: string })[]) {
       const list = existingByEmp.get(e.employee_id) ?? []
       list.push(e)
       existingByEmp.set(e.employee_id, list)
@@ -67,11 +70,15 @@ export async function POST(request: NextRequest) {
     const toInsert: Record<string, unknown>[] = []
     let skipped = invalidCount
     for (const v of valid) {
-      if (!allowed.has(v.employee_id)) { skipped++; continue }
+      if (!allowedEmployees.has(v.employee_id) || (v.poste_id && !allowedPostes.has(v.poste_id))) {
+        skipped++
+        continue
+      }
       const ref = [...(existingByEmp.get(v.employee_id) ?? []), ...(acceptedByEmp.get(v.employee_id) ?? [])]
       if (overlapsAny(v, ref)) { skipped++; continue }
       toInsert.push({
         employee_id: v.employee_id,
+        establishment_id: establishmentId,
         date: v.date,
         start_time: v.start_time,
         end_time: v.end_time,
@@ -98,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     // UNE synchro de conformité par (employé, semaine ISO), pas par créneau.
     // Non bloquant (ne jette jamais, cf. persist.ts).
-    if (establishmentId && created > 0) {
+    if (created > 0) {
       const seen = new Set<string>()
       for (const s of toInsert) {
         const employeeId = s.employee_id as string
