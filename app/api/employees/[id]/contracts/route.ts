@@ -23,6 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       .from('contracts')
       .select('id, employee_id, type, start_date, end_date, weekly_hours, hourly_rate, monthly_gross_salary, classification, coefficient, has_mutuelle, has_meal_vouchers, meal_voucher_value, has_transport_reimbursement, job_title, work_location, cdd_reason, trial_period_days, notice_period_days, paid_leave_days, has_confidentiality, has_non_compete, notes, created_by, created_at')
       .eq('employee_id', params.id)
+      .eq('establishment_id', estId)
       .is('deleted_at', null)
       .order('start_date', { ascending: false })
     if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .from('contracts')
       .insert({
         employee_id: params.id,
+        establishment_id: estId,
         type: body.type,
         start_date: body.start_date,
         end_date: body.end_date ?? null,

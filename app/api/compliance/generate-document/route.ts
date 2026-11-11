@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireManager } from '@/lib/api-auth'
 import { getSubscription } from '@/lib/subscription'
 import { getPlanTier, isPro } from '@/lib/plan-guard'
@@ -28,9 +27,10 @@ export async function POST(req: NextRequest) {
   }
 
   const establishmentId = profile.active_establishment_id ?? profile.establishment_id
+  if (!establishmentId) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
   // ── Guard : fonctionnalité Pro uniquement ─────────────────────────
-  const sub  = await getSubscription(supabase, establishmentId ?? '')
+  const sub  = await getSubscription(supabase, establishmentId)
   const tier = getPlanTier(sub)
   if (!isPro(tier)) {
     return NextResponse.json(
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     employee_id,
     motif,
   }: {
-    alert_id: string
+    alert_id?: string
     document_type: DocumentType
     employee_id: string
     motif?: string
@@ -59,10 +59,12 @@ export async function POST(req: NextRequest) {
     { data: collectiveAgreementSetting },
     { data: establishmentSetting },
   ] = await Promise.all([
-    supabaseAdmin.from('profiles').select('full_name, position, email').eq('id', employee_id).single(),
-    supabaseAdmin.from('contracts').select('*').eq('employee_id', employee_id).order('created_at', { ascending: false }).limit(1),
-    supabaseAdmin.from('settings').select('value').eq('establishment_id', establishmentId).eq('key', 'collective_agreement').maybeSingle(),
-    supabaseAdmin.from('settings').select('value').eq('establishment_id', establishmentId).eq('key', 'establishment_name').maybeSingle(),
+    supabase.from('profiles').select('full_name, position, email')
+      .eq('id', employee_id).eq('establishment_id', establishmentId).maybeSingle(),
+    supabase.from('contracts').select('*')
+      .eq('employee_id', employee_id).eq('establishment_id', establishmentId).order('created_at', { ascending: false }).limit(1),
+    supabase.from('settings').select('value').eq('establishment_id', establishmentId).eq('key', 'collective_agreement').maybeSingle(),
+    supabase.from('settings').select('value').eq('establishment_id', establishmentId).eq('key', 'establishment_name').maybeSingle(),
   ])
 
   const employee = employeeData
@@ -194,10 +196,12 @@ IMPORTANT : Ne pas motiver la rupture au-delà du strict nécessaire. Mets [ENTR
 
     // Passer l'alerte en in_progress
     if (alert_id) {
-      await supabaseAdmin
+      await supabase
         .from('compliance_alerts')
         .update({ status: 'in_progress' })
         .eq('id', alert_id)
+        .eq('employee_id', employee_id)
+        .eq('establishment_id', establishmentId)
     }
 
     return NextResponse.json({ text, document_type })

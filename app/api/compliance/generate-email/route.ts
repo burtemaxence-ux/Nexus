@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireManager } from '@/lib/api-auth'
 import { getSubscription } from '@/lib/subscription'
 import { getPlanTier, isPro } from '@/lib/plan-guard'
@@ -19,9 +18,10 @@ export async function POST(req: NextRequest) {
   }
 
   const establishmentId = profile.active_establishment_id ?? profile.establishment_id
+  if (!establishmentId) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
   // ── Guard : fonctionnalité Pro uniquement ─────────────────────────
-  const sub  = await getSubscription(supabase, establishmentId ?? '')
+  const sub  = await getSubscription(supabase, establishmentId)
   const tier = getPlanTier(sub)
   if (!isPro(tier)) {
     return NextResponse.json(
@@ -39,13 +39,20 @@ export async function POST(req: NextRequest) {
     { data: contracts },
     { data: estSetting },
   ] = await Promise.all([
-    supabaseAdmin.from('compliance_alerts').select('type, level, message, options').eq('id', alert_id).single(),
-    supabaseAdmin.from('profiles').select('full_name, position').eq('id', employee_id).single(),
-    supabaseAdmin.from('contracts').select('type, weekly_hours, start_date, end_date, trial_period_days, hourly_rate').eq('employee_id', employee_id).order('created_at', { ascending: false }).limit(1),
-    supabaseAdmin.from('settings').select('value').eq('establishment_id', establishmentId).eq('key', 'establishment_name').maybeSingle(),
+    supabase.from('compliance_alerts').select('type, level, message, options')
+      .eq('id', alert_id).eq('employee_id', employee_id).eq('establishment_id', establishmentId).maybeSingle(),
+    supabase.from('profiles').select('full_name, position')
+      .eq('id', employee_id).eq('establishment_id', establishmentId).maybeSingle(),
+    supabase.from('contracts').select('type, weekly_hours, start_date, end_date, trial_period_days, hourly_rate')
+      .eq('employee_id', employee_id).eq('establishment_id', establishmentId).order('created_at', { ascending: false }).limit(1),
+    supabase.from('settings').select('value').eq('establishment_id', establishmentId).eq('key', 'establishment_name').maybeSingle(),
   ])
 
-  const fullName = employeeData?.full_name ?? 'Employé'
+  if (!alert || !employeeData) {
+    return NextResponse.json({ error: 'Alerte ou employé introuvable' }, { status: 404 })
+  }
+
+  const fullName = employeeData.full_name ?? 'Employé'
   const contract = contracts?.[0]
   const establishmentName = estSetting?.value ?? 'L\'établissement'
   const managerName = 'Le gérant'

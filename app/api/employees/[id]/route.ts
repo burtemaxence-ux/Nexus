@@ -33,7 +33,7 @@ export async function PATCH(
 
     const pinHash = pin ? await hashPin(pin) : undefined
 
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('profiles')
       .update({
         full_name, position, contract_type, weekly_hours, phone, pay_ref,
@@ -52,8 +52,11 @@ export async function PATCH(
         updated_at: new Date().toISOString(),
       })
       .eq('id', params.id)
+      .eq('establishment_id', estId)
+      .select('id').maybeSingle()
 
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+    if (!updated) return NextResponse.json({ error: 'Employé introuvable' }, { status: 404 })
     return NextResponse.json({ success: true })
   } catch (e) {
     if (e instanceof Response) return e as NextResponse
@@ -76,6 +79,7 @@ export async function DELETE(
       .select('id')
       .eq('id', params.id)
       .eq('establishment_id', estId)
+      .eq('role', 'employee')
       .single()
 
     if (!target) return NextResponse.json({ error: 'Employé introuvable' }, { status: 404 })
